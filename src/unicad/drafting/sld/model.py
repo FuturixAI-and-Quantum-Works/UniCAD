@@ -118,10 +118,24 @@ class Callout:
 
 @dataclass(frozen=True)
 class Frame:
+    """A group's dashed frame: `box`, or when the group is not one subtree, the rectilinear
+    `outline` loops (counter-clockwise) around its members, with `box` their bounds."""
+
     group_id: str
     box: Box
     labels: tuple[Label, ...]
     multiplicity: int
+    outline: tuple[tuple[Point, ...], ...] = ()
+
+
+@dataclass(frozen=True)
+class Stub:
+    """A short open conductor from a spare terminal (a further LV winding), with its note."""
+
+    node_id: str
+    pin: str
+    points: tuple[Point, ...]
+    labels: tuple[Label, ...]
 
 
 @dataclass(frozen=True)
@@ -166,7 +180,10 @@ class SldLayout:
     represented: tuple[tuple[str, str], ...]
     """(node id, how): 'symbol', 'busbar' or 'satellite' for every power node on the page."""
     extent: Box
+    stubs: tuple[Stub, ...] = ()
     warnings: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
+    """Cable remarks too long for a callout, in order: callouts refer to them as NOTE 1, 2, ..."""
 
     def texts(self) -> tuple[Label, ...]:
         out: list[Label] = []
@@ -178,6 +195,8 @@ class SldLayout:
             out += c.labels
         for f in self.frames:
             out += f.labels
+        for st in self.stubs:
+            out += st.labels
         return tuple(out)
 
     def legend_keys(self) -> tuple[str, ...]:

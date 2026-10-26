@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 
 from unicad.drafting.sheets.textmetrics import ADVANCE
@@ -12,8 +13,12 @@ _CONDENSED = 0.85
 _HEIGHT_STEPS = (1.0, 0.9, 0.8, 0.72, 0.65)
 
 
+_SPECIAL = re.compile(r"%%[dpcDPC]")
+
+
 def text_width(text: str, height: float, width_factor: float = 1.0) -> float:
-    return sum(ADVANCE.get(c, 1.0) for c in text) * height * width_factor * WIDTH_SAFETY
+    """%%d, %%p and %%c print as one glyph (degree, plus-minus, diameter)."""
+    return sum(ADVANCE.get(c, 1.0) for c in _SPECIAL.sub("O", text)) * height * width_factor * WIDTH_SAFETY
 
 
 def block_height(lines: int, height: float) -> float:

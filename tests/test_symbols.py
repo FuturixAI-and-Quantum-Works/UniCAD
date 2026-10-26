@@ -259,6 +259,17 @@ def test_insert_text_is_right_aligned_when_flipped_west():
     assert text.dxf.halign == 2
 
 
+def test_upright_insert_keeps_the_label_stack_right_of_a_turned_symbol():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    sym = REGISTRY["inv.string"]
+    insert(msp, "inv.string", (0, 0), rotation=180, values={"TAG": "INV-01", "RATING": "100 kVA"}, upright=True)
+    texts = {t.dxf.text: t for t in msp.query("TEXT")}
+    assert all(t.dxf.halign == 0 and t.dxf.insert.x > 0 for t in texts.values())
+    assert texts["INV-01"].dxf.insert.y > texts["100 kVA"].dxf.insert.y
+    tag = next(a for a in sym.attrs if a.tag == "TAG")
+    assert texts["INV-01"].dxf.insert.x == pytest.approx(tag.x - sym.width)
+
 @pytest.mark.parametrize("rotation", [0, 90, 180, 270])
 def test_pin_at_matches_cad_insert_transform(rotation):
     doc = ezdxf.new("R2018")

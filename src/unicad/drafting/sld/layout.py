@@ -16,6 +16,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from unicad.catalog.store import Catalog
+from unicad.domain.catalog import TransformerSpec
 from unicad.domain.network import (
     EARTH_PORT,
     KIND_SYMBOLS,
@@ -44,11 +45,13 @@ from unicad.drafting.sld.model import (
     SldLayout,
     SldOptions,
     SldPage,
+    Stub,
     Wire,
     WireKind,
     union_all,
 )
-from unicad.drafting.symbols import GRID, REGISTRY, PinKind, Side, SymbolDef, pin_at
+from unicad.drafting.sld.outline import inside, union_outline
+from unicad.drafting.symbols import GRID, REGISTRY, PinKind, Side, SymbolDef, pin_at, upright_attr
 
 BUS_KINDS = frozenset({NodeKind.BUSBAR, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL})
 _TERMINAL_KINDS = SOURCE_KINDS | {NodeKind.LOAD}
@@ -116,13 +119,15 @@ def _geom(key: str, rotation: float, values: tuple[tuple[str, str], ...]) -> _Ge
     sym = _symbol(key)
     corners = [_rot(x, y, rotation) for x, y in ((0, 0), (sym.width, 0), (sym.width, sym.height), (0, sym.height))]
     body = Box(min(c[0] for c in corners), min(c[1] for c in corners), max(c[0] for c in corners), max(c[1] for c in corners))
-    align: Align = "left" if math.cos(math.radians(rotation)) > -1e-9 else "right"
+    turned = round(rotation) % 360 == 180
+    align: Align = "left" if turned or math.cos(math.radians(rotation)) > -1e-9 else "right"
     given = dict(values)
     labels = []
     for a in sym.attrs:
         text = given.get(a.tag, a.default)
         if a.visible and text:
-            labels.append(label(text, _rot(a.x, a.y, rotation), a.height, align))
+            at = upright_attr(sym, a.x, a.y) if turned and not a.centred else _rot(a.x, a.y, rotation)
+            labels.append(label(text, at, a.height, "center" if a.centred else align))
     pins = {p.name: (pin_at(key, p.name, (0, 0), rotation), _side(p.side, rotation)) for p in sym.pins}
     return _Geom(key, rotation, values, body, labels, pins)
 
@@ -212,6 +217,7 @@ class _Rec:
     bus_labels: list[Label] = field(default_factory=list)
     child_dx: dict[str, float] = field(default_factory=dict)
     callout: tuple[str, ...] = ()
+    spares: list[tuple[str, tuple[Point, Point], Label]] = field(default_factory=list)
     x: float = 0.0
     y: float = 0.0
 
@@ -232,6 +238,9 @@ class _FrameRec:
     members: frozenset[str]
     i_top: int = 1
     i_bottom: int = 1
+    corner: bool = False
+    """The title fits in the free top-left corner inside the frame (else it goes below)."""
+    inside: bool = False
 
 
 class _Builder:
@@ -257,11 +266,13 @@ class _Builder:
             if not power:
                 self.control_only.append(n)
             key = None if n.kind in BUS_KINDS else (KIND_SYMBOLS[n.kind] if n.kind in _ARRAY_KINDS and not n.symbol else n.symbol_key(catalog))
+            key = _idt_key(n, catalog, net) or (KIND_SYMBOLS[n.kind] if n.kind is NodeKind.AUX_TRANSFORMER and not n.symbol else key)
             if key is None and n.kind not in BUS_KINDS:
                 raise LayoutError(f"node {n.id!r} ({n.kind}) has no symbol")
             self.recs[n.id] = _Rec(n, key)
         self.power_edges = [e for e in edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
         self.frames: list[_FrameRec] = []
+        self.loose: list[Group] = []
         self.sat_of: dict[str, str] = {}
 
     # ---------------------------------------------------------------- topology
@@ -392,6 +403,8 @@ class _Builder:
             texts = {"DESC": node.title or "", "SHEET": ""}
         else:
             texts = annotate.node_texts(self.net, node, self.catalog)
+            if key.startswith("tx.idt_") and not node.title and not node.spec:
+                texts["DESC"] = "INVERTER DUTY TRANSFORMER"
         return annotate.symbol_values(texts, tuple(a.tag for a in _symbol(key).attrs))
 
     def _ports(self, nid: str) -> tuple[set[str], set[str]]:
@@ -426,10 +439,11 @@ class _Builder:
             if not up and anchor is not None:
                 g = g.shifted(0, -g.body.y1)
             rec.geom = g
-            boxes = [g.body] + [lb.box for lb in g.labels]
+            rec.spares = self._spare_windings(nid, rec)
+            boxes = [g.body] + [lb.box for lb in g.labels] + [lb.box for _, _, lb in rec.spares]
             ext = union_all(boxes)
             if rec.earth:
-                ext = self._earth(rec, ext, right=rot == 180.0)
+                ext = self._earth(rec, ext)
             rec.ctrl_x = _ceil_grid(ext.x1 + STUB)
             cursor = rec.ctrl_x + STUB
             for s in rec.sats:
@@ -458,25 +472,27 @@ class _Builder:
             if any(s.kind == "control" for s in rec.sats):
                 ext = ext.union(Box(ext.x0, ext.y0, ext.x1, rec.ctrl_y + STUB / 2))
             rec.extent = ext
+        notes: dict[str, int] = {}
+        for rec in sorted((r for r in self.recs.values() if r.tree_edge), key=lambda r: self.order[r.tree_edge.id]):
+            text = annotate.remark(rec.tree_edge)
+            if text and annotate.is_long_remark(text):
+                notes.setdefault(text, len(notes) + 1)
+        self.notes = tuple(notes)
         for rec in self.recs.values():
-            lines = annotate.cable_callout(rec.tree_edge, self.catalog) if rec.tree_edge else ()
+            lines = annotate.cable_callout(rec.tree_edge, self.catalog, notes) if rec.tree_edge else ()
             if len(lines) > self.o.callout_lines:
                 lines = lines[: self.o.callout_lines - 1] + (", ".join(lines[self.o.callout_lines - 1 :]),)
             rec.callout = lines
 
-    def _earth(self, rec: _Rec, ext: Box, right: bool) -> Box:
+    def _earth(self, rec: _Rec, ext: Box) -> Box:
         g = rec.geom
         mid = (g.body.y0 + g.body.y1) / 2
         esym = _symbol(EARTH_SYMBOL)
         epin = esym.pins[0].name
         eg = _geom(EARTH_SYMBOL, 0.0, tuple((a.tag, "") for a in esym.attrs))
         px, py = eg.pins[epin][0]
-        if right:
-            x = ext.x1 + STUB + esym.width / 2
-            start = (g.body.x1, mid)
-        else:
-            x = ext.x0 - STUB - esym.width / 2
-            start = (g.body.x0, mid)
+        x = ext.x0 - STUB - esym.width / 2
+        start = (g.body.x0, mid)
         eg = eg.shifted(x - px, mid - STUB - py)
         rec.earth_geom = eg
         rec.earth_wire = (start, (x, mid), eg.pins[epin][0])
@@ -546,10 +562,9 @@ class _Builder:
             h = o.bus_label_height
             w = max(text_width(t, h) for t in lines)
             x0 = _floor_grid(min(x0, -w - 2 * STUB))
-            if rec.earth:
-                x1 += 2 * STUB
             rec.bus_x = (x0, x1)
-            ext = Box(x0, -15.0 if rec.earth else 0.0, x1 + (5.0 if rec.earth else 0.0), 0.0)
+            esym = _symbol(EARTH_SYMBOL)
+            ext = Box(x0, -esym.height if rec.earth else 0.0, x1 + (2 * STUB + esym.width / 2 if rec.earth else 0.0), 0.0)
             rec.extent = ext
         lo, hi = contour.get(lvl, (math.inf, -math.inf))
         contour[lvl] = (min(lo, rec.extent.x0), max(hi, rec.extent.x1))
@@ -589,9 +604,10 @@ class _Builder:
             if g.id in parent_groups:
                 continue
             members = self._members(g)
-            sub = sub if sub is not None else self._subtree_nodes(nid)
+            sub = sub if sub is not None else self._subtree_nodes(nid) - self.markers
             if not (sub <= members and members <= sub):
-                self.warnings.append(f"group {g.id!r} does not form one subtree on this sheet; drawn without a frame")
+                if g.id not in {x.id for x in self.loose}:
+                    self.loose.append(g)
                 continue
             lines = self._frame_lines(g)
             top = rec.rank
@@ -600,15 +616,16 @@ class _Builder:
             x1 = max(hi for _, hi in contour.values()) + o.frame_pad
             tw = max(text_width(t, o.frame_title_height) for t in lines)
             x1 = max(x1, x0 + tw + 2 * STUB)
+            corner = x0 + 2 * STUB + tw <= contour.get(2 * top, (math.inf, 0.0))[0]
             for lv in range(2 * top - 1, 2 * bottom + 1):
                 lo, hi = contour.get(lv, (x0, x1))
                 contour[lv] = (min(lo, x0), max(hi, x1))
-            self.frames.append(_FrameRec(g, nid, x0, x1, top, bottom, lines, frozenset(sub)))
+            self.frames.append(_FrameRec(g, nid, x0, x1, top, bottom, lines, frozenset(sub), corner=corner))
 
     def _frame_lines(self, g: Group) -> tuple[str, ...]:
         rng = annotate.group_label(self.net, g)
         head = f"{rng}  (x {g.count})" if g.count > 1 else rng
-        return (g.title.upper(), head) if g.title else (head,)
+        return (annotate.prose(g.title), head) if g.title else (head,)
 
     def place_x(self) -> None:
         o = self.o
@@ -672,6 +689,7 @@ class _Builder:
         for f in self.frames:
             top_n[f.top] = max(top_n[f.top], f.i_top)
             bot_n[f.bottom] = max(bot_n[f.bottom], f.i_bottom)
+        title_h = 2 * tpitch + 1.0
         self.band_top: dict[int, float] = {}
         self.pin_y: dict[int, float] = {}
         self.jog_y: dict[int, float] = {}
@@ -693,7 +711,11 @@ class _Builder:
             self.band_top[r] = y
             self.pin_y[r] = _floor_grid(y - above[r])
             self.items_bottom[r] = self.pin_y[r] - below[r]
-            y = self.items_bottom[r] - bot_n[r] * (o.frame_pad + 2 * tpitch + 1.0)
+            for f in self.frames:
+                if f.top == r:
+                    f.inside = f.corner and self.band_top[r] + self.tap_h[r] - self.items_bottom[r] >= title_h + STUB
+            titled = sum(1 for f in self.frames if f.bottom == r and not f.inside)
+            y = self.items_bottom[r] - bot_n[r] * o.frame_pad - titled * title_h
         self.tpitch = tpitch
         for nid, rec in self.recs.items():
             if nid not in self.sat_of:
@@ -763,8 +785,8 @@ class _Builder:
                 esym = _symbol(EARTH_SYMBOL)
                 eg = _geom(EARTH_SYMBOL, 0.0, tuple((a.tag, "") for a in esym.attrs))
                 px, py = eg.pins[esym.pins[0].name][0]
-                ex = rec.bus_x[1]
-                eg = eg.shifted(ex - px, -2 * STUB - py)
+                ex = rec.bus_x[1] + 2 * STUB
+                eg = eg.shifted(ex - px, -py)
                 rec.earth_geom = eg
                 symbols.append(self._placed(f"{nid}~pe", None, eg, rec, "earth"))
                 pin = self._abs(rec, eg.pins[esym.pins[0].name][0])
@@ -831,6 +853,7 @@ class _Builder:
                     hpin, spin = spin, hpin
                 wires.append(Wire(e.id, _kind(e), _clean(pts), hpin, spin))
                 drawn_edges.add(e.id)
+        stubs = self._stubs()
         frames = self._emit_frames()
         bodies = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
         bodies += [lb.box for x in (*busbars, *callouts, *frames) for lb in x.labels]
@@ -850,11 +873,13 @@ class _Builder:
             sb = self._side_of(e.dst_node, e.dst_port) if not self.recs[e.dst_node].is_bus else Side.S
             pts = self._route(a, sa, b, sb, bodies)
             wires.append(Wire(e.id, _kind(e), _clean(list(pts)), a, b))
+        frames += self._loose_frames(symbols, busbars, wires, callouts, frames)
         junctions = _junctions(wires)
         boxes = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
         boxes += [Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5) for b in busbars] + [lb.box for b in busbars for lb in b.labels]
         boxes += [lb.box for c in callouts for lb in c.labels] + [f.box for f in frames] + [lb.box for f in frames for lb in f.labels]
         boxes += [Box(min(p[0] for p in w.points), min(p[1] for p in w.points), max(p[0] for p in w.points), max(p[1] for p in w.points)) for w in wires]
+        boxes += [lb.box for st in stubs for lb in st.labels]
         extent = union_all(boxes) if boxes else Box(0, 0, 1, 1)
         offsheets = tuple(
             OffSheet(e.id, e.dst_node if e.src_node.startswith(MARKER_PREFIX) else e.src_node, e.src_node if e.src_node.startswith(MARKER_PREFIX) else e.dst_node)
@@ -871,8 +896,36 @@ class _Builder:
             offsheets=offsheets,
             represented=tuple(represented),
             extent=extent,
+            stubs=stubs,
             warnings=tuple(self.warnings),
+            notes=self.notes,
         )
+
+    def _spare_windings(self, nid: str, rec: _Rec) -> list[tuple[str, tuple[Point, Point], Label]]:
+        """Spare LV windings of an inverter-duty transformer, relative to its insertion point: the
+        drawn branch hangs off the first; each further one gets a stub naming the instance it feeds."""
+        if not rec.key.startswith("tx.idt_"):
+            return []
+        h = self.o.callout_height
+        used = set(rec.mapping.values())
+        spare = [p for p in _symbol(rec.key).pins if p.side is Side.S and p.name not in used]
+        group = next((self.net.group_by_id[self.recs[c].node.group] for c in rec.children
+                      if self.recs[c].node.group not in (None, rec.node.group)), None)
+        out = []
+        for i, p in enumerate(spare, start=2):
+            depth = group.tag.count("{") if group is not None and group.count == len(spare) + 1 else 0
+            text = f"LV{i} TO {group.tag.format(*([1] * (depth - 1) + [i]))}" if depth else f"LV{i} AS LV1"
+            at = rec.geom.pins[p.name][0]
+            end = (at[0], at[1] - STUB)
+            out.append((p.name, (at, end), label(text, (end[0] + 1.0, end[1] - h / 2 - 0.5), h)))
+        return out
+
+    def _stubs(self) -> tuple[Stub, ...]:
+        out = []
+        for nid, rec in self.recs.items():
+            for pin, (a, b), lb in rec.spares:
+                out.append(Stub(nid, pin, (self._abs(rec, a), self._abs(rec, b)), (label(lb.text, self._abs(rec, lb.at), lb.height),)))
+        return tuple(out)
 
     def _bus_ref(self, nid: str, other: PinRef | None) -> PinRef | None:
         rec = self.recs[nid]
@@ -912,6 +965,85 @@ class _Builder:
 
         return tuple(min(cands, key=cost))
 
+    def _loose_frames(self, symbols, busbars, wires, callouts, frames) -> list[Frame]:
+        """A rectilinear outline around the members of each group that is not one subtree here."""
+        o = self.o
+        out: list[Frame] = []
+        h = o.frame_title_height
+        pitch = LINE_PITCH * h
+        for g in self.loose:
+            members = self._members(g)
+            if not members:
+                continue
+            rows: dict[int, list[Box]] = defaultdict(list)
+            for sym in symbols:
+                owner = sym.node_id or sym.id.split("~")[0]
+                if owner in members:
+                    rows[self.recs[self.sat_of.get(owner, owner)].rank].append(union_all([sym.body, *(lb.box for lb in sym.labels)]))
+            for b in busbars:
+                if b.node_id in members:
+                    rows[self.recs[b.node_id].rank].append(union_all([Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5), *(lb.box for lb in b.labels)]))
+            pad = o.frame_pad
+            band = {r: union_all(bs) for r, bs in rows.items()}
+            others = [x.body for x in symbols if (x.node_id or x.id.split("~")[0]) not in members]
+            others += [lb.box for x in symbols if (x.node_id or x.id.split("~")[0]) not in members for lb in x.labels]
+            others += [lb.box for x in (*callouts, *frames) for lb in x.labels]
+            others += [lb.box for b in busbars if b.node_id not in members for lb in b.labels]
+            grown = [_grow_clear(b, pad, others) for b in band.values()]
+            ranks = sorted(band)
+            for r1, r2 in zip(ranks, ranks[1:]):
+                a, b = band[r1], band[r2]
+                x0, x1 = max(a.x0, b.x0), min(a.x1, b.x1)
+                if x0 < x1:
+                    grown.append(Box(_floor_grid(x0 - pad), b.y1, _ceil_grid(x1 + pad), a.y0))
+                    continue
+                for w in wires:
+                    ends = {w.start.owner if w.start else None, w.end.owner if w.end else None}
+                    if ends <= members:
+                        grown += [Box(min(p[0], q[0]) - pad, min(p[1], q[1]), max(p[0], q[0]) + pad, max(p[1], q[1]))
+                                  for p, q in zip(w.points, w.points[1:]) if b.y1 - 1e-6 <= min(p[1], q[1]) and max(p[1], q[1]) <= a.y0 + 1e-6]
+            loops = union_outline(_square_off(grown, 2 * pad, others))
+            outsiders = [s.body for s in symbols if s.node_id is not None and s.node_id not in members]
+            if any(inside(loops, ((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2)) for b in outsiders):
+                self.warnings.append(f"group {g.id!r}: its outline would take in other equipment; drawn without a frame")
+                continue
+            box = union_all(grown)
+            if any(b.overlaps(f.box) for b in grown for f in frames):
+                self.warnings.append(f"group {g.id!r}: its outline would cross another frame; drawn without a frame")
+                continue
+            lines = self._frame_lines(g)
+            obstacles = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
+            obstacles += [Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5) for b in busbars] + [lb.box for b in busbars for lb in b.labels]
+            obstacles += [lb.box for x in (*callouts, *frames, *out) for lb in x.labels]
+            obstacles += [Box(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1])) for w in wires for a, b in zip(w.points, w.points[1:])]
+            obstacles += [e for f in (*frames, *out, Frame(g.id, box, (), g.count, loops)) for e in _edges_of(f)]
+            labels = self._place_title(lines, loops, obstacles, h, pitch)
+            if labels is None:
+                self.warnings.append(f"group {g.id!r}: no free place for the frame title; outline drawn untitled")
+                labels = ()
+            out.append(Frame(g.id, Box(round(box.x0, 6), round(box.y0, 6), round(box.x1, 6), round(box.y1, 6)), labels, g.count, loops))
+        return out
+
+    def _place_title(self, lines, loops, obstacles, h, pitch):
+        tops = sorted(
+            ((a[1], min(a[0], b[0]), max(a[0], b[0])) for loop in loops for a, b in zip(loop, loop[1:] + loop[:1]) if a[1] == b[1] and b[0] < a[0]),
+            key=lambda t: (-t[0], t[1]),
+        )
+        bottoms = sorted(
+            ((a[1], min(a[0], b[0]), max(a[0], b[0])) for loop in loops for a, b in zip(loop, loop[1:] + loop[:1]) if a[1] == b[1] and b[0] > a[0]),
+            key=lambda t: (t[0], t[1]),
+        )
+        cands: list[tuple[float, float]] = []
+        for y, x0, _ in tops:
+            cands += [(x0 + STUB, y - STUB / 2), (x0 + STUB, y + 1.0 + len(lines) * pitch)]
+        for y, x0, _ in bottoms:
+            cands.append((x0 + STUB, y - 1.0))
+        for x, top in cands:
+            labels = tuple(label(t, (x, top - (i + 0.5) * pitch), h) for i, t in enumerate(lines))
+            if not any(lb.box.overlaps(ob) for lb in labels for ob in obstacles):
+                return labels
+        return None
+
     def _emit_frames(self) -> list[Frame]:
         o = self.o
         out = []
@@ -919,14 +1051,40 @@ class _Builder:
             root = self.recs[f.root]
             x0, x1 = root.x + f.x0, root.x + f.x1
             y1 = self.band_top[f.top] + self.tap_h[f.top] + f.i_top * o.frame_pad
-            y0 = self.items_bottom[f.bottom] - f.i_bottom * o.frame_pad - (f.i_bottom - 1) * (2 * self.tpitch + 1.0)
+            below = sum(1 for g in self.frames if g is not f and g.bottom == f.bottom and g.members <= f.members and not g.inside)
+            y0 = self.items_bottom[f.bottom] - f.i_bottom * o.frame_pad - below * (2 * self.tpitch + 1.0)
             h = o.frame_title_height
-            labels = tuple(label(t, (x0 + STUB, y0 - 1.0 - (i + 0.5) * self.tpitch), h) for i, t in enumerate(f.lines))
+            top = y1 - STUB / 2 if f.inside else y0 - 1.0
+            labels = tuple(label(t, (x0 + STUB, top - (i + 0.5) * self.tpitch), h) for i, t in enumerate(f.lines))
             out.append(Frame(f.group.id, Box(round(x0, 6), round(y0, 6), round(x1, 6), round(y1, 6)), labels, f.group.count))
         return out
 
 
 MARKER_PREFIX = "off."
+
+
+def lv_windings(node: Node, catalog: Catalog | None, net: ElectricalNetwork) -> int:
+    """LV windings of a transformer: from its catalog spec, else its `lv_kv` / `windings`
+    attributes, else the number of inverter instances its LV side feeds per transformer."""
+    spec = catalog.get(node.spec) if node.spec and catalog is not None else None
+    if isinstance(spec, TransformerSpec):
+        return len(spec.lv_kv)
+    a = node.attributes or {}
+    if isinstance(a.get("lv_kv"), str):
+        return len(a["lv_kv"].split("-"))
+    if isinstance(a.get("windings"), int):
+        return a["windings"] - 1
+    others = {e.dst_node if e.src_node == node.id else e.src_node for e in net.edges
+              if e.is_power and f"{node.id}:lv" in (e.src, e.dst)}
+    inverters = sum(net.instance_count(o) for o in others if net.node(o).kind in (NodeKind.INVERTER, NodeKind.PCS))
+    return max(1, inverters // net.instance_count(node.id))
+
+
+def _idt_key(node: Node, catalog: Catalog | None, net: ElectricalNetwork) -> str | None:
+    if node.kind is not NodeKind.TRANSFORMER or node.symbol:
+        return None
+    key = f"tx.idt_{lv_windings(node, catalog, net)}lv"
+    return key if key in REGISTRY else None
 
 
 def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[str]:
@@ -983,6 +1141,41 @@ def _markers(net: ElectricalNetwork, keep: frozenset[str], cut: list[Edge]) -> t
         update = {"dst": f"{mid}:{port}"} if inside_src else {"src": f"{mid}:{port}"}
         swap[e.id] = e.model_copy(update=update)
     return markers, [swap.get(e.id, e) for e in net.edges if e.id in swap or (e.src_node in keep and e.dst_node in keep)]
+
+
+def _square_off(boxes: list[Box], tol: float, obstacles: list[Box]) -> list[Box]:
+    """Line up box edges that nearly coincide, so the outline has no small notches."""
+    out = list(boxes)
+    for lo in (True, False):
+        edges = sorted({b.x0 if lo else b.x1 for b in out}, reverse=not lo)
+        for e in edges:
+            target = e
+            for i, b in enumerate(out):
+                v = b.x0 if lo else b.x1
+                if v != target and abs(v - target) < tol:
+                    wider = Box(target, b.y0, b.x1, b.y1) if lo else Box(b.x0, b.y0, target, b.y1)
+                    if not any(wider.overlaps(ob) for ob in obstacles):
+                        out[i] = wider
+    return out
+
+
+def _grow_clear(b: Box, pad: float, obstacles: list[Box]) -> Box:
+    """`b` grown by up to `pad` on each side, less where the margin would run into an obstacle."""
+    steps = (pad, pad * 2 / 3, pad / 2, pad / 3, 0.5)
+
+    def side(make) -> float:
+        return next((p for p in steps if not any(make(p).overlaps(ob) for ob in obstacles)), steps[-1])
+
+    left = side(lambda p: Box(b.x0 - p, b.y0, b.x0, b.y1))
+    right = side(lambda p: Box(b.x1, b.y0, b.x1 + p, b.y1))
+    down = side(lambda p: Box(b.x0 - left, b.y0 - p, b.x1 + right, b.y0))
+    up = side(lambda p: Box(b.x0 - left, b.y1, b.x1 + right, b.y1 + p))
+    return Box(b.x0 - left, b.y0 - down, b.x1 + right, b.y1 + up)
+
+
+def _edges_of(f: Frame) -> list[Box]:
+    loops = f.outline or ((( f.box.x0, f.box.y0), (f.box.x1, f.box.y0), (f.box.x1, f.box.y1), (f.box.x0, f.box.y1)),)
+    return [Box(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1])) for loop in loops for a, b in zip(loop, loop[1:] + loop[:1])]
 
 
 def _snap(v: float) -> float:

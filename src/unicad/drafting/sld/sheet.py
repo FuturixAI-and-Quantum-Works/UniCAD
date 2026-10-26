@@ -30,8 +30,8 @@ from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
 
 NOTES = (
-    "REPEATED EQUIPMENT GROUPS ARE DRAWN ONCE INSIDE A DASHED FRAME; (x N) GIVES THE NUMBER OF IDENTICAL INSTANCES.",
-    "CABLE CALLOUTS READ: RUNS x CORES x SIZE, CONDUCTOR, INSULATION, ARMOUR / VOLTAGE GRADE, LAYING, LENGTH.",
+    "REPEATED GROUPS ARE DRAWN ONCE IN A DASHED FRAME; (x N) IS THE NUMBER OF IDENTICAL INSTANCES.",
+    "CABLE CALLOUTS: RUNS x CORES x SIZE, CONDUCTOR, INSULATION, ARMOUR, VOLTAGE GRADE, LAYING, LENGTH.",
 )
 
 
@@ -78,10 +78,10 @@ def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catal
     location = ", ".join(p for p in (site.name, site.address, site.state) if p)
     index = [s.id for s in project.sheets].index(sheet.id) + 1 if sheet in project.sheets else 1
     tb = TitleBlockData(
-        client=project.client.name.upper(),
-        project_title=project.name.upper(),
-        location=location.upper(),
-        drawing_title=sheet.title.upper(),
+        client=annotate.prose(project.client.name),
+        project_title=annotate.prose(project.name),
+        location=annotate.prose(location),
+        drawing_title=annotate.prose(sheet.title),
         drawing_number=sheet.number,
         revision=latest.rev if latest else "00",
         scale=sheet.scale,
@@ -95,12 +95,12 @@ def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catal
         issued_for=issued,
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
-    notes = NOTES + tuple(f"ASSUMPTION: {a.upper()}" for a in project.design_basis.assumptions)
+    notes = layout.notes + NOTES + annotate.assumption_notes(project)
     return SheetSpec(
         paper=paper,
         title_block=tb,
         revisions=tuple(
-            Revision(rev=r.rev, date=r.date, description=r.remarks.upper(), by=r.drawn or "", checked=r.checked or "",
+            Revision(rev=r.rev, date=r.date, description=annotate.prose(r.remarks), by=r.drawn or "", checked=r.checked or "",
                      approved=r.approved or "")
             for r in revs
         ),

@@ -13,6 +13,7 @@ from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld import SldOptions, layout_sld, plan_pages, render_sld
 from unicad.drafting.sld.model import Box, WireKind
+from unicad.drafting.sld.outline import inside as in_outline
 from unicad.drafting.sld.sheet import dxf_text
 from unicad.store import parse_project
 
@@ -111,7 +112,11 @@ def test_every_power_node_is_drawn_exactly_once_and_groups_are_compressed(layout
         assert len(ids) < len(p.network.expand().nodes)
     util = layouts["utility_50mwac"]
     titles = {f.group_id: " ".join(lb.text for lb in f.labels) for f in util.frames}
-    assert set(titles) == {"block", "inv_sec", "scb_sec"}
+    assert set(titles) == {"block", "inv_sec", "scb_sec", "mvsb"}
+    mvsb = next(f for f in util.frames if f.group_id == "mvsb")
+    assert mvsb.outline and all(len(loop) >= 4 for loop in mvsb.outline)
+    assert all(a[0] == b[0] or a[1] == b[1] for loop in mvsb.outline for a, b in zip(loop, loop[1:] + loop[:1]))
+    assert "33 kV MAIN HT SWITCHBOARD PANEL" in titles["mvsb"]
     assert "BLOCK-01..BLOCK-06  (x 6)" in titles["block"]
     assert "(x 15)" in titles["scb_sec"]
     roof = layouts["rooftop_500kwp"]
@@ -148,17 +153,26 @@ def test_frames_enclose_their_members_and_nothing_else(layouts, projects):
                 if s.node_id is None:
                     continue
                 member = inside(net.node(s.node_id).group)
-                within = fr.box.x0 <= s.body.x0 and s.body.x1 <= fr.box.x1 and fr.box.y0 <= s.body.y0 and s.body.y1 <= fr.box.y1
+                b = s.body
+                if fr.outline:
+                    within = all(in_outline(fr.outline, p) for p in ((b.x0, b.y0), (b.x1, b.y0), (b.x1, b.y1), (b.x0, b.y1)))
+                else:
+                    within = fr.box.x0 <= b.x0 and b.x1 <= fr.box.x1 and fr.box.y0 <= b.y0 and b.y1 <= fr.box.y1
                 assert member == within, (fr.group_id, s.node_id)
 
 
 def test_annotations_come_from_the_catalog_and_project(layouts, projects, catalog):
     roof = layouts["rooftop_500kwp"]
     vals = {s.node_id: dict(s.values) for s in roof.symbols if s.node_id}
-    assert vals["inv"]["RATING"] == "100 kVA, 400 V AC, 3 PH"
+    inv = catalog.get(projects["rooftop_500kwp"].network.node("inv").spec)
+    assert vals["inv"]["RATING"] == f"{inv.ac_rated_kva:g} kVA, {inv.ac_voltage:g} V AC, {inv.phases} PH"
     assert vals["inv"]["TAG"] == "INV-01"
-    assert vals["inv_mccb"]["RATING"] == "160 A, 4P, 25 kA, 415 V"
-    assert vals["str"]["RATING"] == "18 x 555 Wp = 9.99 kWp"
+    net = projects["rooftop_500kwp"].network
+    mccb = catalog.get(net.node("inv_mccb").spec)
+    assert vals["inv_mccb"]["RATING"] == f"{mccb.rated_current:g} A, {mccb.poles}P, {mccb.breaking_capacity_ka:g} kA, {mccb.rated_voltage:g} V"
+    module = catalog.get(net.node("str").spec)
+    n = net.node("str").modules_in_series
+    assert vals["str"]["RATING"] == f"{n} x {module.pmax:g} Wp = {n * module.pmax / 1000:g} kWp"
     assert vals["str"]["COUNT"] == "x 10 NOS"
     callouts = {c.edge_id: [lb.text for lb in c.labels] for c in roof.callouts}
     assert callouts["e_acb_ct"][0] == "3R x 1C x 400 sq.mm Al XLPE ARM"
@@ -274,3 +288,48 @@ def test_dxf_bytes_do_not_depend_on_the_hash_seed(tmp_path):
         assert done.returncode == 0, done.stderr
         digests.add(done.stdout.strip())
     assert len(digests) == 1
+
+
+def test_busbar_carries_its_rating_from_node_attributes(catalog):
+    import json
+
+    data = json.loads((ROOT / "fixtures" / "projects" / "utility_50mwac.json").read_text(encoding="utf-8"))
+    bus = next(n for n in data["network"]["nodes"] if n["id"] == "mv_bus")
+    bus["attributes"] = {"rated_current_a": 1250, "short_time_ka": 25, "short_time_s": 1, "material": "Al"}
+    p = parse_project(json.dumps(data), catalog)
+    lay = layout_sld(p.network, catalog)
+    labels = [lb.text for b in lay.busbars if b.node_id == "mv_bus" for lb in b.labels]
+    assert labels[1] == "33 kV, 1250 A, 25 kA 1 s, AL BUSBAR"
+
+
+def test_inverter_duty_transformer_uses_one_lv_pin_per_winding(layouts):
+    util = layouts["utility_50mwac"]
+    idt = next(s for s in util.symbols if s.node_id == "idt")
+    assert idt.key == "tx.idt_2lv"
+    assert {p.pin for p in idt.pins} == {"hv", "lv1", "lv2"}
+    ends = {(w.end.owner, w.end.pin) for w in util.wires if w.end} | {(w.start.owner, w.start.pin) for w in util.wires if w.start}
+    assert ("idt", "lv1") in ends and ("idt", "hv") in ends
+    spare = [st for st in util.stubs if st.node_id == "idt"]
+    assert [st.pin for st in spare] == ["lv2"] and spare[0].labels[0].text == "LV2 TO PCU-01-2"
+
+
+def test_turned_symbols_keep_tag_on_top_and_text_on_the_right(layouts):
+    for name, lay in layouts.items():
+        for s in lay.symbols:
+            if s.role != "node" or round(s.rotation) % 360 != 180 or len(s.labels) < 2:
+                continue
+            tag = dict(s.values)["TAG"]
+            assert s.labels[0].text.startswith(tag), (name, s.id)
+            assert s.labels[0].at[1] > s.labels[-1].at[1], (name, s.id)
+            assert all(lb.align == "left" and lb.box.x0 >= s.body.x1 for lb in s.labels), (name, s.id)
+
+
+def test_notes_are_engineer_worded(projects, catalog, profile):
+    doc, _ = render_sld(projects["rooftop_500kwp"], "sld", profile, catalog)
+    joined = " ".join(e.dxf.text for e in doc.modelspace().query("TEXT"))
+    assert "_" not in joined
+    assert "MINIMUM AMBIENT TEMPERATURE 10 %%dC" in joined
+    assert "DC VOLTAGE DROP LIMIT 2 %" in joined
+    roof = layout_sld(projects["rooftop_500kwp"].network, catalog)
+    callouts = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in roof.callouts}
+    assert "SEE NOTE 1" in callouts["e_str"] and roof.notes[0].startswith("DERATING 1.0")
