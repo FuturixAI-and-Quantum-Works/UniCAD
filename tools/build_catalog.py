@@ -310,9 +310,11 @@ def import_transformers(b: Build) -> None:
     b.notes.append(
         "Inverter-duty transformers: not catalogued. The only citable %Z are two BHEL purchase specifications "
         "(2.7 MVA 33 kV 6.25 %, 5.5 MVA 33 kV 7 %, see idt_impedance_citations.csv). Both give the LV voltage as a range set per inverter "
-        "(340-410 V, 500-700 V), and TransformerSpec needs a single lv_kv. No standard %Z ladder for 1.6-12.5 MVA was found."
+        "(340-410 V, 500-700 V), and TransformerSpec needs a single lv_kv. No standard %Z ladder for 1.6-12.5 MVA was found, and no purchaser "
+        "specification with one stated LV voltage could be downloaded (SECI tender documents returned HTTP 500). A project that needs an IDT carries "
+        "an inline TransformerSpec on the node and records in design_basis.assumptions which cited values it borrowed."
     )
-    ratings_33kv_min = 100
+    ratings_33kv_min = 16
     for line, r in read_csv("transformer_is1180_ratings_losses.csv"):
         if r["phase"] != "3":
             b.skip("transformer", f"transformer_is1180_ratings_losses.csv row {line}", "single-phase rating: TransformerSpec is three-phase")
@@ -326,7 +328,7 @@ def import_transformers(b: Build) -> None:
                 id=slug("is1180", f"{hv}kv", f"{kva:g}kva", "dyn11"), manufacturer="Generic (IS 1180)",
                 model=f"{kva:g} kVA {hv}/0.433 kV",
                 source=source("standard", IS1180_PDF, "transformer_is1180_ratings_losses.csv", line, r["pdf_page"],
-                              "Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation"),
+                              "Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class ratings from 16 kVA per IS 1180-1 Amd 4 Table 1 (raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.1)"),
                 rated_kva=kva, hv_kv=hv, lv_kv=(0.433,), vector_group="Dyn11", impedance_pct=float(r["impedance_pct"]),
                 cooling="ONAN", standard="IS 1180 (Part 1):2014",
             )
@@ -452,6 +454,30 @@ def import_cables(b: Build) -> None:
         )
 
 
+def import_ht_cables(b: Build) -> None:
+    code = {("al", 1): "A2XFaY/A2XWaY", ("cu", 1): "2XFaY/2XWaY", ("al", 3): "A2XFY/A2XWY", ("cu", 3): "2XFY/2XWY"}
+    arrangement = "ampacity_air/ground/duct are a circuit of three single-core cables" 
+    for line, r in read_csv("havells_ht_cables.csv"):
+        size = float(r["size_mm2"])
+        cores = int(r["cores"])
+        if size < 50 or (cores == 3 and size > 400) or size > 630:
+            continue
+        depth = "1050 mm" if r["voltage_grade"] == "19/33 kV" else "900 mm"
+        for material in ("al", "cu"):
+            b.add(
+                "cable", f"havells_ht_cables.csv row {line} ({r['voltage_grade']} {cores}C {r['size_mm2']} mm2 {material})", CableSpec,
+                id=slug("havells-ht-xlpe", material, f"{cores}c", r["size_mm2"], r["voltage_grade"].replace(" kV", "kv").replace("6.35/11", "11").replace("19/33", "33"), "arm"),
+                manufacturer="Havells", model=f"{code[(material, cores)]} {r['voltage_grade']} {cores}C {r['size_mm2']} sq.mm",
+                source=source("catalog", "raw/datasheets/cables/Havells_Industrial_Cables_Range_Catalogue.pdf", "havells_ht_cables.csv", line, r["pdf_page"],
+                              f"IS 7098 Part-2 XLPE, earthed grade, Table {r['table']}; R is the approximate AC resistance at 90 C; X at 50 Hz; "
+                              f"ground 30 C / air 40 C / soil 150 C.cm/W, laid at {depth}; round-wire and flat-strip armour share one rating"
+                              + (f"; {arrangement}" if cores == 1 else "")),
+                service="mv_ac", conductor=material, cores=cores, size_mm2=size, insulation="xlpe", armoured=True,
+                voltage_grade=r["voltage_grade"], ampacity_air=num(r[f"{material}_air_a"]), ampacity_ground=num(r[f"{material}_ground_a"]),
+                ampacity_duct=num(r[f"{material}_duct_a"]), r_ohm_per_km_90c=num(r[f"r_ac90_{material}"]), x_ohm_per_km=num(r["x_ohm_km"]),
+            )
+
+
 def import_protection(b: Build) -> None:
     ladders = json.loads((EXTRACTED / "protection_ladders.json").read_text())
     ref_base = f"{EXTRACTED_REL}/protection_ladders.json"
@@ -556,7 +582,7 @@ def import_protection(b: Build) -> None:
         accuracy_class=" + ".join(f"{c['class']} ({c['burden_va']} VA, {c['use']})" for c in ct["cores"]),
         short_time_withstand_ka=ct["short_time_ka_3s"], short_time_duration_s=3,
     )
-    b.notes.append("33 kV PT, LV-side CT/PT and a 36 kV manufacturer RMU: no citable text-extractable source was found, so none are catalogued.")
+    b.notes.append("LV-side CT/PT and a 36 kV manufacturer RMU: no citable text-extractable source was found, so none are catalogued.")
 
     la = ladders["la_30kv"]
     b.add(
@@ -575,6 +601,83 @@ def import_protection(b: Build) -> None:
             source=src(spd, extra="3 varistor modules (+, -, PE) per catalogue page 12"),
             device="spd_dc", rated_voltage=v["ucpv_vdc"], poles=3, spd_type="2",
         )
+
+
+def import_switchgear(b: Build) -> None:
+    ot_pdf = "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf"
+    for line, r in read_csv("abb_ot_switch_disconnectors.csv"):
+        icw = num(r["icw_1s_ka"])
+        extra = (
+            "AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; "
+            "the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity"
+            + (f"; Icw 1 s from the technical-data tables on pdf p.{r['icw_pdf_page']}" if icw else "; short-time withstand not read: the large-frame table columns are ambiguous in the text layer")
+        )
+        b.add(
+            "protection", f"abb_ot_switch_disconnectors.csv row {line}", ProtectionSpec,
+            id=slug("abb", r["type"]), manufacturer="ABB", model=f"{r['type']} switch-disconnector {r['poles']}P",
+            source=source("catalog", ot_pdf, "abb_ot_switch_disconnectors.csv", line, r["pdf_page"], extra),
+            device="ac_isolator", rated_current=num(r["ac22a_a"]), rated_voltage=415, poles=int(r["poles"]),
+            short_time_withstand_ka=icw, short_time_duration_s=1 if icw else None,
+        )
+    otdc_pdf = "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf"
+    for line, r in read_csv("abb_otdc_switch_disconnectors.csv"):
+        s2 = r["series"] == "S2.0"
+        extra = (
+            f"OTDC {r['series']}, {r['circuits']} circuit(s) on {r['poles']} poles, rated current is DC-21B at {r['voltage_vdc']} V DC"
+            + (f"; DC-PV2 rating is {r['dc_pv2_a']} A at 1500 V" if s2 else "")
+            + f"; Icw {r['icw_ka']} kA for {r['icw_s']} s from the technical-data table on pdf p.{r['tech_pdf_page']}"
+        )
+        b.add(
+            "protection", f"abb_otdc_switch_disconnectors.csv row {line}", ProtectionSpec,
+            id=slug("abb", r["type"]), manufacturer="ABB", model=f"{r['type']} DC switch-disconnector {r['poles']}P {r['voltage_vdc']} V DC",
+            source=source("catalog", otdc_pdf, "abb_otdc_switch_disconnectors.csv", line, r["pdf_page"], extra),
+            device="dc_isolator", rated_current=num(r["dc21b_a"]), rated_voltage=num(r["voltage_vdc"]), poles=int(r["poles"]),
+            short_time_withstand_ka=num(r["icw_ka"]), short_time_duration_s=num(r["icw_s"]),
+        )
+
+    phase2 = json.loads((EXTRACTED / "protection_phase2.json").read_text())
+    ref_base = f"{EXTRACTED_REL}/protection_phase2.json"
+
+    def src(block: dict[str, Any], extra: str = "", page: object = None) -> Source:
+        ref = f"{block['source']} p.{page or block['pdf_page']}; {ref_base}" + (f"; {extra}" if extra else "")
+        return Source(kind="catalog", ref=ref, retrieved=RETRIEVED)
+
+    finder = phase2["spd_ac_finder"]
+    for v in finder["variants"]:
+        b.add(
+            "protection", "protection_phase2.json spd_ac_finder", ProtectionSpec,
+            id=slug("finder", v["code"]), manufacturer="Finder", model=v["code"],
+            source=src(finder, f"{finder['note']} Maximum backup fuse {v['max_backup_fuse_a']} A gG; Up {v['up_in_kv']} kV at In; Imax {v['imax_ka']} kA"),
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+        )
+    dehn = phase2["spd_ac_dehn"]
+    for v in dehn["variants"]:
+        b.add(
+            "protection", "protection_phase2.json spd_ac_dehn", ProtectionSpec,
+            id=slug("dehn", v["code"]), manufacturer="DEHN", model=f"DEHNguard {v['code']}",
+            source=src(dehn, f"part no. {v['part_no']}, single-pole, for {v['system']}; Up <= {v['up_kv']} kV; backup fuse {v['backup_fuse']}; one unit per phase"),
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+        )
+    pt = phase2["pt_33kv"]
+    b.add(
+        "protection", "protection_phase2.json pt_33kv", ProtectionSpec,
+        id="generic-pt-33kv-wbsedcl-0.5-3p-100va", manufacturer="Generic (WBSEDCL specification)",
+        model="33 kV outdoor single-phase PT 33000/sqrt3:110/sqrt3-110/sqrt3 V",
+        source=src(pt, "a utility's procurement specification, not a manufacturer datasheet; voltage factor " + pt["voltage_factor"]),
+        device="pt", rated_voltage=pt["highest_voltage_kv"] * 1000, poles=1, ratio=pt["ratio"],
+        accuracy_class=" + ".join(f"{c['class']} ({c['burden_va']} VA, {c['use']})" for c in pt["cores"]), burden_va=pt["cores"][0]["burden_va"],
+    )
+    la = phase2["la_36kv_counter"]
+    b.add(
+        "protection", "protection_phase2.json la_36kv_counter", ProtectionSpec,
+        id="generic-la-36kv-ur30-20ka-counter", manufacturer="Generic (buyer technical specification)",
+        model="36 kV class station gapless metal-oxide surge arrester Ur 30 kV Uc 25 kV with discharge counter",
+        source=src(la, f"{la['product']}; discharge counter and leakage current meter on pdf p.{la['counter_pdf_page']}: {la['counter']}; line discharge class {la['line_discharge_class']}"),
+        device="lightning_arrester", rated_voltage=la["ur_kv"] * 1000, poles=1, nominal_discharge_current_ka=la["nominal_discharge_current_ka"], surge_counter=True,
+    )
+    b.notes.append("Isolators: ABB OT E-series (AC, 200-2500 A, 3/4P) and OTDC (DC, 100-250 A, 1000 V S1.0 and 1500 V S2.0, 2/4P). The 1250-2500 A OT frames carry no short-time withstand because the text layer of their table columns is ambiguous.")
+    b.notes.append("AC SPD Type 2: Finder 7P.23/7P.25 for 230/400 V systems and DEHN DG SE CI 440 FM (single pole, for 400/690 V systems). DC SPD 1500 V is the Finder 7P.23.9.500.x015 entry above.")
+    b.notes.append("33 kV PT and the 36 kV class arrester with discharge counter come from purchaser specifications (WBSEDCL; a buyer's switchgear surge-arrester specification whose issuer the document does not name), not manufacturer datasheets.")
 
 
 METER_SOURCE = Source(
@@ -660,7 +763,9 @@ def build(out: Path) -> Build:
     import_bess(b)
     import_transformers(b)
     import_cables(b)
+    import_ht_cables(b)
     import_protection(b)
+    import_switchgear(b)
     import_meters(b)
 
     ids = Counter(s.id for specs in b.entries.values() for s in specs)

@@ -74,9 +74,6 @@ def test_rooftop_fixture_is_a_valid_design():
     assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
         ("cables.missing", "warning", ("e_ct_poi",)),
         ("cables.missing", "warning", ("e_ltp_load",)),
-        ("structure.missing_spec", "warning", ("ac_iso",)),
-        ("structure.missing_spec", "warning", ("ac_spd",)),
-        ("structure.missing_spec", "warning", ("dciso",)),
     }
     assert report.counts["error"] == 0 and not report.blocking
     gate = issue_gate(report, IssuedFor.APPROVAL)
@@ -99,18 +96,11 @@ def test_utility_fixture_report():
     report = run_rules(fixture("utility_50mwac"), CATALOG)
     print("\n" + report.render())
     assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
-        ("structure.missing_spec", "error", ("idt",)),
-        ("structure.missing_spec", "error", ("blk_aux",)),
-        ("structure.missing_spec", "warning", ("icog_vcb",)),
-        ("structure.missing_spec", "warning", ("aux_vcb",)),
-        ("structure.missing_spec", "warning", ("out_vcb",)),
-        ("protection.earthing", "warning", ("scb",)),
-        ("protection.spd_ac", "warning", ("inv",)),
-        ("protection.spd_dc", "warning", ("inv",)),
         ("pv_strings.operating_current", "warning", ("str", "inv")),
         ("cables.ampacity", "warning", ("e_scb_inv",)),
-        *(("cables.missing", "warning", (e,)) for e in ("e_aux_load", "e_auxtr_load", "e_auxvcb_tr", "e_ct_poi", "e_icog_bus", "e_idt_aux", "e_idt_vcb")),
+        ("cables.missing", "warning", ("e_ct_poi",)),
     }
+    assert report.counts["error"] == 0 and not report.blocking
     assert ("pv_strings.string_fuses", "info", ("str", "inv", "scb")) in summary(report)
 
 

@@ -53,7 +53,10 @@ class Catalog:
     def __len__(self) -> int:
         return len(self.entries)
 
-    def get(self, id: str) -> Spec:
+    def get(self, id: "str | Spec") -> Spec:
+        """An inline project spec (a spec object on a node) resolves to itself."""
+        if not isinstance(id, str):
+            return id
         return self._index[id]
 
     def filter(
