@@ -72,6 +72,41 @@ class GridConnection(_Frozen):
     utility: str | None = None
 
 
+LightningProtectionLevel = Literal["I", "II", "III", "IV"]
+
+
+class EarthingBasis(_Frozen):
+    """Earthing design inputs. `fault_current_ka` is the earth fault current the conductors and electrodes carry for `fault_clearing_s`.
+
+    Electrode defaults (40 mm x 3 m pipe) follow the CIL/Refex sample drawing and are reported as assumptions by the design.
+    """
+
+    soil_resistivity_ohm_m: float = Field(gt=0)
+    fault_current_ka: float | None = Field(default=None, gt=0)
+    fault_clearing_s: float | None = Field(default=None, gt=0)
+    target_resistance_ohm: float | None = Field(default=None, gt=0)
+    electrode_length_m: float = Field(default=3.0, gt=0)
+    electrode_diameter_mm: float = Field(default=40.0, gt=0)
+    burial_depth_m: float = Field(default=0.6, gt=0)
+    corrosion_allowance: float = Field(default=0.0, ge=0, lt=5)
+    tables_per_pit: int = Field(default=20, gt=0)
+    surface_resistivity_ohm_m: float | None = Field(default=None, gt=0)
+    surface_layer_m: float | None = Field(default=None, gt=0)
+    switchyard_m: tuple[float, float] | None = None
+
+
+class LpsBasis(_Frozen):
+    """Lightning protection inputs. `ese_radius_m` comes from the user or the terminal datasheet; else it is computed by NF C 17-102
+    from `ese_delta_t_us` and `mast_height_m`. Conventional air terminals use the rolling sphere of `level`."""
+
+    level: LightningProtectionLevel
+    method: Literal["ese", "rod"] = "ese"
+    ese_radius_m: float | None = Field(default=None, gt=0)
+    ese_delta_t_us: float | None = Field(default=None, gt=0, le=60)
+    mast_height_m: float | None = Field(default=None, gt=0)
+    protected_height_m: float | None = Field(default=None, ge=0)
+
+
 class DesignBasis(_Frozen):
     """Site and grid inputs to the rules engine. `assumptions` names every value not taken from a cited source."""
 
@@ -84,6 +119,8 @@ class DesignBasis(_Frozen):
     vdrop_ac_max: Fraction
     dc_ac_ratio_target: float = Field(gt=0)
     power_factor: float = Field(gt=0, le=1)
+    earthing: EarthingBasis | None = None
+    lps: LpsBasis | None = None
     assumptions: tuple[str, ...] = ()
 
     @model_validator(mode="after")

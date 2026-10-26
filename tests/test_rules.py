@@ -156,7 +156,7 @@ def test_run_rules_needs_a_project_that_resolves_against_the_catalog():
 
 
 def test_registry_shape():
-    assert families() == ("structure", "pv_strings", "ratio", "protection", "cables", "vdrop")
+    assert families() == ("structure", "pv_strings", "ratio", "protection", "cables", "vdrop", "earthing", "lps")
     for r in REGISTRY.values():
         assert r.id.startswith(r.family + ".")
         assert r.title and r.docs, r.id
@@ -194,4 +194,4 @@ def test_unverified_thresholds_are_flagged_as_assumptions():
     for f in report.by_rule("protection.rated_current"):
         assert any("1.25 x maximum inverter current" in a for a in f.assumptions)
     clauses = {r.clause for r in REGISTRY.values()} - {None}
-    assert clauses == {"IEC 62548", "IS 732", "IS 3043", "IS 732 / IEC 60364-4-43"}
+    assert clauses == {"IEC 62548", "IS 732", "IS 3043", "IS 732 / IEC 60364-4-43", "IEEE 80", "IS/IEC 62305; NF C 17-102 for ESE"}

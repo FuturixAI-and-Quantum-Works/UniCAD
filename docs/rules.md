@@ -210,3 +210,51 @@ Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of 
 Standard: none (design practice). Segments: all.
 
 Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at 90 degC and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over.
+
+
+## earthing
+
+### `earthing.conductor_size`: Earth conductor carries the earth fault
+
+Standard: IS 3043. Segments: all.
+
+The adiabatic minimum cross-section A = I sqrt(t) / k (k = 80 for galvanised steel, IS 3043) for the design earth fault current and
+clearing time, raised by any corrosion allowance, is compared with the GS flat chosen for each conductor role. The IEEE 80 Kf value
+for zinc-coated steel is reported as a cross-check. Without fault data the size is reported as unverified.
+
+### `earthing.electrode_resistance`: Earth electrode system meets the target resistance
+
+Standard: IS 3043. Segments: all.
+
+Each pit's resistance R = 100 rho / (2 pi L) ln(4 L / d) (IS 3043, L and d in cm); pits two electrode lengths apart combine in
+parallel, and in parallel with the buried conductor R = 100 rho / (2 pi L) ln(2 L^2 / (w t)). The total is compared with the
+target resistance, and the pit count with the count the IS 3043 surface current density needs for the fault current.
+
+### `earthing.touch_step`: Switchyard grid keeps touch and step voltage tolerable
+
+Standard: IEEE 80. Segments: all.
+
+For a project with an MV switchyard and fault data, the IEEE 80 mesh voltage Em = rho Km Ki IG / LM and step voltage
+Es = rho Ks Ki IG / LS of the switchyard grid are compared with the tolerable touch and step voltages for a 50 kg body,
+(1000 + 1.5 Cs rho_s) 0.116 / sqrt(ts) and (1000 + 6 Cs rho_s) 0.116 / sqrt(ts). A ground potential rise below the tolerable
+touch voltage passes without the mesh check.
+
+### `earthing.every_equipment_bonded`: Every table and equipment item is bonded to the earth network
+
+Standard: none (design practice). Segments: all.
+
+Every table (MMS) must be crossed by a row conductor, and every inverter, SCB, transformer, panel, switchgear item, arrester and
+lightning terminal must end the number of conductors it needs (two distinct connections for equipment) on a conductor network
+that reaches an earth pit. Projects without an earthing basis are not checked. Network equipment without an earth (pe) connection in the electrical model is reported as a warning.
+
+
+## lps
+
+### `lps.coverage`: Lightning terminals cover every table, station and roof
+
+Standard: IS/IEC 62305; NF C 17-102 for ESE. Segments: all.
+
+Each table centroid and corner, inverter station and (on rooftop projects) roof corner must lie within the protection radius of
+a terminal: the ESE radius Rp of NF C 17-102 (a French standard) from the datasheet value or dT and mast height, or for
+conventional air terminals the rolling-sphere radius of the protection level (IS/IEC 62305). Terminals are placed by a greedy
+set cover over free positions; points left outside every zone are errors. Projects without a lightning basis are not checked.
