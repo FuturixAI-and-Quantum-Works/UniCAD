@@ -152,6 +152,7 @@ async def test_geometry_survives_revisions_snapshots_and_diff(c):
     assert after["counts"]["roof"] == 2 and after["revision"] == head
     diff = await c.call("project_diff", project_id=pid, from_revision=1, to_revision=2)
     assert {f["path"] for f in diff["fields"]} == {"site.crs", "site.latitude", "site.longitude", "site.geometry"}
+    assert len(str(diff["fields"])) < 600 and len(diff["site"]["added"]) == len(before["features"])
     site = (await c.call("project_get", project_id=pid, full=True))["project"]["site"]
     assert abs(site["latitude"] - 18.76) < 0.01
 

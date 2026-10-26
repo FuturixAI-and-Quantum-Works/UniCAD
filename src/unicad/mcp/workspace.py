@@ -1,6 +1,7 @@
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from contextvars import ContextVar
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from unicad.catalog.store import Catalog, load_catalog
@@ -10,6 +11,8 @@ from unicad.mcp.config import Config
 from unicad.store import ProjectStore
 
 Problem = dict[str, str]
+
+current_tenant: ContextVar[str | None] = ContextVar("unicad_tenant", default=None)
 
 
 @dataclass(frozen=True)
@@ -21,13 +24,35 @@ class Edit:
 
 
 class Workspace:
-    """Everything a tool module needs: the project store, the catalog, and one lock serialising edits."""
+    """Everything a tool module needs: the project store, the catalog, and a lock serialising edits.
+
+    With a tenant set in `current_tenant` (HTTP mode), store, config and lock are those of the subdirectory of the base workspace named by the tenant."""
 
     def __init__(self, config: Config) -> None:
-        self.config = config
-        self.store = ProjectStore(config.workspace)
+        self.base_config = config
         self._catalog: Catalog | None = None
-        self.lock = threading.RLock()
+        self._stores: dict[str | None, ProjectStore] = {}
+        self._locks: dict[str | None, threading.RLock] = {}
+        self._guard = threading.Lock()
+
+    @property
+    def config(self) -> Config:
+        tenant = current_tenant.get()
+        return self.base_config if tenant is None else replace(self.base_config, workspace=self.base_config.workspace / tenant)
+
+    @property
+    def store(self) -> ProjectStore:
+        tenant = current_tenant.get()
+        with self._guard:
+            if tenant not in self._stores:
+                self._stores[tenant] = ProjectStore(self.config.workspace)
+            return self._stores[tenant]
+
+    @property
+    def lock(self) -> threading.RLock:
+        tenant = current_tenant.get()
+        with self._guard:
+            return self._locks.setdefault(tenant, threading.RLock())
 
     @property
     def catalog(self) -> Catalog:
@@ -87,6 +112,20 @@ class Workspace:
             }
 
 
-def counts(project: Project) -> dict[str, int]:
+def counts(project: Project) -> dict[str, Any]:
+    """Network counts always; site, layout, sheet, earthing and lightning figures once the project has them."""
     net = project.network
-    return {"groups": len(net.groups), "nodes": len(net.nodes), "edges": len(net.edges)}
+    out: dict[str, Any] = {"groups": len(net.groups), "nodes": len(net.nodes), "edges": len(net.edges)}
+    if project.site.geometry is not None:
+        out["site_features"] = len(project.site.geometry.features)
+    layout = project.array_layout
+    if layout is not None and layout.blocks:
+        out |= {"layout_blocks": len(layout.blocks), "layout_tables": len(layout.table_by_id), "layout_strings": len(layout.strings)}
+    if project.sheets:
+        out["sheets"] = len(project.sheets)
+    basis = project.design_basis
+    if basis.earthing is not None:
+        out["earthing"] = True
+    if basis.lps is not None:
+        out["lps"] = True
+    return out
