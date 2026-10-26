@@ -79,7 +79,7 @@ def test_rooftop_fixture_is_a_valid_design():
     gate = issue_gate(report, IssuedFor.APPROVAL)
     assert gate.allowed and not gate.watermark and gate.reasons == ()
     assert {f.rule_id for f in report.findings if f.severity is Severity.INFO} == {
-        "cables.ampacity", "structure.inverter_ac_voltage", "vdrop.ac", "vdrop.dc",
+        "cables.ampacity", "cables.short_circuit", "protection.fault_level", "structure.inverter_ac_voltage", "vdrop.ac", "vdrop.dc",
     }  # fmt: skip
 
 

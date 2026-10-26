@@ -107,6 +107,18 @@ class LpsBasis(_Frozen):
     protected_height_m: float | None = Field(default=None, ge=0)
 
 
+class FaultLevel(_Frozen):
+    """Prospective three-phase symmetrical short-circuit current at the busbars of one system voltage, from the fault study or the utility.
+
+    `clearing_s` is the time the protection takes to clear it; when omitted the rules use `earthing.fault_clearing_s` if the project has
+    one, else 1 s and say so."""
+
+    voltage_v: float = Field(gt=0, description="line-to-line system voltage the level applies to, e.g. 415, 800 or 33000")
+    fault_ka: float = Field(gt=0, description="prospective symmetrical short-circuit current, kA rms")
+    clearing_s: float | None = Field(default=None, gt=0)
+    source: str | None = Field(default=None, description="where the level comes from, e.g. 'DISCOM feasibility letter' or 'fault study rev B'")
+
+
 class DesignBasis(_Frozen):
     """Site and grid inputs to the rules engine. `assumptions` names every value not taken from a cited source."""
 
@@ -121,12 +133,20 @@ class DesignBasis(_Frozen):
     power_factor: float = Field(gt=0, le=1)
     earthing: EarthingBasis | None = None
     lps: LpsBasis | None = None
+    fault_levels: tuple[FaultLevel, ...] = ()
     assumptions: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _ambient_order(self) -> Self:
         if self.ambient_min_c >= self.ambient_max_c:
             raise ValueError(f"ambient_min_c {self.ambient_min_c} must be below ambient_max_c {self.ambient_max_c}")
+        return self
+
+    @model_validator(mode="after")
+    def _one_level_per_voltage(self) -> Self:
+        volts = [f.voltage_v for f in self.fault_levels]
+        if len(set(volts)) != len(volts):
+            raise ValueError("fault_levels lists a system voltage twice")
         return self
 
 

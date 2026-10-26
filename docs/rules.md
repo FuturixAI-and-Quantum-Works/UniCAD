@@ -17,6 +17,9 @@ Clause references name the standard only; clause numbers are added once verified
 | `voltage_tolerance` | 0.05 | Equipment nominal voltages within 5 % of the zone voltage are treated as compatible (illustrative tolerance; confirm the equipment's operating range). |
 | `stc_irradiance` | 1000 W/m2 | Maximum cell temperature is evaluated at 1000 W/m2 plane-of-array irradiance. |
 | `stc_temp` | 25 degC | Module datasheet values are at STC cell temperature 25 degC. |
+| `k_xlpe_cu` | 143 A s^0.5/mm2 | Adiabatic constant k of a copper conductor with XLPE insulation (90 degC to 250 degC), 0.143 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table; the Polycab XLPE catalogue gives the same 1 s ratings (143.1 kA for 1000 mm2). Manufacturer value, standard name IS 7098. |
+| `k_xlpe_al` | 94 A s^0.5/mm2 | Adiabatic constant k of an aluminium conductor with XLPE insulation (90 degC to 250 degC), 0.094 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table (Polycab's 1 s table gives 94.5 kA for 1000 mm2; the lower value is used). Manufacturer value, standard name IS 7098. |
+| `fault_clearing_default` | 1 s | Fault clearing time taken as 1 s, the duration cable and switchgear short-circuit ratings are tabulated for, when neither the fault level nor the earthing basis gives a clearing time. |
 
 ## structure
 
@@ -143,6 +146,16 @@ Standard: none (design practice). Segments: all.
 
 Breakers and fuses must carry a breaking capacity (kA) so it can be shown on the SLD and compared with the fault level. A spec without one is an error.
 
+### `protection.fault_level`: Interrupting devices break the prospective fault current
+
+Standard: none (design practice). Segments: all.
+
+A breaker or fuse must have a breaking capacity (Icu; for vacuum breakers also the short-time withstand current Icw) at or above the three-phase fault level declared in
+design_basis.fault_levels for the system voltage of its zone. An error when it is below. Where no fault level is declared for a device's voltage, a single info finding lists the voltages
+and the devices are not checked; autobuild then picks the lowest breaking capacity at or above a placeholder minimum and reports that as an assumption.
+
+Worked example: a 20 kA VD4 vacuum breaker on a 33 kV bus with a 25 kA fault level is an error (20 kA < 25 kA); the 25 kA VD4 passes.
+
 ### `protection.rated_voltage`: Device rated voltage covers the system voltage
 
 Standard: none (design practice). Segments: all.
@@ -195,6 +208,20 @@ The ampacity column follows the laying: air, tray, trench and overhead use the i
 Standard: IS 732 / IEC 60364-4-43. Segments: all.
 
 Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable connected directly to it, so the device trips before the cable overheats. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
+
+### `cables.short_circuit`: Cable conductor withstands the prospective fault
+
+Standard: IS 732 / IEC 60364-4-43. Segments: all.
+
+The conductor of every AC power cable must carry the prospective fault current for the clearing time without overheating (adiabatic heating): A >= I sqrt(t) / k, where A is the conductor
+area (area x parallel runs), I the three-phase fault level and t the clearing time of the system voltage the cable sits in (design_basis.fault_levels), and k the conductor and insulation constant.
+k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). Without a clearing time on the level,
+design_basis.earthing.fault_clearing_s is used, else 1 s, and the finding says so. The fault is taken at the cable's source end, which is conservative (cable impedance only lowers it), and only
+the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not checked. Where no fault level is declared for a cable's system voltage a single info finding
+lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+
+Worked example (a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE): I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
+(it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA).
 
 
 ## vdrop

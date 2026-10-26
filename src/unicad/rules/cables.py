@@ -1,15 +1,18 @@
 """Cable presence, current-carrying capacity and overload coordination with protective devices."""
 
+import math
 from collections.abc import Iterator
 from dataclasses import dataclass
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import CableSpec, ProtectionSpec
+from unicad.domain.catalog import CableSpec, Conductor, ProtectionSpec
 from unicad.domain.network import Edge, ElectricalNetwork, Laying, NodeKind, Service
 from unicad.domain.project import Project
+from unicad.rules.faults import fault_at
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
-from unicad.rules.topology import GENERATORS, edge_current, label
+from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
+from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, label
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
 PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})
@@ -33,6 +36,7 @@ NO_DERATING = "No derating factor is given on the edge; 1.0 is used, so the ampa
 PAIR_FALLBACK = "Single-core cable without a two-cable rating in the catalog: its catalog column value is used for the DC or single-phase pair."
 IS_732 = "IS 732"
 OVERLOAD = "IS 732 / IEC 60364-4-43"
+K_BY_CABLE = {(Conductor.CU, "xlpe"): K_XLPE_CU, (Conductor.AL, "xlpe"): K_XLPE_AL}
 
 
 def edge_label(net: ElectricalNetwork, e: Edge) -> str:
@@ -215,3 +219,58 @@ def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
                 assumptions=z.assumptions,
             )
 
+
+
+@rule("cables.short_circuit", "Cable conductor withstands the prospective fault", clause=OVERLOAD)
+def short_circuit(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """The conductor of every AC power cable must carry the prospective fault current for the clearing time without overheating (adiabatic heating): A >= I sqrt(t) / k, where A is the conductor
+    area (area x parallel runs), I the three-phase fault level and t the clearing time of the system voltage the cable sits in (design_basis.fault_levels), and k the conductor and insulation constant.
+    k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). Without a clearing time on the level,
+    design_basis.earthing.fault_clearing_s is used, else 1 s, and the finding says so. The fault is taken at the cable's source end, which is conservative (cable impedance only lowers it), and only
+    the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not checked. Where no fault level is declared for a cable's system voltage a single info finding
+    lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+
+    Worked example (a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE): I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
+    (it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA)."""
+    net, basis = project.network, project.design_basis
+    unchecked: dict[str, int] = {}
+    for e in net.edges:
+        cable = cable_of(catalog, e)
+        if not e.is_power or cable is None or e.service not in AC_SERVICES:
+            continue
+        zone = edge_zone(net, e)
+        fault = fault_at(basis, zone.voltage_v if zone else None)
+        if fault is None:
+            key = f"{zone.voltage_v:g} V" if zone and zone.voltage_v else "undeclared voltage"
+            unchecked[key] = unchecked.get(key, 0) + 1
+            continue
+        k = K_BY_CABLE.get((cable.conductor, cable.insulation))
+        where = f"{edge_label(net, e)} {cable.callout()}"
+        if k is None:
+            yield Finding(
+                rule_id="cables.short_circuit", severity=Severity.INFO, subjects=(e.id,),
+                message=f"{where}: no cited short-circuit constant k for {cable.conductor.value.upper()} {cable.insulation.upper()} conductors; withstand not checked",
+            )  # fmt: skip
+            continue
+        have = cable.size_mm2 * e.runs
+        need = fault.ka * 1000 * math.sqrt(fault.clearing_s) / k.value
+        withstand = k.value * have / math.sqrt(fault.clearing_s) / 1000
+        ok = have >= need
+        working = f"A = {cable.size_mm2:g} mm2 x {e.runs} run(s) = {have:g} mm2 against I sqrt(t) / k = {fault.ka * 1000:g} x sqrt({fault.clearing_s:g}) / {k.value:g} = {need:.1f} mm2 ({withstand:.1f} kA for {fault.clearing_s:g} s)"
+        yield Finding(
+            rule_id="cables.short_circuit", severity=Severity.INFO if ok else Severity.ERROR, subjects=(e.id,),
+            message=f"{where}: conductor {'withstands' if ok else 'cannot withstand'} the {fault.ka:g} kA fault at {fault.voltage_v:g} V: {working}",
+            measured=round(have, 2), limit=round(need, 2), unit="mm2", formula="A >= I sqrt(t) / k",
+            inputs=(
+                *fault.inputs(),
+                Quantity(name="k", value=k.value, unit=k.unit, source=f"threshold.{k.name}"),
+                Quantity(name="A", value=have, unit="mm2", source=cable.id),
+            ),
+            assumptions=(*fault.assumptions, k.assumption),
+        )  # fmt: skip
+    if unchecked:
+        listed = ", ".join(f"{v} ({n} cables)" for v, n in sorted(unchecked.items()))
+        yield Finding(
+            rule_id="cables.short_circuit", severity=Severity.INFO, subjects=(),
+            message=f"short-circuit withstand not checked: no fault level in design_basis.fault_levels for {listed}",
+        )  # fmt: skip

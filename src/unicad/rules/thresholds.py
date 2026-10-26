@@ -38,4 +38,25 @@ VOLTAGE_TOLERANCE = Threshold(
 STC_IRRADIANCE = Threshold("stc_irradiance", 1000.0, "W/m2", "Maximum cell temperature is evaluated at 1000 W/m2 plane-of-array irradiance.")
 STC_TEMP = Threshold("stc_temp", 25.0, "degC", "Module datasheet values are at STC cell temperature 25 degC.")
 
-ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP)
+K_XLPE_CU = Threshold(
+    "k_xlpe_cu",
+    143.0,
+    "A s^0.5/mm2",
+    "Adiabatic constant k of a copper conductor with XLPE insulation (90 degC to 250 degC), 0.143 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table; "
+    "the Polycab XLPE catalogue gives the same 1 s ratings (143.1 kA for 1000 mm2). Manufacturer value, standard name IS 7098.",
+)
+K_XLPE_AL = Threshold(
+    "k_xlpe_al",
+    94.0,
+    "A s^0.5/mm2",
+    "Adiabatic constant k of an aluminium conductor with XLPE insulation (90 degC to 250 degC), 0.094 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table "
+    "(Polycab's 1 s table gives 94.5 kA for 1000 mm2; the lower value is used). Manufacturer value, standard name IS 7098.",
+)
+FAULT_CLEARING_DEFAULT = Threshold(
+    "fault_clearing_default",
+    1.0,
+    "s",
+    "Fault clearing time taken as 1 s, the duration cable and switchgear short-circuit ratings are tabulated for, when neither the fault level nor the earthing basis gives a clearing time.",
+)
+
+ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, FAULT_CLEARING_DEFAULT)
