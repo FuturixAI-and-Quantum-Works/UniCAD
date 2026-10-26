@@ -14,7 +14,7 @@ from unicad.drafting.symbols import insert
 LAYERS: dict[str, tuple[int, str, int]] = {
     "E-SLD-AC": (7, "CONTINUOUS", 35),
     "E-SLD-DC": (7, "CONTINUOUS", 35),
-    "E-SLD-CTRL": (4, "DASHED", 18),
+    "E-SLD-CTRL": (4, "DASHED2", 18),
     "E-SLD-EARTH": (3, "CONTINUOUS", 25),
     "E-SLD-BUS": (7, "CONTINUOUS", 70),
     "E-SLD-FRAME": (3, "DASHED", 25),
@@ -74,10 +74,7 @@ def write_body(doc: Drawing, layout: SldLayout, block_name: str, text_style: str
         for lb in f.labels:
             _text(block, lb, text_style)
     for w in layout.wires:
-        attribs = {"layer": _WIRE_LAYER[w.kind]}
-        if w.kind is WireKind.CONTROL:
-            attribs["ltscale"] = 0.2
-        block.add_lwpolyline(list(w.points), dxfattribs=attribs)
+        block.add_lwpolyline(list(w.points), dxfattribs={"layer": _WIRE_LAYER[w.kind]})
     for bus in layout.busbars:
         block.add_line((bus.x0, bus.y), (bus.x1, bus.y), dxfattribs={"layer": "E-SLD-BUS"})
         for lb in bus.labels:

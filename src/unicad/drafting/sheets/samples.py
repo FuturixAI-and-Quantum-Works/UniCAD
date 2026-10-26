@@ -48,7 +48,7 @@ def utility_100mwac(paper: PaperSize = PaperSize.A0) -> SheetSpec:
         legend=(
             ("pv.module", "PV MODULE 540 Wp MONO PERC BIFACIAL"),
             ("dc.scb", "STRING MONITORING BOX 1500 Vdc, 11 IN 1 OUT"),
-            ("inv.central", "POWER CONDITIONING UNIT 3.125 MW @ 50 DEG C"),
+            ("inv.central", "POWER CONDITIONING UNIT 3.125 MW AT 50 %%dC"),
             ("tx.idt_4lv", "INVERTER DUTY TRANSFORMER 12.5 MVA, 33/0.66 kV, 4 LV WINDINGS"),
             ("sw.vcb", "36 kV, 630 A VACUUM CIRCUIT BREAKER, 25 kA FOR 1 SEC"),
             ("sw.isolator_es", "ISOLATOR WITH EARTH SWITCH"),
