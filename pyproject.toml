@@ -5,8 +5,12 @@ description = "MCP server for solar EPC drawing sets (SLDs, layouts, schedules) 
 requires-python = ">=3.12"
 dependencies = [
     "ezdxf>=1.4",
+    "mcp>=2.3.0",
     "pydantic>=2.8",
 ]
+
+[project.scripts]
+unicad-mcp = "unicad.mcp.cli:main"
 
 [project.optional-dependencies]
 preview = ["pymupdf>=1.24", "pillow>=10"]
