@@ -139,18 +139,19 @@ def candidates(project: Project, radius: float) -> tuple[np.ndarray, list[str | 
     """Mast positions: free ground inside the boundary away from tables and carved features; on rooftop projects, also free roof area."""
     layout = project.array_layout
     tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
+    stations = unary_union([SPoint(b.station.x, b.station.y).buffer(6.0) for b in layout.blocks if b.station is not None]) if layout is not None else Polygon()
     pts, where = [], []
     spacing = max(3.0, min(radius / 4, 25.0))
     if is_rooftop(project):
         for rid, poly in roofs(project):
-            free = poly.buffer(-0.5).difference(tables.buffer(0.3))
+            free = poly.buffer(-0.5).difference(tables.buffer(0.3)).difference(stations)
             g = _grid_points(free, max(2.0, min(spacing, 6.0)))
             pts.append(g)
             where += [rid] * len(g)
     site = boundary(project)
     if site is not None:
         roof_union = unary_union([p for _, p in roofs(project)]) if roofs(project) else Polygon()
-        free = site.buffer(-2.0).difference(tables.buffer(0.5)).difference(blocked(project)).difference(roof_union.buffer(1.0))
+        free = site.buffer(-2.0).difference(tables.buffer(0.5)).difference(blocked(project)).difference(roof_union.buffer(1.0)).difference(stations)
         g = _snapped(free, spacing)
         pts.append(g)
         where += [None] * len(g)

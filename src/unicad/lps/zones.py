@@ -79,18 +79,26 @@ def covered(points: np.ndarray, terminals: Sequence[tuple[float, float]], radius
     return (d2 <= radius * radius + 1e-9).any(axis=1)
 
 
-def greedy_cover(points: np.ndarray, candidates: np.ndarray, radius: float) -> Cover:
-    """Pick candidates until every point lies within `radius` of one (greedy set cover), then drop any terminal the others make redundant.
-    Ties go to the lower candidate index, so the result is deterministic."""
-    if not len(points):
-        return Cover((), ())
+def _hits(points: np.ndarray, candidates: np.ndarray, radius: float) -> np.ndarray:
     hits = np.zeros((len(points), len(candidates)), dtype=bool)
     r2 = radius * radius + 1e-9
     for k in range(0, len(candidates), 256):
         c = candidates[k : k + 256]
         hits[:, k : k + len(c)] = ((points[:, None, :] - c[None, :, :]) ** 2).sum(axis=2) <= r2
-    left = np.ones(len(points), dtype=bool)
-    chosen: list[int] = []
+    return hits
+
+
+def _prune(hits: np.ndarray, chosen: list[int], need: np.ndarray) -> list[int]:
+    for c in sorted(chosen, key=lambda c: (hits[:, c].sum(), c)):
+        rest = [k for k in chosen if k != c]
+        if rest and hits[:, rest].any(axis=1)[need].all():
+            chosen = rest
+    return sorted(chosen)
+
+
+def _greedy(hits: np.ndarray, start: list[int]) -> tuple[list[int], np.ndarray]:
+    chosen = list(start)
+    left = ~hits[:, chosen].any(axis=1) if chosen else np.ones(hits.shape[0], dtype=bool)
     while left.any():
         gain = (hits & left[:, None]).sum(axis=0)
         best = int(np.argmax(gain))
@@ -98,9 +106,37 @@ def greedy_cover(points: np.ndarray, candidates: np.ndarray, radius: float) -> C
             break
         chosen.append(best)
         left &= ~hits[:, best]
-    for c in sorted(chosen, key=lambda c: hits[:, c].sum()):
-        rest = [k for k in chosen if k != c]
-        if rest and hits[:, rest].any(axis=1)[~left].all():
-            chosen = rest
-    chosen.sort()
+    return chosen, left
+
+
+def hex_seeds(points: np.ndarray, candidates: np.ndarray, radius: float) -> list[int]:
+    """Candidates nearest a hexagonal lattice of pitch r sqrt(3) over the points: the densest-packing start for the cover."""
+    x0, y0 = points.min(axis=0)
+    x1, y1 = points.max(axis=0)
+    dx, dy = radius * math.sqrt(3), radius * 1.5
+    out: list[int] = []
+    for j, y in enumerate(np.arange(y0, y1 + dy, dy)):
+        for x in np.arange(x0 - (dx / 2 if j % 2 else 0), x1 + dx, dx):
+            d = np.hypot(candidates[:, 0] - x, candidates[:, 1] - y)
+            i = int(np.argmin(d))
+            if d[i] <= radius / 2 and i not in out:
+                out.append(i)
+    return out
+
+
+def greedy_cover(points: np.ndarray, candidates: np.ndarray, radius: float) -> Cover:
+    """Pick candidates until every point lies within `radius` of one (greedy set cover, once from nothing and once from a hexagonal
+    lattice start), drop any terminal the others make redundant, and keep the smaller cover. Ties go to the lower candidate index,
+    so the result is deterministic."""
+    if not len(points):
+        return Cover((), ())
+    hits = _hits(points, candidates, radius)
+    best: tuple[list[int], np.ndarray] | None = None
+    for start in ([], hex_seeds(points, candidates, radius)):
+        start = [c for c in start if hits[:, c].any()]
+        chosen, left = _greedy(hits, start)
+        chosen = _prune(hits, chosen, ~left)
+        if best is None or (left.sum(), len(chosen)) < (best[1].sum(), len(best[0])):
+            best = (chosen, left)
+    chosen, left = best
     return Cover(tuple((float(candidates[c][0]), float(candidates[c][1])) for c in chosen), tuple(int(i) for i in np.flatnonzero(left)))

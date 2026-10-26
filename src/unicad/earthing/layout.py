@@ -146,7 +146,7 @@ def _ring(x0: float, y0: float, x1: float, y1: float) -> list[tuple[float, float
     return [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
 
 
-def _cluster(centre: tuple[float, float], n: int, pitch: float = STATION_PITCH_M) -> list[tuple[float, float]]:
+def _cluster(centre: tuple[float, float], n: int, pitch: float) -> list[tuple[float, float]]:
     cols = max(1, math.ceil(math.sqrt(n * 2)))
     rows = math.ceil(n / cols)
     out = []
@@ -173,9 +173,10 @@ def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[
                   on_roof: bool = False, pit_at: tuple[float, float] | None = None) -> None:  # fmt: skip
     """Equipment cluster with a local ring, each item bonded to the ring by its connections, and its pits on or beside the ring."""
     items = sorted(items, key=lambda t: (KIND_ORDER.get(t[2], 99), t[0]))
-    pos = _cluster(centre, max(1, len(items)))
+    pos = _cluster(centre, max(1, len(items)), STATION_PITCH_M / 2 if on_roof else STATION_PITCH_M)
     xs, ys = [p[0] for p in pos], [p[1] for p in pos]
-    ring = _ring(min(xs) - 2, min(ys) - 2, max(xs) + 2, max(ys) + 2)
+    m = 1.0 if on_roof else 2.0
+    ring = _ring(min(xs) - m, min(ys) - m, max(xs) + m, max(ys) + m)
     lay.run(ConductorRole.MAIN, sizes.main, ring, (label,), buried=not on_roof)
     roles: list[tuple[PitRole, str]] = []
     for (iid, tag, kind), p in zip(items, pos):
@@ -317,8 +318,9 @@ def _switchyard(lay: EarthingLayout, rect: tuple[float, float, float, float], sp
     if len(items) > len(cells):
         lay.warnings.append(f"{len(items)} switchyard items share {len(cells)} grid meshes")
     roles: list[tuple[PitRole, str]] = []
+    pick = np.linspace(0, len(cells) - 1, len(items)).round().astype(int) if len(items) <= len(cells) else np.arange(len(items)) % len(cells)
     for i, (iid, tag, kind) in enumerate(items):
-        cx, cy = cells[i % len(cells)]
+        cx, cy = cells[int(pick[i])]
         k = i // len(cells)
         p = (cx + 0.6 * k, cy - 0.6 * k)
         lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind]))
@@ -387,12 +389,20 @@ def connect_all(lay: EarthingLayout, size: str) -> None:
     for dist, i, j, a, b in pairs:
         if find(i) != find(j):
             parent[find(i)] = find(j)
-            lay.run(ConductorRole.MAIN, size, [a, b], buried=buried[i] or buried[j], prefix="L")
+            lay.run(ConductorRole.MAIN, size, _orthogonal(a, b), buried=buried[i] or buried[j], prefix="L")
     if len({find(i) for i in range(len(comps))}) > 1:
         roots = sorted({find(i) for i in range(len(comps))})
         for r in roots[1:]:
             a, b = nearest_points(geoms[r], geoms[roots[0]])
-            lay.run(ConductorRole.MAIN, size, [(a.x, a.y), (b.x, b.y)], prefix="L")
+            lay.run(ConductorRole.MAIN, size, _orthogonal((a.x, a.y), (b.x, b.y)), prefix="L")
+
+
+def _orthogonal(a: tuple[float, float], b: tuple[float, float]) -> list[tuple[float, float]]:
+    """A link drawn along the site axes (one bend), as conductors are laid; straight when already nearly axis-aligned."""
+    dx, dy = abs(b[0] - a[0]), abs(b[1] - a[1])
+    if min(dx, dy) < 0.5:
+        return [a, b]
+    return [a, (b[0], a[1]), b]
 
 
 def bonding(lay: EarthingLayout) -> dict[str, int]:
@@ -555,11 +565,14 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         for q in extra:
             lay.pit(PitRole.EP, q, ("additional",))
         if len(extra) < array_pits and len(existing):
-            g0 = existing[0]
+            g0 = (float(existing[0][0]), float(existing[0][1]))
+            sign = 1.0 if site is None or site.contains(SPoint(g0[0] + 2 * electrode_m * (array_pits - len(extra)), g0[1])) else -1.0
+            prev = g0
             for k in range(array_pits - len(extra)):
-                q = (float(g0[0]) + 2 * electrode_m * (k + 1), float(g0[1]) - 2 * electrode_m)
-                lay.run(ConductorRole.MAIN, sizes.main, [(float(g0[0]), float(g0[1])), q])
+                q = (g0[0] + sign * 2 * electrode_m * (k + 1), g0[1])
+                lay.run(ConductorRole.MAIN, sizes.main, [prev, q])
                 lay.pit(PitRole.EP, q, ("additional",))
+                prev = q
     _pit_spurs(lay, sizes)
     connect_all(lay, sizes.main)
     return lay
@@ -576,7 +589,7 @@ def _pit_spurs(lay: EarthingLayout, sizes: Sizes) -> None:
         j = int(tree.nearest(sp))
         if lines[j].distance(sp) > TOL:
             q = nearest_points(lines[j], sp)[0]
-            lay.run(ConductorRole.MAIN if p.on_ground else ConductorRole.DOWN, sizes.main, [_xy(p.at), (q.x, q.y)])
+            lay.run(ConductorRole.MAIN if p.on_ground else ConductorRole.DOWN, sizes.main, _orthogonal(_xy(p.at), (q.x, q.y)))
 
 
 def _row_pitch(tables: list[Table]) -> float | None:
