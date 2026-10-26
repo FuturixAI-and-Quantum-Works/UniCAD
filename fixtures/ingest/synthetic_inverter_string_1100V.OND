@@ -1,0 +1,31 @@
+PVObject_=pvGInverter
+  Comment=SYNTHETIC FIXTURE - invented values, not a real product
+  Version=7.2
+  Flags=$00381562
+
+  PVObject_Commercial=pvCommercial
+    Comment=SYNTHETIC FIXTURE
+    Flags=$0041
+    Manufacturer=Testco Power
+    Model=TP-100K-3P
+    DataSource=Synthetic fixture
+    YearBeg=2026
+  End of PVObject pvCommercial
+  Transfo=Without
+
+  Converter=TConverter
+    PNomConv=100.000
+    PMaxOUT=110.000
+    VOutConv=400.0
+    VMppMin=200
+    VMPPMax=1000
+    VAbsMax=1100
+    EfficMax=98.60
+    MonoTri=Tri
+    IMaxDC=300.0
+    INomAC=144.0
+    IMaxAC=158.8
+  End of TConverter
+  NbInputs=20
+  NbMPPT=10
+End of PVObject pvGInverter
