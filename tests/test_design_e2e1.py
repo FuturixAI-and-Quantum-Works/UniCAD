@@ -113,6 +113,11 @@ def test_m10_b3_layout_blocks_hold_whole_inverters_and_every_block_breaker_has_a
             assert not [b for b in r["blockers"] if "BREAKER" in b.upper() or "acb" in b.lower()], r["blockers"]
             s = await c.call("network_summary", project_id="thar-40mw")
             assert not [i for i in s["nodes_without_spec"]["ids"] if "brk" in i], s["nodes_without_spec"]
+            nodes = (await c.call("project_get", project_id="thar-40mw", full=True))["project"]["network"]["nodes"]
+            from unicad.catalog.store import load_catalog
+
+            cat = load_catalog()
+            assert all(n["tag"].split("-")[0] == cat.get(n["spec"]).device.upper() for n in nodes if n["kind"] == "breaker"), [n["tag"] for n in nodes if n["kind"] == "breaker"][:8]
             v = await c.call("validate", project_id="thar-40mw")
             assert not [f for f in v["findings"] if f["severity"] == "error" and f["rule_id"].startswith("protection")], v["findings"]
 

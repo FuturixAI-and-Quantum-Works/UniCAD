@@ -234,18 +234,25 @@ BREAKER_PREFIX = {"acb": "ACB", "mccb": "MCCB", "mcb": "MCB"}
 
 def _breaker_tags(project: Project, catalog: Catalog) -> Project:
     """Breaker tags name the device the sizer picked: an inverter breaker that had to be an ACB (no MCCB breaks the bus fault) is tagged ACB."""
-    def shape(tag: str) -> str:
-        return re.sub(r"\d", "#", re.sub(r"\{\d+:02d\}", "##", tag))
+
+    def pattern(tag: str) -> re.Pattern:
+        return re.compile(re.sub(r"\\\{\d+:02d\\\}", r"\\d{2}", re.escape(tag)))
+
+    def sample(tag: str) -> str:
+        return re.sub(r"\{\d+:02d\}", "01", tag)
+
+    def clashes(tag: str, others: set[str]) -> bool:
+        return any(pattern(o).fullmatch(sample(tag)) or pattern(tag).fullmatch(sample(o)) for o in others)
 
     net = project.network
-    used = {shape(n.tag) for n in net.nodes}
+    used = {n.tag for n in net.nodes}
     nodes = []
     for n in net.nodes:
         head, sep, rest = n.tag.partition("-")
         want = BREAKER_PREFIX.get(getattr(catalog.get(n.spec), "device", "")) if n.kind is NodeKind.BREAKER and n.spec is not None else None
         tag = f"{want}{sep}{rest}"
-        if want and head in BREAKER_PREFIX.values() and head != want and shape(tag) not in used:
-            used.add(shape(tag))
+        if want and head in BREAKER_PREFIX.values() and head != want and not clashes(tag, used - {n.tag}):
+            used = (used - {n.tag}) | {tag}
             n = n.model_copy(update={"tag": tag})
         nodes.append(n)
     return project.model_copy(update={"network": net.model_copy(update={"nodes": tuple(nodes)})})
