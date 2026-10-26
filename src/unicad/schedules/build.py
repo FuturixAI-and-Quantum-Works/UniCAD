@@ -7,7 +7,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import CableSpec
 from unicad.domain.network import Edge, ElectricalNetwork, NetworkError, NodeKind, Service
 from unicad.domain.project import Project
-from unicad.routing import RouteAssumptions, RouteEstimate, estimate_routes, estimable_edges, template_of
+from unicad.routing import RouteAssumptions, RouteEstimate, estimable_edges, estimate_routes, template_of
 from unicad.rules.cables import cable_of, edge_ampacity, edge_label, needs_cable, phases
 from unicad.rules.topology import edge_current, instance_tag, module_of, per_instance
 from unicad.rules.vdrop import segment_drop
@@ -162,8 +162,10 @@ def build_schedule(
     schedule_rows = [r for s in sections for r in s.rows]
     basis = _basis(project, catalog, sections)
     summary = _vd_summary(project, expanded, schedule_rows)
-    notes = [UNITS_BASIS, LOSS_BASIS, POLARITY_BASIS, *estimate.assumptions] if any(r.length_source == "estimated" for r in schedule_rows) else [UNITS_BASIS, LOSS_BASIS, POLARITY_BASIS]
-    if mode is not LengthMode.ESTIMATED and any(r.length_source == "network" for r in schedule_rows):
+    notes = [UNITS_BASIS, LOSS_BASIS, POLARITY_BASIS]
+    if any(r.length_source == "estimated" for r in schedule_rows):
+        notes += estimate.assumptions
+    if any(r.length_source == "network" for r in schedule_rows):
         notes.append("Lengths marked NET are as stated in the network and are not measured on the layout.")
     notes.append(SCHEME)
     notes += list(project.design_basis.assumptions)
@@ -217,14 +219,12 @@ def _basis(project: Project, catalog: Catalog, sections: list[Section]) -> tuple
         if used:
             text = "; ".join(f"{c.callout()} {'R90 ' + format(c.r_ohm_per_km_90c, 'g') + ' ohm/km' if c.r_ohm_per_km_90c else 'no catalog resistance'}" for c in used.values())
             out.append((f"{name} CABLES", text))
-    for service, label in ((Service.DC, "DC VOLTAGE DROP"), (Service.LV_AC, "AC VOLTAGE DROP")):
-        s = next((s for s in sections if s.service is service or (label.startswith("AC") and s.service in (Service.LV_AC, Service.MV_AC, Service.HV_AC))), None)
-        if s is None:
-            continue
-        e = net.edge_by_id[s.edge]
-        d = segment_drop(project, catalog, e)
-        if d is not None:
-            out.append((label, f"{d.formula}. {' '.join(d.assumptions)}"))
+    for label, dc in (("DC VOLTAGE DROP", True), ("AC VOLTAGE DROP", False)):
+        for section in sections:
+            drop = segment_drop(project, catalog, net.edge_by_id[section.edge]) if (section.service is Service.DC) == dc else None
+            if drop is not None:
+                out.append((label, f"{drop.formula}. {' '.join(drop.assumptions)}"))
+                break
     return tuple(out)
 
 
@@ -247,7 +247,7 @@ def _vd_summary(project: Project, expanded: ElectricalNetwork, rows: list[CableR
             except NetworkError:
                 continue
             drops = []
-            for a, b in zip(path, path[1:]):
+            for a, b in zip(path, path[1:], strict=False):
                 r = by_pair.get((a, b))
                 if r is None or r.vd_pct is None:
                     continue

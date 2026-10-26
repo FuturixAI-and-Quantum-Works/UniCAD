@@ -18,10 +18,10 @@ from pathlib import Path
 
 from unicad.arrays import PlacementSpec, place_array
 from unicad.catalog.store import Catalog, load_catalog
+from unicad.domain.project import Project
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.sld.sheet import save_deterministic
 from unicad.drafting.tables import TableRender
-from unicad.domain.project import Project
 from unicad.ingest.site_import import import_site
 from unicad.render import LibreCadRenderer, Sheet
 from unicad.schedules import LengthMode, build_bom, build_schedule, write_bom_xlsx, write_schedule_xlsx

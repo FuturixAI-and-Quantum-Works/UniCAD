@@ -1,5 +1,4 @@
 import os
-import re
 import subprocess
 from pathlib import Path
 
@@ -110,7 +109,7 @@ def test_schedule_pages_carry_the_project_title_block_and_continuous_numbering()
     s = build_schedule(p, CATALOG)
     r, titles = render_schedule(p, s, load_profile(p.company_profile))
     assert titles == ["DC CABLE SCHEDULE", "AC AND MV CABLE SCHEDULE"] and r.parts[-1] == 1 and r.parts[0] == 0
-    assert f"{r.pages} of {r.pages}" in texts(r.docs[-1]) and "1 of %d" % r.pages in texts(r.docs[0])
+    assert f"{r.pages} of {r.pages}" in texts(r.docs[-1]) and f"1 of {r.pages}" in texts(r.docs[0])
     assert "AC AND MV CABLE SCHEDULE" in texts(r.docs[-1]) and "DC CABLE SCHEDULE" in texts(r.docs[0])
     assert not [w for w in r.warnings if "truncated" in w]
 
