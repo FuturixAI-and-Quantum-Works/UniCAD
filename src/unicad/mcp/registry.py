@@ -20,6 +20,7 @@ MODULES = (
     "unicad.mcp.tools.rules",
     "unicad.mcp.tools_layout",
     "unicad.mcp.tools.design",
+    "unicad.mcp.tools.schedules",
     "unicad.mcp.resources",
     "unicad.mcp.prompts",
 )
