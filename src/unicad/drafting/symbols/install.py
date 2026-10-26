@@ -13,6 +13,12 @@ from .registry import REGISTRY
 _ATTRIB_INVISIBLE = 1
 _SYMBOL_LINEWEIGHT = 25
 TEXT_LAYER = "G-SYMBOL-TXT"
+UNICODE_STYLE = "unicode"
+
+
+def text_style_for(value: str) -> str:
+    """LibreCAD prints √ Ω Δ only in a style named `unicode`; other text keeps the symbol style."""
+    return UNICODE_STYLE if any(ord(c) > 127 for c in value) else TEXT_STYLE
 
 
 def _symbol(key: str) -> SymbolDef:
@@ -123,12 +129,15 @@ def insert(
         dx, dy = upright_attr(sym, a.x, a.y) if turned and not a.centred else _rotate(a.x, a.y, rotation)
         pos = (_clean(at[0] + dx), _clean(at[1] + dy))
         value = values.get(a.tag, a.default)
-        attrib = ref.add_attrib(a.tag, value, pos, dxfattribs={"layer": LAYER, "style": TEXT_STYLE, "height": a.height})
+        style = text_style_for(value)
+        if style not in layout.doc.styles:
+            layout.doc.styles.add(style, font="unicode.shx")
+        attrib = ref.add_attrib(a.tag, value, pos, dxfattribs={"layer": LAYER, "style": style, "height": a.height})
         attrib.set_placement(pos, align=align)
         if not a.visible or visible_text:
             attrib.dxf.flags |= _ATTRIB_INVISIBLE
         if visible_text and a.visible and value:
             layout.add_text(
-                value, height=a.height, dxfattribs={"layer": TEXT_LAYER, "style": TEXT_STYLE}
+                value, height=a.height, dxfattribs={"layer": TEXT_LAYER, "style": style}
             ).set_placement(pos, align=align)
     return ref

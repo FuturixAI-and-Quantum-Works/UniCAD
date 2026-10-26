@@ -39,6 +39,9 @@ class Box:
     def overlaps(self, other: "Box", tol: float = 1e-6) -> bool:
         return self.x0 < other.x1 - tol and other.x0 < self.x1 - tol and self.y0 < other.y1 - tol and other.y0 < self.y1 - tol
 
+    def contains(self, other: "Box", tol: float = 1e-6) -> bool:
+        return self.x0 - tol <= other.x0 and other.x1 <= self.x1 + tol and self.y0 - tol <= other.y0 and other.y1 <= self.y1 + tol
+
     def contains_point(self, p: Point, tol: float = 1e-6) -> bool:
         return self.x0 - tol <= p[0] <= self.x1 + tol and self.y0 - tol <= p[1] <= self.y1 + tol
 
@@ -214,7 +217,7 @@ class SldLayout:
 
 @dataclass(frozen=True)
 class SldPage:
-    """One sheet of a split SLD: the nodes drawn on it and the edges cut at its border."""
+    """One sheet of a split SLD: the nodes it owns (a device drawn on several pages is owned by the first) and the edges cut at its border."""
 
     node_ids: tuple[str, ...]
     cut_edges: tuple[str, ...]

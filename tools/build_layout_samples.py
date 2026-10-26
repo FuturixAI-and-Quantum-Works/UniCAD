@@ -20,6 +20,7 @@ from unicad.catalog.store import load_catalog
 from unicad.domain.site import FeatureKind, LonLat, Setbacks, SiteGeometry
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
 from unicad.drafting.site_plan import LayoutDrawing, default_notes, render_layout_sheet
+from unicad.drafting.sld import save_deterministic
 from unicad.ingest.site_import import import_site
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -72,7 +73,7 @@ def build(name: str, site: SiteGeometry, spec: PlacementSpec, paper: PaperSize, 
     drawing = LayoutDrawing.from_result(site, result, module, spec.table_gap_m, default_notes(result, site, spec_text(spec)))
     sheet = render_layout_sheet(doc, drawing, sheet_spec(paper, title, f"UDEMO-DEMO-{name.upper()[:10]}-EE-101", location), profile, view=view)  # type: ignore[arg-type]
     dxf = OUT / f"{name}.dxf"
-    doc.saveas(dxf)
+    save_deterministic(doc, dxf)
     for w in sheet.warnings:
         print(f"  warning: {w}")
     m = result.metrics
