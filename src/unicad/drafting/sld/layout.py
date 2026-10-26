@@ -267,6 +267,8 @@ class _Builder:
         self.earth_nodes: set[str] = set()
         self.control_only: list[Node] = []
         self.markers = {m.id for m in markers}
+        self.stands_for = {f"{MARKER_PREFIX}{e.id}": e.dst_node if e.src_node in keep else e.src_node for e in self.cut_edges}
+        """Off-sheet marker id -> the node beyond the sheet edge it stands in for."""
         for n in (*net.nodes, *markers):
             if n.id not in keep and n.id not in self.markers:
                 continue
@@ -519,6 +521,13 @@ class _Builder:
         return ext.union(eg.body)
 
     # ---------------------------------------------------------------- tidy x
+    def _in_group(self, gid: str | None, target: str) -> bool:
+        while gid is not None:
+            if gid == target:
+                return True
+            gid = self.net.group_by_id[gid].within
+        return False
+
     def _members(self, g: Group) -> frozenset[str]:
         out = set()
         for nid, rec in self.recs.items():
@@ -1057,6 +1066,7 @@ class _Builder:
             members = self._members(g)
             if not members:
                 continue
+            members |= {m for m, other in self.stands_for.items() if self._in_group(self.net.node(other).group, g.id)}
             pad = o.frame_pad
             mine: list[Box] = []
             others: list[Box] = []
@@ -1077,9 +1087,14 @@ class _Builder:
                     mine.extend(lb.box for lb in c.labels)
                 else:
                     others.append(union_all([lb.box for lb in c.labels]))
+            for f in (*frames, *out):
+                if self._in_group(self.net.group_by_id[f.group_id].within, g.id):
+                    mine.extend([f.box.grow(pad / 2), *(lb.box for lb in f.labels)])
             span = union_all(mine)
             limit = None
             for f in (*frames, *out):
+                if self._in_group(self.net.group_by_id[f.group_id].within, g.id):
+                    continue
                 if f.labels:
                     others.append(union_all([lb.box for lb in f.labels]))
                 if not f.box.contains(span):
