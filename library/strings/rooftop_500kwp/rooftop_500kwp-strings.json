@@ -1,0 +1,79 @@
+{
+ "project": "rooftop-500kwp",
+ "sheets": [
+  {
+   "sheet": "UDEMO-DIPL-RT500-EE-002",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05",
+   "paper": "A3",
+   "file": "rooftop-500kwp-strings-inv.dxf",
+   "warnings": [],
+   "type": "inv",
+   "typical_for": "INV-01 .. INV-05 (5 NOS)",
+   "shown_for": "INV-01",
+   "strings_drawn": 10,
+   "strings_covered": 50,
+   "instances": [
+    {
+     "tag": "INV-01",
+     "strings": 10,
+     "tables": [
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "T05"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-02",
+     "strings": 10,
+     "tables": [
+      "T06",
+      "T07",
+      "T08",
+      "T09",
+      "T10"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-03",
+     "strings": 10,
+     "tables": [
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-04",
+     "strings": 10,
+     "tables": [
+      "T16",
+      "T17",
+      "T18",
+      "T19",
+      "T20"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-05",
+     "strings": 10,
+     "tables": [
+      "T21",
+      "T22",
+      "T23",
+      "T24",
+      "T25"
+     ],
+     "to": ""
+    }
+   ]
+  }
+ ]
+}
