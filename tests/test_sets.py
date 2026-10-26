@@ -188,3 +188,15 @@ def test_drawings_render_and_preview_over_stdio(tmp_path):
             assert Path(whole["png"]).is_file() and whole["region"][2] > 1000
 
     asyncio.run(asyncio.wait_for(run(), 240))
+
+
+def test_a_split_keeps_the_metering_pt_on_the_sheet_of_its_abt_meters():
+    """close-e2e-1 M15: the split put the bus PT on its own part, so 'no pin to attach abt_main' and the PT-to-meter wiring was not drawn."""
+    p = fixture("utility_50mwac")
+    tight = SldOptions(min_scale=2.0, max_scale=3.0)
+    sheets = SldBuilder(tight).plan(p, PROFILE, CATALOG, Numberer.for_project(p, PROFILE))
+    done = SldBuilder(tight).build(p, sheets, sheets, PROFILE, CATALOG)
+    assert len(sheets) > 2
+    assert not [w for b in done for w in b.warnings if "no pin to attach" in w or "could not be drawn" in w]
+    home = {n: b.sheet.id for b in done for n in b.meta["nodes"]}
+    assert home["mv_pt"] == home["abt_main"] == home["abt_check"]

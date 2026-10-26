@@ -281,7 +281,7 @@ class _Builder:
             key = _variant_key(n, key, catalog)
             if key is None and n.kind not in BUS_KINDS:
                 key = _fallback_key(n)
-            if annotate.unspecified(n):
+            if n.id not in self.markers and annotate.unspecified(n):
                 self.warnings.append(f"node {n.id!r} ({n.kind}) has no catalog spec: drawn as {_symbol(key).title} marked {annotate.UNSPECIFIED}")
             self.recs[n.id] = _Rec(n, key)
         self.power_edges = [e for e in edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
@@ -1608,6 +1608,10 @@ def plan_pages(
         return (page(nodes, lay),)
     subtrees = [frozenset(b._subtree_nodes(c)) - b.markers for c in b.recs[split].children if c not in b.markers]
     main = nodes - frozenset().union(*subtrees)
+    # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn.
+    wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
+    subtrees = [s for s in subtrees if s not in wired]
+    main = main.union(*wired)
     pages = [page(main, layout_sld(network, catalog, options, main))]
     current: frozenset[str] = frozenset()
     for sub in subtrees:
