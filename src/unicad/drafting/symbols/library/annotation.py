@@ -43,6 +43,7 @@ def offsheet(b):
         Attr("RATING", 6.5, 2.5, ATTR_H),
         Attr("DESC", 6.5, 12.25, ATTR_H),
     ),
+    tag_prefix="CBL",
 )
 def cable_tag(b):
     p = Pen(b)

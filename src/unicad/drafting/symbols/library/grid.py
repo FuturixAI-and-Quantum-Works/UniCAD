@@ -14,6 +14,7 @@ C = Category.GRID
     17.5,
     (pin_s(10.0, "out"),),
     std_attrs(20.0, 17.5),
+    tag_prefix="GRID",
 )
 def utility(b):
     p = Pen(b)
@@ -27,11 +28,12 @@ def utility(b):
     "grid.oh_line",
     "Overhead line termination",
     C,
-    "IEC 60617-11 overhead line / IS 12032",
+    "IEC 60617 S00409 overhead line / IS 12032",
     15.0,
     20.0,
     (pin_s(7.5, "out"),),
     std_attrs(15.0, 20.0),
+    tag_prefix="OHL",
 )
 def oh_line(b):
     p = Pen(b)
@@ -46,11 +48,12 @@ def oh_line(b):
     "grid.cable_end",
     "Cable termination / sealing end",
     C,
-    "IEC 60617-11 cable sealing end / IS 12032",
+    "IEC 60617 S00050 / S00051 cable sealing end / IS 12032",
     10.0,
     20.0,
     (pin_n(5.0, 20.0, "cable"), pin_s(5.0, "term")),
     std_attrs(10.0, 20.0),
+    tag_prefix="CSE",
 )
 def cable_end(b):
     p = Pen(b)
@@ -63,11 +66,12 @@ def cable_end(b):
     "grid.dg",
     "Diesel generator set (DG)",
     C,
-    "IEC 60617-6 generator / IS 12032",
+    "IEC 60617 generator / IS 12032",
     15.0,
     17.5,
     (pin_s(7.5, "out"),),
     std_attrs(15.0, 17.5),
+    tag_prefix="DG",
 )
 def dg(b):
     p = Pen(b)
@@ -81,14 +85,36 @@ def dg(b):
     "grid.load",
     "Load",
     C,
-    "IEC 60617-2 load block",
+    "UniCAD composite (load block)",
     15.0,
     17.5,
     (pin_n(7.5, 17.5, "in"),),
     std_attrs(15.0, 17.5),
+    tag_prefix="LD",
 )
 def load(b):
     p = Pen(b)
     p.line(7.5, 17.5, 7.5, 10.0)
     p.rect(0.0, 0.0, 15.0, 10.0)
     p.text("LOAD", 7.5, 5.0, 2.8)
+
+
+@symbol(
+    "grid.cable_term_kit",
+    "Cable termination kit with armour earth",
+    C,
+    "IEC 60617 S00050 / S00051 cable sealing end + armour earth",
+    15.0,
+    25.0,
+    (pin_n(7.5, 25.0, "cable"), pin_s(7.5, "term")),
+    std_attrs(15.0, 25.0),
+    tag_prefix="CTK",
+)
+def cable_term_kit(b):
+    p = Pen(b)
+    p.line(7.5, 25.0, 7.5, 19.0)
+    p.solid((7.5, 19.0), (4.25, 11.5), (10.75, 11.5))
+    p.line(7.5, 11.5, 7.5, 0.0)
+    p.dot(7.5, 21.5, 0.6)
+    p.path((7.5, 21.5), (12.5, 21.5), (12.5, 8.8))
+    p.earth(12.5, 8.8, w=4.0, step=1.0)

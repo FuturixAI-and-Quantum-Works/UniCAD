@@ -3,7 +3,7 @@ from ..registry import symbol
 from .kit import DC, Pen, pin_n, pin_s, std_attrs
 
 C = Category.STORAGE
-STD = "IEC 60617-6 primary/secondary cell, battery / IS 12032"
+STD = "IEC 60617 S01342 battery of primary or secondary cells / IS 12032"
 
 
 def _plates(p: Pen, cx: float, y_top: float, cells: int) -> float:
@@ -24,6 +24,7 @@ def _plates(p: Pen, cx: float, y_top: float, cells: int) -> float:
     20.0,
     (pin_n(5.0, 20.0, "dc", DC),),
     std_attrs(10.0, 20.0),
+    tag_prefix="BAT",
 )
 def battery(b):
     p = Pen(b)
@@ -42,6 +43,7 @@ def battery(b):
     30.0,
     (pin_s(20.0, "ac"),),
     std_attrs(40.0, 30.0),
+    tag_prefix="BESS",
 )
 def bess(b):
     p = Pen(b)

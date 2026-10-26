@@ -8,11 +8,13 @@ from ezdxf.enums import TextEntityAlignment
 
 from . import library  # noqa: F401
 from .install import insert, install
-from .library.kit import TEXT_STYLE
+from .library.kit import ATTR_GAP, TEXT_STYLE
 from .model import Category, Side, SymbolDef
 from .registry import REGISTRY
 
 CELL_W = 80.0
+SYMBOL_X = 8.0
+ATTR_TEXT_W = 34.0
 COLUMNS = 5
 MARGIN = 10.0
 FOOTER = 12.0
@@ -43,6 +45,8 @@ _RATING = {
     "dc.mcb": "32 A 1000 Vdc",
     "dc.diode": "20 A 1500 V",
     "dc.scb": "16 in 1 out",
+    "dc.scb_monitored": "16 in 1 out",
+    "dc.fuse_switch": "32 A 1500 Vdc",
     "inv.string": "100 kW 415 Vac",
     "inv.central": "2.5 MW 800 Vac",
     "inv.micro": "1.2 kW 230 Vac",
@@ -68,10 +72,18 @@ _RATING = {
     "prot.spd_ac": "Type 2 40 kA",
     "prot.lightning_arrester": "30 kV 10 kA",
     "prot.relay": "Aux 110 Vdc",
+    "prot.relay_group": "Aux 110 Vdc",
+    "prot.la_counter": "30 kV 10 kA",
     "tx.power_2w": "2.5 MVA 33/0.8 kV",
     "tx.power_3w": "5 MVA 33/11/0.8 kV",
     "tx.aux": "50 kVA 415/240 V",
     "tx.ct": "400/5 A 5P10",
+    "tx.ct_2core": "250/1-1 A",
+    "tx.ct_3core": "1200/1-1-1 A",
+    "tx.idt_2lv": "12.5 MVA 33/0.66 kV",
+    "tx.idt_3lv": "12.5 MVA 33/0.66 kV",
+    "tx.idt_4lv": "12.5 MVA 33/0.66 kV",
+    "tx.earthing": "33 kV zig-zag",
     "tx.pt": "33 kV/110 V",
     "inst.kwh": "CT 400/5 A",
     "inst.net_meter": "Class 0.5S",
@@ -81,9 +93,16 @@ _RATING = {
     "inst.mfm": "RS485",
     "inst.datalogger": "Modbus TCP",
     "inst.weather_station": "GHI / Tmod",
+    "inst.wms": "GHI / Tmod / WS",
+    "inst.lamp_ryb": "230 Vac LED",
+    "inst.annunciator": "12 window 110 Vdc",
+    "inst.metering_cubicle": "Class 0.2S",
+    "inst.scada_box": "Modbus TCP",
+    "inst.cctv": "IP camera",
     "grid.utility": "33 kV 50 Hz",
     "grid.oh_line": "33 kV",
     "grid.cable_end": "3C x 240 mm2",
+    "grid.cable_term_kit": "33 kV 3C x 185 mm2",
     "grid.dg": "250 kVA",
     "grid.load": "120 kW",
     "earth.earth": "< 1 ohm",
@@ -101,7 +120,16 @@ _RATING = {
 _SAMPLE = {
     "DESC": "Description",
     "VECTOR": "Dyn11",
-    "ANSI": "50/51N",
+    "ANSI": "51",
+    "ANSI1": "50",
+    "ANSI2": "51",
+    "ANSI3": "50N",
+    "ANSI4": "51N",
+    "ANSI5": "27",
+    "ANSI6": "59",
+    "RATIO1": "CL 0.2S 15 VA",
+    "RATIO2": "CL 5P20 15 VA",
+    "RATIO3": "CL PS",
     "COUNT": "18",
     "SHEET": "E-103",
     "RADIUS": "R = 45 m",
@@ -113,15 +141,14 @@ _SAMPLE = {
 
 
 def sample_values(sym: SymbolDef) -> dict[str, str]:
-    name = sym.key.split(".", 1)[1].upper().replace("_", "")[:5]
     out: dict[str, str] = {}
     for a in sym.attrs:
         if a.tag == "TAG":
-            out[a.tag] = f"{name}-01"
+            out[a.tag] = f"{sym.tag_prefix}-01"
         elif a.tag == "RATING":
             out[a.tag] = _RATING.get(sym.key, "Rating")
         else:
-            out[a.tag] = _SAMPLE.get(a.tag, a.default or a.tag.title())
+            out[a.tag] = a.default or _SAMPLE.get(a.tag, a.tag.title())
     return out
 
 
@@ -132,13 +159,23 @@ def manifest(keys: Iterable[str] | None = None) -> list[dict]:
             "title": s.title,
             "category": s.category.value,
             "standard": s.standard,
+            "tag_prefix": s.tag_prefix,
             "block_name": s.block_name,
             "size": {"width": s.width, "height": s.height},
             "pins": [
                 {"name": p.name, "x": p.x, "y": p.y, "side": p.side.value, "kind": p.kind.value} for p in s.pins
             ],
             "attrs": [
-                {"tag": a.tag, "x": a.x, "y": a.y, "height": a.height, "default": a.default, "visible": a.visible}
+                {
+                    "tag": a.tag,
+                    "x": a.x,
+                    "y": a.y,
+                    "height": a.height,
+                    "default": a.default,
+                    "visible": a.visible,
+                    "centred": a.centred,
+                    "max_chars": a.max_chars,
+                }
                 for a in s.attrs
             ],
         }
@@ -193,6 +230,11 @@ def _split(bands: list, groups: int) -> list[list]:
     return out
 
 
+def cell_width(syms: Iterable[SymbolDef]) -> float:
+    """Widest symbol plus its east-side attribute text, never narrower than CELL_W."""
+    return max([CELL_W, *(SYMBOL_X + s.width + ATTR_GAP + ATTR_TEXT_W for s in syms)])
+
+
 def build_catalogue(
     categories: Iterable[Category] | None = None,
     columns: int = COLUMNS,
@@ -210,8 +252,10 @@ def build_catalogue(
         doc.layers.add(name, color=colour)
     msp = doc.modelspace()
 
-    for g, group in enumerate(_split(_bands(categories, keys, columns), groups)):
-        gx = g * (columns * CELL_W + 2 * MARGIN)
+    bands = _bands(categories, keys, columns)
+    cell_w = cell_width(s for band in bands for s in band[1])
+    for g, group in enumerate(_split(bands, groups)):
+        gx = g * (columns * cell_w + 2 * MARGIN)
         y_cursor = 0.0
         for cat, syms, cell_h, rows, band_h in group:
             _label(
@@ -226,14 +270,14 @@ def build_catalogue(
             top = y_cursor - HEADER
             for i, sym in enumerate(syms):
                 col, row = i % columns, i // columns
-                x0 = gx + MARGIN + col * CELL_W
+                x0 = gx + MARGIN + col * cell_w
                 y0 = top - (row + 1) * cell_h
                 msp.add_lwpolyline(
-                    [(x0, y0), (x0 + CELL_W, y0), (x0 + CELL_W, y0 + cell_h), (x0, y0 + cell_h)],
+                    [(x0, y0), (x0 + cell_w, y0), (x0 + cell_w, y0 + cell_h), (x0, y0 + cell_h)],
                     close=True,
                     dxfattribs={"layer": "G-CATALOG"},
                 )
-                ox, oy = x0 + 8.0, y0 + FOOTER + 3.0
+                ox, oy = x0 + SYMBOL_X, y0 + FOOTER + 3.0
                 msp.add_lwpolyline(
                     [(ox, oy), (ox + sym.width, oy), (ox + sym.width, oy + sym.height), (ox, oy + sym.height)],
                     close=True,

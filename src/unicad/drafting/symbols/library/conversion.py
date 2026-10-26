@@ -3,7 +3,7 @@ from ..registry import symbol
 from .kit import DC, DC_NEG, DC_POS, Pen, pin_n, pin_s, std_attrs
 
 C = Category.CONVERSION
-STD = "IEC 60617-6 converter / IS 12032"
+STD = "IEC 60617 S00896 inverter / IS 12032"
 
 
 def _converter(p: Pen, x0: float, y0: float, x1: float, y1: float, upper: str = "=", lower: str = "~", glyph: float = 5.0) -> None:
@@ -26,6 +26,7 @@ def _converter(p: Pen, x0: float, y0: float, x1: float, y1: float, upper: str = 
     25.0,
     (pin_n(12.5, 25.0, "dc", DC), pin_s(12.5, "ac")),
     std_attrs(25.0, 25.0),
+    tag_prefix="INV",
 )
 def string_inverter(b):
     p = Pen(b)
@@ -43,6 +44,7 @@ def string_inverter(b):
     32.5,
     (pin_n(17.5, 32.5, "dc", DC), pin_s(17.5, "ac")),
     std_attrs(35.0, 32.5),
+    tag_prefix="PCU",
 )
 def central_inverter(b):
     p = Pen(b)
@@ -65,6 +67,7 @@ def central_inverter(b):
         pin_s(7.5, "ac"),
     ),
     std_attrs(15.0, 20.0),
+    tag_prefix="MIV",
 )
 def micro_inverter(b):
     p = Pen(b)
@@ -83,6 +86,7 @@ def micro_inverter(b):
     25.0,
     (pin_n(12.5, 25.0, "dc", DC), pin_s(12.5, "ac")),
     std_attrs(25.0, 25.0),
+    tag_prefix="PCS",
 )
 def pcs(b):
     p = Pen(b)
@@ -110,6 +114,7 @@ def pcs(b):
         Pin("out-", 10.0, 0.0, Side.S, DC_NEG),
     ),
     std_attrs(15.0, 20.0),
+    tag_prefix="OPT",
 )
 def optimiser(b):
     p = Pen(b)

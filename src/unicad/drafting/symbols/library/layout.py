@@ -17,7 +17,7 @@ def module_plan(b):
     p.line(2.5, 0.0, 2.5, 10.0)
 
 
-@symbol("layout.inverter", "Inverter (plan)", C, STD, 15.0, 10.0, (), std_attrs(15.0, 10.0))
+@symbol("layout.inverter", "Inverter (plan)", C, STD, 15.0, 10.0, (), std_attrs(15.0, 10.0), tag_prefix="INV")
 def inverter_plan(b):
     p = Pen(b)
     p.rect(0.0, 0.0, 15.0, 10.0)
@@ -26,7 +26,7 @@ def inverter_plan(b):
     p.tilde(11.0, 2.8, 4.4)
 
 
-@symbol("layout.earth_pit", "Earth pit (plan)", C, STD, 7.5, 7.5, (), std_attrs(7.5, 7.5))
+@symbol("layout.earth_pit", "Earth pit (plan)", C, STD, 7.5, 7.5, (), std_attrs(7.5, 7.5), tag_prefix="EP")
 def earth_pit_plan(b):
     p = Pen(b)
     p.circle(3.75, 3.75, 3.75)
@@ -35,7 +35,7 @@ def earth_pit_plan(b):
     p.circle(3.75, 3.75, 1.5)
 
 
-@symbol("layout.ese_la", "ESE lightning arrester (plan)", C, STD, 10.0, 10.0, (), std_attrs(10.0, 10.0, ("RADIUS", "")))
+@symbol("layout.ese_la", "ESE lightning arrester (plan)", C, STD, 10.0, 10.0, (), std_attrs(10.0, 10.0, ("RADIUS", "")), tag_prefix="LA")
 def ese_la_plan(b):
     p = Pen(b)
     p.circle(5.0, 5.0, 2.0)
@@ -45,7 +45,7 @@ def ese_la_plan(b):
         p.line(5.0 + 2.0 * math.cos(a), 5.0 + 2.0 * math.sin(a), 5.0 + 4.8 * math.cos(a), 5.0 + 4.8 * math.sin(a))
 
 
-@symbol("layout.transformer", "Transformer (plan)", C, STD, 15.0, 10.0, (), std_attrs(15.0, 10.0))
+@symbol("layout.transformer", "Transformer (plan)", C, STD, 15.0, 10.0, (), std_attrs(15.0, 10.0), tag_prefix="TX")
 def transformer_plan(b):
     p = Pen(b)
     p.rect(0.0, 0.0, 15.0, 10.0)
@@ -53,7 +53,7 @@ def transformer_plan(b):
     p.circle(9.25, 5.0, 3.0)
 
 
-@symbol("layout.scb", "String combiner box (plan)", C, STD, 10.0, 7.5, (), std_attrs(10.0, 7.5))
+@symbol("layout.scb", "String combiner box (plan)", C, STD, 10.0, 7.5, (), std_attrs(10.0, 7.5), tag_prefix="SCB")
 def scb_plan(b):
     p = Pen(b)
     p.rect(0.0, 0.0, 10.0, 7.5)

@@ -8,34 +8,51 @@ CX = W / 2
 DX = 3.2
 
 
-def _inline(key: str, title: str, standard: str, w: float = W, h: float = H):
-    return symbol(key, title, C, standard, w, h, inline_pins(w / 2, h, AC), std_attrs(w, h))
+def _inline(key: str, title: str, standard: str, tag_prefix: str):
+    return symbol(key, title, C, standard, W, H, inline_pins(CX, H, AC), std_attrs(W, H), tag_prefix=tag_prefix)
 
 
-@_inline("sw.mcb", "Miniature circuit breaker (MCB)", "IEC 60617 S00287 + thermal release")
+LABEL_X = CX + 1.5
+LABEL_H = 3.5
+BREAKER_W = 22.5
+
+
+@_inline("sw.mcb", "Miniature circuit breaker (MCB)", "IEC 60617 S00287 circuit breaker + thermal release", "MCB")
 def mcb(b):
     p = Pen(b)
     yh, yc = p.switch(CX, 0, H, "cross")
     blade_box(p, CX, yh, yc, DX, 0.5, 3.2, 0.8)
 
 
-@_inline("sw.mccb", "Moulded-case circuit breaker (MCCB)", "IEC 60617 S00287 + thermal-magnetic release")
+@symbol(
+    "sw.mccb",
+    "Moulded-case circuit breaker (MCCB)",
+    C,
+    "IEC 60617 S00287 circuit breaker + thermal-magnetic release, type label",
+    BREAKER_W,
+    H,
+    inline_pins(CX, H, AC),
+    std_attrs(BREAKER_W, H),
+    tag_prefix="MCCB",
+)
 def mccb(b):
     p = Pen(b)
     yh, yc = p.switch(CX, 0, H, "cross")
     blade_box(p, CX, yh, yc, DX, 0.32, 2.8, 0.8)
     blade_box(p, CX, yh, yc, DX, 0.72, 2.8, 0.8, solid=True)
+    p.text("MCCB", LABEL_X, 8.0, LABEL_H, "l")
 
 
 @symbol(
     "sw.acb",
     "Air circuit breaker (ACB)",
     C,
-    "IEC 60617 S00287 + electronic release",
-    W,
+    "IEC 60617 S00287 circuit breaker + electronic release, type label",
+    BREAKER_W,
     25.0,
     inline_pins(CX, 25.0, AC),
-    std_attrs(W, 25.0),
+    std_attrs(BREAKER_W, 25.0),
+    tag_prefix="ACB",
 )
 def acb(b):
     p = Pen(b)
@@ -43,17 +60,19 @@ def acb(b):
     blade_box(p, CX, yh, yc, DX, 0.32, 3.2, 0.9)
     blade_box(p, CX, yh, yc, DX, 0.74, 3.2, 0.9, solid=True)
     p.dot(CX, yh, 0.7)
+    p.text("ACB", LABEL_X, 10.0, LABEL_H, "l")
 
 
 @symbol(
     "sw.rccb",
     "Residual current circuit breaker (RCCB / RCD)",
     C,
-    "IEC 60617 S00287 + residual-current release",
+    "IEC 60617 S00287 circuit breaker + residual-current release",
     W,
     25.0,
     inline_pins(CX, 25.0, AC),
     std_attrs(W, 25.0),
+    tag_prefix="RCCB",
 )
 def rccb(b):
     p = Pen(b)
@@ -62,21 +81,21 @@ def rccb(b):
     p.dashed(3.4, 5.9, 3.2, 14.0, dash=2.2, gap=1.4)
 
 
-@_inline("sw.hrc_fuse", "HRC fuse", "IEC 60617 S00362")
+@_inline("sw.hrc_fuse", "HRC fuse", "IEC 60617 S00362 fuse, general symbol", "FU")
 def hrc_fuse(b):
     p = Pen(b)
     p.line(CX, 0, CX, H)
     p.rect(CX - 1.5, 5.5, CX + 1.5, 14.5)
 
 
-@_inline("sw.switch_fuse", "Switch-fuse unit (fuse-switch disconnector)", "IEC 60617 S00288 + S00362")
+@_inline("sw.switch_fuse", "Switch-fuse unit (fuse-switch disconnector)", "IEC 60617 S00370 fuse switch-disconnector", "SFU")
 def switch_fuse(b):
     p = Pen(b)
     yh, yc = p.switch(CX, 0, H, "bar")
     blade_box(p, CX, yh, yc, DX, 0.5, 5.4, 1.3)
 
 
-@_inline("sw.isolator", "Isolator / disconnector", "IEC 60617 S00288")
+@_inline("sw.isolator", "Isolator / disconnector", "IEC 60617 S00288 disconnector; isolator", "ISO")
 def isolator(b):
     Pen(b).switch(CX, 0, H, "bar")
 
@@ -85,11 +104,12 @@ def isolator(b):
     "sw.isolator_es",
     "Isolator with earth switch",
     C,
-    "IEC 60617 S00288 + S00290 (earthing)",
+    "IEC 60617 S01848 combined disconnector and earthing switch",
     20.0,
     32.5,
     inline_pins(10.0, 32.5, AC),
     std_attrs(20.0, 32.5),
+    tag_prefix="ISO",
 )
 def isolator_es(b):
     p = Pen(b)
@@ -105,24 +125,44 @@ def isolator_es(b):
     p.earth(ex, 3.5, w=5.0, step=1.0)
 
 
-@_inline("sw.lbs", "Load-break switch (switch-disconnector)", "IEC 60617 S00290")
+@_inline("sw.lbs", "Load-break switch (switch-disconnector)", "IEC 60617 S00290 switch-disconnector", "LBS")
 def lbs(b):
     Pen(b).switch(CX, 0, H, "square")
 
 
-@_inline("sw.contactor", "Contactor", "IEC 60617 S00284")
+@_inline("sw.contactor", "Contactor", "IEC 60617 S00284 contactor, main make contact", "MC")
 def contactor(b):
     Pen(b).switch(CX, 0, H, "arc")
 
 
-@symbol("sw.vcb", "Vacuum circuit breaker (VCB)", C, "IEC 60617 S00287 + vacuum envelope", 15.0, 25.0, inline_pins(7.5, 25.0, AC), std_attrs(15.0, 25.0))
+@symbol(
+    "sw.vcb",
+    "Vacuum circuit breaker (VCB)",
+    C,
+    "IEC 60617 S00287 circuit breaker + vacuum envelope",
+    15.0,
+    25.0,
+    inline_pins(7.5, 25.0, AC),
+    std_attrs(15.0, 25.0),
+    tag_prefix="VCB",
+)
 def vcb(b):
     p = Pen(b)
     p.switch(7.5, 0, 25.0, "cross")
     p.circle(7.5, 12.5, 7.0)
 
 
-@symbol("sw.sf6", "SF6 circuit breaker", C, "IEC 60617 S00287 + gas housing", 15.0, 25.0, inline_pins(7.5, 25.0, AC), std_attrs(15.0, 25.0))
+@symbol(
+    "sw.sf6",
+    "SF6 circuit breaker",
+    C,
+    "IEC 60617 S00287 circuit breaker + gas housing",
+    15.0,
+    25.0,
+    inline_pins(7.5, 25.0, AC),
+    std_attrs(15.0, 25.0),
+    tag_prefix="CB",
+)
 def sf6(b):
     p = Pen(b)
     p.switch(7.5, 0, 25.0, "cross")
@@ -130,7 +170,17 @@ def sf6(b):
     p.text("SF6", 11.2, 9.0, 1.8)
 
 
-@symbol("sw.draw_out", "Draw-out (withdrawable) circuit breaker", C, "IEC 60617 S00287 + withdrawable contacts", 10.0, 25.0, inline_pins(5.0, 25.0, AC), std_attrs(10.0, 25.0))
+@symbol(
+    "sw.draw_out",
+    "Draw-out (withdrawable) circuit breaker",
+    C,
+    "IEC 60617 S00287 circuit breaker + withdrawable contacts",
+    10.0,
+    25.0,
+    inline_pins(5.0, 25.0, AC),
+    std_attrs(10.0, 25.0),
+    tag_prefix="CB",
+)
 def draw_out(b):
     p = Pen(b)
     p.switch(5.0, 0, 25.0, "cross")
@@ -142,7 +192,7 @@ def draw_out(b):
     "sw.changeover",
     "Changeover switch (ATS / MTS)",
     C,
-    "IEC 60617 S00289",
+    "IEC 60617 S00289 two-way disconnector; two-way isolator",
     15.0,
     20.0,
     (
@@ -151,6 +201,7 @@ def draw_out(b):
         pin_s(7.5, "out"),
     ),
     std_attrs(15.0, 20.0),
+    tag_prefix="COS",
 )
 def changeover(b):
     p = Pen(b)
@@ -166,7 +217,7 @@ def changeover(b):
     "sw.rmu",
     "Ring main unit (2 ring switches + tee-off)",
     C,
-    "IEC 60617 S00290 / S00362",
+    "IEC 60617 S00290 switch-disconnector + S00362 fuse",
     40.0,
     50.0,
     (
@@ -175,6 +226,7 @@ def changeover(b):
         pin_s(20.0, "tee"),
     ),
     std_attrs(40.0, 50.0),
+    tag_prefix="RMU",
 )
 def rmu(b):
     p = Pen(b)
