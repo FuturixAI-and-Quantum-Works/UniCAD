@@ -1,0 +1,462 @@
+{
+  "id": "utility-50mwac",
+  "name": "50 MWac Ground-Mounted Solar PV Plant",
+  "client": {
+    "name": "Demo Renewables Ltd",
+    "code": "DRL"
+  },
+  "site": {
+    "name": "Demo solar park (illustrative fixture)",
+    "state": "Gujarat"
+  },
+  "design_basis": {
+    "ambient_min_c": 5.0,
+    "ambient_max_c": 50.0,
+    "cell_temp": {
+      "model": "pvsyst",
+      "uc": 29.0,
+      "uv": 0.0
+    },
+    "altitude_m": 50.0,
+    "grid": {
+      "voltage_v": 33000.0,
+      "frequency_hz": 50.0,
+      "utility": "STU"
+    },
+    "vdrop_dc_max": 0.015,
+    "vdrop_ac_max": 0.01,
+    "dc_ac_ratio_target": 1.3,
+    "power_factor": 0.95,
+    "assumptions": [
+      "Fixture values, not site data: ambient_min_c, ambient_max_c, altitude_m.",
+      "PVsyst thermal factors uc=29, uv=0 are the PVsyst free-standing default, used here as an assumption.",
+      "vdrop_dc_max, vdrop_ac_max, power_factor and dc_ac_ratio_target are illustrative design targets, not cited limits.",
+      "12 x SC 4400 UP give 52.8 MVA; export is assumed limited to 50 MWac at the POI by the plant controller.",
+      "IDT and block auxiliary transformer ratings are design assumptions; the catalog has no 33/0.66 kV unit."
+    ]
+  },
+  "company_profile": "default",
+  "segment": "utility",
+  "network": {
+    "groups": [
+      {
+        "id": "block",
+        "tag": "BLOCK-{0:02d}",
+        "count": 6,
+        "title": "INVERTER BLOCK 8.8 MVA"
+      },
+      {
+        "id": "inv_sec",
+        "tag": "PCU-{0:02d}-{1}",
+        "count": 2,
+        "within": "block"
+      },
+      {
+        "id": "scb_sec",
+        "tag": "SCB SECTION-{0:02d}-{1}-{2:02d}",
+        "count": 15,
+        "within": "inv_sec"
+      },
+      {
+        "id": "mvsb",
+        "tag": "33 kV MAIN HT SWITCHBOARD",
+        "title": "33 kV MAIN HT SWITCHBOARD PANEL"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "str",
+        "tag": "STR-{0:02d}-{1}-{2:02d}-{3:02d}",
+        "kind": "pv_string",
+        "spec": "vikram-solar-hypersol-m10r-144-580-wp",
+        "count": 24,
+        "group": "scb_sec",
+        "modules_in_series": 27
+      },
+      {
+        "id": "scb",
+        "tag": "SCB-{0:02d}-{1}-{2:02d}",
+        "kind": "scb",
+        "group": "scb_sec"
+      },
+      {
+        "id": "inv",
+        "tag": "INV-{0:02d}-{1}",
+        "kind": "inverter",
+        "spec": "sma-sc-4400-up",
+        "group": "inv_sec"
+      },
+      {
+        "id": "idt",
+        "tag": "IDT-{0:02d}",
+        "kind": "transformer",
+        "group": "block",
+        "attributes": {
+          "rated_kva": 8800,
+          "hv_kv": 33.0,
+          "lv_kv": "0.66-0.66",
+          "vector_group": "Dy11y11",
+          "windings": 3
+        }
+      },
+      {
+        "id": "blk_aux",
+        "tag": "BLK-AUX-TR-{0:02d}",
+        "kind": "aux_transformer",
+        "group": "block",
+        "attributes": {
+          "hv_kv": 0.66,
+          "lv_kv": 0.415
+        }
+      },
+      {
+        "id": "blk_aux_load",
+        "tag": "BLK-AUX-LOAD-{0:02d}",
+        "kind": "load",
+        "group": "block",
+        "voltage_v": 415.0,
+        "title": "BLOCK AUXILIARY ACDB"
+      },
+      {
+        "id": "icog_vcb",
+        "tag": "ICOG-VCB-{0:02d}",
+        "kind": "vcb",
+        "group": "block",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "icog_la",
+        "tag": "ICOG-LA-{0:02d}",
+        "kind": "lightning_arrester",
+        "group": "block",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "mv_bus",
+        "tag": "MV-BUS-01",
+        "kind": "busbar",
+        "group": "mvsb",
+        "voltage_v": 33000.0,
+        "title": "33 kV MAIN HT SWITCHBOARD BUS"
+      },
+      {
+        "id": "mv_pt",
+        "tag": "MV-PT-01",
+        "kind": "pt",
+        "group": "mvsb",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "aux_vcb",
+        "tag": "VCB-AUX-01",
+        "kind": "vcb",
+        "group": "mvsb",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "aux_tr",
+        "tag": "AUX-TR-01",
+        "kind": "aux_transformer",
+        "spec": "is1180-33kv-100kva-dyn11",
+        "group": "mvsb"
+      },
+      {
+        "id": "aux_load",
+        "tag": "AUX-LOAD-01",
+        "kind": "load",
+        "voltage_v": 415.0,
+        "title": "PLANT AUXILIARY / CMCS ACDB"
+      },
+      {
+        "id": "out_vcb",
+        "tag": "VCB-OG-01",
+        "kind": "vcb",
+        "group": "mvsb",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "out_ct",
+        "tag": "CT-OG-01",
+        "kind": "ct",
+        "group": "mvsb",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "out_relay",
+        "tag": "REL-OG-01",
+        "kind": "relay",
+        "group": "mvsb"
+      },
+      {
+        "id": "abt_main",
+        "tag": "ABT-M-01",
+        "kind": "meter",
+        "spec": "generic-meter-abt-ct_pt-0.2s",
+        "group": "mvsb",
+        "ports": [
+          "sig"
+        ]
+      },
+      {
+        "id": "abt_check",
+        "tag": "ABT-C-01",
+        "kind": "meter",
+        "spec": "generic-meter-check-ct_pt-0.2s",
+        "group": "mvsb",
+        "ports": [
+          "sig"
+        ]
+      },
+      {
+        "id": "out_la",
+        "tag": "LA-OG-01",
+        "kind": "lightning_arrester",
+        "voltage_v": 33000.0
+      },
+      {
+        "id": "poi",
+        "tag": "POI-01",
+        "kind": "poi_grid",
+        "voltage_v": 33000.0,
+        "title": "33 kV EXPORT LINE TO GRID SUBSTATION"
+      },
+      {
+        "id": "ep",
+        "tag": "EP-MAIN",
+        "kind": "earth_electrode",
+        "title": "MAIN EARTH GRID"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_str",
+        "src": "str:out",
+        "dst": "scb:in",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "laying": "air"
+      },
+      {
+        "id": "e_scb_inv",
+        "src": "scb:out",
+        "dst": "inv:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-240mm2",
+        "runs": 2,
+        "laying": "buried_direct"
+      },
+      {
+        "id": "e_inv_idt",
+        "src": "inv:ac",
+        "dst": "idt:lv",
+        "service": "lv_ac",
+        "cable": "kei-lt-xlpe-al-1c-400-arm",
+        "runs": 8,
+        "laying": "trench"
+      },
+      {
+        "id": "e_idt_aux",
+        "src": "idt:lv",
+        "dst": "blk_aux:hv",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_aux_load",
+        "src": "blk_aux:lv",
+        "dst": "blk_aux_load:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_idt_vcb",
+        "src": "idt:hv",
+        "dst": "icog_vcb:in",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_icog_la",
+        "src": "idt:hv",
+        "dst": "icog_la:line",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_icog_bus",
+        "src": "icog_vcb:out",
+        "dst": "mv_bus:bus",
+        "service": "mv_ac",
+        "laying": "buried_direct",
+        "remarks": "33 kV XLPE cable, size by cables_size"
+      },
+      {
+        "id": "e_bus_pt",
+        "src": "mv_bus:bus",
+        "dst": "mv_pt:in",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_bus_aux",
+        "src": "mv_bus:bus",
+        "dst": "aux_vcb:in",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_auxvcb_tr",
+        "src": "aux_vcb:out",
+        "dst": "aux_tr:hv",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_auxtr_load",
+        "src": "aux_tr:lv",
+        "dst": "aux_load:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_bus_og",
+        "src": "mv_bus:bus",
+        "dst": "out_vcb:in",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_og_ct",
+        "src": "out_vcb:out",
+        "dst": "out_ct:in",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_ct_la",
+        "src": "out_ct:out",
+        "dst": "out_la:line",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_ct_poi",
+        "src": "out_ct:out",
+        "dst": "poi:in",
+        "service": "mv_ac",
+        "remarks": "33 kV export line, route by others"
+      },
+      {
+        "id": "c_ct_relay",
+        "src": "out_ct:sec",
+        "dst": "out_relay:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_ct_abt",
+        "src": "out_ct:sec",
+        "dst": "abt_main:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_ct_check",
+        "src": "out_ct:sec",
+        "dst": "abt_check:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_pt_abt",
+        "src": "mv_pt:sec",
+        "dst": "abt_main:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_pt_check",
+        "src": "mv_pt:sec",
+        "dst": "abt_check:sig",
+        "service": "control"
+      },
+      {
+        "id": "pe_idt",
+        "src": "idt:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "pe_inv",
+        "src": "inv:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      }
+    ]
+  },
+  "sheets": [
+    {
+      "id": "sld",
+      "number": "UDEMO-DRL-U50-EE-001",
+      "kind": "sld",
+      "title": "OVERALL SINGLE LINE DIAGRAM 50 MWac",
+      "paper": "A0",
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    },
+    {
+      "id": "sld_blk",
+      "number": "UDEMO-DRL-U50-EE-002",
+      "kind": "sld_detail",
+      "title": "TYPICAL BLOCK SLD",
+      "paper": "A1",
+      "scope": {
+        "nodes": [
+          "idt"
+        ]
+      },
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    },
+    {
+      "id": "dc_sld",
+      "number": "UDEMO-DRL-U50-EE-003",
+      "kind": "string_diagram",
+      "title": "TYPICAL DC SLD (SCB)",
+      "paper": "A1",
+      "scope": {
+        "nodes": [
+          "scb"
+        ]
+      },
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    },
+    {
+      "id": "cables",
+      "number": "UDEMO-DRL-U50-EE-004",
+      "kind": "cable_schedule",
+      "title": "CABLE SCHEDULE",
+      "paper": "A3",
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    }
+  ],
+  "revisions": [
+    {
+      "rev": "00",
+      "date": "2026-10-26",
+      "remarks": "FIRST SUBMISSION",
+      "issued_for": "approval"
+    }
+  ]
+}
