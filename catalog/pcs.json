@@ -1,0 +1,50 @@
+[
+  {
+    "id": "sungrow-sc5000ud-mv-us",
+    "manufacturer": "Sungrow",
+    "model": "SC5000UD-MV-US",
+    "symbol": "inv.pcs",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/bess/Sungrow_SC5000UD-MV-US_PCS_DS.pdf p.2; references/catalog-sources/extracted/bess_pcs_datasheets.csv row 4",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "pcs",
+    "rated_kva": 5000.0,
+    "ac_voltage": 900.0,
+    "dc_voltage_min": 1300.0,
+    "dc_voltage_max": 1500.0
+  },
+  {
+    "id": "sungrow-st5015kwh-1250kw-4h",
+    "manufacturer": "Sungrow",
+    "model": "ST5015kWh-1250kW-4h",
+    "symbol": "inv.pcs",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/bess/Sungrow_PowerTitan2_ST5015kWh_DS_V3.pdf p.2; references/catalog-sources/extracted/bess_pcs_datasheets.csv row 3",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "pcs",
+    "rated_kva": 1260.0,
+    "ac_voltage": 690.0,
+    "dc_voltage_min": 1123.2,
+    "dc_voltage_max": 1497.6
+  },
+  {
+    "id": "sungrow-st5015kwh-2500kw-2h",
+    "manufacturer": "Sungrow",
+    "model": "ST5015kWh-2500kW-2h",
+    "symbol": "inv.pcs",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/bess/Sungrow_PowerTitan2_ST5015kWh_DS_V3.pdf p.2; references/catalog-sources/extracted/bess_pcs_datasheets.csv row 2",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "pcs",
+    "rated_kva": 2520.0,
+    "ac_voltage": 690.0,
+    "dc_voltage_min": 1123.2,
+    "dc_voltage_max": 1497.6
+  }
+]
