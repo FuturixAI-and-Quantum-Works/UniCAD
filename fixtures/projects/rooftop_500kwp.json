@@ -83,7 +83,7 @@
         "id": "inv_mccb",
         "tag": "MCCB-{0:02d}",
         "kind": "breaker",
-        "spec": "lk-dsine-dn1-250-c-160a-4p",
+        "spec": "lk-dsine-dn1-250-c-200a-4p",
         "group": "inv_sec",
         "voltage_v": 415.0
       },
@@ -98,7 +98,7 @@
         "id": "acdb_acb",
         "tag": "ACB-01",
         "kind": "breaker",
-        "spec": "schneider-mtz2-n1-800a-4p",
+        "spec": "schneider-mtz2-n1-1000a-4p",
         "voltage_v": 415.0
       },
       {
@@ -180,7 +180,10 @@
         "dst": "dcfb:in",
         "service": "dc",
         "cable": "polycab-h1z2z2-k-4mm2",
-        "laying": "conduit"
+        "length_m": 25.0,
+        "laying": "tray",
+        "derating": 1.0,
+        "remarks": "Derating 1.0: Polycab H1Z2Z2-K ambient factor is 1.00 up to 60 C (polycab_solar_dc_en50618_derating.csv); grouping not applied"
       },
       {
         "id": "e_dcfb_spd",
@@ -193,14 +196,24 @@
         "src": "dcfb:out",
         "dst": "dciso:in",
         "service": "dc",
-        "cable": "polycab-h1z2z2-k-6mm2"
+        "cable": "polycab-h1z2z2-k-6mm2",
+        "runs": 10,
+        "length_m": 5.0,
+        "laying": "tray",
+        "derating": 1.0,
+        "remarks": "One cable pair per string: the DC fuse box passes strings through to separate inverter inputs"
       },
       {
         "id": "e_iso_inv",
         "src": "dciso:out",
         "dst": "inv:dc",
         "service": "dc",
-        "cable": "polycab-h1z2z2-k-6mm2"
+        "cable": "polycab-h1z2z2-k-6mm2",
+        "runs": 10,
+        "length_m": 3.0,
+        "laying": "tray",
+        "derating": 1.0,
+        "remarks": "One cable pair per string: the DC fuse box passes strings through to separate inverter inputs"
       },
       {
         "id": "e_inv_mccb",
@@ -208,6 +221,7 @@
         "dst": "inv_mccb:in",
         "service": "lv_ac",
         "cable": "polycab-lt-xlpe-al-4c-95-arm",
+        "length_m": 30.0,
         "laying": "tray"
       },
       {
@@ -229,7 +243,9 @@
         "service": "lv_ac",
         "cable": "polycab-lt-xlpe-al-1c-400-arm",
         "runs": 3,
-        "laying": "tray"
+        "length_m": 60.0,
+        "laying": "tray",
+        "remarks": "Roof ACDB to the solar metering and isolation panel in the LT room"
       },
       {
         "id": "e_ct_spd",
@@ -250,13 +266,15 @@
         "service": "lv_ac",
         "cable": "polycab-lt-xlpe-al-1c-400-arm",
         "runs": 3,
+        "length_m": 5.0,
         "laying": "tray"
       },
       {
         "id": "e_ltp_load",
         "src": "ltp:out",
         "dst": "load:in",
-        "service": "lv_ac"
+        "service": "lv_ac",
+        "remarks": "Existing consumer distribution, by others"
       },
       {
         "id": "e_ltp_ct",
@@ -268,7 +286,8 @@
         "id": "e_ct_poi",
         "src": "net_ct:out",
         "dst": "poi:in",
-        "service": "lv_ac"
+        "service": "lv_ac",
+        "remarks": "DISCOM service connection, by others"
       },
       {
         "id": "c_solar_meter",
@@ -291,6 +310,12 @@
       {
         "id": "pe_acdb",
         "src": "acdb:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "pe_lt",
+        "src": "ltp:pe",
         "dst": "ep:pe",
         "service": "earth"
       }

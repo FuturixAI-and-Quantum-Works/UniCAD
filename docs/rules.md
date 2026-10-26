@@ -87,19 +87,19 @@ N x Vmp at the coldest cell temperature should not exceed the inverter's maximum
 
 Standard: none (design practice). Segments: all.
 
-Parallel DC inputs into an inverter (strings landing directly, or SCB outputs) must fit mppt_count x inputs_per_mppt.
+Parallel DC inputs into an inverter (strings landing directly, or SCB outputs) must fit mppt_count x inputs_per_mppt. Inverters whose catalog entry gives only a total (central inverters) are checked against dc_input_count.
 
 ### `pv_strings.isc_per_mppt`: Short-circuit current per MPPT within inverter rating
 
 Standard: IEC 62548. Segments: all.
 
-Strings per MPPT x 1.25 x module Isc must not exceed the inverter's maximum short-circuit current per MPPT.
+Strings per MPPT x 1.25 x module Isc must not exceed the inverter's maximum short-circuit current per MPPT. When the catalog gives only the whole-inverter value (central inverters), all strings into the inverter x 1.25 x Isc are checked against max_dc_short_circuit_current. Not checked when the catalog has neither.
 
 ### `pv_strings.operating_current`: Operating current per MPPT within inverter input rating
 
 Standard: none (design practice). Segments: all.
 
-Strings per MPPT x module Imp above the inverter's maximum input current per MPPT means the inverter current-limits (clips) at high irradiance: warning, not a safety limit.
+Strings per MPPT x module Imp above the inverter's maximum input current per MPPT means the inverter current-limits (clips) at high irradiance: warning, not a safety limit. When the catalog gives only the whole-inverter value, all strings into the inverter x Imp are checked against max_dc_input_current.
 
 ### `pv_strings.string_fuses`: Parallel strings have overcurrent protection where reverse current can exceed the module rating
 
@@ -172,3 +172,41 @@ Every inverter and PCS needs an earth connection (an edge on its 'pe' port): err
 Standard: IEC 62548. Segments: all.
 
 A gPV fuse carrying n strings must be rated at least n x 1.25 x Isc, and a fuse protecting a single string must not exceed the module's maximum series fuse rating.
+
+
+## cables
+
+### `cables.missing`: Power connections have a cable and a length
+
+Standard: none (design practice). Segments: all.
+
+Every power edge needs a cable (catalog id or inline spec) and a route length so that ampacity and voltage drop can be checked. Taps to SPDs, lightning arresters and PTs are exempt, and so are links with no laying between switchgear, CTs, meters and a panel or busbar: they are taken as busbar connections inside the panel. Panel-to-panel links, and any link given a laying, need a cable.
+
+### `cables.ampacity`: Cable current-carrying capacity covers the design current
+
+Standard: IS 732. Segments: all.
+
+Design current Ib (DC: 1.25 x Isc of the strings carried; AC: maximum inverter current at the zone voltage) must not exceed Iz = catalog ampacity x derating x runs.
+
+The ampacity column follows the laying: air, tray, trench and overhead use the in-air rating, buried_direct the in-ground rating, buried_duct and conduit the in-duct rating. Single-core cables use the two-cable rating for DC and single-phase circuits and the three-cable rating for three-phase. The derating is the edge's `derating`; when absent 1.0 is used and an info finding says so. A cable without a rating for its laying, or an edge without a laying, is a warning.
+
+### `cables.protection`: Overcurrent device rating does not exceed the cable ampacity
+
+Standard: IS 732 / IEC 60364-4-43. Segments: all.
+
+Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable connected directly to it, so the device trips before the cable overheats. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
+
+
+## vdrop
+
+### `vdrop.dc`: DC voltage drop from string to inverter within the design basis
+
+Standard: none (design practice). Segments: all.
+
+Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of the strings carried and V = N x Vmp of the string, R at 90 degC (info per segment). Along the path from each string template to its inverter the segment drops are summed and compared with design_basis.vdrop_dc_max: error when over.
+
+### `vdrop.ac`: AC voltage drop from inverter to the point of interconnection within the design basis
+
+Standard: none (design practice). Segments: all.
+
+Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at 90 degC and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over.

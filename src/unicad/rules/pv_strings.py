@@ -11,6 +11,7 @@ from unicad.rules.thresholds import ISC_FACTOR
 from unicad.rules.topology import EVEN_MPPT, PASS_THROUGH_NOTE, STRING_FUSE_HOLDERS, label, string_feeds
 
 IEC_62548 = "IEC 62548"
+TOTALS_ONLY = "The catalog gives this limit for the whole inverter only (no per-MPPT value), so the check is made on the inverter total."
 
 
 @rule("pv_strings.voc_max", "String Voc at minimum temperature within DC limits", clause=IEC_62548)
@@ -129,32 +130,58 @@ def vmp_max(project: Project, catalog: Catalog) -> Iterator[Finding]:
         )
 
 
+def _per_inverter(feeds) -> list[list]:
+    by_inv: dict[str, list] = {}
+    for f in feeds:
+        by_inv.setdefault(f.inverter.id, []).append(f)
+    return list(by_inv.values())
+
+
+def _total_inputs(fs) -> tuple[Quantity, ...]:
+    out = [Quantity(name="mppt_count", value=fs[0].spec.mppt_count, source=fs[0].spec.id)]
+    for f in fs:
+        out.append(Quantity(name=f"strings_per_inverter[{f.string.id}]", value=f.strings_per_inverter, source="network"))
+    return tuple(out)
+
+
+def _strings_text(fs) -> str:
+    return " + ".join(f"{f.strings_per_inverter} x {f.string.id}" for f in fs)
+
+
+def _subjects(fs) -> tuple[str, ...]:
+    return (*dict.fromkeys(f.string.id for f in fs), fs[0].inverter.id)
+
+
 @rule("pv_strings.inputs", "Inverter has enough DC inputs")
 def inputs(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Parallel DC inputs into an inverter (strings landing directly, or SCB outputs) must fit mppt_count x inputs_per_mppt."""
+    """Parallel DC inputs into an inverter (strings landing directly, or SCB outputs) must fit mppt_count x inputs_per_mppt. Inverters whose catalog entry gives only a total (central inverters) are checked against dc_input_count."""
     net = project.network
-    seen = set()
-    for f in string_feeds(project, catalog):
-        if f.inverter.id in seen:
+    for fs in _per_inverter(string_feeds(project, catalog)):
+        f = fs[0]
+        if f.spec.inputs_per_mppt is not None:
+            cap = f.spec.mppt_count * f.spec.inputs_per_mppt
+            text = f"{f.spec.mppt_count} MPPT x {f.spec.inputs_per_mppt} inputs = {cap}"
+            formula = "dc_inputs <= mppt_count x inputs_per_mppt"
+            caps = (Quantity(name="mppt_count", value=f.spec.mppt_count, source=f.spec.id), Quantity(name="inputs_per_mppt", value=f.spec.inputs_per_mppt, source=f.spec.id))
+        elif f.spec.dc_input_count is not None:
+            cap = f.spec.dc_input_count
+            text = f"{cap} DC inputs in total"
+            formula = "dc_inputs <= dc_input_count"
+            caps = (Quantity(name="dc_input_count", value=cap, source=f.spec.id),)
+        else:
             continue
-        seen.add(f.inverter.id)
-        cap = f.spec.mppt_count * f.spec.inputs_per_mppt
         if f.inverter_inputs <= cap:
             continue
         yield Finding(
             rule_id="pv_strings.inputs",
             severity=Severity.ERROR,
             subjects=(f.inverter.id,),
-            message=f"inverter {f.inverter.id} ({label(net, f.inverter.id)}, {f.spec.model}) receives {f.inverter_inputs} DC inputs but has {f.spec.mppt_count} MPPT x {f.spec.inputs_per_mppt} inputs = {cap}",
+            message=f"inverter {f.inverter.id} ({label(net, f.inverter.id)}, {f.spec.model}) receives {f.inverter_inputs} DC inputs but has {text}",
             measured=f.inverter_inputs,
             limit=cap,
             unit="inputs",
-            formula="dc_inputs <= mppt_count x inputs_per_mppt",
-            inputs=(
-                Quantity(name="dc_inputs", value=f.inverter_inputs, source="network"),
-                Quantity(name="mppt_count", value=f.spec.mppt_count, source=f.spec.id),
-                Quantity(name="inputs_per_mppt", value=f.spec.inputs_per_mppt, source=f.spec.id),
-            ),
+            formula=formula,
+            inputs=(Quantity(name="dc_inputs", value=f.inverter_inputs, source="network"), *caps),
         )
 
 
@@ -168,48 +195,99 @@ def _isc_mppt(f) -> tuple[float, tuple[Quantity, ...]]:
 
 @rule("pv_strings.isc_per_mppt", "Short-circuit current per MPPT within inverter rating", clause=IEC_62548)
 def isc_per_mppt(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Strings per MPPT x 1.25 x module Isc must not exceed the inverter's maximum short-circuit current per MPPT."""
+    """Strings per MPPT x 1.25 x module Isc must not exceed the inverter's maximum short-circuit current per MPPT. When the catalog gives only the whole-inverter value (central inverters), all strings into the inverter x 1.25 x Isc are checked against max_dc_short_circuit_current. Not checked when the catalog has neither."""
     net = project.network
-    for f in string_feeds(project, catalog):
-        i, qs = _isc_mppt(f)
-        lim = f.spec.max_short_circuit_current_per_mppt
-        if i <= lim:
+    for fs in _per_inverter(string_feeds(project, catalog)):
+        spec = fs[0].spec
+        if spec.max_short_circuit_current_per_mppt is None:
+            lim = spec.max_dc_short_circuit_current
+            if lim is None:
+                continue
+            i = sum(f.strings_per_inverter * ISC_FACTOR.value * f.module.isc for f in fs)
+            if i <= lim:
+                continue
+            yield Finding(
+                rule_id="pv_strings.isc_per_mppt",
+                severity=Severity.ERROR,
+                subjects=_subjects(fs),
+                message=f"inverter {fs[0].inverter.id} ({label(net, fs[0].inverter.id)}, {spec.model}): ({_strings_text(fs)}) strings x {ISC_FACTOR.value:g} x Isc = {i:.1f} A exceeds max DC short-circuit current {lim:g} A",
+                measured=round(i, 2),
+                limit=lim,
+                unit="A",
+                formula="sum(strings_per_inverter x k_Isc x Isc) <= max_dc_short_circuit_current",
+                inputs=(
+                    *_total_inputs(fs),
+                    Quantity(name="k_Isc", value=ISC_FACTOR.value, source=f"threshold.{ISC_FACTOR.name}"),
+                    *(Quantity(name=f"Isc[{f.string.id}]", value=f.module.isc, unit="A", source=f.module.id) for f in fs),
+                    Quantity(name="max_dc_short_circuit_current", value=lim, unit="A", source=spec.id),
+                ),
+                assumptions=(ISC_FACTOR.assumption, TOTALS_ONLY),
+            )
             continue
-        yield Finding(
-            rule_id="pv_strings.isc_per_mppt",
-            severity=Severity.ERROR,
-            subjects=f.subjects(),
-            message=f"{f.where(net)}: {f.strings_per_mppt} strings per MPPT x {ISC_FACTOR.value:g} x {f.module.isc:g} A = {i:.1f} A exceeds max short-circuit current per MPPT {lim:g} A",
-            measured=round(i, 2),
-            limit=lim,
-            unit="A",
-            formula="strings_per_mppt x k_Isc x Isc <= max_short_circuit_current_per_mppt",
-            inputs=(*qs, Quantity(name="max_short_circuit_current_per_mppt", value=lim, unit="A", source=f.spec.id)),
-            assumptions=(ISC_FACTOR.assumption, EVEN_MPPT),
-        )
+        for f in fs:
+            i, qs = _isc_mppt(f)
+            lim = f.spec.max_short_circuit_current_per_mppt
+            if i <= lim:
+                continue
+            yield Finding(
+                rule_id="pv_strings.isc_per_mppt",
+                severity=Severity.ERROR,
+                subjects=f.subjects(),
+                message=f"{f.where(net)}: {f.strings_per_mppt} strings per MPPT x {ISC_FACTOR.value:g} x {f.module.isc:g} A = {i:.1f} A exceeds max short-circuit current per MPPT {lim:g} A",
+                measured=round(i, 2),
+                limit=lim,
+                unit="A",
+                formula="strings_per_mppt x k_Isc x Isc <= max_short_circuit_current_per_mppt",
+                inputs=(*qs, Quantity(name="max_short_circuit_current_per_mppt", value=lim, unit="A", source=f.spec.id)),
+                assumptions=(ISC_FACTOR.assumption, EVEN_MPPT),
+            )
 
 
 @rule("pv_strings.operating_current", "Operating current per MPPT within inverter input rating")
 def operating_current(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Strings per MPPT x module Imp above the inverter's maximum input current per MPPT means the inverter current-limits (clips) at high irradiance: warning, not a safety limit."""
+    """Strings per MPPT x module Imp above the inverter's maximum input current per MPPT means the inverter current-limits (clips) at high irradiance: warning, not a safety limit. When the catalog gives only the whole-inverter value, all strings into the inverter x Imp are checked against max_dc_input_current."""
     net = project.network
-    for f in string_feeds(project, catalog):
-        i = f.strings_per_mppt * f.module.imp
-        lim = f.spec.max_input_current_per_mppt
-        if i <= lim:
+    for fs in _per_inverter(string_feeds(project, catalog)):
+        spec = fs[0].spec
+        if spec.max_input_current_per_mppt is None:
+            lim = spec.max_dc_input_current
+            i = sum(f.strings_per_inverter * f.module.imp for f in fs)
+            if lim is None or i <= lim:
+                continue
+            yield Finding(
+                rule_id="pv_strings.operating_current",
+                severity=Severity.WARNING,
+                subjects=_subjects(fs),
+                message=f"inverter {fs[0].inverter.id} ({label(net, fs[0].inverter.id)}, {spec.model}): ({_strings_text(fs)}) strings x Imp = {i:.1f} A exceeds max DC input current {lim:g} A; the inverter will current-limit",
+                measured=round(i, 2),
+                limit=lim,
+                unit="A",
+                formula="sum(strings_per_inverter x Imp) <= max_dc_input_current",
+                inputs=(
+                    *_total_inputs(fs),
+                    *(Quantity(name=f"Imp[{f.string.id}]", value=f.module.imp, unit="A", source=f.module.id) for f in fs),
+                    Quantity(name="max_dc_input_current", value=lim, unit="A", source=spec.id),
+                ),
+                assumptions=(TOTALS_ONLY,),
+            )
             continue
-        yield Finding(
-            rule_id="pv_strings.operating_current",
-            severity=Severity.WARNING,
-            subjects=f.subjects(),
-            message=f"{f.where(net)}: {f.strings_per_mppt} strings per MPPT x Imp {f.module.imp:g} A = {i:.1f} A exceeds max input current per MPPT {lim:g} A; the inverter will current-limit",
-            measured=round(i, 2),
-            limit=lim,
-            unit="A",
-            formula="strings_per_mppt x Imp <= max_input_current_per_mppt",
-            inputs=(*f.layout_inputs(), Quantity(name="Imp", value=f.module.imp, unit="A", source=f.module.id), Quantity(name="max_input_current_per_mppt", value=lim, unit="A", source=f.spec.id)),
-            assumptions=(EVEN_MPPT,),
-        )
+        for f in fs:
+            i = f.strings_per_mppt * f.module.imp
+            lim = f.spec.max_input_current_per_mppt
+            if i <= lim:
+                continue
+            yield Finding(
+                rule_id="pv_strings.operating_current",
+                severity=Severity.WARNING,
+                subjects=f.subjects(),
+                message=f"{f.where(net)}: {f.strings_per_mppt} strings per MPPT x Imp {f.module.imp:g} A = {i:.1f} A exceeds max input current per MPPT {lim:g} A; the inverter will current-limit",
+                measured=round(i, 2),
+                limit=lim,
+                unit="A",
+                formula="strings_per_mppt x Imp <= max_input_current_per_mppt",
+                inputs=(*f.layout_inputs(), Quantity(name="Imp", value=f.module.imp, unit="A", source=f.module.id), Quantity(name="max_input_current_per_mppt", value=lim, unit="A", source=f.spec.id)),
+                assumptions=(EVEN_MPPT,),
+            )
 
 
 @rule("pv_strings.string_fuses", "Parallel strings have overcurrent protection where reverse current can exceed the module rating", clause=IEC_62548)

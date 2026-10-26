@@ -309,6 +309,43 @@ Read-only.
 | `exclusion_setback_m` | number | no | Trial exclusion clearance; not stored |
 | `obstacle_setback_m` | number | no | Trial obstacle clearance; not stored |
 
+## Validate tools
+
+### `validate`
+
+Run the engineering rules on a project and say whether its sheets may be issued for each purpose.
+
+Returns finding counts, the findings (errors and warnings first; info only with include_info=true), and a gate per issued_for:
+approval, construction and as_built are blocked by any error; proposal and information are allowed with a NOT FOR CONSTRUCTION watermark.
+Use explain_finding for the formula, inputs and sources behind one finding.
+Example: validate(project_id="rooftop-500kwp", families=["cables", "vdrop"]).
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `families` | list of string | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop |
+| `include_info` | boolean | no | Also list info findings (segment voltage drops, unstated deratings); they are always counted. Default: `False`. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Explain tools
+
+### `explain_finding`
+
+Explain the findings of one rule about one subject: what the rule checks, the formula, every input with its source (catalog datasheet, design basis, network), the assumptions, and the measured value against the limit.
+
+Example: explain_finding(project_id="rooftop-500kwp", rule_id="vdrop.ac", subject="inv").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `rule_id` | string | yes | Rule id from validate, e.g. 'cables.ampacity' |
+| `subject` | string | yes | One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb' |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.

@@ -234,6 +234,7 @@
         "dst": "scb:in",
         "service": "dc",
         "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
         "laying": "air"
       },
       {
@@ -243,6 +244,7 @@
         "service": "dc",
         "cable": "polycab-h1z2z2-k-240mm2",
         "runs": 2,
+        "length_m": 150.0,
         "laying": "buried_direct"
       },
       {
@@ -252,6 +254,7 @@
         "service": "lv_ac",
         "cable": "kei-lt-xlpe-al-1c-400-arm",
         "runs": 8,
+        "length_m": 15.0,
         "laying": "trench"
       },
       {
