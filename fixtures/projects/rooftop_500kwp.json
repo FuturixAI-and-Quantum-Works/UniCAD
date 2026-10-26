@@ -1,0 +1,1337 @@
+{
+  "id": "rooftop-500kwp",
+  "name": "500 kWp Rooftop Solar PV Plant (Net Metering)",
+  "client": {
+    "name": "Demo Industries Pvt Ltd",
+    "code": "DIPL"
+  },
+  "site": {
+    "name": "Demo Industries factory roof",
+    "address": "Demo industrial area (illustrative fixture)",
+    "state": "Karnataka"
+  },
+  "design_basis": {
+    "ambient_min_c": 10.0,
+    "ambient_max_c": 45.0,
+    "cell_temp": {
+      "model": "noct"
+    },
+    "altitude_m": 900.0,
+    "grid": {
+      "voltage_v": 415.0,
+      "frequency_hz": 50.0,
+      "utility": "DISCOM"
+    },
+    "vdrop_dc_max": 0.02,
+    "vdrop_ac_max": 0.02,
+    "dc_ac_ratio_target": 1.0,
+    "power_factor": 0.99,
+    "assumptions": [
+      "Fixture values, not site data: ambient_min_c, ambient_max_c, altitude_m.",
+      "vdrop_dc_max, vdrop_ac_max, power_factor and dc_ac_ratio_target are illustrative design targets, not cited limits.",
+      "Cell temperature uses the module NOCT from the catalog."
+    ]
+  },
+  "company_profile": "default",
+  "segment": "ci_rooftop",
+  "network": {
+    "groups": [
+      {
+        "id": "inv_sec",
+        "tag": "INVERTER SECTION-{0:02d}",
+        "count": 5,
+        "title": "100 kW STRING INVERTER SECTION"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "str",
+        "tag": "STR-{0:02d}-{1:02d}",
+        "kind": "pv_string",
+        "spec": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+        "count": 10,
+        "group": "inv_sec",
+        "modules_in_series": 18
+      },
+      {
+        "id": "dcfb",
+        "tag": "DCFB-{0:02d}",
+        "kind": "dc_fuse_box",
+        "group": "inv_sec"
+      },
+      {
+        "id": "dcspd",
+        "tag": "DC-SPD-{0:02d}",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.500.x015",
+        "group": "inv_sec"
+      },
+      {
+        "id": "dciso",
+        "tag": "DC-ISO-{0:02d}",
+        "kind": "dc_isolator",
+        "group": "inv_sec"
+      },
+      {
+        "id": "inv",
+        "tag": "INV-{0:02d}",
+        "kind": "inverter",
+        "spec": "huawei-sun2000-100ktl-m2",
+        "group": "inv_sec"
+      },
+      {
+        "id": "inv_mccb",
+        "tag": "MCCB-{0:02d}",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn1-250-c-160a-4p",
+        "group": "inv_sec",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "acdb",
+        "tag": "ACDB-01",
+        "kind": "acdb",
+        "voltage_v": 415.0,
+        "title": "AC DISTRIBUTION BOARD"
+      },
+      {
+        "id": "acdb_acb",
+        "tag": "ACB-01",
+        "kind": "breaker",
+        "spec": "schneider-mtz2-n1-800a-4p",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "solar_ct",
+        "tag": "CT-01",
+        "kind": "ct",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "solar_meter",
+        "tag": "SM-01",
+        "kind": "meter",
+        "spec": "generic-meter-generation-ct-0.5s",
+        "ports": [
+          "sig"
+        ],
+        "title": "SOLAR GENERATION METER"
+      },
+      {
+        "id": "ac_spd",
+        "tag": "AC-SPD-01",
+        "kind": "ac_spd",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "ac_iso",
+        "tag": "AC-ISO-01",
+        "kind": "isolator",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "ltp",
+        "tag": "LTP-01",
+        "kind": "lt_panel",
+        "voltage_v": 415.0,
+        "title": "CONSUMER LT PANEL 415 V"
+      },
+      {
+        "id": "load",
+        "tag": "LOAD-01",
+        "kind": "load",
+        "voltage_v": 415.0,
+        "title": "CONSUMER LOADS"
+      },
+      {
+        "id": "net_ct",
+        "tag": "CT-02",
+        "kind": "ct",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "net_meter",
+        "tag": "NM-01",
+        "kind": "meter",
+        "spec": "generic-meter-net-ct-0.5s",
+        "ports": [
+          "sig"
+        ],
+        "title": "DISCOM NET METER"
+      },
+      {
+        "id": "poi",
+        "tag": "POI-01",
+        "kind": "poi_grid",
+        "voltage_v": 415.0,
+        "title": "DISCOM LT SUPPLY 415 V"
+      },
+      {
+        "id": "ep",
+        "tag": "EP-01",
+        "kind": "earth_electrode",
+        "title": "SYSTEM EARTH PIT"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_str",
+        "src": "str:out",
+        "dst": "dcfb:in",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "laying": "conduit"
+      },
+      {
+        "id": "e_dcfb_spd",
+        "src": "dcfb:out",
+        "dst": "dcspd:line",
+        "service": "dc"
+      },
+      {
+        "id": "e_dcfb_iso",
+        "src": "dcfb:out",
+        "dst": "dciso:in",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-6mm2"
+      },
+      {
+        "id": "e_iso_inv",
+        "src": "dciso:out",
+        "dst": "inv:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-6mm2"
+      },
+      {
+        "id": "e_inv_mccb",
+        "src": "inv:ac",
+        "dst": "inv_mccb:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-95-arm",
+        "laying": "tray"
+      },
+      {
+        "id": "e_mccb_acdb",
+        "src": "inv_mccb:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_acdb_acb",
+        "src": "acdb:out",
+        "dst": "acdb_acb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_acb_ct",
+        "src": "acdb_acb:out",
+        "dst": "solar_ct:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-1c-400-arm",
+        "runs": 3,
+        "laying": "tray"
+      },
+      {
+        "id": "e_ct_spd",
+        "src": "solar_ct:out",
+        "dst": "ac_spd:line",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_ct_iso",
+        "src": "solar_ct:out",
+        "dst": "ac_iso:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_iso_ltp",
+        "src": "ac_iso:out",
+        "dst": "ltp:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-1c-400-arm",
+        "runs": 3,
+        "laying": "tray"
+      },
+      {
+        "id": "e_ltp_load",
+        "src": "ltp:out",
+        "dst": "load:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_ltp_ct",
+        "src": "ltp:out",
+        "dst": "net_ct:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_ct_poi",
+        "src": "net_ct:out",
+        "dst": "poi:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "c_solar_meter",
+        "src": "solar_ct:sec",
+        "dst": "solar_meter:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_net_meter",
+        "src": "net_ct:sec",
+        "dst": "net_meter:sig",
+        "service": "control"
+      },
+      {
+        "id": "pe_inv",
+        "src": "inv:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "pe_acdb",
+        "src": "acdb:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      }
+    ]
+  },
+  "array_layout": {
+    "blocks": [
+      {
+        "id": "roof1",
+        "name": "MAIN SHED ROOF",
+        "tables": [
+          {
+            "id": "T01",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T02",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 22.254,
+              "y": 0.0
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T03",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 44.508,
+              "y": 0.0
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T04",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 66.762,
+              "y": 0.0
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T05",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 89.016,
+              "y": 0.0
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T06",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 0.0,
+              "y": 6.32
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T07",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 22.254,
+              "y": 6.32
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T08",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 44.508,
+              "y": 6.32
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T09",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 66.762,
+              "y": 6.32
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T10",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 89.016,
+              "y": 6.32
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T11",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 0.0,
+              "y": 12.64
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T12",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 22.254,
+              "y": 12.64
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T13",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 44.508,
+              "y": 12.64
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T14",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 66.762,
+              "y": 12.64
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T15",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 89.016,
+              "y": 12.64
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T16",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 0.0,
+              "y": 18.961
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T17",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 22.254,
+              "y": 18.961
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T18",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 44.508,
+              "y": 18.961
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T19",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 66.762,
+              "y": 18.961
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T20",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 89.016,
+              "y": 18.961
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T21",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 0.0,
+              "y": 25.281
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T22",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 22.254,
+              "y": 25.281
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T23",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 44.508,
+              "y": 25.281
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T24",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 66.762,
+              "y": 25.281
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          },
+          {
+            "id": "T25",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 89.016,
+              "y": 25.281
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 10.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp",
+            "slot_width_m": 1.153,
+            "slot_height_m": 2.298
+          }
+        ]
+      }
+    ],
+    "strings": [
+      {
+        "string": "str@1.1",
+        "spans": [
+          {
+            "table": "T01",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.2",
+        "spans": [
+          {
+            "table": "T01",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.3",
+        "spans": [
+          {
+            "table": "T02",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.4",
+        "spans": [
+          {
+            "table": "T02",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.5",
+        "spans": [
+          {
+            "table": "T03",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.6",
+        "spans": [
+          {
+            "table": "T03",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.7",
+        "spans": [
+          {
+            "table": "T04",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.8",
+        "spans": [
+          {
+            "table": "T04",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.9",
+        "spans": [
+          {
+            "table": "T05",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@1.10",
+        "spans": [
+          {
+            "table": "T05",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.1",
+        "spans": [
+          {
+            "table": "T06",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.2",
+        "spans": [
+          {
+            "table": "T06",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.3",
+        "spans": [
+          {
+            "table": "T07",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.4",
+        "spans": [
+          {
+            "table": "T07",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.5",
+        "spans": [
+          {
+            "table": "T08",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.6",
+        "spans": [
+          {
+            "table": "T08",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.7",
+        "spans": [
+          {
+            "table": "T09",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.8",
+        "spans": [
+          {
+            "table": "T09",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.9",
+        "spans": [
+          {
+            "table": "T10",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@2.10",
+        "spans": [
+          {
+            "table": "T10",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.1",
+        "spans": [
+          {
+            "table": "T11",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.2",
+        "spans": [
+          {
+            "table": "T11",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.3",
+        "spans": [
+          {
+            "table": "T12",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.4",
+        "spans": [
+          {
+            "table": "T12",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.5",
+        "spans": [
+          {
+            "table": "T13",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.6",
+        "spans": [
+          {
+            "table": "T13",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.7",
+        "spans": [
+          {
+            "table": "T14",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.8",
+        "spans": [
+          {
+            "table": "T14",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.9",
+        "spans": [
+          {
+            "table": "T15",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@3.10",
+        "spans": [
+          {
+            "table": "T15",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.1",
+        "spans": [
+          {
+            "table": "T16",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.2",
+        "spans": [
+          {
+            "table": "T16",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.3",
+        "spans": [
+          {
+            "table": "T17",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.4",
+        "spans": [
+          {
+            "table": "T17",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.5",
+        "spans": [
+          {
+            "table": "T18",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.6",
+        "spans": [
+          {
+            "table": "T18",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.7",
+        "spans": [
+          {
+            "table": "T19",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.8",
+        "spans": [
+          {
+            "table": "T19",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.9",
+        "spans": [
+          {
+            "table": "T20",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@4.10",
+        "spans": [
+          {
+            "table": "T20",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.1",
+        "spans": [
+          {
+            "table": "T21",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.2",
+        "spans": [
+          {
+            "table": "T21",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.3",
+        "spans": [
+          {
+            "table": "T22",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.4",
+        "spans": [
+          {
+            "table": "T22",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.5",
+        "spans": [
+          {
+            "table": "T23",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.6",
+        "spans": [
+          {
+            "table": "T23",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.7",
+        "spans": [
+          {
+            "table": "T24",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.8",
+        "spans": [
+          {
+            "table": "T24",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.9",
+        "spans": [
+          {
+            "table": "T25",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "str@5.10",
+        "spans": [
+          {
+            "table": "T25",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      }
+    ]
+  },
+  "sheets": [
+    {
+      "id": "sld",
+      "number": "UDEMO-DIPL-RT500-EE-001",
+      "kind": "sld",
+      "title": "SINGLE LINE DIAGRAM 500 kWp",
+      "paper": "A3",
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    },
+    {
+      "id": "string",
+      "number": "UDEMO-DIPL-RT500-EE-002",
+      "kind": "string_diagram",
+      "title": "STRING DIAGRAM INV-01",
+      "paper": "A3",
+      "scope": {
+        "nodes": [
+          "inv"
+        ]
+      },
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    },
+    {
+      "id": "layout",
+      "number": "UDEMO-DIPL-RT500-EE-003",
+      "kind": "layout",
+      "title": "MODULE LAYOUT",
+      "paper": "A3",
+      "scale": "1:200",
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    },
+    {
+      "id": "cables",
+      "number": "UDEMO-DIPL-RT500-EE-004",
+      "kind": "cable_schedule",
+      "title": "CABLE SCHEDULE",
+      "paper": "A3",
+      "revisions": [
+        {
+          "rev": "00",
+          "date": "2026-10-26",
+          "remarks": "FIRST SUBMISSION",
+          "issued_for": "approval"
+        }
+      ]
+    }
+  ],
+  "revisions": [
+    {
+      "rev": "00",
+      "date": "2026-10-26",
+      "remarks": "FIRST SUBMISSION",
+      "issued_for": "approval"
+    }
+  ]
+}
