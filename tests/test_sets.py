@@ -129,8 +129,11 @@ def test_a_sheet_unreadable_on_a0_is_split_and_the_pieces_still_pair_up(projects
     p = projects["utility_50mwac"]
     tight = SldOptions(min_scale=2.0, max_scale=3.0)
     sheets = SldBuilder(tight).plan(p, PROFILE, CATALOG, Numberer.for_project(p, PROFILE))
-    assert len(sheets) > 2 and len({s.number for s in sheets}) == len(sheets)
+    assert len(sheets) > 2 and len({s.number for s in sheets}) == len(sheets) == len({s.id for s in sheets})
     parts = partition(p.network, sheets)
+    assert all(x.nodes for x in parts)
+    split = [s.title for s in sheets if s.kind is SheetKind.SLD or s.id.startswith("sld_") and s.id[4:].isdigit()]
+    assert split == [f"OVERALL SINGLE LINE DIAGRAM 50 MWac (PART {k} OF {len(split)})" for k in range(1, len(split) + 1)]
     owned = Counter(n for x in parts for n in x.nodes)
     assert max(owned.values()) == 1 and set(owned) >= _power_nodes(p.network)
     cut = Counter(e for x in parts for e in x.cut_edges)

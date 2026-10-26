@@ -1,9 +1,8 @@
 """Which SLD sheet of a set draws each node, and where every cut conductor continues.
 
 A sheet's scope names its root nodes or groups; a sheet with an empty scope is rooted at the POI.
-Each node belongs to the sheet of the nearest root downstream of it (towards the grid), so a
-detail sheet takes everything that feeds its roots up to where another, more detailed sheet takes
-over. Branches fed sideways (an auxiliary transformer off a transformer's HV side, an arrester or
+Each node belongs to the sheet of the first root on its path to the grid, so a detail sheet takes
+everything that feeds its roots up to where another, more detailed sheet takes over. Branches fed sideways (an auxiliary transformer off a transformer's HV side, an arrester or
 SPD) go with the node that feeds them, control-only devices with the device they are wired to.
 Every power edge between two sheets is then cut on both, and each side's off-sheet marker names
 the other sheet.
@@ -12,7 +11,7 @@ the other sheet.
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from unicad.domain.network import SIGNAL_PORTS, ElectricalNetwork, NodeKind, Service
+from unicad.domain.network import SIGNAL_PORTS, ElectricalNetwork, NetworkError, NodeKind, Service
 from unicad.domain.project import Sheet
 
 
@@ -57,7 +56,10 @@ def owners(net: ElectricalNetwork, sheets: Sequence[Sheet]) -> dict[str, str]:
             return out[nid]
         if nid in roots:
             return roots[nid]
-        hit = next((roots[m] for m in net.downstream(nid) if m in roots), None)
+        try:
+            hit = next((roots[m] for m in net.path_to_poi(nid) if m in roots), None)
+        except NetworkError:
+            hit = None
         if hit is None:
             hit = next((o for f in feeders[nid] if f not in seen and (o := own(f, seen | {nid})) is not None), None)
         return hit

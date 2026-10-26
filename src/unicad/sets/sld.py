@@ -53,8 +53,9 @@ def _papers_from(first: str) -> tuple[str, ...]:
 
 
 def _tops(net: ElectricalNetwork, nodes: frozenset[str]) -> tuple[str, ...]:
-    """Nodes of a split page that feed something off the page: the roots its sheet scope names."""
-    out = {e.src_node for e in net.edges if e.is_power and e.src_node in nodes and e.dst_node not in nodes}
+    """Nodes of a split page with a conductor across its border: the roots its sheet scope names, so the
+    page keeps them and everything that hangs off them (see `sld.xref`)."""
+    out = {n for e in net.edges if e.is_power and (e.src_node in nodes) != (e.dst_node in nodes) for n in (e.src_node, e.dst_node) if n in nodes}
     return tuple(n.id for n in net.nodes if n.id in out)
 
 
@@ -97,18 +98,16 @@ class SldBuilder:
 
     def _fit(self, project: Project, catalog: Catalog | None, profile: CompanyProfile, sheets: list[Sheet], fixed: set[str],
              numbers: Numberer) -> tuple[Sheet, ...]:
-        """Give every sheet the smallest paper it reads well on with room for its notes and legend, splitting a
-        sheet that is not readable even on A0."""
+        """Give every sheet the smallest paper it reads well on with room for its notes and legend. A sheet not
+        readable even on A0 is split once along `plan_pages`; its pieces become sheets titled PART k OF n."""
         net = project.network
         smallest = profile.default_paper.value
         settled: set[str] = set()
-        for _ in range(len(net.nodes) + 1):
-            parts = {p.sheet_id: p for p in partition(net, sheets)}
-            todo = next((i for i, s in enumerate(sheets) if s.id not in settled), None)
-            if todo is None:
-                break
+        split: set[str] = set()
+        origin: dict[str, str] = {}
+        while (todo := next((i for i, s in enumerate(sheets) if s.id not in settled), None)) is not None:
             s = sheets[todo]
-            part = parts[s.id]
+            part = next(p for p in partition(net, sheets) if p.sheet_id == s.id)
             papers = _papers_from(s.paper if s.id in fixed else smallest)
             target = self.options.min_scale if s.id in fixed else max(COMFORT, self.options.min_scale)
             scales = {}
@@ -120,24 +119,39 @@ class SldBuilder:
                     break
             good = [p for p in scales if scales[p] >= target] or [p for p in scales if scales[p] >= self.options.min_scale]
             settled.add(s.id)
-            if good:
-                sheets[todo] = s.model_copy(update={"paper": good[0]})
+            sheets[todo] = s.model_copy(update={"paper": good[0] if good else papers[-1]})
+            if good or s.id in split:
                 continue
-            paper = papers[-1]
-            area = metrics_for(PaperSize(paper)).drawing_area
+            area = metrics_for(PaperSize(papers[-1])).drawing_area
             pages = plan_pages(net, catalog, area.width, area.height, self.options, part.nodes)
-            sheets[todo] = s.model_copy(update={"paper": paper})
-            if len(pages) < 2:
+            taken = {sid for sid in (x.id for x in sheets)}
+            extra = []
+            for pg in pages[1:]:
+                roots = _tops(net, frozenset(pg.node_ids))
+                k = 2
+                while f"{s.id}_{k}" in taken:
+                    k += 1
+                taken.add(f"{s.id}_{k}")
+                if roots:
+                    extra.append(Sheet(id=f"{s.id}_{k}", number=f"{s.number}/{k}", kind=SheetKind.SLD_DETAIL, title=s.title,
+                                       paper=papers[-1], scope=SheetScope(nodes=roots), revisions=s.revisions))
+            trial = sheets[:todo + 1] + extra + sheets[todo + 1:]
+            owned = {p.sheet_id for p in partition(net, trial) if p.nodes}
+            extra = [x.model_copy(update={"number": numbers.fresh()}) for x in extra if x.id in owned]
+            if not extra:
                 continue
-            n = len(pages)
-            sheets[todo] = sheets[todo].model_copy(update={"title": f"{s.title} (PART 1 OF {n})"})
-            extra = [
-                Sheet(id=f"{s.id}_{k}", number=numbers.fresh(), kind=SheetKind.SLD_DETAIL, title=f"{s.title} (PART {k} OF {n})",
-                      paper=paper, scope=SheetScope(nodes=_tops(net, frozenset(pg.node_ids))), revisions=s.revisions)
-                for k, pg in enumerate(pages[1:], start=2)
-            ]
             sheets[todo + 1:todo + 1] = extra
             settled.discard(s.id)
+            split.update({s.id, *(x.id for x in extra)})
+            for x in extra:
+                origin[x.id] = origin.get(s.id, s.id)
+        groups: dict[str, list[int]] = {}
+        for i, s in enumerate(sheets):
+            groups.setdefault(origin.get(s.id, s.id), []).append(i)
+        for members in groups.values():
+            if len(members) > 1:
+                for k, i in enumerate(members, start=1):
+                    sheets[i] = sheets[i].model_copy(update={"title": f"{sheets[i].title} (PART {k} OF {len(members)})"})
         return tuple(sheets)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
