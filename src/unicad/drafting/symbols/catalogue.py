@@ -13,7 +13,7 @@ from .model import Category, Side, SymbolDef
 from .registry import REGISTRY
 
 CELL_W = 80.0
-COLUMNS = 10
+COLUMNS = 5
 MARGIN = 10.0
 FOOTER = 12.0
 HEADER = 14.0
@@ -165,10 +165,44 @@ def _pin_marker(msp, sym: SymbolDef, ox: float, oy: float) -> None:
             _label(msp, p.name, x - gap, y + 1.2, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_RIGHT)
 
 
+def _bands(categories: Iterable[Category] | None, keys: Iterable[str] | None, columns: int):
+    selected = None if keys is None else set(keys)
+    by_cat: dict[Category, list[SymbolDef]] = defaultdict(list)
+    for sym in REGISTRY.values():
+        if selected is None or sym.key in selected:
+            by_cat[sym.category].append(sym)
+    bands = []
+    for cat in list(Category) if categories is None else list(categories):
+        syms = by_cat.get(cat, [])
+        if syms:
+            cell_h = max(max(s.height for s in syms), 30.0) + FOOTER + 10.0
+            rows = -(-len(syms) // columns)
+            bands.append((cat, syms, cell_h, rows, HEADER + rows * cell_h + 8.0))
+    return bands
+
+
+def _split(bands: list, groups: int) -> list[list]:
+    target = sum(b[4] for b in bands) / groups
+    out: list[list] = [[] for _ in range(groups)]
+    g, acc = 0, 0.0
+    for b in bands:
+        if acc >= target and g < groups - 1:
+            g, acc = g + 1, 0.0
+        out[g].append(b)
+        acc += b[4]
+    return out
+
+
 def build_catalogue(
-    categories: Iterable[Category] | None = None, columns: int = COLUMNS, keys: Iterable[str] | None = None
+    categories: Iterable[Category] | None = None,
+    columns: int = COLUMNS,
+    keys: Iterable[str] | None = None,
+    groups: int = 1,
 ) -> Drawing:
-    """A DXF holding every block definition plus a laid-out catalogue sheet in modelspace."""
+    """A DXF holding every block definition plus a laid-out catalogue sheet in modelspace.
+
+    Category bands are laid out top to bottom in `groups` side-by-side stacks of `columns` cells.
+    """
     doc = ezdxf.new("R2018", setup=False)
     doc.units = units.MM
     install(doc)
@@ -176,49 +210,39 @@ def build_catalogue(
         doc.layers.add(name, color=colour)
     msp = doc.modelspace()
 
-    wanted = list(Category) if categories is None else list(categories)
-    by_cat: dict[Category, list[SymbolDef]] = defaultdict(list)
-    selected = None if keys is None else set(keys)
-    for sym in REGISTRY.values():
-        if selected is None or sym.key in selected:
-            by_cat[sym.category].append(sym)
-
-    y_cursor = 0.0
-    for cat in wanted:
-        syms = by_cat.get(cat, [])
-        if not syms:
-            continue
-        cell_h = max(max(s.height for s in syms), 30.0) + FOOTER + 10.0
-        rows = -(-len(syms) // columns)
-        _label(
-            msp,
-            f"{CATEGORY_TITLES[cat].upper()}  ({len(syms)})",
-            MARGIN,
-            y_cursor - HEADER / 2,
-            5.0,
-            "G-CATALOG",
-            TextEntityAlignment.MIDDLE_LEFT,
-        )
-        top = y_cursor - HEADER
-        for i, sym in enumerate(syms):
-            col, row = i % columns, i // columns
-            x0 = MARGIN + col * CELL_W
-            y0 = top - (row + 1) * cell_h
-            msp.add_lwpolyline(
-                [(x0, y0), (x0 + CELL_W, y0), (x0 + CELL_W, y0 + cell_h), (x0, y0 + cell_h)],
-                close=True,
-                dxfattribs={"layer": "G-CATALOG"},
+    for g, group in enumerate(_split(_bands(categories, keys, columns), groups)):
+        gx = g * (columns * CELL_W + 2 * MARGIN)
+        y_cursor = 0.0
+        for cat, syms, cell_h, rows, band_h in group:
+            _label(
+                msp,
+                f"{CATEGORY_TITLES[cat].upper()}  ({len(syms)})",
+                gx + MARGIN,
+                y_cursor - HEADER / 2,
+                5.0,
+                "G-CATALOG",
+                TextEntityAlignment.MIDDLE_LEFT,
             )
-            ox, oy = x0 + 8.0, y0 + FOOTER + 3.0
-            msp.add_lwpolyline(
-                [(ox, oy), (ox + sym.width, oy), (ox + sym.width, oy + sym.height), (ox, oy + sym.height)],
-                close=True,
-                dxfattribs={"layer": "G-BBOX"},
-            )
-            insert(msp, sym.key, (ox, oy), values=sample_values(sym))
-            _pin_marker(msp, sym, ox, oy)
-            _label(msp, sym.key, x0 + 2.0, y0 + 9.0, 2.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
-            _label(msp, sym.title, x0 + 2.0, y0 + 5.5, 2.0, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
-            _label(msp, sym.standard, x0 + 2.0, y0 + 2.5, 1.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
-        y_cursor = top - rows * cell_h - 8.0
+            top = y_cursor - HEADER
+            for i, sym in enumerate(syms):
+                col, row = i % columns, i // columns
+                x0 = gx + MARGIN + col * CELL_W
+                y0 = top - (row + 1) * cell_h
+                msp.add_lwpolyline(
+                    [(x0, y0), (x0 + CELL_W, y0), (x0 + CELL_W, y0 + cell_h), (x0, y0 + cell_h)],
+                    close=True,
+                    dxfattribs={"layer": "G-CATALOG"},
+                )
+                ox, oy = x0 + 8.0, y0 + FOOTER + 3.0
+                msp.add_lwpolyline(
+                    [(ox, oy), (ox + sym.width, oy), (ox + sym.width, oy + sym.height), (ox, oy + sym.height)],
+                    close=True,
+                    dxfattribs={"layer": "G-BBOX"},
+                )
+                insert(msp, sym.key, (ox, oy), values=sample_values(sym))
+                _pin_marker(msp, sym, ox, oy)
+                _label(msp, sym.key, x0 + 2.0, y0 + 9.0, 2.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
+                _label(msp, sym.title, x0 + 2.0, y0 + 5.5, 2.0, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
+                _label(msp, sym.standard, x0 + 2.0, y0 + 2.5, 1.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
+            y_cursor -= band_h
     return doc

@@ -78,7 +78,7 @@ def main() -> None:
     LIB.mkdir(exist_ok=True)
     (LIB / "preview").mkdir(exist_ok=True)
 
-    doc = build_catalogue()
+    doc = build_catalogue(columns=5, groups=2)
     dxf = LIB / "unicad-symbols.dxf"
     doc.saveas(dxf)
     (LIB / "unicad-symbols.json").write_text(json.dumps(manifest(), indent=2) + "\n")

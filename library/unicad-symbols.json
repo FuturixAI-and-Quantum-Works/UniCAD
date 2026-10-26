@@ -2600,20 +2600,20 @@
     "standard": "IEC 60617 S00288 + S00290 (earthing)",
     "block_name": "UC_SW_ISOLATOR_ES",
     "size": {
-      "width": 15.0,
-      "height": 30.0
+      "width": 20.0,
+      "height": 32.5
     },
     "pins": [
       {
         "name": "in",
-        "x": 7.5,
-        "y": 30.0,
+        "x": 10.0,
+        "y": 32.5,
         "side": "N",
         "kind": "ac"
       },
       {
         "name": "out",
-        "x": 7.5,
+        "x": 10.0,
         "y": 0.0,
         "side": "S",
         "kind": "ac"
@@ -2622,24 +2622,24 @@
     "attrs": [
       {
         "tag": "TAG",
-        "x": 17.5,
-        "y": 17.75,
+        "x": 22.5,
+        "y": 19.0,
         "height": 2.5,
         "default": "",
         "visible": true
       },
       {
         "tag": "RATING",
-        "x": 17.5,
-        "y": 14.0,
+        "x": 22.5,
+        "y": 15.25,
         "height": 2.0,
         "default": "",
         "visible": true
       },
       {
         "tag": "DESC",
-        "x": 17.5,
-        "y": 10.0,
+        "x": 22.5,
+        "y": 11.25,
         "height": 2.0,
         "default": "",
         "visible": true

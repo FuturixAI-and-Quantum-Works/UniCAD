@@ -1,6 +1,6 @@
 from ..model import Attr, Category, Pin, Side
 from ..registry import symbol
-from .kit import AC, ATTR_GAP, ATTR_H, SIG, TAG_H, Pen, pin_n, pin_s, std_attrs
+from .kit import AC, ATTR_H, SIG, TAG_H, Pen, pin_n, pin_s, std_attrs
 
 C = Category.TRANSFORMER
 STD = "IEC 60617-6 transformer / IS 12032"

@@ -1,6 +1,8 @@
-from ..model import Attr, Category, Pin, Side
+import math
+
+from ..model import Category, Pin, Side
 from ..registry import symbol
-from .kit import AC, SIG, Pen, pin_n, pin_s, std_attrs
+from .kit import SIG, Pen, pin_n, pin_s, std_attrs
 
 C = Category.INSTRUMENT
 STD = "IEC 60617-8 measuring instrument / IS 12032"
@@ -123,8 +125,6 @@ def weather_station(b):
     p.circle(7.5, 10.0, 7.5)
     p.line(7.5, 2.5, 7.5, 0.0)
     p.circle(7.5, 12.0, 1.6)
-    import math
-
     for i in range(8):
         a = math.radians(45 * i)
         p.line(7.5 + 2.3 * math.cos(a), 12.0 + 2.3 * math.sin(a), 7.5 + 3.4 * math.cos(a), 12.0 + 3.4 * math.sin(a))

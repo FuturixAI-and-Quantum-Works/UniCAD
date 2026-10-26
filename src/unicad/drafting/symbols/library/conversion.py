@@ -1,6 +1,6 @@
 from ..model import Category, Pin, Side
 from ..registry import symbol
-from .kit import AC, DC, DC_NEG, DC_POS, Pen, pin_n, pin_s, std_attrs
+from .kit import DC, DC_NEG, DC_POS, Pen, pin_n, pin_s, std_attrs
 
 C = Category.CONVERSION
 STD = "IEC 60617-6 converter / IS 12032"

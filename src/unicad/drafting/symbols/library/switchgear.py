@@ -1,18 +1,6 @@
-from ..model import Attr, Category, Pin, PinKind, Side
+from ..model import Category, Pin, Side
 from ..registry import symbol
-from .kit import (
-    AC,
-    ATTR_H,
-    ATTR_GAP,
-    SIG,
-    TAG_H,
-    Pen,
-    blade_box,
-    inline_pins,
-    pin_n,
-    pin_s,
-    std_attrs,
-)
+from .kit import AC, Pen, blade_box, inline_pins, pin_s, std_attrs
 
 C = Category.SWITCHGEAR
 W, H = 10.0, 20.0
@@ -98,23 +86,23 @@ def isolator(b):
     "Isolator with earth switch",
     C,
     "IEC 60617 S00288 + S00290 (earthing)",
-    15.0,
-    30.0,
-    inline_pins(7.5, 30.0, AC),
-    std_attrs(15.0, 30.0),
+    20.0,
+    32.5,
+    inline_pins(10.0, 32.5, AC),
+    std_attrs(20.0, 32.5),
 )
 def isolator_es(b):
     p = Pen(b)
-    cx, ex = 7.5, 12.5
-    p.line(cx, 0, cx, 13)
-    p.switch(cx, 13, 30.0, "bar")
-    p.dot(cx, 10.0, 0.7)
-    p.line(cx, 10.0, ex, 10.0)
-    p.line(ex, 10.0, ex, 8.5)
-    p.line(ex, 4.0, ex, 3.2)
-    p.line(ex, 4.0, ex - 1.4, 8.8)
-    p.earth(ex, 3.2, w=5.0, step=1.0)
-    p.line(ex - 1.75, 8.5, ex + 1.75, 8.5)
+    cx, ex = 10.0, 16.0
+    p.line(cx, 0, cx, 15.0)
+    p.switch(cx, 15.0, 32.5, "bar")
+    p.dot(cx, 12.0, 0.7)
+    p.line(cx, 12.0, ex, 12.0)
+    p.line(ex, 12.0, ex, 9.5)
+    p.line(ex - 1.5, 9.5, ex + 1.5, 9.5)
+    p.line(ex, 5.0, ex, 3.5)
+    p.line(ex, 5.0, ex - 1.5, 9.9)
+    p.earth(ex, 3.5, w=5.0, step=1.0)
 
 
 @_inline("sw.lbs", "Load-break switch (switch-disconnector)", "IEC 60617 S00290")

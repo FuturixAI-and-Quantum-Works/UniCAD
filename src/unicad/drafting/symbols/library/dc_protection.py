@@ -1,6 +1,6 @@
 from ..model import Category, Pin, Side
 from ..registry import symbol
-from .kit import AC, DC, DC_POS, Pen, blade_box, dc_mark, inline_pins, std_attrs
+from .kit import DC, DC_POS, Pen, blade_box, dc_mark, inline_pins, std_attrs
 
 C = Category.DC_PROTECTION
 CX = 5.0
