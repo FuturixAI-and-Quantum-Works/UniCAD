@@ -65,7 +65,7 @@ def estimate_routes(
             reasons[tid]["an end has no position on the layout (no inverter station or string below it)"] += 1
             continue
         if straight(a.xy, b.xy) < CO_LOCATED_M:
-            reasons[tid][f"both ends stand at the same place ({a.where}); the length inside it is not derivable from the layout"] += 1
+            reasons[tid]["both ends stand at the same place on the layout, so the length between them is not derivable from it"] += 1
             continue
         length = manhattan(a.xy, b.xy, a.azimuth_deg) + per_cable
         d = straight(a.xy, b.xy)

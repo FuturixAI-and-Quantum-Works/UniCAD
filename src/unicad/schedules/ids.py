@@ -10,9 +10,9 @@ COMBINERS = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 
 SCHEME = (
-    "String cable id: B<block>-I<inverter>-S<combiner>-R<structure row>-<structure no.>-IP<combiner input>-<size> sqmm; "
-    "block, inverter, combiner and input are the network instance indices (block 01 where the network has no block level), "
-    "structure row is the rank of the table's row across the block, structure no. the table's position in the block."
+    "String cable id B01-I1-S02-R003-0027-IP05-4 sqmm reads block, inverter, combiner, structure row, structure no., combiner input, cable size. "
+    "Block, inverter, combiner and input are the network instance indices (block 01 where the network has no block level); "
+    "structure row is the rank of the table's row across the block and structure no. the table's position in the block."
 )
 
 

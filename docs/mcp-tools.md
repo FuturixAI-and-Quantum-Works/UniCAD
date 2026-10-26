@@ -418,6 +418,48 @@ Read-only.
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 | `block` | string | no | One block id (e.g. 'B03') to list its tables and strings |
 
+## Cable tools
+
+### `cable_schedule`
+
+Write the cable schedule: one row per cable with Indian-EPC positional id, from/to, cable, runs, +ve/-ve lengths, laying, design current, derated ampacity, % voltage drop and power loss.
+
+Voltage drop, current and ampacity come from the rules engine, so they match `validate`. Lengths the network states are used as given; the rest are estimated from the array layout
+(Manhattan route along the table rows plus drops and termination allowance, all reported as assumptions). Returns the file paths, totals, the worst-path voltage drop, the length source counts and any cable the schedule could not complete.
+Example: cable_schedule(project_id="rooftop-500kwp", format="pdf", lengths="estimated").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `format` | `xlsx` \| `dxf` \| `pdf` | no | xlsx: one row per cable or item; dxf: company-sheet pages, one DXF each; pdf: those pages printed through LibreCAD into one PDF Default: `xlsx`. |
+| `out_dir` | string | no | Directory to write into; default <workspace>/<project_id>/exports |
+| `lengths` | `auto` \| `network` \| `estimated` | no | auto: use the lengths the network states and estimate the edges that state none from the array layout; network: only stated lengths; estimated: replace stated lengths with layout estimates wherever the layout allows Default: `auto`. |
+| `detail` | `auto` \| `full` \| `summary` | no | DXF and PDF only: list every string (full) or one row per combiner (summary); auto lists every string up to 150 strings. The XLSX always lists every cable Default: `auto`. |
+| `drop_per_end_m` | number | no | Vertical drop added at each cable end when a length is estimated (default 1.5 m, reported as an assumption) Default: `1.5`. |
+| `termination_m` | number | no | Termination slack added at each cable end when a length is estimated (default 1.0 m, reported as an assumption) Default: `1.0`. |
+| `switchyard_x` | number | no | Local x (m) of the MV switchyard, which the project does not locate; default the centroid of the block stations |
+| `switchyard_y` | number | no | Local y (m) of the MV switchyard |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Bom tools
+
+### `bom`
+
+Write the bill of materials: modules, inverters, combiner boxes, transformers, breakers, isolators, SPDs, meters and panels from the network expansion, cable metres by catalog type with wastage,
+and MC4 connectors, lugs, glands and MV termination kits counted per termination of the cable schedule.
+
+Returns the file paths, the headline quantities and the assumptions behind every derived count. Cable metres use the same `lengths` basis as cable_schedule.
+Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `format` | `xlsx` \| `dxf` \| `pdf` | no | xlsx: one row per cable or item; dxf: company-sheet pages, one DXF each; pdf: those pages printed through LibreCAD into one PDF Default: `xlsx`. |
+| `out_dir` | string | no | Directory to write into; default <workspace>/<project_id>/exports |
+| `wastage_pct` | number | no | Cable wastage added to the routed metres (default 5 %, reported as an assumption) Default: `5.0`. |
+| `lengths` | `auto` \| `network` \| `estimated` | no | auto: use the lengths the network states and estimate the edges that state none from the array layout; network: only stated lengths; estimated: replace stated lengths with layout estimates wherever the layout allows Default: `auto`. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.

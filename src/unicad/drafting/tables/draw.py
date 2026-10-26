@@ -24,10 +24,11 @@ ROW_PAD_Y = 0.3
 
 @dataclass(frozen=True)
 class TableRender:
-    """`docs` holds the pages of all tables in order; `parts[i]` is the part each page belongs to."""
+    """`docs` holds the pages of all tables in order; `parts[i]` and `papers[i]` are the table and the paper of page i."""
 
     docs: tuple[Drawing, ...]
     parts: tuple[int, ...]
+    papers: tuple[PaperSize, ...]
     plans: tuple[TablePlan, ...]
     warnings: tuple[str, ...]
 
@@ -136,6 +137,7 @@ def render_tables(
     total = sum(len(p.pages) for p in plans)
     docs: list[Drawing] = []
     owner: list[int] = []
+    papers: list[PaperSize] = []
     warnings = [w for p in plans for w in p.warnings]
     for part, ((spec, paper), plan) in enumerate(zip(parts, plans, strict=True)):
         for page in range(len(plan.pages)):
@@ -148,4 +150,5 @@ def render_tables(
             warnings += [*sheet.warnings, *cv.warnings]
             docs.append(doc)
             owner.append(part)
-    return TableRender(tuple(docs), tuple(owner), tuple(plans), tuple(dict.fromkeys(warnings)))
+            papers.append(paper)
+    return TableRender(tuple(docs), tuple(owner), tuple(papers), tuple(plans), tuple(dict.fromkeys(warnings)))

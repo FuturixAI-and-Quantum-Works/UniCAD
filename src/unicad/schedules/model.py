@@ -23,6 +23,7 @@ class CableRow:
     dst: str
     service: Service
     block: str
+    is_string: bool
     from_tag: str
     to_tag: str
     cable_ref: str
