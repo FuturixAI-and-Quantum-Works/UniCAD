@@ -1,5 +1,7 @@
 # Sample drawing sources
 
+> Page images are local only. Rebuild them with `uv run python tools/render_reference_pages.py`, which writes `pages/<raw-subfolder>/<pdf-stem>/pNNN.png`. The older `pages/<short-name>/` paths below refer to the first extraction and map to the same PDFs listed in SOURCES.md.
+
 All files fetched on 2026-10-26. Use them only as internal references for conventions. Do not redistribute or ship them. Several carry proprietary notices (see the Licence column). None has an open licence except the MIT SVG symbols.
 
 "Subset" means we kept only the drawing pages of a larger PDF. The page numbers refer to the original PDF. Rendered PNGs are in `pages/<dir>/`. Tiles `_tRC.png` are row/column crops of large sheets.

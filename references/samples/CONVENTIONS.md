@@ -1,5 +1,7 @@
 # Drawing conventions distilled from the public samples
 
+> Page images are local only. Rebuild them with `uv run python tools/render_reference_pages.py`, which writes `pages/<raw-subfolder>/<pdf-stem>/pNNN.png`. The older `pages/<short-name>/` paths below refer to the first extraction and map to the same PDFs listed in SOURCES.md.
+
 This file distils the drawing conventions from the samples in `raw/` (see `SOURCES.md`). Each observation is tagged with the sample it comes from:
 
 | Tag | Sample | PNGs |
