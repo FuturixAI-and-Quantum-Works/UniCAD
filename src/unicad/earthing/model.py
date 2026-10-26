@@ -17,7 +17,7 @@ class Value(_Frozen):
     unit: str | None = None
     source: str | None = None
 
-    def __init__(self, name: str, value: float | int | str, unit: str | None = None, source: str | None = None, **kw) -> None:
+    def __init__(self, name: str, value: float | str, unit: str | None = None, source: str | None = None, **kw) -> None:
         super().__init__(name=name, value=value, unit=unit, source=source, **kw)
 
 

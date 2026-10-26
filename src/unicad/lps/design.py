@@ -105,17 +105,6 @@ def targets(project: Project, extra: tuple[Target, ...] = ()) -> tuple[Target, .
     return tuple(out) + extra
 
 
-def _grid_points(region, spacing: float) -> np.ndarray:
-    if region.is_empty:
-        return np.zeros((0, 2))
-    x0, y0, x1, y1 = region.bounds
-    xs = np.arange(x0 + spacing / 2, x1, spacing)
-    ys = np.arange(y0 + spacing / 2, y1, spacing)
-    pr = prep(region)
-    pts = [(x, y) for y in ys for x in xs if pr.contains(SPoint(x, y))]
-    return np.asarray(pts, dtype=float).reshape(-1, 2)
-
-
 def _snapped(free, spacing: float) -> np.ndarray:
     """Grid points moved onto the nearest free ground (row gaps, roads) when it is within half a grid step."""
     if free.is_empty:
@@ -145,7 +134,7 @@ def candidates(project: Project, radius: float) -> tuple[np.ndarray, list[str | 
     if is_rooftop(project):
         for rid, poly in roofs(project):
             free = poly.buffer(-0.5).difference(tables.buffer(0.3)).difference(stations)
-            g = _grid_points(free, max(2.0, min(spacing, 6.0)))
+            g = _snapped(free, max(2.0, min(spacing, 6.0)))
             pts.append(g)
             where += [rid] * len(g)
     site = boundary(project)

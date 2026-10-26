@@ -7,8 +7,8 @@ from pathlib import Path
 
 from unicad.arrays import PlacementResult, PlacementSpec, place_array
 from unicad.catalog.store import load_catalog
-from unicad.domain.project import EarthingBasis, LpsBasis, Project
 from unicad.domain.layout import Point
+from unicad.domain.project import EarthingBasis, LpsBasis, Project
 from unicad.domain.site import FeatureKind, Setbacks, SiteFeature
 from unicad.ingest.site_import import import_site
 

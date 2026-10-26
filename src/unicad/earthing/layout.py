@@ -21,8 +21,8 @@ from unicad.arrays.geometry import frame, plan_depth, plan_length, table_corners
 from unicad.domain.layout import LayoutBlock, Point, Table
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
-from unicad.earthing.model import ConductorRole, Item, Pit, PitRole, Run
 from unicad.domain.site import shape_of
+from unicad.earthing.model import ConductorRole, Item, Pit, PitRole, Run
 from unicad.lps.design import LpsDesign, blocked, boundary, is_rooftop, roofs
 
 ROW_GAP_SPLIT_M = 8.0
@@ -267,7 +267,7 @@ def _scb_positions(block: LayoutBlock, n: int) -> list[tuple[float, float]]:
 # --- switchyard --------------------------------------------------------------------------------
 
 
-SWITCHYARD_NAME = re.compile(r"switch ?yard|sub ?station|pooling", re.I)
+SWITCHYARD_NAME = re.compile(r"switch ?yard|sub ?station|pooling", re.IGNORECASE)
 
 
 def designated_switchyard(project: Project) -> Polygon | None:

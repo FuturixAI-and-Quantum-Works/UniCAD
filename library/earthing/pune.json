@@ -8,13 +8,13 @@
  },
  "pits": 18,
  "pits_by_role": {
-  "EP": 13,
-  "LE": 5
+  "EP": 12,
+  "LE": 6
  },
  "pits_needed_by_resistance": 0,
  "pits_needed_by_current": 18,
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 0.6581,
+ "resistance_ohm": 0.8467,
  "target_ohm": 2.0,
  "tables": 81,
  "items": 17,
@@ -23,19 +23,19 @@
   {
    "item": "pit.EP",
    "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
-   "quantity": 13.0,
+   "quantity": 12.0,
    "unit": "nos"
   },
   {
    "item": "pit.LE",
    "description": "EARTH PIT, 40 MM DIA 3 M LONG MS ROD (UNTREATED) - LE",
-   "quantity": 5.0,
+   "quantity": 6.0,
    "unit": "nos"
   },
   {
    "item": "flat.25x6.main",
    "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 108.0,
+   "quantity": 98.0,
    "unit": "m"
   },
   {
@@ -53,7 +53,7 @@
   {
    "item": "flat.25x3.down",
    "description": "25x3 MM GS FLAT - DOWN CONDUCTOR (ROOF TO PIT / LPS)",
-   "quantity": 78.0,
+   "quantity": 128.0,
    "unit": "m"
   },
   {
@@ -190,7 +190,7 @@
   },
   {
    "name": "strip_resistance",
-   "value": 1.1156,
+   "value": 1.235,
    "unit": "ohm",
    "formula": "R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm",
    "inputs": [
@@ -202,7 +202,7 @@
     },
     {
      "name": "L",
-     "value": 10069.52336006248,
+     "value": 8943.800000000001,
      "unit": "cm",
      "source": null
     },
@@ -233,7 +233,9 @@
   "earth resistance taken as the larger of the pits-and-strip value and the Sverak (IEEE 80) value for the buried network over its convex hull",
   "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius"
  ],
- "warnings": [],
+ "warnings": [
+  "the buried network's area limits the earth resistance to about 2.03 ohm, above the 2 ohm target; more pits barely help"
+ ],
  "lps": {
   "method": "ese",
   "level": "II",

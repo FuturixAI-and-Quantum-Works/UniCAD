@@ -13,6 +13,7 @@ from ezdxf.document import Drawing
 from shapely.geometry import MultiPoint, box
 from shapely.geometry import Point as SPoint
 from shapely.ops import unary_union
+
 from unicad.arrays.geometry import table_corners
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import ModuleSpec
