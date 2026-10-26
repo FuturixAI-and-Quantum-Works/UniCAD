@@ -22,6 +22,7 @@ JOBS = (
     ("rooftop_500kwp", "sld", "A2"),
     ("utility_50mwac", "sld", None),
     ("utility_50mwac", "sld", "A1"),
+    ("utility_50mwac", "sld_blk", None),
 )
 
 

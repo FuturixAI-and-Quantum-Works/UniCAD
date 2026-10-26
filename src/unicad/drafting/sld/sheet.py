@@ -1,6 +1,7 @@
 """Render a project's SLD sheet: company sheet, legend, parameters, notes and the diagram."""
 
 import io
+from collections import OrderedDict
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -154,6 +155,9 @@ _STAMP = re.compile(r" @ \d{4}-\d\d-\d\dT[0-9:.]+(\+00:00)?")
 
 def dxf_text(doc: Drawing) -> str:
     """The DXF as text with fixed timestamps and GUIDs, so the same model always gives the same bytes."""
+    # ezdxf registers CLASS entries by iterating a set of entity types; pre-register them in sorted order.
+    doc.classes.add_required_classes(doc.dxfversion)
+    doc.classes.classes = OrderedDict(sorted(doc.classes.classes.items()))
     old = ezdxf.options.write_fixed_meta_data_for_testing
     ezdxf.options.write_fixed_meta_data_for_testing = True
     try:

@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from itertools import combinations
 from pathlib import Path
 
@@ -237,3 +238,39 @@ def test_librecad_exports_the_sld_to_pdf(projects, catalog, profile, tmp_path):
     page = pymupdf.open(pdf)[0]
     assert page.rect.width == pytest.approx(420 / 25.4 * 72, abs=2)
     assert len(page.get_drawings()) > 500
+
+
+def test_scoped_sheet_marks_every_cut_edge_with_an_off_sheet_marker(projects, catalog, profile):
+    p = projects["utility_50mwac"]
+    _, res = render_sld(p, "sld_blk", profile, catalog)
+    lay = res.layout
+    drawn = {n for n, _ in lay.represented}
+    assert {"idt", "inv", "scb", "str", "icog_la"} <= drawn
+    assert not drawn & {"mv_bus", "poi", "icog_vcb", "blk_aux"}
+    marked = {o.edge_id for o in lay.offsheets}
+    assert marked == {"e_idt_vcb", "e_idt_aux"}
+    markers = {s.id: s for s in lay.symbols if s.role == "offsheet"}
+    assert {dict(s.values)["DESC"] for s in markers.values()} == {"TO ICOG-VCB-01", "TO BLK-AUX-TR-01"}
+    ends = {w.edge_id: (w.start.owner, w.end.owner) for w in lay.wires if w.kind is not WireKind.EARTH}
+    assert ends["e_idt_vcb"] == ("idt", "off.e_idt_vcb")
+    assert "sw.vcb" not in lay.legend_keys() and "ann.offsheet" not in lay.legend_keys()
+
+
+def test_dxf_bytes_do_not_depend_on_the_hash_seed(tmp_path):
+    script = (
+        "import hashlib, sys; from pathlib import Path\n"
+        "from unicad.catalog.store import load_catalog\n"
+        "from unicad.drafting.sheets.model import CompanyProfile\n"
+        "from unicad.drafting.sld.sheet import dxf_text, render_sld\n"
+        "from unicad.store import parse_project\n"
+        f"root = Path({str(ROOT)!r}); cat = load_catalog()\n"
+        "p = parse_project((root / 'fixtures/projects/utility_50mwac.json').read_text(), cat)\n"
+        "doc, _ = render_sld(p, 'sld', CompanyProfile.load(root / 'profiles/default.json'), cat)\n"
+        "print(hashlib.sha256(dxf_text(doc).encode()).hexdigest())\n"
+    )
+    digests = set()
+    for seed in ("1", "2"):
+        done = subprocess.run([sys.executable, "-c", script], env={**os.environ, "PYTHONHASHSEED": seed}, capture_output=True, text=True, timeout=120)
+        assert done.returncode == 0, done.stderr
+        digests.add(done.stdout.strip())
+    assert len(digests) == 1

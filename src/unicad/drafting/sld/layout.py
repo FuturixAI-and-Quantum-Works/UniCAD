@@ -238,13 +238,17 @@ class _Builder:
     def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None):
         self.net, self.catalog, self.o = net, catalog, options
         self.warnings: list[str] = []
-        keep = scope if scope is not None else frozenset(net.node_by_id)
-        self.order = {e.id: i for i, e in enumerate(net.edges)}
+        keep = _expand_scope(net, scope) if scope is not None else frozenset(net.node_by_id)
+        self.cut_edges = [e for e in net.edges if e.is_power and (e.src_node in keep) != (e.dst_node in keep)]
+        markers, edges = _markers(net, keep, self.cut_edges)
+        self.edges = edges
+        self.order = {e.id: i for i, e in enumerate(edges)}
         self.recs: dict[str, _Rec] = {}
         self.earth_nodes: set[str] = set()
         self.control_only: list[Node] = []
-        for n in net.nodes:
-            if n.id not in keep:
+        self.markers = {m.id for m in markers}
+        for n in (*net.nodes, *markers):
+            if n.id not in keep and n.id not in self.markers:
                 continue
             if n.kind is NodeKind.EARTH_ELECTRODE:
                 self.earth_nodes.add(n.id)
@@ -256,8 +260,7 @@ class _Builder:
             if key is None and n.kind not in BUS_KINDS:
                 raise LayoutError(f"node {n.id!r} ({n.kind}) has no symbol")
             self.recs[n.id] = _Rec(n, key)
-        self.power_edges = [e for e in net.edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
-        self.cut_edges = [e for e in net.edges if e.is_power and (e.src_node in self.recs) != (e.dst_node in self.recs)]
+        self.power_edges = [e for e in edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
         self.frames: list[_FrameRec] = []
         self.sat_of: dict[str, str] = {}
 
@@ -306,7 +309,7 @@ class _Builder:
             host = next(
                 (
                     e.src_node if e.dst_node == n.id else e.dst_node
-                    for e in self.net.edges
+                    for e in self.edges
                     if e.service is Service.CONTROL and n.id in (e.src_node, e.dst_node)
                     and (e.src_node if e.dst_node == n.id else e.dst_node) in self.recs
                     and (e.src_node if e.dst_node == n.id else e.dst_node) not in {c.id for c in self.control_only}
@@ -316,11 +319,11 @@ class _Builder:
             if host is None:
                 self.warnings.append(f"{n.id}: control-only node with no host on this sheet; not drawn")
                 continue
-            e = next(e for e in self.net.edges if e.service is Service.CONTROL and {e.src_node, e.dst_node} == {n.id, host})
+            e = next(e for e in self.edges if e.service is Service.CONTROL and {e.src_node, e.dst_node} == {n.id, host})
             host_port = e.src_port if e.src_node == host else e.dst_port
             self.sat_of[n.id] = host
             self.recs[host].sats.append(_Sat(n.id, e, host_port, "control"))
-        for e in self.net.edges:
+        for e in self.edges:
             if e.service is Service.EARTH:
                 for a, b in ((e.src_node, e.dst_node), (e.dst_node, e.src_node)):
                     if b in self.earth_nodes and a in self.recs and a not in self.sat_of:
@@ -385,7 +388,10 @@ class _Builder:
 
     # ---------------------------------------------------------------- geometry
     def _values(self, node: Node, key: str) -> tuple[tuple[str, str], ...]:
-        texts = annotate.node_texts(self.net, node, self.catalog)
+        if node.id in self.markers:
+            texts = {"DESC": node.title or "", "SHEET": ""}
+        else:
+            texts = annotate.node_texts(self.net, node, self.catalog)
         return annotate.symbol_values(texts, tuple(a.tag for a in _symbol(key).attrs))
 
     def _ports(self, nid: str) -> tuple[set[str], set[str]]:
@@ -731,6 +737,9 @@ class _Builder:
                 continue
             base = self.recs[self.sat_of[nid]] if nid in self.sat_of else rec
             g = rec.geom
+            if nid in self.markers:
+                symbols.append(self._placed(nid, None, g, base, "offsheet"))
+                continue
             symbols.append(self._placed(nid, nid, g, base, "node"))
             represented.append((nid, "satellite" if nid in self.sat_of else "symbol"))
             if rec.earth_geom is not None:
@@ -825,7 +834,7 @@ class _Builder:
         frames = self._emit_frames()
         bodies = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
         bodies += [lb.box for x in (*busbars, *callouts, *frames) for lb in x.labels]
-        for e in self.net.edges:
+        for e in self.edges:
             if e.id in drawn_edges or e.service is Service.EARTH:
                 continue
             if e.src_node not in self.recs or e.dst_node not in self.recs:
@@ -847,7 +856,11 @@ class _Builder:
         boxes += [lb.box for c in callouts for lb in c.labels] + [f.box for f in frames] + [lb.box for f in frames for lb in f.labels]
         boxes += [Box(min(p[0] for p in w.points), min(p[1] for p in w.points), max(p[0] for p in w.points), max(p[1] for p in w.points)) for w in wires]
         extent = union_all(boxes) if boxes else Box(0, 0, 1, 1)
-        offsheets = tuple(OffSheet(e.id, e.src_node if e.src_node in self.recs else e.dst_node, "") for e in self.cut_edges)
+        offsheets = tuple(
+            OffSheet(e.id, e.dst_node if e.src_node.startswith(MARKER_PREFIX) else e.src_node, e.src_node if e.src_node.startswith(MARKER_PREFIX) else e.dst_node)
+            for e in self.edges
+            if e.src_node in self.markers or e.dst_node in self.markers
+        )
         return SldLayout(
             symbols=tuple(symbols),
             busbars=tuple(busbars),
@@ -911,6 +924,65 @@ class _Builder:
             labels = tuple(label(t, (x0 + STUB, y0 - 1.0 - (i + 0.5) * self.tpitch), h) for i, t in enumerate(f.lines))
             out.append(Frame(f.group.id, Box(round(x0, 6), round(y0, 6), round(x1, 6), round(y1, 6)), labels, f.group.count))
         return out
+
+
+MARKER_PREFIX = "off."
+
+
+def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[str]:
+    """Add what is drawn beside an in-scope node anyway: its SPDs/LAs, CT-operated meters and relays, earth."""
+    keep = set(scope)
+    power_degree: dict[str, int] = defaultdict(int)
+    for e in net.edges:
+        if e.is_power:
+            power_degree[e.src_node] += 1
+            power_degree[e.dst_node] += 1
+    for e in net.edges:
+        if not e.is_power or (e.src_node in keep) == (e.dst_node in keep):
+            continue
+        other = net.node(e.dst_node if e.src_node in keep else e.src_node)
+        power = [p for p in other.port_names if p not in SIGNAL_PORTS]
+        if len(power) == 1 and power_degree[other.id] == 1 and other.kind not in _TERMINAL_KINDS and other.kind not in BUS_KINDS:
+            keep.add(other.id)
+    for e in net.edges:
+        if e.service is Service.CONTROL and (e.src_node in keep) != (e.dst_node in keep):
+            other = net.node(e.dst_node if e.src_node in keep else e.src_node)
+            if all(p in SIGNAL_PORTS for p in other.port_names):
+                keep.add(other.id)
+    keep |= {n.id for n in net.nodes if n.kind is NodeKind.EARTH_ELECTRODE}
+    return frozenset(keep)
+
+
+def _reaches_poi(net: ElectricalNetwork, node_id: str) -> bool:
+    try:
+        net.path_to_poi(node_id)
+    except ValueError:
+        return False
+    return True
+
+
+def _markers(net: ElectricalNetwork, keep: frozenset[str], cut: list[Edge]) -> tuple[list[Node], list[Edge]]:
+    """An off-sheet marker node per cut edge, and the edge list rewired onto the markers.
+
+    Towards the grid the marker stands where the POI would (drawn on top); a cut feeder or
+    branch gets a marker in the place of the missing node."""
+    markers: list[Node] = []
+    swap: dict[str, Edge] = {}
+    for e in cut:
+        mid = f"{MARKER_PREFIX}{e.id}"
+        inside_src = e.src_node in keep
+        other = net.node(e.dst_node if inside_src else e.src_node)
+        title = f"{'TO' if inside_src else 'FROM'} {other.tag.format(*([1] * other.tag.count('{')))}"
+        if inside_src and _reaches_poi(net, other.id):
+            kind, port = NodeKind.POI_GRID, "in"
+        elif inside_src:
+            kind, port = NodeKind.LOAD, "in"
+        else:
+            kind, port = NodeKind.PV_ARRAY_BLOCK, "out"
+        markers.append(Node(id=mid, tag=mid, kind=kind, symbol=OFFSHEET_SYMBOL, ports=(port,), title=title))
+        update = {"dst": f"{mid}:{port}"} if inside_src else {"src": f"{mid}:{port}"}
+        swap[e.id] = e.model_copy(update=update)
+    return markers, [swap.get(e.id, e) for e in net.edges if e.id in swap or (e.src_node in keep and e.dst_node in keep)]
 
 
 def _snap(v: float) -> float:
@@ -1030,11 +1102,11 @@ def plan_pages(
     node with several feeders stays on a main page and its feeder subtrees are packed onto
     further pages. Cross-reference markers on the cut edges are the pagination unit's job."""
     b, lay = _build(network, catalog, options, scope)
-    nodes = frozenset(b.recs)
+    nodes = frozenset(n for n in b.recs if n not in b.markers)
 
     def page(ids: frozenset[str], lay: SldLayout) -> SldPage:
         cut = tuple(e.id for e in network.edges if e.is_power and (e.src_node in ids) != (e.dst_node in ids))
-        return SldPage(tuple(n for n in b.recs if n in ids), cut, lay.fit_scale(width, height, options))
+        return SldPage(tuple(n.id for n in network.nodes if n.id in ids), cut, lay.fit_scale(width, height, options))
 
     if lay.fit_scale(width, height, options) >= options.min_scale:
         return (page(nodes, lay),)
@@ -1050,7 +1122,7 @@ def plan_pages(
         frontier = nxt
     if split is None:
         return (page(nodes, lay),)
-    subtrees = [frozenset(b._subtree_nodes(c)) for c in b.recs[split].children]
+    subtrees = [frozenset(b._subtree_nodes(c)) - b.markers for c in b.recs[split].children if c not in b.markers]
     main = nodes - frozenset().union(*subtrees)
     pages = [page(main, layout_sld(network, catalog, options, main))]
     current: frozenset[str] = frozenset()
