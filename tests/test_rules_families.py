@@ -3,7 +3,7 @@
 import math
 
 import pytest
-from test_rules import CATALOG, drop_edges, drop_layout, fixture, node, raw, rooftop_fixed, series, variant, with_specs
+from test_rules import CATALOG, drop_edges, drop_layout, fixture, node, raw, rooftop_broken, series, variant, with_specs
 
 from unicad.domain.project import Project
 from unicad.rules import Severity, design_current, run_rules
@@ -248,13 +248,13 @@ def test_missing_spec_and_string_length():
 
 
 def test_rooftop_breaker_ratings_against_inverter_current():
-    report = run_rules(fixture("rooftop_500kwp"), CATALOG)
+    report = run_rules(variant("rooftop_500kwp", rooftop_broken), CATALOG)
     i_inv = 110 * 1000 / (math.sqrt(3) * 415)  # ac_max_kva at the 415 V zone = 153.03 A
     fs = {f.subjects[0]: f for f in report.by_rule("protection.rated_current")}
     assert fs["inv_mccb"].limit == pytest.approx(1.25 * i_inv, abs=0.01) == pytest.approx(191.29, abs=0.01)
     assert fs["inv_mccb"].measured == 160
     assert fs["acdb_acb"].limit == pytest.approx(1.25 * 5 * i_inv, abs=0.01) == pytest.approx(956.45, abs=0.01)
-    assert not run_rules(variant("rooftop_500kwp", rooftop_fixed), CATALOG).by_rule("protection.rated_current")
+    assert not run_rules(fixture("rooftop_500kwp"), CATALOG).by_rule("protection.rated_current")
 
 
 def test_design_current_hook():
@@ -310,7 +310,7 @@ def test_single_pole_device_needs_phase_voltage_only():
 def test_spd_and_earthing_presence():
     def edit(data):
         data["network"]["nodes"] = [x for x in data["network"]["nodes"] if x["id"] not in ("dcspd", "ac_spd")]
-        drop_edges(data, "e_dcfb_spd", "e_ct_spd", "pe_inv")
+        drop_edges(data, "e_dcfb_spd", "e_ct_spd", "pe_inv", "pe_lt")
 
     report = run_rules(variant("rooftop_500kwp", edit), CATALOG)
     assert [(f.subjects, f.severity) for f in report.by_rule("protection.spd_dc")] == [(("inv",), Severity.WARNING)]

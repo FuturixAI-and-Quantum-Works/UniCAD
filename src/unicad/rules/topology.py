@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec, ModuleSpec, PCSSpec
-from unicad.domain.network import CONVERTER_KINDS, ElectricalNetwork, NetworkError, Node, NodeKind, Service, VoltageZone
+from unicad.domain.network import CONVERTER_KINDS, Edge, ElectricalNetwork, NetworkError, Node, NodeKind, Service, VoltageZone
 from unicad.domain.project import Project
 from unicad.rules.model import Calc, Quantity
 from unicad.rules.thresholds import ISC_FACTOR
@@ -19,6 +19,8 @@ COMBINERS = frozenset({NodeKind.SCB})
 STRING_FUSE_HOLDERS = frozenset({NodeKind.FUSE, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 EVEN_MPPT = "Strings (or combiner outputs) are spread evenly over the inverter's MPPTs; the network does not record the MPPT allocation."
+AC_SERVICES = frozenset({Service.LV_AC, Service.MV_AC, Service.HV_AC})
+FAN_OUT = "One source instance feeds several instances of this edge; each is taken to carry the full source current (conservative)."
 PASS_THROUGH_NOTE = "DC fuse boxes, isolators and fuses pass strings through one-to-one; strings are paralleled only in SCBs or at the inverter MPPT."
 
 
@@ -123,7 +125,7 @@ class StringFeed:
         )
 
 
-def _module_of(net: ElectricalNetwork, catalog: Catalog, node: Node) -> ModuleSpec | None:
+def module_of(net: ElectricalNetwork, catalog: Catalog, node: Node) -> ModuleSpec | None:
     if node.spec is None or node.modules_in_series is None:
         return None
     spec = catalog.get(node.spec)
@@ -158,7 +160,7 @@ def string_feeds(project: Project, catalog: Catalog) -> list[StringFeed]:
                 continue
             for s, spath in strings:
                 node = net.node(s)
-                module = _module_of(net, catalog, node)
+                module = module_of(net, catalog, node)
                 if module is None:
                     continue
                 feeds.append(
@@ -190,41 +192,37 @@ def _ac_kva(catalog: Catalog, node: Node) -> tuple[float, int, str] | None:
     return None
 
 
-def design_current(project: Project, catalog: Catalog, node_id: str) -> Calc | None:
-    """Design current Ib through a device on an export path, per instance.
+def _dc_current(net: ElectricalNetwork, catalog: Catalog, root: str, include_root: bool) -> Calc | None:
+    ids = ([root] if include_root else []) + list(net.upstream(root))
+    mods = [(s, 1 if s == root else per_instance(net, s, root), m) for s in ids if net.node(s).kind is NodeKind.PV_STRING and (m := module_of(net, catalog, net.node(s)))]
+    if not mods:
+        return None
+    inputs = [Quantity(name="k_Isc", value=ISC_FACTOR.value, source=f"threshold.{ISC_FACTOR.name}")]
+    for s, n, m in mods:
+        inputs += [Quantity(name=f"n[{s}]", value=n, source="network"), Quantity(name=f"Isc[{s}]", value=m.isc, unit="A", source=m.id)]
+    return Calc(
+        value=sum(n * ISC_FACTOR.value * m.isc for _, n, m in mods),
+        unit="A",
+        formula="Ib = sum(n_strings x k_Isc x Isc)",
+        inputs=tuple(inputs),
+        assumptions=(ISC_FACTOR.assumption,),
+    )
 
-    AC side: the maximum output current of every inverter or PCS it carries towards the POI, at
-    the device's zone voltage. DC side: 1.25 x Isc of every string it carries. Protection checks
-    In against this; cable sizing reuses it for Iz. None when the device carries no generation
-    or its zone voltage is undeclared.
-    """
-    net = project.network
-    if is_dc(net, node_id):
-        found = [(s, per_instance(net, s, node_id)) for s in net.upstream(node_id) if net.node(s).kind is NodeKind.PV_STRING]
-        mods = [(s, n, _module_of(net, catalog, net.node(s))) for s, n in found]
-        mods = [(s, n, m) for s, n, m in mods if m is not None]
-        if not mods:
-            return None
-        inputs = [Quantity(name="k_Isc", value=ISC_FACTOR.value, source=f"threshold.{ISC_FACTOR.name}")]
-        for s, n, m in mods:
-            inputs += [Quantity(name=f"n[{s}]", value=n, source="network"), Quantity(name=f"Isc[{s}]", value=m.isc, unit="A", source=m.id)]
-        return Calc(
-            value=sum(n * ISC_FACTOR.value * m.isc for _, n, m in mods),
-            unit="A",
-            formula="Ib = sum(n_strings x k_Isc x Isc)",
-            inputs=tuple(inputs),
-            assumptions=(ISC_FACTOR.assumption,),
-        )
-    if not exports(net, node_id):
-        return None
-    zone = zone_at(net, node_id)
-    if zone is None or zone.voltage_v is None:
-        return None
-    gens = [(g, per_instance(net, g, node_id), r) for g in net.upstream(node_id) if net.node(g).kind in GENERATORS and (r := _ac_kva(catalog, net.node(g)))]
+
+def _ac_current(net: ElectricalNetwork, catalog: Catalog, root: str, include_root: bool, v: float | None) -> Calc | None:
+    ids = ([root] if include_root else []) + list(net.upstream(root))
+    gens = [(g, 1 if g == root else per_instance(net, g, root), r) for g in ids if net.node(g).kind in GENERATORS and (r := _ac_kva(catalog, net.node(g)))]
     if not gens:
         return None
-    v = zone.voltage_v
-    inputs = [Quantity(name="V", value=v, unit="V", source="network.voltage_zone")]
+    assumptions = ["Inverter maximum AC current derived from maximum apparent power at the zone voltage; the catalog has no datasheet maximum-current field."]
+    v_src = "network.voltage_zone"
+    if v is None:
+        rated = {spec.ac_voltage for g, _, _ in gens if (spec := catalog.get(net.node(g).spec)) is not None}
+        if len(rated) != 1:
+            return None
+        v, v_src = rated.pop(), net.node(gens[0][0]).spec
+        assumptions.append("The voltage zone declares no voltage; the inverters' rated AC voltage is used.")
+    inputs = [Quantity(name="V", value=v, unit="V", source=v_src)]
     total = 0.0
     for g, n, (kva, phases, field) in gens:
         total += n * kva * 1000.0 / ((math.sqrt(3) if phases == 3 else 1.0) * v)
@@ -235,5 +233,49 @@ def design_current(project: Project, catalog: Catalog, node_id: str) -> Calc | N
         unit="A",
         formula="Ib = sum(n x S_max x 1000 / (sqrt(3) x V)), V = zone voltage (V alone for single-phase)",
         inputs=tuple(inputs),
-        assumptions=("Inverter maximum AC current derived from maximum apparent power at the zone voltage; the catalog has no datasheet maximum-current field.",),
+        assumptions=tuple(assumptions),
     )
+
+
+def design_current(project: Project, catalog: Catalog, node_id: str) -> Calc | None:
+    """Design current Ib through a device on an export path, per instance.
+
+    AC side: the maximum output current of every inverter or PCS it carries towards the POI, at
+    the device's zone voltage. DC side: 1.25 x Isc of every string it carries. Protection checks
+    In against this; cable sizing reuses it for Iz. None when the device carries no generation
+    or its zone voltage is undeclared.
+    """
+    net = project.network
+    if is_dc(net, node_id):
+        return _dc_current(net, catalog, node_id, include_root=False)
+    if not exports(net, node_id):
+        return None
+    zone = zone_at(net, node_id)
+    if zone is None or zone.voltage_v is None:
+        return None
+    return _ac_current(net, catalog, node_id, include_root=False, v=zone.voltage_v)
+
+
+def edge_zone(net: ElectricalNetwork, edge: Edge) -> VoltageZone | None:
+    return next((z for z in net.voltage_zones() if edge.id in z.edge_ids), None)
+
+
+def edge_current(project: Project, catalog: Catalog, edge: Edge) -> Calc | None:
+    """Design current Ib in one instance of a power edge, all parallel runs together.
+
+    The edge carries what its source node carries, the source included: a string's own current,
+    an inverter's own output. DC: 1.25 x Isc per string; AC: maximum inverter current at the
+    edge's zone voltage (the inverters' rated voltage when the zone declares none). None off the
+    export path or when no generation is carried.
+    """
+    net = project.network
+    if edge.service is Service.DC:
+        ib = _dc_current(net, catalog, edge.src_node, include_root=True)
+    elif edge.service in AC_SERVICES and exports(net, edge.dst_node):
+        zone = edge_zone(net, edge)
+        ib = _ac_current(net, catalog, edge.src_node, include_root=True, v=zone.voltage_v if zone else None)
+    else:
+        return None
+    if ib is not None and net.instance_count(edge.dst_node) > net.instance_count(edge.src_node):
+        ib = ib.model_copy(update={"assumptions": (*ib.assumptions, FAN_OUT)})
+    return ib

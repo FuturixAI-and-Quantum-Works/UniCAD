@@ -11,8 +11,8 @@ from unicad.store import parse_project
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "projects"
 CATALOG = load_catalog()
-ROOFTOP_MCCB_OK = "lk-dsine-dn1-250-c-200a-4p"
-ROOFTOP_ACB_OK = "schneider-mtz2-n1-1000a-4p"
+ROOFTOP_MCCB_SMALL = "lk-dsine-dn1-250-c-160a-4p"
+ROOFTOP_ACB_SMALL = "schneider-mtz2-n1-800a-4p"
 
 
 def raw(name: str) -> dict:
@@ -50,9 +50,14 @@ def series(n: int):
     return edit
 
 
-def rooftop_fixed(data: dict) -> None:
-    node(data, "inv_mccb")["spec"] = ROOFTOP_MCCB_OK
-    node(data, "acdb_acb")["spec"] = ROOFTOP_ACB_OK
+def rooftop_broken(data: dict) -> None:
+    """The rooftop as first drafted: breakers sized for inverter rated current without the continuous-duty factor."""
+    node(data, "inv_mccb")["spec"] = ROOFTOP_MCCB_SMALL
+    node(data, "acdb_acb")["spec"] = ROOFTOP_ACB_SMALL
+
+
+def edge(data: dict, edge_id: str) -> dict:
+    return next(e for e in data["network"]["edges"] if e["id"] == edge_id)
 
 
 def summary(report) -> set[tuple[str, str, tuple[str, ...]]]:
@@ -63,26 +68,37 @@ def with_specs(*specs) -> Catalog:
     return Catalog(CATALOG.entries + tuple(specs))
 
 
-def test_rooftop_fixture_report():
+def test_rooftop_fixture_is_a_valid_design():
     report = run_rules(fixture("rooftop_500kwp"), CATALOG)
     print("\n" + report.render())
-    assert summary(report) == {
-        ("protection.rated_current", "error", ("acdb_acb",)),
-        ("protection.rated_current", "error", ("inv_mccb",)),
-        ("protection.earthing", "warning", ("ltp",)),
+    assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
+        ("cables.missing", "warning", ("e_ct_poi",)),
+        ("cables.missing", "warning", ("e_ltp_load",)),
         ("structure.missing_spec", "warning", ("ac_iso",)),
         ("structure.missing_spec", "warning", ("ac_spd",)),
         ("structure.missing_spec", "warning", ("dciso",)),
-        ("structure.inverter_ac_voltage", "info", ("inv",)),
     }
-    assert report.counts == {"error": 2, "warning": 4, "info": 1}
-    assert report.blocking
+    assert report.counts["error"] == 0 and not report.blocking
+    gate = issue_gate(report, IssuedFor.APPROVAL)
+    assert gate.allowed and not gate.watermark and gate.reasons == ()
+    assert {f.rule_id for f in report.findings if f.severity is Severity.INFO} == {
+        "cables.ampacity", "structure.inverter_ac_voltage", "vdrop.ac", "vdrop.dc",
+    }  # fmt: skip
+
+
+def test_rooftop_broken_breakers_block_approval():
+    report = run_rules(variant("rooftop_500kwp", rooftop_broken), CATALOG)
+    print("\n" + report.render())
+    errors = {f.subjects: (f.measured, f.limit) for f in report.findings if f.severity is Severity.ERROR}
+    assert errors == {("inv_mccb",): (160, pytest.approx(191.29, abs=0.01)), ("acdb_acb",): (800, pytest.approx(956.45, abs=0.01))}
+    gate = issue_gate(report, IssuedFor.APPROVAL)
+    assert not gate.allowed and len(gate.reasons) == 2
 
 
 def test_utility_fixture_report():
     report = run_rules(fixture("utility_50mwac"), CATALOG)
     print("\n" + report.render())
-    assert summary(report) == {
+    assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
         ("structure.missing_spec", "error", ("idt",)),
         ("structure.missing_spec", "error", ("blk_aux",)),
         ("structure.missing_spec", "warning", ("icog_vcb",)),
@@ -92,10 +108,10 @@ def test_utility_fixture_report():
         ("protection.spd_ac", "warning", ("inv",)),
         ("protection.spd_dc", "warning", ("inv",)),
         ("pv_strings.operating_current", "warning", ("str", "inv")),
-        ("pv_strings.string_fuses", "info", ("str", "inv", "scb")),
-        ("structure.inverter_ac_voltage", "info", ("inv",)),
-        ("structure.transformer_voltage", "info", ("aux_tr",)),
+        ("cables.ampacity", "warning", ("e_scb_inv",)),
+        *(("cables.missing", "warning", (e,)) for e in ("e_aux_load", "e_auxtr_load", "e_auxvcb_tr", "e_ct_poi", "e_icog_bus", "e_idt_aux", "e_idt_vcb")),
     }
+    assert ("pv_strings.string_fuses", "info", ("str", "inv", "scb")) in summary(report)
 
 
 def test_findings_are_sorted_errors_first():
@@ -133,17 +149,8 @@ def test_issue_gate_blocks_approval_and_construction_on_errors_but_allows_propos
     assert issue_gate(report, IssuedFor.INFORMATION).allowed
 
 
-def test_issue_gate_allows_approval_once_errors_are_fixed():
-    report = run_rules(variant("rooftop_500kwp", rooftop_fixed), CATALOG)
-    print("\n" + report.render())
-    assert not report.blocking
-    gate = issue_gate(report, IssuedFor.APPROVAL)
-    assert gate.allowed and not gate.watermark and gate.reasons == ()
-    assert report.counts["warning"] == 4
-
-
 def test_family_filter_runs_only_that_family():
-    report = run_rules(fixture("rooftop_500kwp"), CATALOG, families=["protection"])
+    report = run_rules(variant("rooftop_500kwp", rooftop_broken), CATALOG, families=["protection"])
     assert report.rules and all(r.startswith("protection.") for r in report.rules)
     assert {f.rule_id.split(".")[0] for f in report.findings} == {"protection"}
     with pytest.raises(ValueError, match="unknown rule families"):
@@ -159,7 +166,7 @@ def test_run_rules_needs_a_project_that_resolves_against_the_catalog():
 
 
 def test_registry_shape():
-    assert families() == ("structure", "pv_strings", "ratio", "protection")
+    assert families() == ("structure", "pv_strings", "ratio", "protection", "cables", "vdrop")
     for r in REGISTRY.values():
         assert r.id.startswith(r.family + ".")
         assert r.title and r.docs, r.id
@@ -185,15 +192,16 @@ def test_explain_gives_formula_inputs_and_catalog_sources():
 
 
 def test_report_serialises_counts_and_blocking():
-    dumped = run_rules(fixture("rooftop_500kwp"), CATALOG).model_dump(mode="json")
+    dumped = run_rules(variant("rooftop_500kwp", rooftop_broken), CATALOG).model_dump(mode="json")
     assert dumped["blocking"] is True
     assert dumped["counts"]["error"] == 2
     assert dumped["findings"][0]["severity"] == "error"
 
 
 def test_unverified_thresholds_are_flagged_as_assumptions():
-    report = run_rules(fixture("rooftop_500kwp"), CATALOG)
+    report = run_rules(variant("rooftop_500kwp", rooftop_broken), CATALOG)
+    assert report.by_rule("protection.rated_current")
     for f in report.by_rule("protection.rated_current"):
         assert any("1.25 x maximum inverter current" in a for a in f.assumptions)
     clauses = {r.clause for r in REGISTRY.values()} - {None}
-    assert clauses == {"IEC 62548", "IS 732", "IS 3043"}
+    assert clauses == {"IEC 62548", "IS 732", "IS 3043", "IS 732 / IEC 60364-4-43"}

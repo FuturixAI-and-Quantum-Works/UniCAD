@@ -6,7 +6,7 @@ from unicad.catalog.store import load_catalog
 from unicad.domain.project import Project
 from unicad.store import canonical_json
 
-OUT = Path(sys.argv[1])
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1] / "fixtures" / "projects"
 cat = load_catalog()
 
 
@@ -22,6 +22,9 @@ def rev0(remarks="FIRST SUBMISSION"):
     return [{"rev": "00", "date": "2026-10-26", "remarks": remarks, "issued_for": "approval"}]
 
 
+DC_DERATING = "Derating 1.0: Polycab H1Z2Z2-K ambient factor is 1.00 up to 60 C (polycab_solar_dc_en50618_derating.csv); grouping not applied"
+DC_PASS_THROUGH = "One cable pair per string: the DC fuse box passes strings through to separate inverter inputs"
+
 # ---------------- rooftop 500 kWp ----------------
 MOD = "adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp"
 INV = "huawei-sun2000-100ktl-m2"
@@ -34,9 +37,9 @@ roof_nodes = [
     node("dcspd", "DC-SPD-{0:02d}", "dc_spd", spec="finder-7p.23.9.500.x015", group="inv_sec"),
     node("dciso", "DC-ISO-{0:02d}", "dc_isolator", group="inv_sec"),
     node("inv", "INV-{0:02d}", "inverter", spec=INV, group="inv_sec"),
-    node("inv_mccb", "MCCB-{0:02d}", "breaker", spec="lk-dsine-dn1-250-c-160a-4p", group="inv_sec", voltage_v=415.0),
+    node("inv_mccb", "MCCB-{0:02d}", "breaker", spec="lk-dsine-dn1-250-c-200a-4p", group="inv_sec", voltage_v=415.0),
     node("acdb", "ACDB-01", "acdb", voltage_v=415.0, title="AC DISTRIBUTION BOARD"),
-    node("acdb_acb", "ACB-01", "breaker", spec="schneider-mtz2-n1-800a-4p", voltage_v=415.0),
+    node("acdb_acb", "ACB-01", "breaker", spec="schneider-mtz2-n1-1000a-4p", voltage_v=415.0),
     node("solar_ct", "CT-01", "ct", voltage_v=415.0),
     node("solar_meter", "SM-01", "meter", spec="generic-meter-generation-ct-0.5s", ports=["sig"], title="SOLAR GENERATION METER"),
     node("ac_spd", "AC-SPD-01", "ac_spd", voltage_v=415.0),
@@ -49,24 +52,25 @@ roof_nodes = [
     node("ep", "EP-01", "earth_electrode", title="SYSTEM EARTH PIT"),
 ]
 roof_edges = [
-    edge("e_str", "str:out", "dcfb:in", "dc", cable="polycab-h1z2z2-k-4mm2", runs=1, laying="conduit"),
+    edge("e_str", "str:out", "dcfb:in", "dc", cable="polycab-h1z2z2-k-4mm2", length_m=25.0, laying="tray", derating=1.0, remarks=DC_DERATING),
     edge("e_dcfb_spd", "dcfb:out", "dcspd:line", "dc"),
-    edge("e_dcfb_iso", "dcfb:out", "dciso:in", "dc", cable="polycab-h1z2z2-k-6mm2"),
-    edge("e_iso_inv", "dciso:out", "inv:dc", "dc", cable="polycab-h1z2z2-k-6mm2"),
-    edge("e_inv_mccb", "inv:ac", "inv_mccb:in", "lv_ac", cable="polycab-lt-xlpe-al-4c-95-arm", laying="tray"),
+    edge("e_dcfb_iso", "dcfb:out", "dciso:in", "dc", cable="polycab-h1z2z2-k-6mm2", runs=STR_PER_INV, length_m=5.0, laying="tray", derating=1.0, remarks=DC_PASS_THROUGH),
+    edge("e_iso_inv", "dciso:out", "inv:dc", "dc", cable="polycab-h1z2z2-k-6mm2", runs=STR_PER_INV, length_m=3.0, laying="tray", derating=1.0, remarks=DC_PASS_THROUGH),
+    edge("e_inv_mccb", "inv:ac", "inv_mccb:in", "lv_ac", cable="polycab-lt-xlpe-al-4c-95-arm", length_m=30.0, laying="tray"),
     edge("e_mccb_acdb", "inv_mccb:out", "acdb:in", "lv_ac"),
     edge("e_acdb_acb", "acdb:out", "acdb_acb:in", "lv_ac"),
-    edge("e_acb_ct", "acdb_acb:out", "solar_ct:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, laying="tray"),
+    edge("e_acb_ct", "acdb_acb:out", "solar_ct:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, length_m=60.0, laying="tray", remarks="Roof ACDB to the solar metering and isolation panel in the LT room"),
     edge("e_ct_spd", "solar_ct:out", "ac_spd:line", "lv_ac"),
     edge("e_ct_iso", "solar_ct:out", "ac_iso:in", "lv_ac"),
-    edge("e_iso_ltp", "ac_iso:out", "ltp:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, laying="tray"),
-    edge("e_ltp_load", "ltp:out", "load:in", "lv_ac"),
+    edge("e_iso_ltp", "ac_iso:out", "ltp:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, length_m=5.0, laying="tray"),
+    edge("e_ltp_load", "ltp:out", "load:in", "lv_ac", remarks="Existing consumer distribution, by others"),
     edge("e_ltp_ct", "ltp:out", "net_ct:in", "lv_ac"),
-    edge("e_ct_poi", "net_ct:out", "poi:in", "lv_ac"),
+    edge("e_ct_poi", "net_ct:out", "poi:in", "lv_ac", remarks="DISCOM service connection, by others"),
     edge("c_solar_meter", "solar_ct:sec", "solar_meter:sig", "control"),
     edge("c_net_meter", "net_ct:sec", "net_meter:sig", "control"),
     edge("pe_inv", "inv:pe", "ep:pe", "earth"),
     edge("pe_acdb", "acdb:pe", "ep:pe", "earth"),
+    edge("pe_lt", "ltp:pe", "ep:pe", "earth"),
 ]
 
 # Roof layout: one table of 2 rows x 18 portrait slots per pair of strings.
@@ -161,9 +165,9 @@ u_nodes = [
     node("ep", "EP-MAIN", "earth_electrode", title="MAIN EARTH GRID"),
 ]
 u_edges = [
-    edge("e_str", "str:out", "scb:in", "dc", cable="polycab-h1z2z2-k-4mm2", laying="air"),
-    edge("e_scb_inv", "scb:out", "inv:dc", "dc", cable="polycab-h1z2z2-k-240mm2", runs=2, laying="buried_direct"),
-    edge("e_inv_idt", "inv:ac", "idt:lv", "lv_ac", cable="kei-lt-xlpe-al-1c-400-arm", runs=8, laying="trench"),
+    edge("e_str", "str:out", "scb:in", "dc", cable="polycab-h1z2z2-k-4mm2", length_m=30.0, laying="air"),
+    edge("e_scb_inv", "scb:out", "inv:dc", "dc", cable="polycab-h1z2z2-k-240mm2", runs=2, length_m=150.0, laying="buried_direct"),
+    edge("e_inv_idt", "inv:ac", "idt:lv", "lv_ac", cable="kei-lt-xlpe-al-1c-400-arm", runs=8, length_m=15.0, laying="trench"),
     edge("e_idt_aux", "idt:lv", "blk_aux:hv", "lv_ac"),
     edge("e_aux_load", "blk_aux:lv", "blk_aux_load:in", "lv_ac"),
     edge("e_idt_vcb", "idt:hv", "icog_vcb:in", "mv_ac"),
