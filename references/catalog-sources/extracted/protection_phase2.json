@@ -1,0 +1,48 @@
+{
+  "_about": "Hand-transcribed from pdftotext -layout output of the cited pages. pdf_page is the 1-based PDF page. Values are as printed; nothing is derived.",
+  "spd_ac_finder": {
+    "source": "raw/datasheets/protection/Finder_S7P_SPD_catalogue.pdf",
+    "pdf_page": 9,
+    "standard": "EN 61643-11:2012",
+    "note": "Type 2, 230/400 V systems; 3-pole 7P.23 is L1-L2-L3 to PEN, 4-pole 7P.25 is L1-L2-L3-N to PE. Uc, In and Imax are the L-PEN / L,N-PE columns for the 275 V module.",
+    "variants": [
+      {"code": "7P.23.8.275.x020", "poles": 3, "uc_vac": 275, "in_ka": 20, "imax_ka": 40, "up_in_kv": 1.35, "max_backup_fuse_a": 160},
+      {"code": "7P.25.8.275.x020", "poles": 4, "uc_vac": 275, "in_ka": 20, "imax_ka": 40, "up_in_kv": 1.35, "max_backup_fuse_a": 160}
+    ]
+  },
+  "spd_ac_dehn": {
+    "source": "raw/datasheets/protection/DEHN_Surge_Protection_catalogue_E2_2020.pdf",
+    "pdf_page": 61,
+    "standard": "EN 61643-11 / IEC 61643-11",
+    "variants": [
+      {"code": "DG SE CI 440 FM", "part_no": "952 920", "poles": 1, "uc_vac": 440, "in_ka": 12.5, "up_kv": 2.0, "system": "400 / 690 V systems (manufacturer description, p.60-61)", "backup_fuse": "integrated, none required"}
+    ]
+  },
+  "pt_33kv": {
+    "source": "raw/datasheets/protection/WBSEDCL_33kV_PT_spec.pdf",
+    "pdf_page": 6,
+    "product": "WBSEDCL specification for a 33 kV outdoor single-phase oil-filled potential transformer",
+    "standard": "IS 3156",
+    "rated_voltage_kv": 33,
+    "highest_voltage_kv": 36,
+    "ratio": "33000/sqrt3 : 110/sqrt3 - 110/sqrt3 V",
+    "cores": [
+      {"class": "0.5", "burden_va": 100, "use": "Core I"},
+      {"class": "3P", "burden_va": 100, "use": "Core II"}
+    ],
+    "voltage_factor": "1.2 continuous, 1.5 for 30 s"
+  },
+  "la_36kv_counter": {
+    "source": "raw/datasheets/protection/Buyer_TS_switchgear_surge_arrester_36kV_tenderfiles.pdf",
+    "pdf_page": 12,
+    "counter_pdf_page": 6,
+    "product": "Buyer technical specification, switchgear surge arresters, 36 kV class (issuer not named in the document)",
+    "standard": "IEC 60099-4",
+    "nominal_system_kv": 33,
+    "ur_kv": 30,
+    "uc_kv": 25,
+    "nominal_discharge_current_ka": 20,
+    "line_discharge_class": 2,
+    "counter": "self-contained discharge counter with leakage current meter on each single-pole unit (clause 4.0 (j), (k))"
+  }
+}

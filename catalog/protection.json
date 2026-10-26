@@ -1,5 +1,993 @@
 [
   {
+    "id": "abb-ot1000e03p",
+    "manufacturer": "ABB",
+    "model": "OT1000E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 14; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.12",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 1000.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 50.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot1000e04p",
+    "manufacturer": "ABB",
+    "model": "OT1000E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 15; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.12",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 1000.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 50.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot1250e03p",
+    "manufacturer": "ABB",
+    "model": "OT1250E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 16; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 1250.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot1250e04p",
+    "manufacturer": "ABB",
+    "model": "OT1250E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 17; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 1250.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot1600e03p",
+    "manufacturer": "ABB",
+    "model": "OT1600E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 18; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 1600.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot1600e04p",
+    "manufacturer": "ABB",
+    "model": "OT1600E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 19; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 1600.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot2000e03p",
+    "manufacturer": "ABB",
+    "model": "OT2000E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 20; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 2000.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot2000e04p",
+    "manufacturer": "ABB",
+    "model": "OT2000E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 21; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 2000.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot200e03p",
+    "manufacturer": "ABB",
+    "model": "OT200E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 2; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 200.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 8.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot200e04p",
+    "manufacturer": "ABB",
+    "model": "OT200E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 3; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 200.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 8.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot2500e03p",
+    "manufacturer": "ABB",
+    "model": "OT2500E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 22; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 2500.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot2500e04p",
+    "manufacturer": "ABB",
+    "model": "OT2500E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.25; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 23; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; short-time withstand not read: the large-frame table columns are ambiguous in the text layer",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 2500.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot250e03p",
+    "manufacturer": "ABB",
+    "model": "OT250E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 4; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 250.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 8.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot250e04p",
+    "manufacturer": "ABB",
+    "model": "OT250E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 5; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 250.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 8.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot315e03p",
+    "manufacturer": "ABB",
+    "model": "OT315E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 6; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 315.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 15.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot315e04p",
+    "manufacturer": "ABB",
+    "model": "OT315E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 7; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 315.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 15.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot400e03p",
+    "manufacturer": "ABB",
+    "model": "OT400E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 8; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 400.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 15.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot400e04p",
+    "manufacturer": "ABB",
+    "model": "OT400E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 9; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 400.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 15.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot630e03p",
+    "manufacturer": "ABB",
+    "model": "OT630E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 10; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 630.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 20.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot630e04p",
+    "manufacturer": "ABB",
+    "model": "OT630E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 11; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 630.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 20.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot800e03p",
+    "manufacturer": "ABB",
+    "model": "OT800E03P switch-disconnector 3P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 12; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 800.0,
+    "rated_voltage": 415.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 20.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-ot800e04p",
+    "manufacturer": "ABB",
+    "model": "OT800E04P switch-disconnector 4P",
+    "symbol": "sw.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OT_OTM_switch-disconnectors_1SCC301020C0201.pdf p.24; references/catalog-sources/extracted/abb_ot_switch_disconnectors.csv row 13; AC-22A current from the ordering table (column headed 400 V; the technical-data tables give AC-22A up to 415 V), rated_voltage is that 415 V; the switch's rated insulation and operational voltage AC-20 is 1000 V; non-fusible load-break switch, so no breaking capacity; Icw 1 s from the technical-data tables on pdf p.10-11",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "ac_isolator",
+    "rated_current": 800.0,
+    "rated_voltage": 415.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 20.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc100e11",
+    "manufacturer": "ABB",
+    "model": "OTDC100E11 DC switch-disconnector 2P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 2; OTDC S1.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 100.0,
+    "rated_voltage": 1000.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc100e22",
+    "manufacturer": "ABB",
+    "model": "OTDC100E22 DC switch-disconnector 4P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 6; OTDC S1.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 100.0,
+    "rated_voltage": 1000.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc100gv11",
+    "manufacturer": "ABB",
+    "model": "OTDC100GV11 DC switch-disconnector 2P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 10; OTDC S2.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 100.0,
+    "rated_voltage": 1500.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc100gv22",
+    "manufacturer": "ABB",
+    "model": "OTDC100GV22 DC switch-disconnector 4P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 14; OTDC S2.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 100.0,
+    "rated_voltage": 1500.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc160e11",
+    "manufacturer": "ABB",
+    "model": "OTDC160E11 DC switch-disconnector 2P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 3; OTDC S1.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 160.0,
+    "rated_voltage": 1000.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc160e22",
+    "manufacturer": "ABB",
+    "model": "OTDC160E22 DC switch-disconnector 4P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 7; OTDC S1.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 160.0,
+    "rated_voltage": 1000.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc160gv11",
+    "manufacturer": "ABB",
+    "model": "OTDC160GV11 DC switch-disconnector 2P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 11; OTDC S2.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 160.0,
+    "rated_voltage": 1500.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc160gv22",
+    "manufacturer": "ABB",
+    "model": "OTDC160GV22 DC switch-disconnector 4P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 15; OTDC S2.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 160.0,
+    "rated_voltage": 1500.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc200e11",
+    "manufacturer": "ABB",
+    "model": "OTDC200E11 DC switch-disconnector 2P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 4; OTDC S1.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 200.0,
+    "rated_voltage": 1000.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc200e22",
+    "manufacturer": "ABB",
+    "model": "OTDC200E22 DC switch-disconnector 4P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 8; OTDC S1.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 200.0,
+    "rated_voltage": 1000.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc200gv11",
+    "manufacturer": "ABB",
+    "model": "OTDC200GV11 DC switch-disconnector 2P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 12; OTDC S2.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 200.0,
+    "rated_voltage": 1500.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc200gv22",
+    "manufacturer": "ABB",
+    "model": "OTDC200GV22 DC switch-disconnector 4P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 16; OTDC S2.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 200.0,
+    "rated_voltage": 1500.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc250e11",
+    "manufacturer": "ABB",
+    "model": "OTDC250E11 DC switch-disconnector 2P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 5; OTDC S1.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 250.0,
+    "rated_voltage": 1000.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc250e22",
+    "manufacturer": "ABB",
+    "model": "OTDC250E22 DC switch-disconnector 4P 1000 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.36; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 9; OTDC S1.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1000 V DC; Icw 5 kA for 1 s from the technical-data table on pdf p.31",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 250.0,
+    "rated_voltage": 1000.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 5.0,
+    "short_time_duration_s": 1.0,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc250gv11",
+    "manufacturer": "ABB",
+    "model": "OTDC250GV11 DC switch-disconnector 2P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 13; OTDC S2.0, 1 circuit(s) on 2 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 250.0,
+    "rated_voltage": 1500.0,
+    "poles": 2,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "abb-otdc250gv22",
+    "manufacturer": "ABB",
+    "model": "OTDC250GV22 DC switch-disconnector 4P 1500 V DC",
+    "symbol": "dc.isolator",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf p.37; references/catalog-sources/extracted/abb_otdc_switch_disconnectors.csv row 17; OTDC S2.0, 2 circuit(s) on 4 poles, rated current is DC-21B at 1500 V DC; DC-PV2 rating is 100 A at 1500 V; Icw 10 kA for 0.1 s from the technical-data table on pdf p.32",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "dc_isolator",
+    "rated_current": 250.0,
+    "rated_voltage": 1500.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": 10.0,
+    "short_time_duration_s": 0.1,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
     "id": "abb-polim-d-24-ur30kv",
     "manufacturer": "ABB",
     "model": "POLIM-D 24-xx (Uc 24 kV, Ur 30 kV)",
@@ -22,7 +1010,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": 10.0,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-1250a-16ka",
@@ -47,7 +1036,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-1250a-20ka",
@@ -72,7 +1062,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-1250a-25ka",
@@ -97,7 +1088,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-1250a-31.5ka",
@@ -122,7 +1114,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-1250a-40ka",
@@ -147,7 +1140,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-630a-16ka",
@@ -172,7 +1166,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "abb-vd4-36kv-630a-20ka",
@@ -197,7 +1192,34 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "dehn-dg-se-ci-440-fm",
+    "manufacturer": "DEHN",
+    "model": "DEHNguard DG SE CI 440 FM",
+    "symbol": "prot.spd_ac",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/DEHN_Surge_Protection_catalogue_E2_2020.pdf p.61; references/catalog-sources/extracted/protection_phase2.json; part no. 952 920, single-pole, for 400 / 690 V systems (manufacturer description, p.60-61); Up <= 2.0 kV; backup fuse integrated, none required; one unit per phase",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "spd_ac",
+    "rated_current": null,
+    "rated_voltage": 440.0,
+    "poles": 1,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": 12.5,
+    "curve": null,
+    "spd_type": "2",
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-10a10f",
@@ -222,7 +1244,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-12a10f",
@@ -247,7 +1270,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-15a10f",
@@ -272,7 +1296,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-16a10f",
@@ -297,7 +1322,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-1a10f",
@@ -322,7 +1348,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-2-5a10f",
@@ -347,7 +1374,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-20a10f",
@@ -372,7 +1400,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-2a10f",
@@ -397,7 +1426,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-3-5a10f",
@@ -422,7 +1452,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-3a10f",
@@ -447,7 +1478,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-4a10f",
@@ -472,7 +1504,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-5a10f",
@@ -497,7 +1530,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-6a10f",
@@ -522,7 +1556,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "eaton-bussmann-pv-8a10f",
@@ -547,7 +1582,34 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "finder-7p.23.8.275.x020",
+    "manufacturer": "Finder",
+    "model": "7P.23.8.275.x020",
+    "symbol": "prot.spd_ac",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/Finder_S7P_SPD_catalogue.pdf p.9; references/catalog-sources/extracted/protection_phase2.json; Type 2, 230/400 V systems; 3-pole 7P.23 is L1-L2-L3 to PEN, 4-pole 7P.25 is L1-L2-L3-N to PE. Uc, In and Imax are the L-PEN / L,N-PE columns for the 275 V module. Maximum backup fuse 160 A gG; Up 1.35 kV at In; Imax 40 kA",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "spd_ac",
+    "rated_current": null,
+    "rated_voltage": 275.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": 20.0,
+    "curve": null,
+    "spd_type": "2",
+    "surge_counter": null
   },
   {
     "id": "finder-7p.23.9.000.x015",
@@ -572,7 +1634,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": "2"
+    "spd_type": "2",
+    "surge_counter": null
   },
   {
     "id": "finder-7p.23.9.500.x015",
@@ -597,7 +1660,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": "2"
+    "spd_type": "2",
+    "surge_counter": null
   },
   {
     "id": "finder-7p.23.9.750.x020",
@@ -622,7 +1686,34 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": "2"
+    "spd_type": "2",
+    "surge_counter": null
+  },
+  {
+    "id": "finder-7p.25.8.275.x020",
+    "manufacturer": "Finder",
+    "model": "7P.25.8.275.x020",
+    "symbol": "prot.spd_ac",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/Finder_S7P_SPD_catalogue.pdf p.9; references/catalog-sources/extracted/protection_phase2.json; Type 2, 230/400 V systems; 3-pole 7P.23 is L1-L2-L3 to PEN, 4-pole 7P.25 is L1-L2-L3-N to PE. Uc, In and Imax are the L-PEN / L,N-PE columns for the 275 V module. Maximum backup fuse 160 A gG; Up 1.35 kV at In; Imax 40 kA",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "spd_ac",
+    "rated_current": null,
+    "rated_voltage": 275.0,
+    "poles": 4,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": 20.0,
+    "curve": null,
+    "spd_type": "2",
+    "surge_counter": null
   },
   {
     "id": "generic-ct-33kv-200-100-50-1-1a",
@@ -647,7 +1738,60 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
+  },
+  {
+    "id": "generic-la-36kv-ur30-20ka-counter",
+    "manufacturer": "Generic (buyer technical specification)",
+    "model": "36 kV class station gapless metal-oxide surge arrester Ur 30 kV Uc 25 kV with discharge counter",
+    "symbol": "prot.lightning_arrester",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/Buyer_TS_switchgear_surge_arrester_36kV_tenderfiles.pdf p.12; references/catalog-sources/extracted/protection_phase2.json; Buyer technical specification, switchgear surge arresters, 36 kV class (issuer not named in the document); discharge counter and leakage current meter on pdf p.6: self-contained discharge counter with leakage current meter on each single-pole unit (clause 4.0 (j), (k)); line discharge class 2",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "lightning_arrester",
+    "rated_current": null,
+    "rated_voltage": 30000.0,
+    "poles": 1,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": 20.0,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": true
+  },
+  {
+    "id": "generic-pt-33kv-wbsedcl-0.5-3p-100va",
+    "manufacturer": "Generic (WBSEDCL specification)",
+    "model": "33 kV outdoor single-phase PT 33000/sqrt3:110/sqrt3-110/sqrt3 V",
+    "symbol": "tx.pt",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/WBSEDCL_33kV_PT_spec.pdf p.6; references/catalog-sources/extracted/protection_phase2.json; a utility's procurement specification, not a manufacturer datasheet; voltage factor 1.2 continuous, 1.5 for 30 s",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "pt",
+    "rated_current": null,
+    "rated_voltage": 36000.0,
+    "poles": 1,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": "33000/sqrt3 : 110/sqrt3 - 110/sqrt3 V",
+    "accuracy_class": "0.5 (100 VA, Core I) + 3P (100 VA, Core II)",
+    "burden_va": 100.0,
+    "nominal_discharge_current_ka": null,
+    "curve": null,
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "generic-rmu-36kv-630a-25ka",
@@ -672,7 +1816,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-100a-3p",
@@ -697,7 +1842,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-100a-4p",
@@ -722,7 +1868,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-20a-3p",
@@ -747,7 +1894,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-20a-4p",
@@ -772,7 +1920,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-25a-3p",
@@ -797,7 +1946,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-25a-4p",
@@ -822,7 +1972,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-32a-3p",
@@ -847,7 +1998,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-32a-4p",
@@ -872,7 +2024,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-40a-3p",
@@ -897,7 +2050,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-40a-4p",
@@ -922,7 +2076,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-50a-3p",
@@ -947,7 +2102,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-50a-4p",
@@ -972,7 +2128,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-63a-3p",
@@ -997,7 +2154,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-63a-4p",
@@ -1022,7 +2180,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-80a-3p",
@@ -1047,7 +2206,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-c-80a-4p",
@@ -1072,7 +2232,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-100a-3p",
@@ -1097,7 +2258,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-100a-4p",
@@ -1122,7 +2284,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-20a-3p",
@@ -1147,7 +2310,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-20a-4p",
@@ -1172,7 +2336,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-25a-3p",
@@ -1197,7 +2362,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-25a-4p",
@@ -1222,7 +2388,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-32a-3p",
@@ -1247,7 +2414,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-32a-4p",
@@ -1272,7 +2440,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-40a-3p",
@@ -1297,7 +2466,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-40a-4p",
@@ -1322,7 +2492,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-50a-3p",
@@ -1347,7 +2518,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-50a-4p",
@@ -1372,7 +2544,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-63a-3p",
@@ -1397,7 +2570,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-63a-4p",
@@ -1422,7 +2596,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-80a-3p",
@@ -1447,7 +2622,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-100-d-80a-4p",
@@ -1472,7 +2648,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-125-d-125a-3p",
@@ -1497,7 +2674,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn0-125-d-125a-4p",
@@ -1522,7 +2700,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-125a-3p",
@@ -1547,7 +2726,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-125a-4p",
@@ -1572,7 +2752,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-160a-3p",
@@ -1597,7 +2778,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-160a-4p",
@@ -1622,7 +2804,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-200a-3p",
@@ -1647,7 +2830,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-200a-4p",
@@ -1672,7 +2856,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-250a-3p",
@@ -1697,7 +2882,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-c-250a-4p",
@@ -1722,7 +2908,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-125a-3p",
@@ -1747,7 +2934,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-125a-4p",
@@ -1772,7 +2960,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-160a-3p",
@@ -1797,7 +2986,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-160a-4p",
@@ -1822,7 +3012,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-200a-3p",
@@ -1847,7 +3038,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-200a-4p",
@@ -1872,7 +3064,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-250a-3p",
@@ -1897,7 +3090,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn1-250-n-250a-4p",
@@ -1922,7 +3116,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-100a-3p",
@@ -1947,7 +3142,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-100a-4p",
@@ -1972,7 +3168,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-125a-3p",
@@ -1997,7 +3194,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-125a-4p",
@@ -2022,7 +3220,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-160a-3p",
@@ -2047,7 +3246,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-160a-4p",
@@ -2072,7 +3272,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-200a-3p",
@@ -2097,7 +3298,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-200a-4p",
@@ -2122,7 +3324,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-250a-3p",
@@ -2147,7 +3350,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-250a-4p",
@@ -2172,7 +3376,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-40a-3p",
@@ -2197,7 +3402,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-40a-4p",
@@ -2222,7 +3428,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-63a-3p",
@@ -2247,7 +3454,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-63a-4p",
@@ -2272,7 +3480,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-80a-3p",
@@ -2297,7 +3506,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-d-80a-4p",
@@ -2322,7 +3532,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-100a-3p",
@@ -2347,7 +3558,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-100a-4p",
@@ -2372,7 +3584,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-125a-3p",
@@ -2397,7 +3610,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-125a-4p",
@@ -2422,7 +3636,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-160a-3p",
@@ -2447,7 +3662,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-160a-4p",
@@ -2472,7 +3688,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-200a-3p",
@@ -2497,7 +3714,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-200a-4p",
@@ -2522,7 +3740,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-250a-3p",
@@ -2547,7 +3766,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-250a-4p",
@@ -2572,7 +3792,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-40a-3p",
@@ -2597,7 +3818,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-40a-4p",
@@ -2622,7 +3844,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-63a-3p",
@@ -2647,7 +3870,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-63a-4p",
@@ -2672,7 +3896,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-80a-3p",
@@ -2697,7 +3922,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-h-80a-4p",
@@ -2722,7 +3948,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-100a-3p",
@@ -2747,7 +3974,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-100a-4p",
@@ -2772,7 +4000,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-125a-3p",
@@ -2797,7 +4026,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-125a-4p",
@@ -2822,7 +4052,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-160a-3p",
@@ -2847,7 +4078,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-160a-4p",
@@ -2872,7 +4104,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-200a-3p",
@@ -2897,7 +4130,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-200a-4p",
@@ -2922,7 +4156,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-250a-3p",
@@ -2947,7 +4182,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-250a-4p",
@@ -2972,7 +4208,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-40a-3p",
@@ -2997,7 +4234,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-40a-4p",
@@ -3022,7 +4260,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-63a-3p",
@@ -3047,7 +4286,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-63a-4p",
@@ -3072,7 +4312,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-80a-3p",
@@ -3097,7 +4338,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-n-80a-4p",
@@ -3122,7 +4364,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-100a-3p",
@@ -3147,7 +4390,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-100a-4p",
@@ -3172,7 +4416,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-125a-3p",
@@ -3197,7 +4442,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-125a-4p",
@@ -3222,7 +4468,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-160a-3p",
@@ -3247,7 +4494,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-160a-4p",
@@ -3272,7 +4520,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-200a-3p",
@@ -3297,7 +4546,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-200a-4p",
@@ -3322,7 +4572,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-250a-3p",
@@ -3347,7 +4598,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-250a-4p",
@@ -3372,7 +4624,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-40a-3p",
@@ -3397,7 +4650,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-40a-4p",
@@ -3422,7 +4676,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-63a-3p",
@@ -3447,7 +4702,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-63a-4p",
@@ -3472,7 +4728,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-80a-3p",
@@ -3497,7 +4754,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-s-80a-4p",
@@ -3522,7 +4780,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-100a-3p",
@@ -3547,7 +4806,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-100a-4p",
@@ -3572,7 +4832,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-125a-3p",
@@ -3597,7 +4858,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-125a-4p",
@@ -3622,7 +4884,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-160a-3p",
@@ -3647,7 +4910,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-160a-4p",
@@ -3672,7 +4936,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-200a-3p",
@@ -3697,7 +4962,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-200a-4p",
@@ -3722,7 +4988,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-250a-3p",
@@ -3747,7 +5014,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-250a-4p",
@@ -3772,7 +5040,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-40a-3p",
@@ -3797,7 +5066,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-40a-4p",
@@ -3822,7 +5092,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-63a-3p",
@@ -3847,7 +5118,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-63a-4p",
@@ -3872,7 +5144,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-80a-3p",
@@ -3897,7 +5170,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn2-250-v-80a-4p",
@@ -3922,7 +5196,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-d-320a-3p",
@@ -3947,7 +5222,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-d-320a-4p",
@@ -3972,7 +5248,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-d-400a-3p",
@@ -3997,7 +5274,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-d-400a-4p",
@@ -4022,7 +5300,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-n-320a-3p",
@@ -4047,7 +5326,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-n-320a-4p",
@@ -4072,7 +5352,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-n-400a-3p",
@@ -4097,7 +5378,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-n-400a-4p",
@@ -4122,7 +5404,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-s-320a-3p",
@@ -4147,7 +5430,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-s-320a-4p",
@@ -4172,7 +5456,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-s-400a-3p",
@@ -4197,7 +5482,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-400-s-400a-4p",
@@ -4222,7 +5508,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-d-500a-3p",
@@ -4247,7 +5534,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-d-500a-4p",
@@ -4272,7 +5560,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-d-630a-3p",
@@ -4297,7 +5586,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-d-630a-4p",
@@ -4322,7 +5612,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-n-500a-3p",
@@ -4347,7 +5638,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-n-500a-4p",
@@ -4372,7 +5664,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-n-630a-3p",
@@ -4397,7 +5690,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-n-630a-4p",
@@ -4422,7 +5716,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-s-500a-3p",
@@ -4447,7 +5742,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-s-500a-4p",
@@ -4472,7 +5768,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-s-630a-3p",
@@ -4497,7 +5794,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-s-630a-4p",
@@ -4522,7 +5820,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-v-500a-3p",
@@ -4547,7 +5846,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-v-500a-4p",
@@ -4572,7 +5872,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-v-630a-3p",
@@ -4597,7 +5898,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3-630-v-630a-4p",
@@ -4622,7 +5924,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3b-400-d-320a-3p",
@@ -4647,7 +5950,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3b-400-d-320a-4p",
@@ -4672,7 +5976,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3b-400-d-400a-3p",
@@ -4697,7 +6002,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn3b-400-d-400a-4p",
@@ -4722,7 +6028,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-n-1000a-3p",
@@ -4747,7 +6054,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-n-1000a-4p",
@@ -4772,7 +6080,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-n-1250a-3p",
@@ -4797,7 +6106,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-n-1250a-4p",
@@ -4822,7 +6132,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-n-800a-3p",
@@ -4847,7 +6158,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-n-800a-4p",
@@ -4872,7 +6184,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-s-1000a-3p",
@@ -4897,7 +6210,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-s-1000a-4p",
@@ -4922,7 +6236,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-s-1250a-3p",
@@ -4947,7 +6262,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-s-1250a-4p",
@@ -4972,7 +6288,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-s-800a-3p",
@@ -4997,7 +6314,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-s-800a-4p",
@@ -5022,7 +6340,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-v-1000a-3p",
@@ -5047,7 +6366,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-v-1000a-4p",
@@ -5072,7 +6392,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-v-1250a-3p",
@@ -5097,7 +6418,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-v-1250a-4p",
@@ -5122,7 +6444,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-v-800a-3p",
@@ -5147,7 +6470,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "lk-dsine-dn4-1250-v-800a-4p",
@@ -5172,7 +6496,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m10r",
@@ -5197,7 +6522,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m12r",
@@ -5222,7 +6548,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m15r",
@@ -5247,7 +6574,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m20r",
@@ -5272,7 +6600,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m25r",
@@ -5297,7 +6626,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m30r",
@@ -5322,7 +6652,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m32r",
@@ -5347,7 +6678,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m4r",
@@ -5372,7 +6704,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m5r",
@@ -5397,7 +6730,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m6r",
@@ -5422,7 +6756,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m7r",
@@ -5447,7 +6782,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "mersen-hp15m8r",
@@ -5472,7 +6808,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b1-1p",
@@ -5497,7 +6834,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b1-2p",
@@ -5522,7 +6860,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b1-3p",
@@ -5547,7 +6886,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b1-4p",
@@ -5572,7 +6912,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b10-1p",
@@ -5597,7 +6938,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b10-2p",
@@ -5622,7 +6964,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b10-3p",
@@ -5647,7 +6990,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b10-4p",
@@ -5672,7 +7016,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b13-1p",
@@ -5697,7 +7042,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b13-2p",
@@ -5722,7 +7068,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b13-3p",
@@ -5747,7 +7094,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b13-4p",
@@ -5772,7 +7120,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b16-1p",
@@ -5797,7 +7146,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b16-2p",
@@ -5822,7 +7172,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b16-3p",
@@ -5847,7 +7198,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b16-4p",
@@ -5872,7 +7224,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b2-1p",
@@ -5897,7 +7250,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b2-2p",
@@ -5922,7 +7276,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b2-3p",
@@ -5947,7 +7302,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b2-4p",
@@ -5972,7 +7328,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b20-1p",
@@ -5997,7 +7354,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b20-2p",
@@ -6022,7 +7380,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b20-3p",
@@ -6047,7 +7406,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b20-4p",
@@ -6072,7 +7432,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b25-1p",
@@ -6097,7 +7458,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b25-2p",
@@ -6122,7 +7484,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b25-3p",
@@ -6147,7 +7510,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b25-4p",
@@ -6172,7 +7536,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b3-1p",
@@ -6197,7 +7562,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b3-2p",
@@ -6222,7 +7588,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b3-3p",
@@ -6247,7 +7614,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b3-4p",
@@ -6272,7 +7640,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b32-1p",
@@ -6297,7 +7666,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b32-2p",
@@ -6322,7 +7692,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b32-3p",
@@ -6347,7 +7718,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b32-4p",
@@ -6372,7 +7744,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b4-1p",
@@ -6397,7 +7770,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b4-2p",
@@ -6422,7 +7796,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b4-3p",
@@ -6447,7 +7822,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b4-4p",
@@ -6472,7 +7848,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b40-1p",
@@ -6497,7 +7874,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b40-2p",
@@ -6522,7 +7900,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b40-3p",
@@ -6547,7 +7926,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b40-4p",
@@ -6572,7 +7952,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b50-1p",
@@ -6597,7 +7978,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b50-2p",
@@ -6622,7 +8004,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b50-3p",
@@ -6647,7 +8030,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b50-4p",
@@ -6672,7 +8056,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b6-1p",
@@ -6697,7 +8082,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b6-2p",
@@ -6722,7 +8108,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b6-3p",
@@ -6747,7 +8134,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b6-4p",
@@ -6772,7 +8160,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b63-1p",
@@ -6797,7 +8186,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b63-2p",
@@ -6822,7 +8212,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b63-3p",
@@ -6847,7 +8238,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-b63-4p",
@@ -6872,7 +8264,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "B",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c1-1p",
@@ -6897,7 +8290,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c1-2p",
@@ -6922,7 +8316,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c1-3p",
@@ -6947,7 +8342,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c1-4p",
@@ -6972,7 +8368,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c10-1p",
@@ -6997,7 +8394,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c10-2p",
@@ -7022,7 +8420,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c10-3p",
@@ -7047,7 +8446,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c10-4p",
@@ -7072,7 +8472,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c13-1p",
@@ -7097,7 +8498,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c13-2p",
@@ -7122,7 +8524,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c13-3p",
@@ -7147,7 +8550,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c13-4p",
@@ -7172,7 +8576,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c16-1p",
@@ -7197,7 +8602,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c16-2p",
@@ -7222,7 +8628,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c16-3p",
@@ -7247,7 +8654,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c16-4p",
@@ -7272,7 +8680,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c2-1p",
@@ -7297,7 +8706,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c2-2p",
@@ -7322,7 +8732,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c2-3p",
@@ -7347,7 +8758,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c2-4p",
@@ -7372,7 +8784,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c20-1p",
@@ -7397,7 +8810,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c20-2p",
@@ -7422,7 +8836,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c20-3p",
@@ -7447,7 +8862,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c20-4p",
@@ -7472,7 +8888,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c25-1p",
@@ -7497,7 +8914,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c25-2p",
@@ -7522,7 +8940,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c25-3p",
@@ -7547,7 +8966,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c25-4p",
@@ -7572,7 +8992,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c3-1p",
@@ -7597,7 +9018,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c3-2p",
@@ -7622,7 +9044,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c3-3p",
@@ -7647,7 +9070,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c3-4p",
@@ -7672,7 +9096,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c32-1p",
@@ -7697,7 +9122,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c32-2p",
@@ -7722,7 +9148,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c32-3p",
@@ -7747,7 +9174,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c32-4p",
@@ -7772,7 +9200,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c4-1p",
@@ -7797,7 +9226,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c4-2p",
@@ -7822,7 +9252,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c4-3p",
@@ -7847,7 +9278,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c4-4p",
@@ -7872,7 +9304,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c40-1p",
@@ -7897,7 +9330,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c40-2p",
@@ -7922,7 +9356,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c40-3p",
@@ -7947,7 +9382,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c40-4p",
@@ -7972,7 +9408,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c50-1p",
@@ -7997,7 +9434,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c50-2p",
@@ -8022,7 +9460,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c50-3p",
@@ -8047,7 +9486,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c50-4p",
@@ -8072,7 +9512,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c6-1p",
@@ -8097,7 +9538,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c6-2p",
@@ -8122,7 +9564,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c6-3p",
@@ -8147,7 +9590,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c6-4p",
@@ -8172,7 +9616,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c63-1p",
@@ -8197,7 +9642,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c63-2p",
@@ -8222,7 +9668,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c63-3p",
@@ -8247,7 +9694,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-c63-4p",
@@ -8272,7 +9720,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "C",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d1-1p",
@@ -8297,7 +9746,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d1-2p",
@@ -8322,7 +9772,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d1-3p",
@@ -8347,7 +9798,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d1-4p",
@@ -8372,7 +9824,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d10-1p",
@@ -8397,7 +9850,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d10-2p",
@@ -8422,7 +9876,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d10-3p",
@@ -8447,7 +9902,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d10-4p",
@@ -8472,7 +9928,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d13-1p",
@@ -8497,7 +9954,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d13-2p",
@@ -8522,7 +9980,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d13-3p",
@@ -8547,7 +10006,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d13-4p",
@@ -8572,7 +10032,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d16-1p",
@@ -8597,7 +10058,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d16-2p",
@@ -8622,7 +10084,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d16-3p",
@@ -8647,7 +10110,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d16-4p",
@@ -8672,7 +10136,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d2-1p",
@@ -8697,7 +10162,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d2-2p",
@@ -8722,7 +10188,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d2-3p",
@@ -8747,7 +10214,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d2-4p",
@@ -8772,7 +10240,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d20-1p",
@@ -8797,7 +10266,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d20-2p",
@@ -8822,7 +10292,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d20-3p",
@@ -8847,7 +10318,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d20-4p",
@@ -8872,7 +10344,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d25-1p",
@@ -8897,7 +10370,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d25-2p",
@@ -8922,7 +10396,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d25-3p",
@@ -8947,7 +10422,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d25-4p",
@@ -8972,7 +10448,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d3-1p",
@@ -8997,7 +10474,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d3-2p",
@@ -9022,7 +10500,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d3-3p",
@@ -9047,7 +10526,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d3-4p",
@@ -9072,7 +10552,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d32-1p",
@@ -9097,7 +10578,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d32-2p",
@@ -9122,7 +10604,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d32-3p",
@@ -9147,7 +10630,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d32-4p",
@@ -9172,7 +10656,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d4-1p",
@@ -9197,7 +10682,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d4-2p",
@@ -9222,7 +10708,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d4-3p",
@@ -9247,7 +10734,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d4-4p",
@@ -9272,7 +10760,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d40-1p",
@@ -9297,7 +10786,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d40-2p",
@@ -9322,7 +10812,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d40-3p",
@@ -9347,7 +10838,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d40-4p",
@@ -9372,7 +10864,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d50-1p",
@@ -9397,7 +10890,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d50-2p",
@@ -9422,7 +10916,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d50-3p",
@@ -9447,7 +10942,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d50-4p",
@@ -9472,7 +10968,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d6-1p",
@@ -9497,7 +10994,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d6-2p",
@@ -9522,7 +11020,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d6-3p",
@@ -9547,7 +11046,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d6-4p",
@@ -9572,7 +11072,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d63-1p",
@@ -9597,7 +11098,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d63-2p",
@@ -9622,7 +11124,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d63-3p",
@@ -9647,7 +11150,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-ic60n-d63-4p",
@@ -9672,7 +11176,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": "D",
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-1000a-3p",
@@ -9697,7 +11202,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-1000a-4p",
@@ -9722,7 +11228,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-1250a-3p",
@@ -9747,7 +11254,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-1250a-4p",
@@ -9772,7 +11280,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-1600a-3p",
@@ -9797,7 +11306,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-1600a-4p",
@@ -9822,7 +11332,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-2000a-3p",
@@ -9847,7 +11358,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-2000a-4p",
@@ -9872,7 +11384,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-2500a-3p",
@@ -9897,7 +11410,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-2500a-4p",
@@ -9922,7 +11436,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-3200a-3p",
@@ -9947,7 +11462,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-3200a-4p",
@@ -9972,7 +11488,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-4000a-3p",
@@ -9997,7 +11514,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-4000a-4p",
@@ -10022,7 +11540,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-800a-3p",
@@ -10047,7 +11566,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h1-800a-4p",
@@ -10072,7 +11592,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-1000a-3p",
@@ -10097,7 +11618,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-1000a-4p",
@@ -10122,7 +11644,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-1250a-3p",
@@ -10147,7 +11670,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-1250a-4p",
@@ -10172,7 +11696,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-1600a-3p",
@@ -10197,7 +11722,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-1600a-4p",
@@ -10222,7 +11748,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-2000a-3p",
@@ -10247,7 +11774,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-2000a-4p",
@@ -10272,7 +11800,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-2500a-3p",
@@ -10297,7 +11826,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-2500a-4p",
@@ -10322,7 +11852,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-3200a-3p",
@@ -10347,7 +11878,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-3200a-4p",
@@ -10372,7 +11904,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-4000a-3p",
@@ -10397,7 +11930,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-4000a-4p",
@@ -10422,7 +11956,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-800a-3p",
@@ -10447,7 +11982,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h2-800a-4p",
@@ -10472,7 +12008,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-2000a-3p",
@@ -10497,7 +12034,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-2000a-4p",
@@ -10522,7 +12060,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-2500a-3p",
@@ -10547,7 +12086,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-2500a-4p",
@@ -10572,7 +12112,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-3200a-3p",
@@ -10597,7 +12138,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-3200a-4p",
@@ -10622,7 +12164,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-4000a-3p",
@@ -10647,7 +12190,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-h3-4000a-4p",
@@ -10672,7 +12216,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-l1-1000a-3p",
@@ -10697,7 +12242,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-l1-1250a-3p",
@@ -10722,7 +12268,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-l1-1600a-3p",
@@ -10747,7 +12294,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-l1-2000a-3p",
@@ -10772,7 +12320,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-l1-800a-3p",
@@ -10797,7 +12346,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-1000a-3p",
@@ -10822,7 +12372,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-1000a-4p",
@@ -10847,7 +12398,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-1250a-3p",
@@ -10872,7 +12424,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-1250a-4p",
@@ -10897,7 +12450,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-1600a-3p",
@@ -10922,7 +12476,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-1600a-4p",
@@ -10947,7 +12502,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-2000a-3p",
@@ -10972,7 +12528,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-2000a-4p",
@@ -10997,7 +12554,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-800a-3p",
@@ -11022,7 +12580,8 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   },
   {
     "id": "schneider-mtz2-n1-800a-4p",
@@ -11047,6 +12606,7 @@
     "burden_va": null,
     "nominal_discharge_current_ka": null,
     "curve": null,
-    "spd_type": null
+    "spd_type": null,
+    "surge_counter": null
   }
 ]
