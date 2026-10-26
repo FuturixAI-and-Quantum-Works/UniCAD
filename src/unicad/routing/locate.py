@@ -105,8 +105,10 @@ class Locator:
             return None
         pts = list(self.stations.values())
         x, y = sum(p.x for p in pts) / len(pts), sum(p.y for p in pts) / len(pts)
+        mv = any(n.kind in (NodeKind.TRANSFORMER, NodeKind.VCB, NodeKind.RMU) for n in self.net.nodes)
+        what = "MV switchyard" if mv else "main LT panel collecting the inverters"
         self.notes.append(
-            f"The MV switchyard is not located in the project; it is assumed at the centroid of the {len(pts)} block station(s), local metres ({x:.1f}, {y:.1f}). Pass the real position to replace it."
+            f"The {what} is not located in the project; it is assumed at the centroid of the {len(pts)} block station(s), local metres ({x:.1f}, {y:.1f}). Pass the real position to replace it."
         )
         return Place(x, y, azimuth, "switchyard")
 

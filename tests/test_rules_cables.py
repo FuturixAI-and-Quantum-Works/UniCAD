@@ -60,8 +60,10 @@ def test_rooftop_cables_within_ampacity_with_derating_info():
     inv = fs[("e_inv_mccb",)]
     assert inv.measured == pytest.approx(I_INV, abs=0.01) and inv.limit == 216
     assert "derating not specified" in inv.message and NO_DERATING in inv.assumptions
-    # ACDB outgoing: 5 inverters = 765.2 A <= 589 A x 3 runs = 1767 A
-    assert fs[("e_acb_ct",)].measured == pytest.approx(5 * I_INV, abs=0.01) and fs[("e_acb_ct",)].limit == 3 * 589
+    # ACDB outgoing: 5 inverters = 765.2 A <= 589 A x 0.96 (KEI group factor, 3 single-core trefoils on a tray in air) x 3 runs = 1696 A
+    acb = fs[("e_acb_ct",)]
+    assert acb.measured == pytest.approx(5 * I_INV, abs=0.01) and acb.limit == pytest.approx(3 * 589 * 0.96)
+    assert "group rating factor 0.96 for 3 parallel runs" in acb.message and any("KEI Technical Handbook" in q.source for q in acb.inputs if q.name == "k_derating")
     # DC edges give derating 1.0 explicitly, so they pass silently
     assert ("e_str",) not in fs and ("e_dcfb_iso",) not in fs
 

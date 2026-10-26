@@ -2,6 +2,7 @@
 
 import math
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 
 from unicad.arrays.strings import assign_strings
@@ -95,6 +96,20 @@ def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, ma
     if not blocks:
         raise DesignError(f"the layout holds no whole string of {mps} modules")
     return PvPlan(blocks, mps, from_layout=True, unstrung_modules=unstrung)
+
+
+def merged(plan: PvPlan) -> PvPlan:
+    """All blocks of a layout plan as one block whose inverters are numbered once across the plant, in block order: the inverters with
+    the most common string count first as one class, the others one by one."""
+    if len(plan.blocks) <= 1:
+        return plan
+    slots = [(ic.strings, s) for b in plan.blocks for ic in b.invs for s in (ic.slots or [[]] * ic.count) for _ in range(b.count)]
+    common = Counter(n for n, _ in slots).most_common(1)[0][0]
+    full = [s for n, s in slots if n == common]
+    invs = [InvClass("a", len(full), common, None if len(full) > 1 else "01", full if plan.from_layout else [])]
+    for k, (n, s) in enumerate((x for x in slots if x[0] != common), start=len(full) + 1):
+        invs.append(InvClass(f"x{k:02d}", 1, n, f"{k:02d}", [s] if plan.from_layout else []))
+    return PvPlan([BlockClass("", 1, invs)], plan.modules_per_string, plan.from_layout, plan.unstrung_modules)
 
 
 def split_even(total: int, most: int) -> list[tuple[int, int]]:

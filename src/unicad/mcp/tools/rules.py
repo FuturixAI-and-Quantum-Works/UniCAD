@@ -13,6 +13,16 @@ from unicad.rules import families as rule_families
 from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
+SIZED_BY_AUTOBUILD = ("protection.rated_current", "protection.fault_level", "cables.", "vdrop.")
+
+
+def rebuild_hint(findings: tuple[Finding, ...]) -> str | None:
+    """What to do when errors are in quantities network_autobuild sizes (breakers, cables), e.g. after fault levels were added later."""
+    ids = sorted({f.rule_id for f in findings if f.severity is Severity.ERROR and f.rule_id.startswith(SIZED_BY_AUTOBUILD)})
+    if not ids:
+        return None
+    return (f"Errors in {', '.join(ids)} concern ratings network_autobuild sizes: re-run network_autobuild with the same intent so breakers and cables "
+            "are sized for the current design basis (fault levels, limits), then validate again.")
 
 
 def compact(f: Finding) -> dict[str, Any]:
@@ -44,6 +54,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         shown = [compact(f) for f in report.findings if include_info or f.severity is not Severity.INFO]
         gates = {p.value: {"allowed": (g := issue_gate(report, p)).allowed, "watermark": g.watermark} for p in IssuedFor}
         out = {"project_id": project_id, "revision": rev, "rules": len(report.rules), "counts": report.counts, "blocking": report.blocking, "gates": gates, "findings": shown}
+        if project.network.nodes and (hint := rebuild_hint(report.findings)):
+            out["next"] = hint
         if company:
             out["company_thresholds"] = {"profile": project.company_profile, "values": {name: s.value for name, s in company.items()}}
         return out

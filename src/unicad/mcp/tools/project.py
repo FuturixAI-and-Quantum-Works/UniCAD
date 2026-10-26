@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, LpsBasis, NoctThermal, Party, Project, Segment, Site
 from unicad.mcp.errors import guarded
@@ -209,10 +209,20 @@ def register(server: MCPServer, ws: Workspace) -> None:
         earthing: Annotated[EarthingBasis | None, Field(description="Replace the earthing inputs (soil resistivity from the Wenner test is required)")] = None,
         lps: Annotated[LpsBasis | None, Field(description="Replace the lightning protection inputs (level from the IS/IEC 62305-2 risk assessment is required)")] = None,
         clear: Annotated[list[Literal["fault_levels", "earthing", "lps"]], Field(description="Inputs to remove")] = [],  # noqa: B006
+        ambient_min_c: Annotated[float | None, Field(description="Site minimum ambient °C (sets the coldest cell temperature for string Voc)")] = None,
+        ambient_max_c: Annotated[float | None, Field(description="Site maximum ambient °C")] = None,
+        altitude_m: Annotated[float | None, Field(ge=0, description="Site altitude in metres")] = None,
+        vdrop_dc_max: Annotated[float | None, Field(gt=0, lt=1, description="Max DC voltage drop as a fraction, e.g. 0.015")] = None,
+        vdrop_ac_max: Annotated[float | None, Field(gt=0, lt=1, description="Max AC voltage drop as a fraction")] = None,
+        dc_ac_ratio_target: Annotated[float | None, Field(gt=0, description="Target DC/AC ratio")] = None,
+        power_factor: Annotated[float | None, Field(gt=0, le=1, description="Design power factor")] = None,
     ) -> dict[str, Any]:
-        """Set the design-basis inputs the rules and the earthing, lightning and drawing set use: fault levels per system voltage, earthing
-        inputs and lightning protection inputs. Only the parts you pass (or clear) change; the design is not run (earthing_design and
-        lps_design store the same inputs and report the design; drawings_render draws the earthing and LA layouts from them).
+        """Set the design-basis inputs the rules and the earthing, lightning and drawing set use: site values (ambient temperatures, altitude),
+        limits (voltage drop, DC/AC target, power factor), fault levels per system voltage, earthing inputs and lightning protection inputs.
+        Only the parts you pass (or clear) change, and a value you set replaces its placeholder in `assumptions`. The design is not run:
+        after changing site values, limits or fault levels on a project with a network, re-run network_autobuild so strings, breakers and
+        cables are sized for them (earthing_design and lps_design store the same inputs and report the design; drawings_render draws the
+        earthing and LA layouts from them). Site setbacks are set with site_set_setbacks.
 
         Example: project_design_basis(project_id="p1", earthing={"soil_resistivity_ohm_m": 50, "fault_current_ka": 12.5, "fault_clearing_s": 1},
         lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6})."""
@@ -231,13 +241,30 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 else:
                     continue
                 touched.append(f"design_basis.{key}")
-            updated = Project.model_validate(data, context={"catalog": ws.catalog})
+            values = {"ambient_min_c": ambient_min_c, "ambient_max_c": ambient_max_c, "altitude_m": altitude_m, "vdrop_dc_max": vdrop_dc_max,
+                      "vdrop_ac_max": vdrop_ac_max, "dc_ac_ratio_target": dc_ac_ratio_target, "power_factor": power_factor}  # fmt: skip
+            for key, value in values.items():
+                if value is None:
+                    continue
+                basis[key] = value
+                basis["assumptions"] = [a for a in basis["assumptions"] if not a.startswith(f"{key} = ")]
+                touched.append(f"design_basis.{key}")
+            try:
+                updated = Project.model_validate(data, context={"catalog": ws.catalog})
+            except ValidationError as e:
+                raise ValueError("; ".join(err["msg"] for err in e.errors())) from None
             db = updated.design_basis
             extra = {"design_basis": {
+                **{k: getattr(db, k) for k in DEFAULTS},
                 "fault_levels": [f.model_dump(mode="json", exclude_none=True) for f in db.fault_levels],
                 "earthing": db.earthing.model_dump(mode="json", exclude_none=True) if db.earthing else None,
                 "lps": db.lps.model_dump(mode="json", exclude_none=True) if db.lps else None,
+                "assumptions": list(db.assumptions),
             }}  # fmt: skip
-            return Edit(updated, tuple(touched), extra)
+            problems = []
+            sizing = [t for t in touched if t.split(".")[1] not in ("earthing", "lps")]
+            if sizing and updated.network.nodes and db != p.design_basis:
+                problems.append({"severity": "warning", "subject": "design_basis", "message": f"{', '.join(sizing)} changed after the network was built: re-run network_autobuild so strings, breakers and cables are sized for the new values, then validate"})
+            return Edit(updated, tuple(touched), extra, tuple(problems))
 
         return ws.mutate(project_id, change)

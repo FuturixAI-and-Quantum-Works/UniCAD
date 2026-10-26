@@ -201,7 +201,7 @@ Standard: IS 732. Segments: all.
 
 Design current Ib (DC: 1.25 x Isc of the strings carried; AC: maximum inverter current at the zone voltage) must not exceed Iz = catalog ampacity x derating x runs.
 
-The ampacity column follows the laying: air, tray, trench and overhead use the in-air rating, buried_direct the in-ground rating, buried_duct and conduit the in-duct rating. Single-core cables use the two-cable rating for DC and single-phase circuits and the three-cable rating for three-phase. The derating is the edge's `derating`; when absent 1.0 is used and an info finding says so. A cable without a rating for its laying, or an edge without a laying, is a warning.
+The ampacity column follows the laying: air, tray, trench and overhead use the in-air rating, buried_direct the in-ground rating, buried_duct and conduit the in-duct rating. Single-core cables use the two-cable rating for DC and single-phase circuits and the three-cable rating for three-phase. The derating is the edge's `derating`; when absent, parallel runs (runs > 1) of AC cables take the group rating factor of the KEI Technical Handbook for the laying and the number of circuits (next tabulated count up), and a single run, or a laying or count the handbook does not tabulate, uses 1.0; an info finding says which. A cable without a rating for its laying, or an edge without a laying, is a warning.
 
 ### `cables.protection`: Overcurrent device rating does not exceed the cable ampacity
 

@@ -9,6 +9,7 @@ from unicad.domain.catalog import CableSpec, MeterSpec, ProtectionSpec, Transfor
 from unicad.design.strings import DesignError
 from unicad.domain.network import Laying
 from unicad.rules.cables import table_ampacity
+from unicad.rules.grouping import grouping
 from unicad.rules.protection import covers_fault
 
 # Placeholder minimum breaking capacities: no fault study exists at this stage, so these only stop the
@@ -201,5 +202,6 @@ def cable_options(catalog: Catalog, family: CableFamily, laying: Laying, phases:
         if not conductors_ok:
             continue
         for r in [runs] if runs is not None else range(1, family.max_runs + 1):
-            out.append(CableOption(c, r, base * r))
+            g = grouping(c, laying, r, family.service == "dc_solar")
+            out.append(CableOption(c, r, base * r * (g.factor if g is not None and g.factor is not None else 1.0)))
     return sorted(out, key=lambda o: (o.cost, o.r_eff, o.cable.id))

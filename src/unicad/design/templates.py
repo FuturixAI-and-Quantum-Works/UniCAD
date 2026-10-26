@@ -9,7 +9,7 @@ from unicad.domain.layout import StringAssignment
 from unicad.domain.network import Laying, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NetBuilder, NodeHint
-from unicad.design.plan import BlockClass, InvClass, PvPlan, split_even
+from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, split_even
 from unicad.design.select import (
     DC_FAMILY,
     DC_STRING_FAMILY,
@@ -158,9 +158,13 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
     iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=(2, 4)))
     b.edge(f"e_str{sfx}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
     b.edge(f"e_dcfb_spd{sfx}", f"{fb}:out", f"{spd}:line", V.DC)
-    b.edge(f"e_dcfb_iso{sfx}", f"{fb}:out", f"{iso}:in", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("dcfb_iso"), Laying.TRAY, remarks="One cable pair per string")
-    b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks="One cable pair per string")
-    b.assume("The DC junction box passes strings through to separate inverter inputs (one cable pair per string); no string fuses are needed with at most two strings per MPPT.")
+    ways = f"{n_strings} string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
+    b.edge(f"e_dcfb_iso{sfx}", f"{fb}:out", f"{iso}:in", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
+    b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
+    b.assume(
+        "The DC junction box passes strings through to separate inverter inputs (one cable pair per string); no string fuses are needed with at most two strings per MPPT.",
+        "Each DC isolator node stands for the isolation of all string circuits of its inverter (one 2-pole way per circuit); it is rated as one device for the sum of their currents, which is conservative.",
+    )
     return [s]
 
 
@@ -339,7 +343,7 @@ def ci_rooftop(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     if step_up_kv is None:
         if c.grid_v != 415.0:
             raise DesignError(f"grid voltage {c.grid_v:g} V: LT connection templates connect at 415 V; pass step_up_kv for an HT connection")
-        invs = [x for blk in plan.blocks for x in inverter_groups(c, None, blk, inverter, module, plan.modules_per_string, False, Laying.TRAY, True)]
+        invs = inverter_groups(c, None, merged(plan).blocks[0], inverter, module, plan.modules_per_string, False, Laying.TRAY, True)
         out = lv_board(c, None, "", invs, v, lv_ph, "AC DISTRIBUTION BOARD", "inv_acdb", Laying.TRAY)
         b.node("solar_ct", "CT-01", NodeKind.CT, voltage_v=v)
         b.node("solar_meter", "SM-01", NodeKind.METER, spec=pick_meter(c.catalog, "generation", "ct").id, ports=["sig"], title="SOLAR GENERATION METER")

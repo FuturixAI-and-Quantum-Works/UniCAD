@@ -9,6 +9,7 @@ from unicad.domain.catalog import CableSpec, Conductor, ProtectionSpec
 from unicad.domain.network import Edge, ElectricalNetwork, Laying, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.rules.faults import fault_at
+from unicad.rules.grouping import grouping
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
@@ -83,6 +84,7 @@ class Ampacity:
     derating_given: bool
     runs: int
     assumptions: tuple[str, ...]
+    grouping_source: str | None = None
 
     @property
     def value(self) -> float:
@@ -95,7 +97,7 @@ class Ampacity:
             formula="Iz = I_table x k_derating x runs",
             inputs=(
                 Quantity(name="I_table", value=self.base, unit="A", source=f"{self.cable.id}.{self.column}"),
-                Quantity(name="k_derating", value=self.derating, source="edge.derating" if self.derating_given else "default 1.0"),
+                Quantity(name="k_derating", value=self.derating, source="edge.derating" if self.derating_given else self.grouping_source or "default 1.0"),
                 Quantity(name="runs", value=self.runs, source="edge.runs"),
             ),
             assumptions=self.assumptions,
@@ -122,7 +124,12 @@ def edge_ampacity(project: Project, catalog: Catalog, e: Edge) -> Ampacity | Non
     if base is None:
         return None
     given = e.derating is not None
-    return Ampacity(cable, base, column, e.derating if given else 1.0, given, e.runs, notes if given else (*notes, NO_DERATING))
+    if given:
+        return Ampacity(cable, base, column, e.derating, True, e.runs, notes)
+    g = grouping(cable, e.laying, e.runs, e.service is Service.DC)
+    if g is not None and g.factor is not None:
+        return Ampacity(cable, base, column, g.factor, False, e.runs, (*notes, f"No derating on the edge: the {g.source} is applied; ambient and depth corrections are not."), g.source)
+    return Ampacity(cable, base, column, 1.0, False, e.runs, (*notes, NO_DERATING, *((g.source,) if g else ())))
 
 
 @rule("cables.missing", "Power connections have a cable and a length")
@@ -146,7 +153,7 @@ def missing(project: Project, catalog: Catalog) -> Iterator[Finding]:
 def ampacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """Design current Ib (DC: 1.25 x Isc of the strings carried; AC: maximum inverter current at the zone voltage) must not exceed Iz = catalog ampacity x derating x runs.
 
-    The ampacity column follows the laying: air, tray, trench and overhead use the in-air rating, buried_direct the in-ground rating, buried_duct and conduit the in-duct rating. Single-core cables use the two-cable rating for DC and single-phase circuits and the three-cable rating for three-phase. The derating is the edge's `derating`; when absent 1.0 is used and an info finding says so. A cable without a rating for its laying, or an edge without a laying, is a warning."""
+    The ampacity column follows the laying: air, tray, trench and overhead use the in-air rating, buried_direct the in-ground rating, buried_duct and conduit the in-duct rating. Single-core cables use the two-cable rating for DC and single-phase circuits and the three-cable rating for three-phase. The derating is the edge's `derating`; when absent, parallel runs (runs > 1) of AC cables take the group rating factor of the KEI Technical Handbook for the laying and the number of circuits (next tabulated count up), and a single run, or a laying or count the handbook does not tabulate, uses 1.0; an info finding says which. A cable without a rating for its laying, or an edge without a laying, is a warning."""
     net = project.network
     for e in net.edges:
         cable = cable_of(catalog, e)
@@ -183,7 +190,8 @@ def ampacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
         if ib.value > z.value:
             yield Finding(rule_id="cables.ampacity", severity=Severity.ERROR, message=f"{where}: Ib {ib.value:.1f} A exceeds {working}", **common)
         elif not iz.derating_given:
-            yield Finding(rule_id="cables.ampacity", severity=Severity.INFO, message=f"{where}: derating not specified, taken as 1.0; Ib {ib.value:.1f} A within {working}", **common)
+            taken = f"group rating factor {iz.derating:g} for {iz.runs} parallel runs" if iz.grouping_source else "taken as 1.0"
+            yield Finding(rule_id="cables.ampacity", severity=Severity.INFO, message=f"{where}: derating not specified, {taken}; Ib {ib.value:.1f} A within {working}", **common)
 
 
 def _protected_cables(project: Project, catalog: Catalog, node_id: str) -> Iterator[tuple[Edge, Ampacity]]:

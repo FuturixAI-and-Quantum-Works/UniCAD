@@ -11,7 +11,7 @@ from unicad.mcp.workspace import Workspace
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 KINDS = ("module", "inverter", "battery", "pcs", "transformer", "cable", "protection", "meter")
 KeyFields = {
-    "module": ("pmax", "voc", "vmp", "isc", "imp", "tech"),
+    "module": ("pmax", "voc", "vmp", "isc", "imp", "tech", "almm_listed"),
     "inverter": ("topology", "ac_rated_kva", "ac_voltage", "mppt_count", "mppt_min", "mppt_max", "dc_max_voltage"),
     "battery": ("chemistry", "energy_kwh", "nominal_voltage"),
     "pcs": ("rated_kva", "ac_voltage", "dc_voltage_min", "dc_voltage_max"),
