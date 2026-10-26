@@ -4,6 +4,7 @@
     "title": "Junction dot",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "",
     "block_name": "UC_ANN_JUNCTION",
     "size": {
       "width": 5.0,
@@ -17,6 +18,7 @@
     "title": "Off-sheet connector",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "",
     "block_name": "UC_ANN_OFFSHEET",
     "size": {
       "width": 10.0,
@@ -38,7 +40,9 @@
         "y": 8.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -46,7 +50,9 @@
         "y": 4.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -55,6 +61,7 @@
     "title": "Cable callout tag",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "CBL",
     "block_name": "UC_ANN_CABLE_TAG",
     "size": {
       "width": 35.0,
@@ -68,7 +75,9 @@
         "y": 8.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -76,7 +85,9 @@
         "y": 2.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -84,7 +95,9 @@
         "y": 12.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -93,6 +106,7 @@
     "title": "Revision triangle",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "",
     "block_name": "UC_ANN_REVISION",
     "size": {
       "width": 10.0,
@@ -106,7 +120,9 @@
         "y": 3.2,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -114,7 +130,9 @@
         "y": 3.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -123,6 +141,7 @@
     "title": "North arrow",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "",
     "block_name": "UC_ANN_NORTH",
     "size": {
       "width": 15.0,
@@ -136,6 +155,7 @@
     "title": "Note marker",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "",
     "block_name": "UC_ANN_NOTE_MARKER",
     "size": {
       "width": 10.0,
@@ -149,7 +169,9 @@
         "y": 5.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -158,6 +180,7 @@
     "title": "Section / detail marker",
     "category": "annotation",
     "standard": "UniCAD drafting convention (IS 696 / IS 12032 style)",
+    "tag_prefix": "",
     "block_name": "UC_ANN_SECTION_MARKER",
     "size": {
       "width": 10.0,
@@ -171,7 +194,9 @@
         "y": 4.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "SHEET",
@@ -179,7 +204,9 @@
         "y": 4.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -187,7 +214,8 @@
     "key": "inv.string",
     "title": "String inverter",
     "category": "conversion",
-    "standard": "IEC 60617-6 converter / IS 12032",
+    "standard": "IEC 60617 S00896 inverter / IS 12032",
+    "tag_prefix": "INV",
     "block_name": "UC_INV_STRING",
     "size": {
       "width": 25.0,
@@ -216,7 +244,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -224,7 +254,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -232,7 +264,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -240,7 +274,8 @@
     "key": "inv.central",
     "title": "Central inverter",
     "category": "conversion",
-    "standard": "IEC 60617-6 converter / IS 12032",
+    "standard": "IEC 60617 S00896 inverter / IS 12032",
+    "tag_prefix": "PCU",
     "block_name": "UC_INV_CENTRAL",
     "size": {
       "width": 35.0,
@@ -269,7 +304,9 @@
         "y": 19.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -277,7 +314,9 @@
         "y": 15.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -285,7 +324,9 @@
         "y": 11.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -293,7 +334,8 @@
     "key": "inv.micro",
     "title": "Microinverter",
     "category": "conversion",
-    "standard": "IEC 60617-6 converter / IS 12032",
+    "standard": "IEC 60617 S00896 inverter / IS 12032",
+    "tag_prefix": "MIV",
     "block_name": "UC_INV_MICRO",
     "size": {
       "width": 15.0,
@@ -329,7 +371,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -337,7 +381,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -345,7 +391,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -353,7 +401,8 @@
     "key": "inv.pcs",
     "title": "Bidirectional power conversion system (PCS)",
     "category": "conversion",
-    "standard": "IEC 60617-6 converter / IS 12032",
+    "standard": "IEC 60617 S00896 inverter / IS 12032",
+    "tag_prefix": "PCS",
     "block_name": "UC_INV_PCS",
     "size": {
       "width": 25.0,
@@ -382,7 +431,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -390,7 +441,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -398,7 +451,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -406,7 +461,8 @@
     "key": "inv.optimiser",
     "title": "DC-DC power optimiser",
     "category": "conversion",
-    "standard": "IEC 60617-6 converter / IS 12032",
+    "standard": "IEC 60617 S00896 inverter / IS 12032",
+    "tag_prefix": "OPT",
     "block_name": "UC_INV_OPTIMISER",
     "size": {
       "width": 15.0,
@@ -449,7 +505,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -457,7 +515,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -465,7 +525,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -473,7 +535,8 @@
     "key": "dc.fuse",
     "title": "gPV string fuse",
     "category": "dc_protection",
-    "standard": "IEC 60617 S00362",
+    "standard": "IEC 60617 S00362 fuse, general symbol",
+    "tag_prefix": "FU",
     "block_name": "UC_DC_FUSE",
     "size": {
       "width": 10.0,
@@ -502,7 +565,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -510,7 +575,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -518,7 +585,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -526,7 +595,8 @@
     "key": "dc.isolator",
     "title": "DC isolator / disconnector",
     "category": "dc_protection",
-    "standard": "IEC 60617 S00290 + DC",
+    "standard": "IEC 60617 S00290 switch-disconnector + DC mark",
+    "tag_prefix": "DCISO",
     "block_name": "UC_DC_ISOLATOR",
     "size": {
       "width": 10.0,
@@ -555,7 +625,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -563,7 +635,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -571,7 +645,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -579,7 +655,8 @@
     "key": "dc.mcb",
     "title": "DC miniature circuit breaker",
     "category": "dc_protection",
-    "standard": "IEC 60617 S00287 + DC",
+    "standard": "IEC 60617 S00287 circuit breaker + DC mark",
+    "tag_prefix": "DCMCB",
     "block_name": "UC_DC_MCB",
     "size": {
       "width": 10.0,
@@ -608,7 +685,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -616,7 +695,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -624,7 +705,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -632,7 +715,8 @@
     "key": "dc.spd",
     "title": "DC surge protective device (Type 2)",
     "category": "dc_protection",
-    "standard": "IEC 60617-7 surge protective device / IS 12032",
+    "standard": "IEC 60617 S00373 surge diverter; lightning arrester / IS 12032",
+    "tag_prefix": "SPD",
     "block_name": "UC_DC_SPD",
     "size": {
       "width": 15.0,
@@ -654,7 +738,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -662,7 +748,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -670,7 +758,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -678,7 +768,8 @@
     "key": "dc.diode",
     "title": "Blocking diode",
     "category": "dc_protection",
-    "standard": "IEC 60617-5 semiconductor diode / IS 12032",
+    "standard": "IEC 60617 S00641 semiconductor diode, general symbol",
+    "tag_prefix": "BD",
     "block_name": "UC_DC_DIODE",
     "size": {
       "width": 10.0,
@@ -707,7 +798,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -715,7 +808,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -723,7 +818,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -731,7 +828,8 @@
     "key": "dc.scb",
     "title": "String combiner box (SCB)",
     "category": "dc_protection",
-    "standard": "IEC 60617 enclosure + S00362 fuses",
+    "standard": "IEC 60617 S00362 fuses in an enclosure (UniCAD composite)",
+    "tag_prefix": "SCB",
     "block_name": "UC_DC_SCB",
     "size": {
       "width": 30.0,
@@ -760,7 +858,9 @@
         "y": 22.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -768,7 +868,9 @@
         "y": 18.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "COUNT",
@@ -776,7 +878,9 @@
         "y": 14.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -784,7 +888,146 @@
         "y": 10.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "dc.fuse_switch",
+    "title": "DC fuse-switch disconnector (SCB input)",
+    "category": "dc_protection",
+    "standard": "IEC 60617 S00370 fuse switch-disconnector + DC mark",
+    "tag_prefix": "DCSFU",
+    "block_name": "UC_DC_FUSE_SWITCH",
+    "size": {
+      "width": 10.0,
+      "height": 20.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 5.0,
+        "y": 20.0,
+        "side": "N",
+        "kind": "dc"
+      },
+      {
+        "name": "out",
+        "x": 5.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "dc"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 12.5,
+        "y": 12.75,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 12.5,
+        "y": 9.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 12.5,
+        "y": 5.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "dc.scb_monitored",
+    "title": "String monitoring box (SCB with per-string current sensing)",
+    "category": "dc_protection",
+    "standard": "IEC 60617 S00362 fuses in an enclosure + monitoring unit (UniCAD composite)",
+    "tag_prefix": "SMB",
+    "block_name": "UC_DC_SCB_MONITORED",
+    "size": {
+      "width": 40.0,
+      "height": 35.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 15.0,
+        "y": 35.0,
+        "side": "N",
+        "kind": "dc"
+      },
+      {
+        "name": "out",
+        "x": 15.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "dc"
+      },
+      {
+        "name": "comm",
+        "x": 35.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 42.5,
+        "y": 22.25,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 42.5,
+        "y": 18.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "COUNT",
+        "x": 42.5,
+        "y": 14.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 42.5,
+        "y": 10.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -792,7 +1035,8 @@
     "key": "earth.earth",
     "title": "Earth",
     "category": "earthing",
-    "standard": "IEC 60617-2 earth / IS 12032",
+    "standard": "IEC 60617 S00200 earth, general symbol / IS 12032",
+    "tag_prefix": "ES",
     "block_name": "UC_EARTH_EARTH",
     "size": {
       "width": 10.0,
@@ -814,7 +1058,9 @@
         "y": 7.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -822,7 +1068,9 @@
         "y": 4.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -830,7 +1078,9 @@
         "y": 0.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -838,7 +1088,8 @@
     "key": "earth.pe",
     "title": "Protective earth (PE)",
     "category": "earthing",
-    "standard": "IEC 60617-2 earth / IS 12032",
+    "standard": "IEC 60617 S00200 earth, general symbol / IS 12032",
+    "tag_prefix": "PE",
     "block_name": "UC_EARTH_PE",
     "size": {
       "width": 10.0,
@@ -860,7 +1111,9 @@
         "y": 10.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -868,7 +1121,9 @@
         "y": 6.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -876,7 +1131,9 @@
         "y": 2.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -884,7 +1141,8 @@
     "key": "earth.electrode",
     "title": "Earth electrode / earth pit",
     "category": "earthing",
-    "standard": "IEC 60617-2 earth electrode / IS 3043 practice",
+    "standard": "IEC 60617 S00200 earth symbol on an electrode, IS 3043 practice",
+    "tag_prefix": "EP",
     "block_name": "UC_EARTH_ELECTRODE",
     "size": {
       "width": 10.0,
@@ -906,7 +1164,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -914,7 +1174,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -922,7 +1184,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -930,7 +1194,8 @@
     "key": "earth.chassis",
     "title": "Chassis / frame",
     "category": "earthing",
-    "standard": "IEC 60617-2 frame or chassis / IS 12032",
+    "standard": "IEC 60617 frame or chassis / IS 12032",
+    "tag_prefix": "FR",
     "block_name": "UC_EARTH_CHASSIS",
     "size": {
       "width": 10.0,
@@ -952,7 +1217,9 @@
         "y": 7.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -960,7 +1227,9 @@
         "y": 4.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -968,7 +1237,62 @@
         "y": 0.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "earth.ngr",
+    "title": "Neutral grounding resistor (NGR)",
+    "category": "earthing",
+    "standard": "UniCAD composite: resistor box + IEC 60617 S00200 earth",
+    "tag_prefix": "NGR",
+    "block_name": "UC_EARTH_NGR",
+    "size": {
+      "width": 10.0,
+      "height": 22.5
+    },
+    "pins": [
+      {
+        "name": "neutral",
+        "x": 5.0,
+        "y": 22.5,
+        "side": "N",
+        "kind": "pe"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 12.5,
+        "y": 14.0,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 12.5,
+        "y": 10.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 12.5,
+        "y": 6.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -977,6 +1301,7 @@
     "title": "Utility grid infeed",
     "category": "grid",
     "standard": "UniCAD composite (network feeder)",
+    "tag_prefix": "GRID",
     "block_name": "UC_GRID_UTILITY",
     "size": {
       "width": 20.0,
@@ -998,7 +1323,9 @@
         "y": 11.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1006,7 +1333,9 @@
         "y": 7.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1014,7 +1343,9 @@
         "y": 3.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1022,7 +1353,8 @@
     "key": "grid.oh_line",
     "title": "Overhead line termination",
     "category": "grid",
-    "standard": "IEC 60617-11 overhead line / IS 12032",
+    "standard": "IEC 60617 S00409 overhead line / IS 12032",
+    "tag_prefix": "OHL",
     "block_name": "UC_GRID_OH_LINE",
     "size": {
       "width": 15.0,
@@ -1044,7 +1376,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1052,7 +1386,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1060,7 +1396,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1068,7 +1406,8 @@
     "key": "grid.cable_end",
     "title": "Cable termination / sealing end",
     "category": "grid",
-    "standard": "IEC 60617-11 cable sealing end / IS 12032",
+    "standard": "IEC 60617 S00050 / S00051 cable sealing end / IS 12032",
+    "tag_prefix": "CSE",
     "block_name": "UC_GRID_CABLE_END",
     "size": {
       "width": 10.0,
@@ -1097,7 +1436,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1105,7 +1446,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1113,7 +1456,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1121,7 +1466,8 @@
     "key": "grid.dg",
     "title": "Diesel generator set (DG)",
     "category": "grid",
-    "standard": "IEC 60617-6 generator / IS 12032",
+    "standard": "IEC 60617 generator / IS 12032",
+    "tag_prefix": "DG",
     "block_name": "UC_GRID_DG",
     "size": {
       "width": 15.0,
@@ -1143,7 +1489,9 @@
         "y": 11.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1151,7 +1499,9 @@
         "y": 7.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1159,7 +1509,9 @@
         "y": 3.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1167,7 +1519,8 @@
     "key": "grid.load",
     "title": "Load",
     "category": "grid",
-    "standard": "IEC 60617-2 load block",
+    "standard": "UniCAD composite (load block)",
+    "tag_prefix": "LD",
     "block_name": "UC_GRID_LOAD",
     "size": {
       "width": 15.0,
@@ -1189,7 +1542,9 @@
         "y": 11.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1197,7 +1552,9 @@
         "y": 7.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1205,7 +1562,69 @@
         "y": 3.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "grid.cable_term_kit",
+    "title": "Cable termination kit with armour earth",
+    "category": "grid",
+    "standard": "IEC 60617 S00050 / S00051 cable sealing end + armour earth",
+    "tag_prefix": "CTK",
+    "block_name": "UC_GRID_CABLE_TERM_KIT",
+    "size": {
+      "width": 15.0,
+      "height": 25.0
+    },
+    "pins": [
+      {
+        "name": "cable",
+        "x": 7.5,
+        "y": 25.0,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "term",
+        "x": 7.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 17.5,
+        "y": 15.25,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 17.5,
+        "y": 11.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 17.5,
+        "y": 7.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1213,7 +1632,8 @@
     "key": "inst.kwh",
     "title": "Energy meter (kWh)",
     "category": "instrument",
-    "standard": "IEC 60617-8 measuring instrument / IS 12032",
+    "standard": "IEC 60617 S00933 watt-hour meter / IS 12032",
+    "tag_prefix": "EM",
     "block_name": "UC_INST_KWH",
     "size": {
       "width": 10.0,
@@ -1242,7 +1662,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1250,7 +1672,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1258,7 +1682,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1266,7 +1692,8 @@
     "key": "inst.net_meter",
     "title": "Bidirectional net meter (import / export)",
     "category": "instrument",
-    "standard": "IEC 60617-8 measuring instrument / IS 12032",
+    "standard": "IEC 60617 S00937 watt-hour meter, both directions / IS 12032",
+    "tag_prefix": "NM",
     "block_name": "UC_INST_NET_METER",
     "size": {
       "width": 15.0,
@@ -1295,7 +1722,9 @@
         "y": 14.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1303,7 +1732,9 @@
         "y": 10.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1311,7 +1742,9 @@
         "y": 6.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1319,7 +1752,8 @@
     "key": "inst.abt",
     "title": "ABT / TVM meter",
     "category": "instrument",
-    "standard": "IEC 60617-8 measuring instrument / IS 12032",
+    "standard": "IEC 60617 S00933 watt-hour meter; ABT / TVM box",
+    "tag_prefix": "ABT",
     "block_name": "UC_INST_ABT",
     "size": {
       "width": 20.0,
@@ -1348,7 +1782,9 @@
         "y": 14.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1356,7 +1792,9 @@
         "y": 10.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1364,7 +1802,9 @@
         "y": 6.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1372,7 +1812,8 @@
     "key": "inst.ammeter",
     "title": "Ammeter",
     "category": "instrument",
-    "standard": "IEC 60617-8 measuring instrument / IS 12032",
+    "standard": "IEC 60617 S00910 indicating instrument, general symbol / IS 12032",
+    "tag_prefix": "AM",
     "block_name": "UC_INST_AMMETER",
     "size": {
       "width": 10.0,
@@ -1394,7 +1835,9 @@
         "y": 10.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1402,7 +1845,9 @@
         "y": 6.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1410,7 +1855,9 @@
         "y": 2.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1418,7 +1865,8 @@
     "key": "inst.voltmeter",
     "title": "Voltmeter",
     "category": "instrument",
-    "standard": "IEC 60617-8 measuring instrument / IS 12032",
+    "standard": "IEC 60617 S00913 voltmeter / IS 12032",
+    "tag_prefix": "VM",
     "block_name": "UC_INST_VOLTMETER",
     "size": {
       "width": 10.0,
@@ -1440,7 +1888,9 @@
         "y": 10.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1448,7 +1898,9 @@
         "y": 6.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1456,7 +1908,9 @@
         "y": 2.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1464,7 +1918,8 @@
     "key": "inst.mfm",
     "title": "Multifunction meter (MFM)",
     "category": "instrument",
-    "standard": "IEC 60617-8 measuring instrument / IS 12032",
+    "standard": "IEC 60617 S00910 indicating instrument, general symbol / IS 12032",
+    "tag_prefix": "MFM",
     "block_name": "UC_INST_MFM",
     "size": {
       "width": 10.0,
@@ -1486,7 +1941,9 @@
         "y": 10.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1494,7 +1951,9 @@
         "y": 6.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1502,7 +1961,9 @@
         "y": 2.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1511,6 +1972,7 @@
     "title": "Data logger / SCADA box",
     "category": "instrument",
     "standard": "UniCAD composite (rectangle, IS 12032 style)",
+    "tag_prefix": "DL",
     "block_name": "UC_INST_DATALOGGER",
     "size": {
       "width": 20.0,
@@ -1539,7 +2001,9 @@
         "y": 10.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1547,7 +2011,9 @@
         "y": 6.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1555,7 +2021,9 @@
         "y": 2.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1564,6 +2032,7 @@
     "title": "Weather station (irradiance / temperature / wind)",
     "category": "instrument",
     "standard": "UniCAD composite (sensor circle, IS 12032 style)",
+    "tag_prefix": "WS",
     "block_name": "UC_INST_WEATHER_STATION",
     "size": {
       "width": 15.0,
@@ -1585,7 +2054,9 @@
         "y": 11.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1593,7 +2064,9 @@
         "y": 7.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1601,7 +2074,348 @@
         "y": 3.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "inst.lamp_ryb",
+    "title": "Phase indication lamps R / Y / B",
+    "category": "instrument",
+    "standard": "IEC 60617 S00965 lamp, general symbol; R-Y-B letters",
+    "tag_prefix": "IL",
+    "block_name": "UC_INST_LAMP_RYB",
+    "size": {
+      "width": 25.0,
+      "height": 10.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 0.0,
+        "y": 5.0,
+        "side": "W",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 27.5,
+        "y": 7.75,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 27.5,
+        "y": 4.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 27.5,
+        "y": 0.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "inst.annunciator",
+    "title": "Alarm annunciator (12 window)",
+    "category": "instrument",
+    "standard": "UniCAD composite; cf. IEC 60617 S00967 annunciator element",
+    "tag_prefix": "ANN",
+    "block_name": "UC_INST_ANNUNCIATOR",
+    "size": {
+      "width": 20.0,
+      "height": 15.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 0.0,
+        "y": 7.5,
+        "side": "W",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 22.5,
+        "y": 10.25,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 22.5,
+        "y": 6.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 22.5,
+        "y": 2.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "inst.metering_cubicle",
+    "title": "CT / PT metering cubicle (TVM / ABT meter)",
+    "category": "instrument",
+    "standard": "UniCAD composite: IEC 60617 S00850 CT + S00878 VT + S00933 meter",
+    "tag_prefix": "MTC",
+    "block_name": "UC_INST_METERING_CUBICLE",
+    "size": {
+      "width": 35.0,
+      "height": 45.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 10.0,
+        "y": 45.0,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "out",
+        "x": 10.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 37.5,
+        "y": 25.25,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 37.5,
+        "y": 21.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 37.5,
+        "y": 17.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "inst.wms",
+    "title": "Weather monitoring station (WMS)",
+    "category": "instrument",
+    "standard": "UniCAD composite (sensor circles G, T, W in an enclosure)",
+    "tag_prefix": "WMS",
+    "block_name": "UC_INST_WMS",
+    "size": {
+      "width": 30.0,
+      "height": 20.0
+    },
+    "pins": [
+      {
+        "name": "out",
+        "x": 15.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 32.5,
+        "y": 12.75,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 32.5,
+        "y": 9.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 32.5,
+        "y": 5.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "inst.scada_box",
+    "title": "SCADA / RTU panel",
+    "category": "instrument",
+    "standard": "UniCAD composite (rectangle, IS 12032 style)",
+    "tag_prefix": "SCADA",
+    "block_name": "UC_INST_SCADA_BOX",
+    "size": {
+      "width": 30.0,
+      "height": 20.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 15.0,
+        "y": 20.0,
+        "side": "N",
+        "kind": "sig"
+      },
+      {
+        "name": "out",
+        "x": 15.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "sig"
+      },
+      {
+        "name": "comm",
+        "x": 0.0,
+        "y": 10.0,
+        "side": "W",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 32.5,
+        "y": 12.75,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 32.5,
+        "y": 9.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 32.5,
+        "y": 5.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "inst.cctv",
+    "title": "CCTV camera",
+    "category": "instrument",
+    "standard": "UniCAD composite (camera body and lens)",
+    "tag_prefix": "CAM",
+    "block_name": "UC_INST_CCTV",
+    "size": {
+      "width": 20.0,
+      "height": 15.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 0.0,
+        "y": 7.5,
+        "side": "W",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 22.5,
+        "y": 10.25,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 22.5,
+        "y": 6.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 22.5,
+        "y": 2.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1610,6 +2424,7 @@
     "title": "PV module (plan)",
     "category": "layout",
     "standard": "UniCAD plan-view convention",
+    "tag_prefix": "",
     "block_name": "UC_LAYOUT_MODULE",
     "size": {
       "width": 5.0,
@@ -1623,6 +2438,7 @@
     "title": "Inverter (plan)",
     "category": "layout",
     "standard": "UniCAD plan-view convention",
+    "tag_prefix": "INV",
     "block_name": "UC_LAYOUT_INVERTER",
     "size": {
       "width": 15.0,
@@ -1636,7 +2452,9 @@
         "y": 7.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1644,7 +2462,9 @@
         "y": 4.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1652,7 +2472,9 @@
         "y": 0.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1661,6 +2483,7 @@
     "title": "Earth pit (plan)",
     "category": "layout",
     "standard": "UniCAD plan-view convention",
+    "tag_prefix": "EP",
     "block_name": "UC_LAYOUT_EARTH_PIT",
     "size": {
       "width": 7.5,
@@ -1674,7 +2497,9 @@
         "y": 6.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1682,7 +2507,9 @@
         "y": 2.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1690,7 +2517,9 @@
         "y": -1.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1699,6 +2528,7 @@
     "title": "ESE lightning arrester (plan)",
     "category": "layout",
     "standard": "UniCAD plan-view convention",
+    "tag_prefix": "LA",
     "block_name": "UC_LAYOUT_ESE_LA",
     "size": {
       "width": 10.0,
@@ -1712,7 +2542,9 @@
         "y": 9.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1720,7 +2552,9 @@
         "y": 6.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RADIUS",
@@ -1728,7 +2562,9 @@
         "y": 2.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1736,7 +2572,9 @@
         "y": -2.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1745,6 +2583,7 @@
     "title": "Transformer (plan)",
     "category": "layout",
     "standard": "UniCAD plan-view convention",
+    "tag_prefix": "TX",
     "block_name": "UC_LAYOUT_TRANSFORMER",
     "size": {
       "width": 15.0,
@@ -1758,7 +2597,9 @@
         "y": 7.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1766,7 +2607,9 @@
         "y": 4.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1774,7 +2617,9 @@
         "y": 0.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1783,6 +2628,7 @@
     "title": "String combiner box (plan)",
     "category": "layout",
     "standard": "UniCAD plan-view convention",
+    "tag_prefix": "SCB",
     "block_name": "UC_LAYOUT_SCB",
     "size": {
       "width": 10.0,
@@ -1796,7 +2642,9 @@
         "y": 6.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1804,7 +2652,9 @@
         "y": 2.75,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1812,7 +2662,9 @@
         "y": -1.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1820,7 +2672,8 @@
     "key": "prot.spd_ac",
     "title": "AC surge protective device (Type 2)",
     "category": "protection",
-    "standard": "IEC 60617-7 surge protective device / IS 12032",
+    "standard": "IEC 60617 S00373 surge diverter; lightning arrester / IS 12032",
+    "tag_prefix": "SPD",
     "block_name": "UC_PROT_SPD_AC",
     "size": {
       "width": 10.0,
@@ -1842,7 +2695,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1850,7 +2705,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1858,7 +2715,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1866,7 +2725,8 @@
     "key": "prot.lightning_arrester",
     "title": "Lightning / surge arrester to earth",
     "category": "protection",
-    "standard": "IEC 60617-7 surge arrester / IS 12032",
+    "standard": "IEC 60617 S00373 surge diverter; lightning arrester / IS 12032",
+    "tag_prefix": "LA",
     "block_name": "UC_PROT_LIGHTNING_ARRESTER",
     "size": {
       "width": 10.0,
@@ -1888,7 +2748,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -1896,7 +2758,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -1904,7 +2768,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1912,24 +2778,25 @@
     "key": "prot.relay",
     "title": "Protection relay (ANSI function)",
     "category": "protection",
-    "standard": "IEC 60617-7 relay / IEEE C37.2 device numbers",
+    "standard": "IEEE C37.2 device number in circle; IEC 60617 S00327 measuring relay",
+    "tag_prefix": "RLY",
     "block_name": "UC_PROT_RELAY",
     "size": {
-      "width": 20.0,
-      "height": 20.0
+      "width": 10.0,
+      "height": 17.5
     },
     "pins": [
       {
         "name": "in",
         "x": 0.0,
-        "y": 10.0,
+        "y": 7.5,
         "side": "W",
         "kind": "sig"
       },
       {
         "name": "trip",
-        "x": 20.0,
-        "y": 10.0,
+        "x": 10.0,
+        "y": 7.5,
         "side": "E",
         "kind": "sig"
       }
@@ -1937,35 +2804,216 @@
     "attrs": [
       {
         "tag": "TAG",
-        "x": 22.5,
-        "y": 18.0,
+        "x": 12.5,
+        "y": 15.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
-        "x": 22.5,
-        "y": 14.25,
+        "x": 12.5,
+        "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "ANSI",
-        "x": 22.5,
-        "y": 6.25,
-        "height": 2.0,
+        "x": 5.0,
+        "y": 7.5,
+        "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
       },
       {
         "tag": "RATING",
-        "x": 22.5,
-        "y": 2.25,
+        "x": 12.5,
+        "y": 3.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "prot.relay_group",
+    "title": "Protection relay, multi-function (up to 6 ANSI circles)",
+    "category": "protection",
+    "standard": "IEEE C37.2 device number in circle; IEC 60617 S00327 measuring relay",
+    "tag_prefix": "RLY",
+    "block_name": "UC_PROT_RELAY_GROUP",
+    "size": {
+      "width": 60.0,
+      "height": 17.5
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 0.0,
+        "y": 7.5,
+        "side": "W",
+        "kind": "sig"
+      },
+      {
+        "name": "trip",
+        "x": 60.0,
+        "y": 7.5,
+        "side": "E",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 62.5,
+        "y": 15.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 62.5,
+        "y": 11.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "ANSI1",
+        "x": 5.0,
+        "y": 7.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
+      },
+      {
+        "tag": "ANSI2",
+        "x": 15.0,
+        "y": 7.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
+      },
+      {
+        "tag": "ANSI3",
+        "x": 25.0,
+        "y": 7.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
+      },
+      {
+        "tag": "ANSI4",
+        "x": 35.0,
+        "y": 7.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
+      },
+      {
+        "tag": "ANSI5",
+        "x": 45.0,
+        "y": 7.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
+      },
+      {
+        "tag": "ANSI6",
+        "x": 55.0,
+        "y": 7.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": true,
+        "max_chars": 4
+      },
+      {
+        "tag": "RATING",
+        "x": 62.5,
+        "y": 3.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "prot.la_counter",
+    "title": "Lightning arrester with surge counter",
+    "category": "protection",
+    "standard": "IEC 60617 S00373 surge diverter + surge counter box",
+    "tag_prefix": "LA",
+    "block_name": "UC_PROT_LA_COUNTER",
+    "size": {
+      "width": 10.0,
+      "height": 27.5
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 5.0,
+        "y": 27.5,
+        "side": "N",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 12.5,
+        "y": 16.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 12.5,
+        "y": 12.75,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 12.5,
+        "y": 8.75,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -1973,7 +3021,8 @@
     "key": "pv.module",
     "title": "PV module",
     "category": "pv",
-    "standard": "IEC 60617-6 photovoltaic generator / IS 12032",
+    "standard": "IEC 60617 S00908 photovoltaic generator / IS 12032",
+    "tag_prefix": "PVM",
     "block_name": "UC_PV_MODULE",
     "size": {
       "width": 10.0,
@@ -2002,7 +3051,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2010,7 +3061,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2018,7 +3071,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2026,7 +3081,8 @@
     "key": "pv.string",
     "title": "PV string (series group)",
     "category": "pv",
-    "standard": "IEC 60617-6 photovoltaic generator / IS 12032",
+    "standard": "IEC 60617 S00908 photovoltaic generator / IS 12032",
+    "tag_prefix": "STR",
     "block_name": "UC_PV_STRING",
     "size": {
       "width": 30.0,
@@ -2048,7 +3104,9 @@
         "y": 12.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2056,7 +3114,9 @@
         "y": 8.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "COUNT",
@@ -2064,7 +3124,9 @@
         "y": 4.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2072,7 +3134,9 @@
         "y": 0.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2080,7 +3144,8 @@
     "key": "pv.array",
     "title": "PV array / sub-array",
     "category": "pv",
-    "standard": "IEC 60617-6 photovoltaic generator / IS 12032",
+    "standard": "IEC 60617 S00908 photovoltaic generator / IS 12032",
+    "tag_prefix": "ARR",
     "block_name": "UC_PV_ARRAY",
     "size": {
       "width": 35.0,
@@ -2102,7 +3167,9 @@
         "y": 24.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2110,7 +3177,9 @@
         "y": 21.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "COUNT",
@@ -2118,7 +3187,9 @@
         "y": 17.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2126,7 +3197,9 @@
         "y": 13.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2134,7 +3207,8 @@
     "key": "bat.battery",
     "title": "Battery (cell stack)",
     "category": "storage",
-    "standard": "IEC 60617-6 primary/secondary cell, battery / IS 12032",
+    "standard": "IEC 60617 S01342 battery of primary or secondary cells / IS 12032",
+    "tag_prefix": "BAT",
     "block_name": "UC_BAT_BATTERY",
     "size": {
       "width": 10.0,
@@ -2156,7 +3230,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2164,7 +3240,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2172,7 +3250,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2181,6 +3261,7 @@
     "title": "BESS container",
     "category": "storage",
     "standard": "UniCAD composite (container + battery + PCS)",
+    "tag_prefix": "BESS",
     "block_name": "UC_BAT_BESS",
     "size": {
       "width": 40.0,
@@ -2202,7 +3283,9 @@
         "y": 17.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2210,7 +3293,9 @@
         "y": 14.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2218,7 +3303,9 @@
         "y": 10.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2226,7 +3313,8 @@
     "key": "sw.mcb",
     "title": "Miniature circuit breaker (MCB)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + thermal release",
+    "standard": "IEC 60617 S00287 circuit breaker + thermal release",
+    "tag_prefix": "MCB",
     "block_name": "UC_SW_MCB",
     "size": {
       "width": 10.0,
@@ -2255,7 +3343,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2263,7 +3353,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2271,7 +3363,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2279,10 +3373,11 @@
     "key": "sw.mccb",
     "title": "Moulded-case circuit breaker (MCCB)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + thermal-magnetic release",
+    "standard": "IEC 60617 S00287 circuit breaker + thermal-magnetic release, type label",
+    "tag_prefix": "MCCB",
     "block_name": "UC_SW_MCCB",
     "size": {
-      "width": 10.0,
+      "width": 22.5,
       "height": 20.0
     },
     "pins": [
@@ -2304,27 +3399,33 @@
     "attrs": [
       {
         "tag": "TAG",
-        "x": 12.5,
+        "x": 25.0,
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
-        "x": 12.5,
+        "x": 25.0,
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
-        "x": 12.5,
+        "x": 25.0,
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2332,10 +3433,11 @@
     "key": "sw.acb",
     "title": "Air circuit breaker (ACB)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + electronic release",
+    "standard": "IEC 60617 S00287 circuit breaker + electronic release, type label",
+    "tag_prefix": "ACB",
     "block_name": "UC_SW_ACB",
     "size": {
-      "width": 10.0,
+      "width": 22.5,
       "height": 25.0
     },
     "pins": [
@@ -2357,27 +3459,33 @@
     "attrs": [
       {
         "tag": "TAG",
-        "x": 12.5,
+        "x": 25.0,
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
-        "x": 12.5,
+        "x": 25.0,
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
-        "x": 12.5,
+        "x": 25.0,
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2385,7 +3493,8 @@
     "key": "sw.rccb",
     "title": "Residual current circuit breaker (RCCB / RCD)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + residual-current release",
+    "standard": "IEC 60617 S00287 circuit breaker + residual-current release",
+    "tag_prefix": "RCCB",
     "block_name": "UC_SW_RCCB",
     "size": {
       "width": 10.0,
@@ -2414,7 +3523,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2422,7 +3533,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2430,7 +3543,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2438,7 +3553,8 @@
     "key": "sw.hrc_fuse",
     "title": "HRC fuse",
     "category": "switchgear",
-    "standard": "IEC 60617 S00362",
+    "standard": "IEC 60617 S00362 fuse, general symbol",
+    "tag_prefix": "FU",
     "block_name": "UC_SW_HRC_FUSE",
     "size": {
       "width": 10.0,
@@ -2467,7 +3583,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2475,7 +3593,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2483,7 +3603,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2491,7 +3613,8 @@
     "key": "sw.switch_fuse",
     "title": "Switch-fuse unit (fuse-switch disconnector)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00288 + S00362",
+    "standard": "IEC 60617 S00370 fuse switch-disconnector",
+    "tag_prefix": "SFU",
     "block_name": "UC_SW_SWITCH_FUSE",
     "size": {
       "width": 10.0,
@@ -2520,7 +3643,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2528,7 +3653,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2536,7 +3663,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2544,7 +3673,8 @@
     "key": "sw.isolator",
     "title": "Isolator / disconnector",
     "category": "switchgear",
-    "standard": "IEC 60617 S00288",
+    "standard": "IEC 60617 S00288 disconnector; isolator",
+    "tag_prefix": "ISO",
     "block_name": "UC_SW_ISOLATOR",
     "size": {
       "width": 10.0,
@@ -2573,7 +3703,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2581,7 +3713,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2589,7 +3723,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2597,7 +3733,8 @@
     "key": "sw.isolator_es",
     "title": "Isolator with earth switch",
     "category": "switchgear",
-    "standard": "IEC 60617 S00288 + S00290 (earthing)",
+    "standard": "IEC 60617 S01848 combined disconnector and earthing switch",
+    "tag_prefix": "ISO",
     "block_name": "UC_SW_ISOLATOR_ES",
     "size": {
       "width": 20.0,
@@ -2626,7 +3763,9 @@
         "y": 19.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2634,7 +3773,9 @@
         "y": 15.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2642,7 +3783,9 @@
         "y": 11.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2650,7 +3793,8 @@
     "key": "sw.lbs",
     "title": "Load-break switch (switch-disconnector)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00290",
+    "standard": "IEC 60617 S00290 switch-disconnector",
+    "tag_prefix": "LBS",
     "block_name": "UC_SW_LBS",
     "size": {
       "width": 10.0,
@@ -2679,7 +3823,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2687,7 +3833,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2695,7 +3843,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2703,7 +3853,8 @@
     "key": "sw.contactor",
     "title": "Contactor",
     "category": "switchgear",
-    "standard": "IEC 60617 S00284",
+    "standard": "IEC 60617 S00284 contactor, main make contact",
+    "tag_prefix": "MC",
     "block_name": "UC_SW_CONTACTOR",
     "size": {
       "width": 10.0,
@@ -2732,7 +3883,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2740,7 +3893,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2748,7 +3903,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2756,7 +3913,8 @@
     "key": "sw.vcb",
     "title": "Vacuum circuit breaker (VCB)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + vacuum envelope",
+    "standard": "IEC 60617 S00287 circuit breaker + vacuum envelope",
+    "tag_prefix": "VCB",
     "block_name": "UC_SW_VCB",
     "size": {
       "width": 15.0,
@@ -2785,7 +3943,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2793,7 +3953,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2801,7 +3963,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2809,7 +3973,8 @@
     "key": "sw.sf6",
     "title": "SF6 circuit breaker",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + gas housing",
+    "standard": "IEC 60617 S00287 circuit breaker + gas housing",
+    "tag_prefix": "CB",
     "block_name": "UC_SW_SF6",
     "size": {
       "width": 15.0,
@@ -2838,7 +4003,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2846,7 +4013,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2854,7 +4023,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2862,7 +4033,8 @@
     "key": "sw.draw_out",
     "title": "Draw-out (withdrawable) circuit breaker",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 + withdrawable contacts",
+    "standard": "IEC 60617 S00287 circuit breaker + withdrawable contacts",
+    "tag_prefix": "CB",
     "block_name": "UC_SW_DRAW_OUT",
     "size": {
       "width": 10.0,
@@ -2891,7 +4063,9 @@
         "y": 15.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2899,7 +4073,9 @@
         "y": 11.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2907,7 +4083,9 @@
         "y": 7.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2915,7 +4093,8 @@
     "key": "sw.changeover",
     "title": "Changeover switch (ATS / MTS)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00289",
+    "standard": "IEC 60617 S00289 two-way disconnector; two-way isolator",
+    "tag_prefix": "COS",
     "block_name": "UC_SW_CHANGEOVER",
     "size": {
       "width": 15.0,
@@ -2951,7 +4130,9 @@
         "y": 12.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -2959,7 +4140,9 @@
         "y": 9.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -2967,7 +4150,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -2975,7 +4160,8 @@
     "key": "sw.rmu",
     "title": "Ring main unit (2 ring switches + tee-off)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00290 / S00362",
+    "standard": "IEC 60617 S00290 switch-disconnector + S00362 fuse",
+    "tag_prefix": "RMU",
     "block_name": "UC_SW_RMU",
     "size": {
       "width": 40.0,
@@ -3011,7 +4197,9 @@
         "y": 27.75,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -3019,7 +4207,9 @@
         "y": 24.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -3027,7 +4217,9 @@
         "y": 20.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -3035,7 +4227,8 @@
     "key": "tx.power_2w",
     "title": "Two-winding power transformer",
     "category": "transformer",
-    "standard": "IEC 60617-6 transformer / IS 12032",
+    "standard": "IEC 60617 S00841 transformer with two windings / IS 12032",
+    "tag_prefix": "TX",
     "block_name": "UC_TX_POWER_2W",
     "size": {
       "width": 15.0,
@@ -3064,7 +4257,9 @@
         "y": 16.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -3072,7 +4267,9 @@
         "y": 12.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "VECTOR",
@@ -3080,7 +4277,9 @@
         "y": 8.25,
         "height": 2.0,
         "default": "Dyn11",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -3088,7 +4287,9 @@
         "y": 4.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -3096,7 +4297,8 @@
     "key": "tx.power_3w",
     "title": "Three-winding power transformer",
     "category": "transformer",
-    "standard": "IEC 60617-6 transformer / IS 12032",
+    "standard": "IEC 60617 S00841 transformer with two windings / IS 12032",
+    "tag_prefix": "TX",
     "block_name": "UC_TX_POWER_3W",
     "size": {
       "width": 20.0,
@@ -3132,7 +4334,9 @@
         "y": 18.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -3140,7 +4344,9 @@
         "y": 14.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "VECTOR",
@@ -3148,7 +4354,9 @@
         "y": 5.0,
         "height": 2.0,
         "default": "YNyn0d11",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -3156,7 +4364,9 @@
         "y": 1.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -3164,7 +4374,8 @@
     "key": "tx.aux",
     "title": "Auxiliary / station transformer",
     "category": "transformer",
-    "standard": "IEC 60617-6 transformer / IS 12032",
+    "standard": "IEC 60617 S00841 transformer with two windings / IS 12032",
+    "tag_prefix": "ATX",
     "block_name": "UC_TX_AUX",
     "size": {
       "width": 10.0,
@@ -3193,7 +4404,9 @@
         "y": 12.25,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -3201,7 +4414,9 @@
         "y": 8.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "VECTOR",
@@ -3209,7 +4424,9 @@
         "y": 4.5,
         "height": 2.0,
         "default": "Dyn11",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -3217,7 +4434,9 @@
         "y": 0.5,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -3225,7 +4444,8 @@
     "key": "tx.ct",
     "title": "Current transformer (CT)",
     "category": "transformer",
-    "standard": "IEC 60617-6 current transformer / IS 12032",
+    "standard": "IEC 60617 S00850 current transformer, general symbol / IS 12032",
+    "tag_prefix": "CT",
     "block_name": "UC_TX_CT",
     "size": {
       "width": 10.0,
@@ -3261,7 +4481,9 @@
         "y": 15.5,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -3269,7 +4491,9 @@
         "y": 12.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -3277,7 +4501,9 @@
         "y": 3.0,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   },
@@ -3285,7 +4511,8 @@
     "key": "tx.pt",
     "title": "Potential / voltage transformer (PT / VT)",
     "category": "transformer",
-    "standard": "IEC 60617-6 voltage transformer / IS 12032",
+    "standard": "IEC 60617 S00878 voltage transformer / IS 12032",
+    "tag_prefix": "PT",
     "block_name": "UC_TX_PT",
     "size": {
       "width": 10.0,
@@ -3314,7 +4541,9 @@
         "y": 9.0,
         "height": 2.5,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "RATING",
@@ -3322,7 +4551,9 @@
         "y": 5.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       },
       {
         "tag": "DESC",
@@ -3330,7 +4561,526 @@
         "y": 1.25,
         "height": 2.0,
         "default": "",
-        "visible": true
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "tx.ct_2core",
+    "title": "Current transformer, 2 cores",
+    "category": "transformer",
+    "standard": "IEC 60617 S00850 current transformer, one ring per core",
+    "tag_prefix": "CT",
+    "block_name": "UC_TX_CT_2CORE",
+    "size": {
+      "width": 10.0,
+      "height": 25.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 5.0,
+        "y": 25.0,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "out",
+        "x": 5.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "sec1",
+        "x": 10.0,
+        "y": 10.0,
+        "side": "E",
+        "kind": "sig"
+      },
+      {
+        "name": "sec2",
+        "x": 10.0,
+        "y": 15.0,
+        "side": "E",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 17.5,
+        "y": 23.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 17.5,
+        "y": 19.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATIO1",
+        "x": 17.5,
+        "y": 10.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATIO2",
+        "x": 17.5,
+        "y": 15.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 17.5,
+        "y": 6.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "tx.ct_3core",
+    "title": "Current transformer, 3 cores",
+    "category": "transformer",
+    "standard": "IEC 60617 S00850 current transformer, one ring per core",
+    "tag_prefix": "CT",
+    "block_name": "UC_TX_CT_3CORE",
+    "size": {
+      "width": 10.0,
+      "height": 30.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 5.0,
+        "y": 30.0,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "out",
+        "x": 5.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "sec1",
+        "x": 10.0,
+        "y": 10.0,
+        "side": "E",
+        "kind": "sig"
+      },
+      {
+        "name": "sec2",
+        "x": 10.0,
+        "y": 15.0,
+        "side": "E",
+        "kind": "sig"
+      },
+      {
+        "name": "sec3",
+        "x": 10.0,
+        "y": 20.0,
+        "side": "E",
+        "kind": "sig"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 17.5,
+        "y": 28.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 17.5,
+        "y": 24.5,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATIO1",
+        "x": 17.5,
+        "y": 10.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATIO2",
+        "x": 17.5,
+        "y": 15.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATIO3",
+        "x": 17.5,
+        "y": 20.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 17.5,
+        "y": 6.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "tx.idt_2lv",
+    "title": "Inverter-duty transformer, 1 HV + 2 LV windings",
+    "category": "transformer",
+    "standard": "IEC 60617 S00841 transformer, extended to N LV windings",
+    "tag_prefix": "IDT",
+    "block_name": "UC_TX_IDT_2LV",
+    "size": {
+      "width": 25.0,
+      "height": 22.5
+    },
+    "pins": [
+      {
+        "name": "hv",
+        "x": 12.5,
+        "y": 22.5,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "lv1",
+        "x": 7.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "lv2",
+        "x": 17.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 27.5,
+        "y": 16.0,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 27.5,
+        "y": 12.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "VECTOR",
+        "x": 27.5,
+        "y": 8.25,
+        "height": 2.0,
+        "default": "YNd11d11",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 27.5,
+        "y": 4.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "tx.idt_3lv",
+    "title": "Inverter-duty transformer, 1 HV + 3 LV windings",
+    "category": "transformer",
+    "standard": "IEC 60617 S00841 transformer, extended to N LV windings",
+    "tag_prefix": "IDT",
+    "block_name": "UC_TX_IDT_3LV",
+    "size": {
+      "width": 35.0,
+      "height": 22.5
+    },
+    "pins": [
+      {
+        "name": "hv",
+        "x": 17.5,
+        "y": 22.5,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "lv1",
+        "x": 7.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "lv2",
+        "x": 17.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "lv3",
+        "x": 27.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 37.5,
+        "y": 16.0,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 37.5,
+        "y": 12.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "VECTOR",
+        "x": 37.5,
+        "y": 8.25,
+        "height": 2.0,
+        "default": "YNd11d11d11",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 37.5,
+        "y": 4.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "tx.idt_4lv",
+    "title": "Inverter-duty transformer, 1 HV + 4 LV windings",
+    "category": "transformer",
+    "standard": "IEC 60617 S00841 transformer, extended to N LV windings",
+    "tag_prefix": "IDT",
+    "block_name": "UC_TX_IDT_4LV",
+    "size": {
+      "width": 45.0,
+      "height": 22.5
+    },
+    "pins": [
+      {
+        "name": "hv",
+        "x": 22.5,
+        "y": 22.5,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "lv1",
+        "x": 7.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "lv2",
+        "x": 17.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "lv3",
+        "x": 27.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      },
+      {
+        "name": "lv4",
+        "x": 37.5,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 47.5,
+        "y": 16.0,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 47.5,
+        "y": 12.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "VECTOR",
+        "x": 47.5,
+        "y": 8.25,
+        "height": 2.0,
+        "default": "YNd11d11d11d11",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 47.5,
+        "y": 4.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
+    "key": "tx.earthing",
+    "title": "Earthing transformer (zig-zag)",
+    "category": "transformer",
+    "standard": "UniCAD composite; zig-zag mark cf. IEC 60617 S00866",
+    "tag_prefix": "ET",
+    "block_name": "UC_TX_EARTHING",
+    "size": {
+      "width": 10.0,
+      "height": 20.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 5.0,
+        "y": 20.0,
+        "side": "N",
+        "kind": "ac"
+      },
+      {
+        "name": "neutral",
+        "x": 5.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "ac"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 12.5,
+        "y": 12.75,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 12.5,
+        "y": 9.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 12.5,
+        "y": 5.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
       }
     ]
   }
