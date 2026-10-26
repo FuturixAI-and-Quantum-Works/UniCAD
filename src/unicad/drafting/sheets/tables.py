@@ -61,45 +61,58 @@ class Tables:
     def _frame(self, top: float, height: float) -> None:
         self.cv.rect(TXT, Region(self.x0, top - height, self.x1, top), heavy=True)
 
-    def legend(self, entries: Sequence[tuple[str, str]], f: float, budget: float | None) -> Section:
+    def legend(self, entries: Sequence[tuple[str, str]], f: float, budget: float | None, columns: int = 1) -> Section:
+        """Numbered symbol legend; with `columns` = 2 the entries run down the left half, then the right."""
         m, th = self.m, self.m.th
         tf = max(f, TEXT_FLOOR)
-        sl_w, sym_w = 4 * th, 9 * th
-        desc_w = self.width - sl_w - sym_w
+        part = self.width / columns
+        sl_w, sym_w = (4 * th, 9 * th) if columns == 1 else (2.6 * th, 5.4 * th)
+        desc_w = part - sl_w - sym_w
         head = self._header("LEGEND", f)
-        row_min = 4.6 * th * f
-        rows: list[tuple[float, object]] = []
+        row_min = (4.6 if columns == 1 else 4.0) * th * f
+        fitted = [fit(text, desc_w - 2 * m.pad_x, 0.9 * th * tf, max_lines=3, min_h=0.65 * th) for _, text in entries]
+        heights = [max(row_min, d.block_height + 2 * m.pad_y * f) for d in fitted]
+        per = -(-len(entries) // columns)
+        rows: list[float] = []
         used = head
-        for key, text in entries:
-            d = fit(text, desc_w - 2 * m.pad_x, 0.9 * th * tf, max_lines=3, min_h=0.65 * th)
-            rh = max(row_min, d.block_height + 2 * m.pad_y * f)
+        for r in range(per):
+            rh = max(heights[c * per + r] for c in range(columns) if c * per + r < len(entries))
             if budget is not None and used + rh > budget:
                 break
-            rows.append((rh, d))
+            rows.append(rh)
             used += rh
-        section = Section("legend", used, lambda top: None, omitted=len(entries) - len(rows))
+        shown = [c * per + r for c in range(columns) for r in range(len(rows)) if c * per + r < len(entries)]
+        section = Section("legend", used, lambda top: None, omitted=len(entries) - len(shown))
 
         def draw(top: float) -> None:
             cv = self.cv
             self._draw_header("LEGEND", top, f, head)
-            y = top - head
-            for i, ((rh, d), (key, _)) in enumerate(zip(rows, entries, strict=False)):
-                cv.put(TXT, Region(self.x0, y - rh, self.x0 + sl_w, y), str(i + 1), 0.9 * th * tf,
-                       align="center", valign="middle", pad_x=m.pad_x / 2)
-                sym = Region(self.x0 + sl_w, y - rh, self.x0 + sl_w + sym_w, y)
-                box = sym.inset(0.6 * th * f, m.pad_y * f)
-                if self.draw_symbol is None or not self.draw_symbol(key, box):
-                    cv.rect(TXT, box)
-                    cv.put(TXT, box, key, 0.7 * th * tf, align="center", valign="middle",
-                           pad_x=0.15 * th, pad_y=0.1 * th, min_h=0.3 * th)
-                section.slots.append(LegendSlot(key, box))
-                desc = Region(sym.x1, y - rh, self.x1, y)
-                cv.draw_fitted(TXT, desc, desc.inset(m.pad_x, m.pad_y * f), d, "left", "middle")
-                y -= rh
-                cv.hline(TXT, y, self.x0, self.x1)
-            if rows:
-                cv.vline(TXT, self.x0 + sl_w, top - head, y)
-                cv.vline(TXT, self.x0 + sl_w + sym_w, top - head, y)
+            bottom = top - head - sum(rows)
+            for c in range(columns):
+                x0 = self.x0 + c * part
+                y = top - head
+                for r, rh in enumerate(rows):
+                    i = c * per + r
+                    if i < len(entries):
+                        key = entries[i][0]
+                        cv.put(TXT, Region(x0, y - rh, x0 + sl_w, y), str(i + 1), 0.9 * th * tf,
+                               align="center", valign="middle", pad_x=m.pad_x / 2)
+                        sym = Region(x0 + sl_w, y - rh, x0 + sl_w + sym_w, y)
+                        box = sym.inset(0.6 * th * f, m.pad_y * f)
+                        if self.draw_symbol is None or not self.draw_symbol(key, box):
+                            cv.rect(TXT, box)
+                            cv.put(TXT, box, key, 0.7 * th * tf, align="center", valign="middle",
+                                   pad_x=0.15 * th, pad_y=0.1 * th, min_h=0.3 * th)
+                        section.slots.append(LegendSlot(key, box))
+                        desc = Region(sym.x1, y - rh, x0 + part, y)
+                        cv.draw_fitted(TXT, desc, desc.inset(m.pad_x, m.pad_y * f), fitted[i], "left", "middle")
+                    y -= rh
+                    cv.hline(TXT, y, x0, x0 + part)
+                if rows:
+                    cv.vline(TXT, x0 + sl_w, top - head, bottom)
+                    cv.vline(TXT, x0 + sl_w + sym_w, top - head, bottom)
+                    if c:
+                        cv.vline(TXT, x0, top - head, bottom)
             self._frame(top, section.height)
 
         section.draw = draw

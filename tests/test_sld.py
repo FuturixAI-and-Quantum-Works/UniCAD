@@ -288,3 +288,48 @@ def test_dxf_bytes_do_not_depend_on_the_hash_seed(tmp_path):
         assert done.returncode == 0, done.stderr
         digests.add(done.stdout.strip())
     assert len(digests) == 1
+
+
+def test_busbar_carries_its_rating_from_node_attributes(catalog):
+    import json
+
+    data = json.loads((ROOT / "fixtures" / "projects" / "utility_50mwac.json").read_text(encoding="utf-8"))
+    bus = next(n for n in data["network"]["nodes"] if n["id"] == "mv_bus")
+    bus["attributes"] = {"rated_current_a": 1250, "short_time_ka": 25, "short_time_s": 1, "material": "Al"}
+    p = parse_project(json.dumps(data), catalog)
+    lay = layout_sld(p.network, catalog)
+    labels = [lb.text for b in lay.busbars if b.node_id == "mv_bus" for lb in b.labels]
+    assert labels[1] == "33 kV, 1250 A, 25 kA 1 s, AL BUSBAR"
+
+
+def test_inverter_duty_transformer_uses_one_lv_pin_per_winding(layouts):
+    util = layouts["utility_50mwac"]
+    idt = next(s for s in util.symbols if s.node_id == "idt")
+    assert idt.key == "tx.idt_2lv"
+    assert {p.pin for p in idt.pins} == {"hv", "lv1", "lv2"}
+    ends = {(w.end.owner, w.end.pin) for w in util.wires if w.end} | {(w.start.owner, w.start.pin) for w in util.wires if w.start}
+    assert ("idt", "lv1") in ends and ("idt", "hv") in ends
+    spare = [st for st in util.stubs if st.node_id == "idt"]
+    assert [st.pin for st in spare] == ["lv2"] and spare[0].labels[0].text == "LV2 TO PCU-01-2"
+
+
+def test_turned_symbols_keep_tag_on_top_and_text_on_the_right(layouts):
+    for name, lay in layouts.items():
+        for s in lay.symbols:
+            if s.role != "node" or round(s.rotation) % 360 != 180 or len(s.labels) < 2:
+                continue
+            tag = dict(s.values)["TAG"]
+            assert s.labels[0].text.startswith(tag), (name, s.id)
+            assert s.labels[0].at[1] > s.labels[-1].at[1], (name, s.id)
+            assert all(lb.align == "left" and lb.box.x0 >= s.body.x1 for lb in s.labels), (name, s.id)
+
+
+def test_notes_are_engineer_worded(projects, catalog, profile):
+    doc, _ = render_sld(projects["rooftop_500kwp"], "sld", profile, catalog)
+    joined = " ".join(e.dxf.text for e in doc.modelspace().query("TEXT"))
+    assert "_" not in joined
+    assert "MINIMUM AMBIENT TEMPERATURE 10 %%dC" in joined
+    assert "DC VOLTAGE DROP LIMIT 2 %" in joined
+    roof = layout_sld(projects["rooftop_500kwp"].network, catalog)
+    callouts = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in roof.callouts}
+    assert "SEE NOTE 1" in callouts["e_str"] and roof.notes[0].startswith("DERATING 1.0")

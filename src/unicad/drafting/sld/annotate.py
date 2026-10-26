@@ -161,8 +161,35 @@ def symbol_values(texts: Mapping[str, str], attr_tags: tuple[str, ...]) -> tuple
     return tuple((t, values[t]) for t in attr_tags if t in values)
 
 
+_BUS_CURRENT = ("rated_current_a", "rating_a", "rated_current")
+_BUS_FAULT_KA = ("short_circuit_ka", "short_time_ka", "fault_ka")
+_BUS_FAULT_S = ("short_time_s", "fault_duration_s")
+_BUS_MATERIAL = ("material", "conductor")
+
+
+def _attr(node: Node, keys: tuple[str, ...]):
+    return next((node.attributes[k] for k in keys if k in node.attributes), None)
+
+
+def bus_rating(node: Node) -> str:
+    """'33 kV, 1250 A, 25 kA 1 s, AL BUSBAR' from the node's voltage and rating attributes; '' when it has none."""
+    amps, ka, secs, mat = (_attr(node, k) for k in (_BUS_CURRENT, _BUS_FAULT_KA, _BUS_FAULT_S, _BUS_MATERIAL))
+    if amps is None and ka is None and mat is None:
+        return ""
+    fault = f"{ka:g} kA{f' {secs:g} s' if isinstance(secs, int | float) else ''}" if isinstance(ka, int | float) else None
+    return _join(
+        volts(node.voltage_v) if node.voltage_v else None,
+        f"{amps:g} A" if isinstance(amps, int | float) else None,
+        fault,
+        f"{str(mat).upper()} BUSBAR" if mat else "BUSBAR",
+    )
+
+
 def bus_texts(net: ElectricalNetwork, node: Node) -> tuple[str, ...]:
-    head = f"{node_tag(net, node)}  {node.title or kind_label(node.kind)}"
+    head = f"{node_tag(net, node)}  {prose(node.title) if node.title else kind_label(node.kind)}"
+    rating = bus_rating(node)
+    if rating:
+        return (head, rating)
     return (head, f"{volts(node.voltage_v)} BUS") if node.voltage_v else (head,)
 
 
