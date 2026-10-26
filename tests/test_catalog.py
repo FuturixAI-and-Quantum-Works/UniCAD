@@ -127,7 +127,7 @@ def test_solar_cable_matches_polycab_row(catalog):
 
 def test_gpv_fuse_ladder_matches_json(catalog):
     ladder = json.loads((EXTRACTED / "protection_ladders.json").read_text())["gpv_fuse"]
-    fuses = [p for p in catalog.filter(kind="protection") if p.device == "fuse_gpv"]
+    fuses = [p for p in catalog.filter(kind="protection", manufacturer="Eaton Bussmann") if p.device == "fuse_gpv"]
     assert sorted(f.rated_current for f in fuses) == sorted(float(a) for a in ladder["rated_current_a"])
     assert {f.rated_voltage for f in fuses} == {float(ladder["rated_voltage_vdc"])}
 
@@ -279,3 +279,31 @@ def test_central_inverters_imported_from_datasheet_totals(catalog):
     assert hv30.mppt_count == int(rows["SG3125HV-30"]["mppt_count"]) and hv30.max_input_current_per_mppt is None
     mv20 = catalog.get("sungrow-sg3125hv-mv-20")
     assert mv20.topology == "central" and mv20.max_input_current_per_mppt == 4178
+
+
+def test_1500v_gpv_fuse_ladder_matches_mersen_json(catalog):
+    ladder = json.loads((EXTRACTED / "protection_ladders.json").read_text())["gpv_fuse_1500v"]
+    fuses = [p for p in catalog.filter(kind="protection", manufacturer="Mersen") if p.device == "fuse_gpv"]
+    assert sorted(f.rated_current for f in fuses) == sorted(float(a) for a in ladder["rated_current_a"])
+    assert {(f.rated_voltage, f.breaking_capacity_ka) for f in fuses} == {(1500.0, 50.0)}
+    assert catalog.get("mersen-hp15m10r").model == "HP15M10R"
+
+
+def test_mv_switchgear_entries(catalog):
+    vcbs = [p for p in catalog.filter(kind="protection") if p.device == "vcb"]
+    assert {(v.rated_current, v.breaking_capacity_ka) for v in vcbs} == {
+        (630, 16), (630, 20), (1250, 16), (1250, 20), (1250, 25), (1250, 31.5), (1250, 40)
+    }
+    assert all(v.rated_voltage == 36000 and v.poles == 3 and v.short_time_duration_s == 3 for v in vcbs)
+    rmu = catalog.get("generic-rmu-36kv-630a-25ka")
+    assert (rmu.rated_current, rmu.breaking_capacity_ka, rmu.symbol) == (630, 25, "sw.rmu")
+    ct = catalog.get("generic-ct-33kv-200-100-50-1-1a")
+    assert ct.ratio == "200-100-50/1-1 A" and "0.5S" in ct.accuracy_class and "5P20" in ct.accuracy_class and ct.symbol == "tx.ct"
+    la = catalog.get("abb-polim-d-24-ur30kv")
+    assert (la.rated_voltage, la.nominal_discharge_current_ka, la.symbol) == (30000, 10, "prot.lightning_arrester")
+
+
+def test_report_skip_counts_dropped_for_closed_gaps():
+    report = (CATALOG / "REPORT.md").read_text()
+    assert "datasheet gives DC input totals only" not in report.split("## Notes")[0]
+    assert "| cable | 3.5-core" not in report

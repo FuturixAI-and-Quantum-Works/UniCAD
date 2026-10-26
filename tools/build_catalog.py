@@ -307,6 +307,11 @@ def import_bess(b: Build) -> None:
 
 
 def import_transformers(b: Build) -> None:
+    b.notes.append(
+        "Inverter-duty transformers: not catalogued. The only citable %Z are two BHEL purchase specifications "
+        "(2.7 MVA 33 kV 6.25 %, 5.5 MVA 33 kV 7 %, see idt_impedance_citations.csv). Both give the LV voltage as a range set per inverter "
+        "(340-410 V, 500-700 V), and TransformerSpec needs a single lv_kv. No standard %Z ladder for 1.6-12.5 MVA was found."
+    )
     ratings_33kv_min = 100
     for line, r in read_csv("transformer_is1180_ratings_losses.csv"):
         if r["phase"] != "3":
@@ -508,7 +513,59 @@ def import_protection(b: Build) -> None:
             device="fuse_gpv", rated_current=in_a, rated_voltage=fuse["rated_voltage_vdc"], poles=1,
             breaking_capacity_ka=fuse["breaking_capacity_ka"],
         )
-    b.notes.append("gPV fuses: only the 1000 V DC 10x38 ladder is catalogued; no 1500 V ladder was obtainable.")
+    fuse15 = ladders["gpv_fuse_1500v"]
+    for in_a in fuse15["rated_current_a"]:
+        code = fuse15["catalog_number"].format(amps=in_a)
+        b.add(
+            "protection", "protection_ladders.json gpv_fuse_1500v", ProtectionSpec,
+            id=slug("mersen", code), manufacturer="Mersen", model=code,
+            source=src(fuse15, extra="10x85 mm, IEC 60269-6 gPV, manufacturer-hosted datasheet"),
+            device="fuse_gpv", rated_current=in_a, rated_voltage=fuse15["rated_voltage_vdc"], poles=1,
+            breaking_capacity_ka=fuse15["breaking_capacity_ka"],
+        )
+    b.notes.append("gPV fuses: 1000 V DC 10x38 (Eaton, third-party mirror) and 1500 V DC 10x85 (Mersen HP15M, manufacturer-hosted) ladders are catalogued.")
+
+    vcb = ladders["vcb_36kv"]
+    for variant in vcb["variants"]:
+        for isc in variant["isc_ka"]:
+            code = f"VD4 36.{variant['in_a'] // 100:02d}.{int(isc)}"
+            b.add(
+                "protection", "protection_ladders.json vcb_36kv", ProtectionSpec,
+                id=slug("abb-vd4", "36kv", f"{variant['in_a']}a", f"{isc:g}ka"), manufacturer="ABB", model=code,
+                source=src(vcb, extra="fixed version, IEC 62271-100; short-time withstand (3 s) equals rated Isc per p.18"),
+                device="vcb", rated_current=variant["in_a"], rated_voltage=vcb["rated_voltage_kv"] * 1000, poles=3,
+                breaking_capacity_ka=isc, short_time_withstand_ka=isc, short_time_duration_s=3,
+            )
+    b.notes.append("VCB 36 kV: ABB VD4 offers 630 A at 16 and 20 kA only; 25 kA starts at 1250 A, so there is no 630 A / 25 kA entry.")
+
+    rmu = ladders["rmu_36kv"]
+    b.add(
+        "protection", "protection_ladders.json rmu_36kv", ProtectionSpec,
+        id="generic-rmu-36kv-630a-25ka", manufacturer="Generic (GeM buyer specification)", model="33 kV SF6 outdoor RMU 2 LBS + 1 VCB 630 A",
+        source=src(rmu, extra="purchaser's technical specification, not a manufacturer datasheet; verify against the chosen supplier"),
+        device="rmu", rated_current=rmu["rated_current_a"], rated_voltage=rmu["rated_voltage_kv"] * 1000, poles=3,
+        breaking_capacity_ka=rmu["vcb_breaking_ka"], short_time_withstand_ka=rmu["short_time_ka_3s"], short_time_duration_s=3,
+    )
+
+    ct = ladders["ct_33kv"]
+    b.add(
+        "protection", "protection_ladders.json ct_33kv", ProtectionSpec,
+        id="generic-ct-33kv-200-100-50-1-1a", manufacturer="Generic (WBSEDCL specification)", model="33 kV outdoor CT 200-100-50/1-1 A",
+        source=src(ct, extra="a utility's procurement specification, not a manufacturer datasheet"),
+        device="ct", rated_voltage=ct["highest_system_voltage_kv"] * 1000, poles=1, ratio=ct["ratio"],
+        accuracy_class=" + ".join(f"{c['class']} ({c['burden_va']} VA, {c['use']})" for c in ct["cores"]),
+        short_time_withstand_ka=ct["short_time_ka_3s"], short_time_duration_s=3,
+    )
+    b.notes.append("33 kV PT, LV-side CT/PT and a 36 kV manufacturer RMU: no citable text-extractable source was found, so none are catalogued.")
+
+    la = ladders["la_30kv"]
+    b.add(
+        "protection", "protection_ladders.json la_30kv", ProtectionSpec,
+        id="abb-polim-d-24-ur30kv", manufacturer="ABB", model="POLIM-D 24-xx (Uc 24 kV, Ur 30 kV)",
+        source=src(la, extra="third-party-hosted copy of the ABB data sheet; line discharge class 1, IEC 60099-4"),
+        device="lightning_arrester", rated_voltage=la["ur_kv"] * 1000, poles=1,
+        nominal_discharge_current_ka=la["nominal_discharge_current_ka"],
+    )
 
     spd = ladders["spd_pv_dc"]
     for v in spd["variants"]:
