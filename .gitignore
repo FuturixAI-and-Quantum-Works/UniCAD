@@ -5,3 +5,4 @@ build/
 dist/
 references/**/raw
 references/**/pages
+unicad-workspace/
