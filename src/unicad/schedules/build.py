@@ -150,6 +150,7 @@ def build_schedule(
                     length_pos_m=pos, length_neg_m=neg, length_source=source, length_basis=basis,
                     laying=e.laying.value if e.laying else None, ib_a=ib, iz_a=iz, vd_pct=vd, loss_w=loss,
                     module=module.model if module else None, module_wp=module.pmax if module else None, remarks=e.remarks or "",
+                    flags=_flags(e, iz, pos, vd),
                 )
             )  # fmt: skip
         if rows:
@@ -170,6 +171,17 @@ def build_schedule(
         project_id=project.id, project_name=project.name, sections=tuple(sections), basis=basis, vd_summary=summary,
         assumptions=tuple(dict.fromkeys(notes)), warnings=estimate.warnings, gaps=tuple(gaps), template_lengths=estimate.templates(),
     )  # fmt: skip
+
+
+def _flags(e: Edge, iz: float | None, length: float | None, vd: float | None) -> tuple[str, ...]:
+    flags = []
+    if e.laying is None:
+        flags.append("no laying method: ampacity not checked")
+    elif iz is None:
+        flags.append("no catalog ampacity for this laying")
+    if length is not None and vd is None:
+        flags.append("voltage drop not evaluated: no catalog resistance or no carried generation")
+    return tuple(flags)
 
 
 def _unique(candidate: str, seen: set[str]) -> str:

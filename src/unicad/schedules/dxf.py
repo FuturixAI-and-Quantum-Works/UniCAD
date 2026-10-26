@@ -37,7 +37,8 @@ def _num(value: float | None, places: int = 2) -> str:
 def _remarks(row: CableRow) -> str:
     """Length source, then the network's remark when it is short enough for the cell; the XLSX carries it in full."""
     source = {"network": "NET", "estimated": "EST"}.get(row.length_source, "NO LENGTH")
-    return " ".join(p for p in (source, row.remarks.upper() if len(row.remarks) <= REMARK_CHARS else "") if p)
+    flags = ["NO Iz" if "ampacity" in f else "NO VD" for f in row.flags]
+    return " ".join(p for p in (source, *flags, row.remarks.upper() if len(row.remarks) <= REMARK_CHARS else "") if p)
 
 
 def _laying(row: CableRow) -> str:
@@ -182,7 +183,8 @@ def schedule_tables(schedule: Schedule, detail: str = "auto") -> list[tuple[str,
         out.append(("DC CABLE SCHEDULE", TableSpec(_numbered(DC_COLUMNS), tuple(dc), _preamble(schedule, True))))
     ac = _sections(schedule, frozenset({Service.LV_AC, Service.MV_AC, Service.HV_AC}), True)
     if ac:
-        out.append(("AC AND MV CABLE SCHEDULE", TableSpec(_numbered(AC_COLUMNS), tuple(ac), _preamble(schedule, False))))
+        has_mv = any(r.service in (Service.MV_AC, Service.HV_AC) for r in schedule.rows)
+        out.append(("AC AND MV CABLE SCHEDULE" if has_mv else "AC CABLE SCHEDULE", TableSpec(_numbered(AC_COLUMNS), tuple(ac), _preamble(schedule, False))))
     return out
 
 

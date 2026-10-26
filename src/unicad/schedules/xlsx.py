@@ -58,7 +58,7 @@ def schedule_columns(schedule: Schedule) -> list[Column[CableRow]]:
         Column("MODULE WATTAGE", "Wp", lambda r: r.module_wp, number_format="0.##"),
         Column("NETWORK EDGE", "", lambda r: r.edge),
         Column("LENGTH BASIS", "", lambda r: r.length_basis),
-        Column("REMARKS", "", lambda r: r.remarks),
+        Column("REMARKS", "", lambda r: "; ".join(p for p in (r.remarks, *r.flags) if p)),
     ]
 
 
