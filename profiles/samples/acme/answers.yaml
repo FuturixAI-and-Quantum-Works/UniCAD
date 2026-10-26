@@ -1,0 +1,32 @@
+id: acme
+name: Acme Solar EPC Pvt. Ltd.
+short_code: ACME
+address: "4th Floor, Acme Towers, Baner Road, Pune - 411 045, Maharashtra. Tel: +91 20 5550 0188. www.acme-solar.example"
+confidentiality_note: "THIS DRAWING IS THE PROPERTY OF ACME SOLAR EPC PVT. LTD. IT SHALL NOT BE COPIED OR USED WITHOUT WRITTEN PERMISSION."
+date_format: "%d.%m.%Y"
+default_paper: A3
+roles: {drawn: DRN, checked: CHKD, approved: APPD}
+numbering:
+  pattern: "{company}/{client}/{project}/{discipline}/{seq:03d}"
+  disciplines: {electrical: EL, civil: CV, substation: SS}
+  per_discipline: true
+  start: {civil: 101}
+logo_block: ACME_LOGO
+layers:
+  frame: ACME-FRAME
+  title: ACME-TITLE
+  text: ACME-TEXT
+layer_map:
+  G-SYMBOL: ACME-SYM
+  G-SYMBOL-TXT: ACME-SYM-TXT
+symbols:
+  pv.module: {block: ACME_PV_MODULE, pins: named}
+  inst.kwh: {block: ACME_KWH_METER, pins: fit}
+thresholds:
+  dc_ac_band:
+    value: 0.15
+    source: "Acme design standard DS-04 clause 3.2 permits a DC/AC ratio within +/-15 % of the project target"
+  isc_factor:
+    value: 1.25
+    source: "Acme design standard DS-04 clause 4.1: worst-case string current is 1.25 x Isc"
+revision_marks: {style: cloud, stamp_text: REVISED}
