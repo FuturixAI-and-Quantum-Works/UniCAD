@@ -1,0 +1,20 @@
+[
+  {
+    "id": "sungrow-st5015kwh",
+    "manufacturer": "Sungrow",
+    "model": "ST5015kWh",
+    "symbol": "bess.container",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/bess/Sungrow_PowerTitan2_ST5015kWh_DS_V3.pdf p.2; references/catalog-sources/extracted/bess_pcs_datasheets.csv row 2; nominal voltage = series cells x cell voltage; datasheet gives no DC current",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "battery",
+    "chemistry": "lfp",
+    "energy_kwh": 5015.0,
+    "nominal_voltage": 1331.2,
+    "voltage_min": 1123.2,
+    "voltage_max": 1497.6,
+    "max_continuous_current": null
+  }
+]

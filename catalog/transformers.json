@@ -1,0 +1,653 @@
+[
+  {
+    "id": "is1180-11kv-1000kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "1000 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 14; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 1000.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 5.0,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-100kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "100 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 5; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 100.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-1250kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "1250 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 15; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 1250.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 5.0,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-1600kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "1600 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 16; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 1600.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 6.25,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-160kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "160 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 6; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 160.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-16kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "16 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 2; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 16.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-2000kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "2000 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 17; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 2000.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 6.25,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-200kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "200 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 7; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 200.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-2500kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "2500 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 18; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 2500.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 6.25,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-250kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "250 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 8; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 250.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-25kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "25 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 3; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 25.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-315kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "315 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 9; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 315.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-400kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "400 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 10; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 400.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-500kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "500 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 11; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 500.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-630kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "630 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 12; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 630.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-63kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "63 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 4; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 63.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-11kv-800kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "800 kVA 11/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 13; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 800.0,
+    "hv_kv": 11.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 5.0,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-1000kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "1000 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 14; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 1000.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 5.0,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-100kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "100 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 5; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 100.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-1250kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "1250 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 15; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 1250.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 5.0,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-1600kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "1600 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 16; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 1600.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 6.25,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-160kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "160 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 6; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 160.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-2000kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "2000 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 17; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 2000.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 6.25,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-200kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "200 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 7; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 200.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-2500kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "2500 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 18; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 2500.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 6.25,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-250kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "250 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 8; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 250.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-315kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "315 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 9; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 315.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-400kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "400 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 10; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 400.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-500kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "500 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 11; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 500.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-630kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "630 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 12; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 630.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 4.5,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  },
+  {
+    "id": "is1180-33kv-800kva-dyn11",
+    "manufacturer": "Generic (IS 1180)",
+    "model": "800 kVA 33/0.433 kV",
+    "symbol": "tx.two_winding",
+    "source": {
+      "kind": "standard",
+      "ref": "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.2; references/catalog-sources/extracted/transformer_is1180_ratings_losses.csv row 13; Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class offered from 100 kVA per BIS/ITMA presentation",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "transformer",
+    "rated_kva": 800.0,
+    "hv_kv": 33.0,
+    "lv_kv": [
+      0.433
+    ],
+    "vector_group": "Dyn11",
+    "impedance_pct": 5.0,
+    "cooling": "ONAN",
+    "standard": "IS 1180 (Part 1):2014"
+  }
+]

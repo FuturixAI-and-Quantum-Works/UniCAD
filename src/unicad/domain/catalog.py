@@ -50,7 +50,7 @@ class ModuleSpec(Spec):
     temp_coeff_pmax: PctPerC
     noct_c: float | None = None
     max_system_voltage: Volts = 1500
-    max_series_fuse: Amps
+    max_series_fuse: Amps | None = None
     length: Mm
     width: Mm
     cells: int = Field(gt=0)
@@ -58,6 +58,7 @@ class ModuleSpec(Spec):
     bifacial: bool = False
     bifaciality: float | None = Field(default=None, ge=0, le=1)
     almm_listed: bool | None = None
+    almm_ref: str | None = None
 
     @model_validator(mode="after")
     def _consistent(self) -> "ModuleSpec":
@@ -103,7 +104,7 @@ class BatterySpec(Spec):
     nominal_voltage: Volts
     voltage_min: Volts
     voltage_max: Volts
-    max_continuous_current: Amps
+    max_continuous_current: Amps | None = None
 
 
 class PCSSpec(Spec):
@@ -153,6 +154,7 @@ class CableSpec(Spec):
 
 class ProtectionSpec(Spec):
     kind: Literal["protection"] = "protection"
+    symbol: str | None = None
     device: Literal["mcb", "mccb", "acb", "vcb", "rccb", "fuse_gpv", "fuse_hrc", "dc_isolator", "ac_isolator", "spd_dc", "spd_ac", "sfu"]
     rated_current: Amps | None = None
     rated_voltage: Volts
