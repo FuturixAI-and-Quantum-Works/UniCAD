@@ -316,3 +316,21 @@ def test_librecad_exports_the_sheet(paper, profile, tmp_path):
     assert page.rect.width == pytest.approx(w / 25.4 * 72, abs=2)
     assert page.rect.height == pytest.approx(h / 25.4 * 72, abs=2)
     assert png.stat().st_size > 10_000
+
+
+def test_legend_shows_the_real_symbol_instead_of_a_placeholder(profile):
+    import ezdxf
+
+    from unicad.drafting.legend import legend_drawer
+    from unicad.drafting.sheets.render import render_sheet
+    from unicad.drafting.sheets.samples import rooftop_500kwp
+    from unicad.drafting.symbols import REGISTRY
+
+    spec = rooftop_500kwp()
+    doc = ezdxf.new("R2018")
+    result = render_sheet(doc, spec, profile, legend_drawer(doc.modelspace()))
+    inserted = {e.dxf.name for e in doc.modelspace().query("INSERT")}
+    texts = {e.dxf.text for e in doc.modelspace().query("TEXT")}
+    for slot in result.legend_slots:
+        assert REGISTRY[slot.key].block_name in inserted
+        assert slot.key not in texts

@@ -6,7 +6,7 @@ from ezdxf.enums import InsertUnits
 from unicad.drafting.sheets.canvas import EPS, Canvas, LayoutOverflow, Region, TextCell
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
-from unicad.drafting.sheets.tables import LegendSlot, Section, Tables
+from unicad.drafting.sheets.tables import LegendSlot, Section, SymbolDrawer, Tables
 from unicad.drafting.sheets.titleblock import TitleBlock
 
 __all__ = ["LayoutOverflow", "LegendSlot", "Region", "RenderedSheet", "TextCell", "render_sheet"]
@@ -116,7 +116,9 @@ def _plan_top_sections(t: Tables, spec: SheetSpec, room: float) -> list[Section]
     return sections
 
 
-def render_sheet(doc: Drawing, spec: SheetSpec, profile: CompanyProfile) -> RenderedSheet:
+def render_sheet(
+    doc: Drawing, spec: SheetSpec, profile: CompanyProfile, draw_symbol: SymbolDrawer | None = None
+) -> RenderedSheet:
     """Draw the border, zone grid, right-hand column and title block into modelspace.
 
     Modelspace at 1:1 paper millimetres, origin at the sheet's lower-left corner: LibreCAD
@@ -131,7 +133,7 @@ def render_sheet(doc: Drawing, spec: SheetSpec, profile: CompanyProfile) -> Rend
     col = m.column
     tb = TitleBlock(cv, m, doc, spec.title_block, profile, col.x0, col.x1)
     tb.draw(col.y0)
-    tables = Tables(cv, m, col.x0, col.x1)
+    tables = Tables(cv, m, col.x0, col.x1, draw_symbol)
 
     rev_top = col.y0 + tb.height
     rev_rows = max(_MIN_REV_ROWS, len(spec.revisions))

@@ -11,6 +11,10 @@ TXT = LayerRole.TEXT
 TTL = LayerRole.TITLE
 
 
+SymbolDrawer = Callable[[str, Region], bool]
+"""Draws the symbol `key` inside the cell; returns False when it has no such symbol."""
+
+
 @dataclass(frozen=True)
 class LegendSlot:
     key: str
@@ -35,8 +39,9 @@ class Section:
 
 
 class Tables:
-    def __init__(self, cv: Canvas, m: SheetMetrics, x0: float, x1: float):
+    def __init__(self, cv: Canvas, m: SheetMetrics, x0: float, x1: float, draw_symbol: SymbolDrawer | None = None):
         self.cv, self.m, self.x0, self.x1 = cv, m, x0, x1
+        self.draw_symbol = draw_symbol
 
     @property
     def width(self) -> float:
@@ -83,9 +88,10 @@ class Tables:
                        align="center", valign="middle", pad_x=m.pad_x / 2)
                 sym = Region(self.x0 + sl_w, y - rh, self.x0 + sl_w + sym_w, y)
                 box = sym.inset(0.6 * th * f, m.pad_y * f)
-                cv.rect(TXT, box)
-                cv.put(TXT, box, key, 0.7 * th * tf, align="center", valign="middle",
-                       pad_x=0.15 * th, pad_y=0.1 * th, min_h=0.3 * th)
+                if self.draw_symbol is None or not self.draw_symbol(key, box):
+                    cv.rect(TXT, box)
+                    cv.put(TXT, box, key, 0.7 * th * tf, align="center", valign="middle",
+                           pad_x=0.15 * th, pad_y=0.1 * th, min_h=0.3 * th)
                 section.slots.append(LegendSlot(key, box))
                 desc = Region(sym.x1, y - rh, self.x1, y)
                 cv.draw_fitted(TXT, desc, desc.inset(m.pad_x, m.pad_y * f), d, "left", "middle")

@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from preview import render as render_strokes  # noqa: E402
 
+from unicad.drafting.legend import legend_drawer  # noqa: E402
 from unicad.drafting.sheets import samples  # noqa: E402
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize, SheetSpec  # noqa: E402
 from unicad.drafting.sheets.render import render_sheet  # noqa: E402
@@ -34,7 +35,7 @@ PNG_WIDTH_PX = {PaperSize.A0: 7200, PaperSize.A1: 5400, PaperSize.A2: 4500, Pape
 
 def build(spec: SheetSpec, profile: CompanyProfile, dxf: Path) -> None:
     doc = ezdxf.new("R2018", setup=["linetypes"])
-    result = render_sheet(doc, spec, profile)
+    result = render_sheet(doc, spec, profile, legend_drawer(doc.modelspace()))
     for w in result.warnings:
         print(f"  warning: {w}")
     doc.saveas(dxf)
