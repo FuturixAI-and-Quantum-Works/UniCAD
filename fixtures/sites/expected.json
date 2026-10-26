@@ -1,0 +1,38 @@
+{
+ "ground_mount_rajasthan": {
+  "name": "Synthetic 200 acre ground-mount site, Phalodi, Rajasthan",
+  "lon": 72.35,
+  "lat": 27.1,
+  "epsg": 32643,
+  "areas_m2": {
+   "boundary_m2": 809373.56985,
+   "pond_m2": 16087.5,
+   "rock_m2": 9100.0,
+   "corridor_m2": 37600.0
+  }
+ },
+ "rooftop_midc_pune": {
+  "name": "Synthetic industrial shed, MIDC Chakan, Pune",
+  "lon": 73.86,
+  "lat": 18.76,
+  "epsg": 32643,
+  "areas_m2": {
+   "plot_m2": 25650.0,
+   "roof_a_m2": 5040.0,
+   "roof_b_m2": 2400.0,
+   "obstacle_m2": 353.0
+  }
+ },
+ "site_plan_kutch": {
+  "name": "Synthetic 82 acre site plan, Kutch, Gujarat",
+  "lon": 69.8,
+  "lat": 23.45,
+  "epsg": 32642,
+  "areas_m2": {
+   "boundary_m2": 332500.0,
+   "pond_m2": 8800.0,
+   "corridor_m2": 21000.0,
+   "tank_m2": 201.06192982974676
+  }
+ }
+}

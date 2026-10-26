@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validat
 
 from unicad.domain.layout import ArrayLayout
 from unicad.domain.network import ElectricalNetwork, NetworkError, NodeKind
+from unicad.domain.site import SiteGeometry
 
 if TYPE_CHECKING:
     from unicad.catalog.store import Catalog
@@ -42,6 +43,7 @@ class Site(_Frozen):
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
     crs: str | None = None
+    geometry: SiteGeometry | None = None
 
 
 class PvsystThermal(_Frozen):

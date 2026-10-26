@@ -219,6 +219,96 @@ Read-only.
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
+## Site tools
+
+### `site_import`
+
+Import site geometry (boundary, roofs, exclusions, roads, obstacles) from KML/KMZ, GeoJSON, DXF or a coordinate list into local metres.
+
+The local frame is the UTM zone of the site; its origin (the lon/lat of local 0,0) is stored with the geometry. Shapes are classified by name, folder or
+layer (see kind_mapping). Importing the same file again replaces what it imported before; features from other files or added by hand are kept.
+Closed polygons become areas; open paths become roads, setback lines or transmission lines.
+Example: site_import(project_id="p1", file_path="/data/site.kml", kind_mapping={"Plot": "boundary"}).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `file_path` | string | yes | Path to a .kml, .kmz, .geojson, .dxf or coordinate-list (.csv/.txt) file on the machine running the server |
+| `format` | string | no | One of kml, kmz, geojson, dxf, coords; guessed from the extension when omitted |
+| `kind_mapping` | object | no | Overrides for how shapes are classified: {placemark name, folder name or DXF layer: kind}. Keys match case-insensitively, exact first and then as a substring; the value is a feature kind or 'ignore'. Without it names are matched against a rules table (e.g. 'roof', 'pond', 'boundary', 'road', 'transmission'). |
+| `origin_lon` | number | no | Longitude of the file's local (0, 0). Only for local-metre files (DXF, coordinate lists) when the project has no site latitude/longitude yet |
+| `origin_lat` | number | no | Latitude of the file's local (0, 0); pair with origin_lon |
+| `source_crs` | string | no | EPSG code when a DXF or coordinate list holds projected metres, e.g. 'EPSG:32643'; omit for local metres |
+| `units` | string | no | Drawing units of a DXF without a usable $INSUNITS: m, mm, cm, ft, in, km, yd, dm |
+| `coordinate_system` | `lonlat` \| `latlon` \| `local` | no | Coordinate lists only: lonlat, latlon or local (metres). Guessed when omitted |
+| `replace` | boolean | no | Discard the existing site geometry first and start a new local frame Default: `False`. |
+
+### `site_set_feature`
+
+Add or replace one site feature from coordinates, e.g. a pond the survey missed or a roof obstacle. Creates the site frame if the project has none.
+
+Example: site_set_feature(project_id="p1", id="ahu_3", kind="obstacle", coordinates=[[10,5],[14,5],[14,8],[10,8]], height_m=1.8).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `id` | string | yes | Feature id (letters, digits, '_', '-', '.'); an existing id is replaced |
+| `kind` | `boundary` \| `roof` \| `exclusion` \| `road` \| `building` \| `obstacle` \| `water` \| `setback_line` \| `transmission_line` \| `existing_structure` | yes | boundary, roof, exclusion, road, building, obstacle, water, setback_line, transmission_line or existing_structure |
+| `coordinates` | list of list of number | yes | Points as [x, y] pairs: local metres, or [lon, lat] when coordinate_system='lonlat'. Do not repeat the first point at the end |
+| `coordinate_system` | `lonlat` \| `latlon` \| `local` | no | 'local' (metres in the site frame), 'lonlat' (degrees) or 'latlon' Default: `local`. |
+| `closed` | boolean | no | Polygon (true) or open path (false). Default: polygon, except road, setback_line and transmission_line which default to a path |
+| `holes` | list of list of list of number | no | Inner rings of a polygon, same coordinate system |
+| `name` | string | no |  |
+| `height_m` | number | no | Height above the roof or ground, for roofs and obstacles |
+| `width_m` | number | no | Corridor width of a road, setback line or transmission line path |
+| `setback_m` | number | no | Clearance to keep around this feature (inset for boundary and roof), replacing the project default |
+| `attributes` | object | no |  |
+| `origin_lon` | number | no | Longitude of the file's local (0, 0). Only for local-metre files (DXF, coordinate lists) when the project has no site latitude/longitude yet |
+| `origin_lat` | number | no | Latitude of the file's local (0, 0); pair with origin_lon |
+
+### `site_remove_feature`
+
+Remove site features by id. The site frame (CRS and origin) stays.
+
+Example: site_remove_feature(project_id="p1", ids=["rocky-outcrop"]).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `ids` | list of string | yes | Ids of site features to remove |
+
+### `site_set_setbacks`
+
+Set the default clearances used for buildable area. Values you omit keep their stored value (initially 0). Take the distances from the design basis or the authority's rules; none are assumed.
+
+Example: site_set_setbacks(project_id="p1", boundary_m=5, roof_edge_m=1.0).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `boundary_m` | number | no | Clearance inside the site boundary, e.g. for a perimeter fence road |
+| `roof_edge_m` | number | no | Clearance inside each roof edge |
+| `exclusion_m` | number | no | Clearance around exclusions, water, buildings, existing structures and road or line corridors |
+| `obstacle_m` | number | no | Clearance around obstacles such as roof units |
+
+### `site_summary`
+
+Site geometry summary: frame, feature counts, areas in m2 and acres, buildable area after setbacks, and warnings. Setback arguments try other clearances without storing them.
+
+Areas are on the projected grid (grid_scale_factor is the grid/ground distance ratio at the origin).
+Example: site_summary(project_id="p1", boundary_setback_m=10).
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+| `boundary_setback_m` | number | no | Trial boundary clearance; not stored |
+| `roof_edge_setback_m` | number | no | Trial roof edge clearance; not stored |
+| `exclusion_setback_m` | number | no | Trial exclusion clearance; not stored |
+| `obstacle_setback_m` | number | no | Trial obstacle clearance; not stored |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.
