@@ -77,6 +77,8 @@ class Ctx:
         return self.project.design_basis.grid.phases
 
     def L(self, key: str) -> float:
+        """The route length for `key`; the next edge the builder adds is recorded as using that role."""
+        self.b.last_role = key
         return self.lengths[key]
 
     def lengths_assumption(self, keys: list[str]) -> None:
@@ -400,25 +402,31 @@ def ci_rooftop(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
 
 
 def string_blocks(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, kv: float, switch: str, aux: bool) -> None:
-    """Per block: string inverters -> LT ACCB -> catalog block transformer -> VCB/RMU feeder."""
+    """Per block: string inverters -> LT ACCB -> block transformer -> VCB/RMU feeder. Inverters up to 440 V use a catalog IS 1180 transformer;
+    800 V-class inverters get a project-specific inline transformer, as central inverters do."""
     b = c.b
-    if inverter.ac_voltage > 440:
-        raise DesignError(
-            f"{inverter.id} outputs {inverter.ac_voltage:g} V: the catalog has no LT breakers above 440 V and no {kv:g} kV transformer with that LV winding; "
-            "use a 400 V string inverter, or central inverters"
-        )
+    v = inverter.ac_voltage if inverter.ac_voltage > 440 else 415.0
+    inline = v != 415.0
     for blk in plan.blocks:
         g = b.group(f"block{blk.sfx}", "BLOCK", count=blk.count, part=blk.part, title=f"STRING INVERTER BLOCK ({blk.inverters} x {inverter.ac_rated_kva:g} kVA)")
         invs = inverter_groups(c, g, blk, inverter, module, plan.modules_per_string, False, Laying.AIR, True)
-        out = lv_board(c, g, blk.sfx, invs, 415.0, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")
-        try:
-            tr = pick_transformer(c.catalog, blk.inverters * inverter.ac_max_kva, kv)
-        except NoFit as e:
-            raise DesignError(f"block of {blk.inverters} inverters: {e}") from None
-        idt = b.node(f"idt{blk.sfx}", "IDT", NodeKind.TRANSFORMER, group=g, spec=tr.id)
+        out = lv_board(c, g, blk.sfx, invs, v, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")
+        if inline:
+            kva = blk.inverters * inverter.ac_max_kva
+            spec = inline_transformer(
+                f"idt-{kva:g}kva-{kv:g}-{v / 1000:g}-ynd11-project", f"{kva:g} kVA {kv:g}/{v / 1000:g} kV inverter-duty transformer", v, 1, kva, kv, f"ac_voltage of catalog {inverter.id}"
+            )  # fmt: skip
+            b.assume(inline_assumption("IDT-nn", spec, 1))
+        else:
+            try:
+                spec = pick_transformer(c.catalog, blk.inverters * inverter.ac_max_kva, kv).id
+            except NoFit as e:
+                raise DesignError(f"block of {blk.inverters} inverters: {e}") from None
+        idt = b.node(f"idt{blk.sfx}", "IDT", NodeKind.TRANSFORMER, group=g, spec=spec)
         b.edge(f"e_accb_idt{blk.sfx}", f"{out}:out", f"{idt}:lv", V.LV_AC, lv_hint(3), c.L("accb_idt"), Laying.TRENCH)
         block_feeder(c, g, blk.sfx, idt, kv, switch, block_aux=aux)
-    b.assume("Block transformers are catalog IS 1180 distribution transformers (0.433 kV LV) used as inverter-duty step-up transformers; confirm inverter-duty suitability with the vendor.")
+    if not inline:
+        b.assume("Block transformers are catalog IS 1180 distribution transformers (0.433 kV LV) used as inverter-duty step-up transformers; confirm inverter-duty suitability with the vendor.")
 
 
 def utility_string(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, switch: str, aux: bool, export_limit_kw: float | None) -> Built:
@@ -531,14 +539,14 @@ class DcBattery:
     def attach(self, c: Ctx, group: str, x: str, inv: str) -> None:
         b, bat = c.b, self.battery
         b.node(f"bat{x}", "BAT", NodeKind.BATTERY, group=group, count=self.per_inverter, spec=bat.id, title=f"{bat.energy_kwh:g} kWh BATTERY CONTAINER")
-        b.node(f"dcdc{x}", "DCDC", NodeKind.DC_FUSE_BOX, group=group, symbol="inv.optimiser", title="DC-DC CONVERTER", attributes={"function": "dc_dc_converter", "rated_kw": self.kw_per_inverter})
+        b.node(f"dcdc{x}", "DCDC", NodeKind.DC_DC_CONVERTER, group=group, title="DC-DC CONVERTER", attributes={"rated_kw": self.kw_per_inverter})
         i_bat = self.kw_per_inverter * 1000 / bat.voltage_min
         b.edge(f"e_bat_dcdc{x}", f"bat{x}:out", f"dcdc{x}:in", V.DC, EdgeHint(DC_FAMILY, nominal_a=i_bat / self.per_inverter / 1.25), c.L("bat_pcs"), Laying.TRENCH)
         b.edge(f"e_dcdc_inv{x}", f"dcdc{x}:out", f"{inv}:dc", V.DC, EdgeHint(DC_FAMILY, nominal_a=i_bat / 1.25), c.L("dcdc_inv"), Laying.TRENCH)
         b.earth(f"dcdc{x}")
         b.assume(
-            "The DC-DC converter is modelled as a dc_fuse_box-kind node (symbol inv.optimiser, attribute function=dc_dc_converter): the project model has no DC-DC "
-            "kind and the catalog no DC-DC converter, so it carries no spec, and the rules treat it as a pass-through. It takes one DC input of the inverter.",
+            "The DC-DC converter is a dc_dc_converter node (symbol inv.optimiser): the catalog has no DC-DC converter, so it carries no spec. It splits the battery "
+            "voltage zone from the inverter DC bus, and takes one DC input of the inverter.",
             f"DC-coupled storage: {self.per_inverter} x {bat.id} per inverter through one DC-DC converter rated {self.kw_per_inverter:g} kW (design choice); "
             f"its cables are sized for {self.kw_per_inverter:g} kW at the battery minimum voltage {bat.voltage_min:g} V (rules do not check them).",
         )

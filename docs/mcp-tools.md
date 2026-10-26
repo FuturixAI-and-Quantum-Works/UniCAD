@@ -147,7 +147,7 @@ Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="grow
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `id` | string | yes | Unique id for this equipment template, e.g. 'inv' |
-| `kind` | `pv_string` \| `pv_array_block` \| `scb` \| `dc_fuse_box` \| `dc_isolator` \| `dc_spd` \| `inverter` \| `pcs` \| `battery` \| `acdb` \| `lt_panel` \| `breaker` \| `isolator` \| `fuse` \| `ac_spd` \| `ct` \| `pt` \| `meter` \| `relay` \| `transformer` \| `aux_transformer` \| `ht_panel` \| `rmu` \| `vcb` \| `busbar` \| `lightning_arrester` \| `earth_electrode` \| `poi_grid` \| `dg` \| `load` | yes | Equipment kind |
+| `kind` | `pv_string` \| `pv_array_block` \| `scb` \| `dc_fuse_box` \| `dc_isolator` \| `dc_spd` \| `dc_dc_converter` \| `inverter` \| `pcs` \| `battery` \| `acdb` \| `lt_panel` \| `breaker` \| `isolator` \| `fuse` \| `ac_spd` \| `ct` \| `pt` \| `meter` \| `relay` \| `transformer` \| `aux_transformer` \| `ht_panel` \| `rmu` \| `vcb` \| `busbar` \| `lightning_arrester` \| `earth_electrode` \| `poi_grid` \| `dg` \| `load` | yes | Equipment kind |
 | `spec` | string | no | Catalog id from catalog_search (module, inverter, breaker, ...) |
 | `count` | integer | no | Instances per instance of its group, e.g. 10 strings per inverter Default: `1`. |
 | `group` | string | no | Id of the group it repeats with |

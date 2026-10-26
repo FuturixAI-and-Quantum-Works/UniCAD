@@ -32,6 +32,7 @@ class NodeKind(StrEnum):
     DC_FUSE_BOX = "dc_fuse_box"
     DC_ISOLATOR = "dc_isolator"
     DC_SPD = "dc_spd"
+    DC_DC_CONVERTER = "dc_dc_converter"
     INVERTER = "inverter"
     PCS = "pcs"
     BATTERY = "battery"
@@ -81,7 +82,7 @@ POWER_SERVICES = frozenset({Service.DC, Service.LV_AC, Service.MV_AC, Service.HV
 EARTH_PORT = "pe"
 SIGNAL_PORTS = frozenset({"sig", "sec"})
 SOURCE_KINDS = frozenset({NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK, NodeKind.BATTERY, NodeKind.DG, NodeKind.POI_GRID})
-CONVERTER_KINDS = frozenset({NodeKind.INVERTER, NodeKind.PCS, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER})
+CONVERTER_KINDS = frozenset({NodeKind.INVERTER, NodeKind.PCS, NodeKind.DC_DC_CONVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER})
 INLINE_SPEC_KINDS = frozenset({NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER})
 
 _INLINE = ("in", "out")
@@ -94,6 +95,7 @@ DEFAULT_PORTS: dict[NodeKind, tuple[str, ...]] = {
     NodeKind.LOAD: ("in",),
     NodeKind.INVERTER: ("dc", "ac"),
     NodeKind.PCS: ("dc", "ac"),
+    NodeKind.DC_DC_CONVERTER: ("in", "out"),
     NodeKind.TRANSFORMER: ("lv", "hv"),
     NodeKind.AUX_TRANSFORMER: ("hv", "lv"),
     NodeKind.BUSBAR: ("bus",),
@@ -118,6 +120,7 @@ KIND_SYMBOLS: dict[NodeKind, str] = {
     NodeKind.DC_SPD: "dc.spd",
     NodeKind.INVERTER: "inv.string",
     NodeKind.PCS: "inv.pcs",
+    NodeKind.DC_DC_CONVERTER: "inv.optimiser",
     NodeKind.BATTERY: "bat.bess",
     NodeKind.ISOLATOR: "sw.isolator",
     NodeKind.FUSE: "sw.hrc_fuse",

@@ -15,6 +15,7 @@ from unicad.domain.project import Project, Segment
 from unicad.domain.site import Setbacks
 from unicad.ingest.site_import import import_site
 from unicad.rules import Severity, run_rules
+from unicad.rules.topology import zone_at
 from unicad.store import parse_project
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -134,19 +135,41 @@ def test_bess_and_hybrid_put_storage_behind_its_own_transformer_on_the_mv_bus(bu
 
 def test_dc_coupled_storage_reaches_the_inverter_through_a_dc_dc_converter(built):
     net = built["bess_dc"].project.network
-    assert chain(net, "bat")[:3] == ["battery", "dc_fuse_box", "inverter"]
+    assert chain(net, "bat")[:3] == ["battery", "dc_dc_converter", "inverter"]
     dcdc = net.node("dcdc")
-    assert dcdc.symbol == "inv.optimiser" and dcdc.attributes["function"] == "dc_dc_converter"
-    assert any("DC-DC converter is modelled" in a for a in built["bess_dc"].assumptions)
+    assert dcdc.kind is NodeKind.DC_DC_CONVERTER and dcdc.symbol_key(CATALOG) == "inv.optimiser" and dcdc.attributes["rated_kw"] > 0
+    assert dcdc.port_names == ("in", "out")
+    assert not net.by_kind(NodeKind.DC_FUSE_BOX) or all(n.id != "dcdc" for n in net.by_kind(NodeKind.DC_FUSE_BOX))
+    battery_side, bus_side = zone_at(net, "dcdc", "in"), zone_at(net, "dcdc", "out")
+    assert battery_side is not None and bus_side is not None and battery_side != bus_side and "bat" in battery_side.node_ids
+    assert any("dc_dc_converter node" in a for a in built["bess_dc"].assumptions)
 
 
-def test_residential_reports_the_catalog_gap_and_single_phase_is_blocked(built):
+def test_residential_three_phase_picks_a_real_ten_kilowatt_inverter(built):
     r = built["residential"]
-    assert any("catalog gap" in b for b in r.blockers)
+    assert r.blockers == ()
+    inv = r.project.network.node("inv").spec
+    assert CATALOG.get(inv).phases == 3 and CATALOG.get(inv).ac_rated_kva == 10
     assert chain(r.project.network, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "meter", "lt_panel", "meter", "poi_grid"]
-    one_phase = blank("rooftop_500kwp", segment="residential")
-    with pytest.raises(DesignError, match="1-phase"):
-        autobuild(one_phase, CATALOG, {"template": "residential", "ac_kw": 5, "module": ROOF_MOD, "grid_voltage_v": 230})
+
+
+def test_residential_single_phase_builds_with_a_real_one_phase_inverter_at_zero_errors():
+    r = autobuild(blank("rooftop_500kwp", segment="residential"), CATALOG, {"template": "residential", "ac_kw": 5, "module": ROOF_MOD, "grid_voltage_v": 230})
+    assert_clean(r)
+    assert r.blockers == () and r.project.design_basis.grid.phases == 1
+    spec = CATALOG.get(r.project.network.node("inv").spec)
+    assert (spec.phases, spec.ac_rated_kva, spec.ac_voltage) == (1, 5, 230)
+    assert any("1-phase string inverter that takes the module and covers 5 kW" in a for a in r.assumptions)
+    assert chain(r.project.network, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "meter", "lt_panel", "meter", "poi_grid"]
+    assert r.project.network.node("inv_brk").spec.startswith("schneider-ic60n") or CATALOG.get(r.project.network.node("inv_brk").spec).rated_voltage >= 230
+
+
+def test_residential_inverter_is_the_smallest_that_covers_the_load_and_takes_the_module():
+    picks = {kw: CATALOG.get(autobuild(blank("rooftop_500kwp", segment="residential"), CATALOG, {"template": "residential", "ac_kw": kw, "module": ROOF_MOD, "grid_voltage_v": 230}).project.network.node("inv").spec) for kw in (3, 6)}
+    assert picks[3].ac_rated_kva == 3 and picks[6].ac_rated_kva == 6
+    assert all(p.phases == 1 for p in picks.values())
+    gap = autobuild(blank("rooftop_500kwp", segment="residential"), CATALOG, {"template": "residential", "ac_kw": 0.4, "module": ROOF_MOD, "grid_voltage_v": 230})
+    assert any("catalog gap" in b for b in gap.blockers)
 
 
 def test_ht_rooftop_steps_up_through_a_catalog_transformer_and_rmu(built):
@@ -156,14 +179,27 @@ def test_ht_rooftop_steps_up_through_a_catalog_transformer_and_rmu(built):
     assert net.node("net_meter").spec == "generic-meter-net-ct_pt-0.5s"
 
 
+def test_800v_string_inverters_build_with_a_project_idt_and_1150v_breakers():
+    r = autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_string", "ac_kw": 20000, "module": UTIL_MOD, "inverter": "sungrow-sg350hx"})
+    assert r.errors == ()
+    net = r.project.network
+    idt = net.node("idt").spec
+    assert isinstance(idt, TransformerSpec) and idt.lv_kv == (0.8,) and idt.hv_kv == 33 and idt.manufacturer == "Project-specific"
+    assert CATALOG.get(net.node("inv_brk").spec).rated_voltage >= 800 and CATALOG.get(net.node("acdb_brk").spec).rated_voltage >= 800
+    assert any("project-specific inline spec (idt-2112kva-33-0.8-ynd11-project)" in a and "BHEL PS 439-1304" in a for a in r.assumptions)
+    assert any("ACCB-SPD" in b and "no catalog spd_ac" in b for b in r.blockers)
+
+
 def test_unsupported_intents_say_what_blocks():
-    with pytest.raises(DesignError, match="800 V"):
-        autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_string", "ac_kw": 20000, "module": UTIL_MOD, "inverter": "sungrow-sg350hx"})
     with pytest.raises(DesignError, match="needs ac_kw, dc_kwp or a layout"):
         autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_central"})
+
+
+def test_large_hybrid_is_not_blocked_by_the_outgoing_vcb_rating():
     big = autobuild(blank("utility_50mwac", segment="hybrid"), CATALOG, {"template": "hybrid", "ac_kw": 50000, "module": UTIL_MOD, "inverter": CENTRAL, "bess_kw": 20000})
-    assert any(b.startswith("VCB-OG-01") and "no catalog vcb" in b for b in big.blockers)
-    assert big.errors == ()
+    assert big.blockers == () and big.errors == ()
+    vcb = CATALOG.get(big.project.network.node("out_vcb").spec)
+    assert (vcb.rated_voltage, vcb.rated_current) == (36000, 1600) and vcb.rated_current >= 1.25 * 70000 / (3**0.5 * 33)
 
 
 # ---------------- comparable to the hand fixtures ----------------

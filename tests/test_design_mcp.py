@@ -31,7 +31,8 @@ def test_project_create_autobuild_validate_over_stdio(tmp_path):
             again = await c.call("network_autobuild", project_id=pid, template="ci_rooftop", ac_kw=500, module=MODULE, inverter=INVERTER)
             assert not again["changed"] and again["revision"] == 2
 
-            assert "800 V" in await c.fail("network_autobuild", project_id=pid, template="utility_string", ac_kw=20000, inverter="sungrow-sg350hx", grid_voltage_v=33000)
+            hv = await c.call("network_autobuild", project_id=pid, template="utility_string", ac_kw=20000, inverter="sungrow-sg350hx", grid_voltage_v=33000)
+            assert hv["rules"]["error"] == 0 and any("0.8-ynd11-project" in a and "BHEL PS 439-1304" in a for a in hv["assumptions"])
 
     asyncio.run(asyncio.wait_for(run(), 120))
 

@@ -11,9 +11,10 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec, ModuleSpec, ProtectionSpec, TransformerSpec
 from unicad.domain.layout import ArrayLayout, StringAssignment
 from unicad.domain.network import ElectricalNetwork
-from unicad.domain.project import GridConnection, Project, Segment
+from unicad.domain.project import DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.plan import PvPlan, from_layout, uniform
+from unicad.design.routed import PLACEHOLDER, route, routed_statement
 from unicad.design.sizing import size_network
 from unicad.design.strings import DesignError, StringDesign, size_strings
 from unicad.rules import Finding, Severity, run_rules
@@ -94,12 +95,29 @@ def _module(catalog: Catalog, module_id: str | None, notes: list[str]) -> Module
     return m
 
 
-def _inverter(catalog: Catalog, inv_id: str | None, template: str, grid: GridConnection, notes: list[str]) -> InverterSpec:
+def _residential_inverter(pool: list[InverterSpec], module: ModuleSpec, basis: DesignBasis, target_kw: float, phases: int, notes: list[str]) -> InverterSpec | None:
+    """The smallest inverter of the pool that takes the module and covers `target_kw`, else the largest that takes the module."""
+    usable = []
+    for i in pool:
+        try:
+            size_strings(module, i, basis)
+        except DesignError:
+            continue
+        usable.append(i)
+    if not usable:
+        notes.append(f"No catalogued {phases}-phase string inverter accepts one string of {module.id} (Isc x 1.25 over the per-MPPT short-circuit limit or Voc over the DC maximum).")
+        return None
+    covering = [i for i in usable if i.ac_rated_kva >= target_kw - 1e-9]
+    return min(covering, key=lambda i: (i.ac_rated_kva, i.id)) if covering else max(usable, key=lambda i: (i.ac_rated_kva, i.id))
+
+
+def _inverter(catalog: Catalog, inv_id: str | None, template: str, project: Project, module: ModuleSpec, target_kw: float, notes: list[str]) -> InverterSpec:
     if inv_id:
         i = catalog.get(inv_id)
         if not isinstance(i, InverterSpec):
             raise DesignError(f"{inv_id!r} is a {i.kind}, not an inverter")
         return i
+    grid = project.design_basis.grid
     phases = grid.phases
     lt_v = grid.voltage_v if grid.voltage_v <= 1000 else 415.0
     invs = [i for i in catalog.filter("inverter") if isinstance(i, InverterSpec)]
@@ -110,8 +128,8 @@ def _inverter(catalog: Catalog, inv_id: str | None, template: str, grid: GridCon
         pick = max(pool, key=lambda i: (i.ac_rated_kva, i.id), default=None)
     elif template == "residential":
         pool = [i for i in lt_ok if i.topology == "string" and i.phases == phases]
-        why = f"smallest {phases}-phase string inverter"
-        pick = min(pool, key=lambda i: (i.ac_rated_kva, i.id), default=None)
+        why = f"smallest {phases}-phase string inverter that takes the module and covers {target_kw:g} kW"
+        pick = _residential_inverter(pool, module, project.design_basis, target_kw, phases, notes)
     else:
         pool = [i for i in lt_ok if i.topology == "string" and i.phases == 3]
         why = "largest 400 V three-phase string inverter"
@@ -245,7 +263,7 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
         if not (intent.ac_kw or intent.dc_kwp or lay is not None):
             raise DesignError(f"template {template} needs ac_kw, dc_kwp or a layout")
         module = _module(catalog, intent.module, notes)
-        inverter = _inverter(catalog, intent.inverter, template, basis.grid, notes)
+        inverter = _inverter(catalog, intent.inverter, template, project, module, (intent.ac_kw or (intent.dc_kwp or 0.0) / basis.dc_ac_ratio_target), notes)
         sd = size_strings(module, inverter, basis, intent.modules_per_string)
         plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis.dc_ac_ratio_target, basis.grid.voltage_v / 1000)
         if plan.unstrung_modules:
@@ -301,10 +319,26 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
         sheets.append(sh)
     draft = project.model_copy(update={"network": net, "array_layout": array_layout, "sheets": tuple(sheets)})
     sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
+    routed = None
+    if linked:
+        routed = route(sizing.project, catalog, b.edge_roles, frozenset(intent.lengths))
+        if routed.lengths:
+            edges = tuple(e.model_copy(update={"length_m": routed.lengths[e.id]}) if e.id in routed.lengths else e for e in draft.network.edges)
+            draft = draft.model_copy(update={"network": draft.network.model_copy(update={"edges": edges})})
+            sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
     sized = Project.model_validate(sizing.project.model_dump(mode="json"), context={"catalog": catalog})
     report = run_rules(sized, catalog)
     findings = tuple(f for f in report.findings if f.severity is not Severity.INFO)
     summary = summarize(sized, catalog) | {"strings_linked": len(linked), "segment_hint": TEMPLATE_SEGMENT[template].value}
+    template_assumptions = list(b.assumptions)
+    if routed is not None and routed.lengths:
+        summary["routed_edges"] = len(routed.lengths)
+        template_assumptions = [a for a in template_assumptions if not a.startswith(PLACEHOLDER)]
+        left = sorted({role for eid, role in b.edge_roles.items() if eid not in routed.lengths and role not in intent.lengths})
+        template_assumptions += [routed_statement(routed), *routed.statements]
+        if left:
+            template_assumptions.append(f"Cable route lengths still design placeholders (not measurable on the layout): {', '.join(f'{k} {lengths[k]:g} m' for k in left)}.")
+        notes.extend(routed.notes)
     if sd is not None:
         summary |= {"modules_per_string": plan.modules_per_string, "inverters": plan.inverters, "strings": plan.strings}
     return AutobuildResult(
@@ -314,6 +348,6 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
         counts=report.counts,
         findings=findings,
         blockers=tuple(dict.fromkeys([*built.blockers, *sizing.blockers])),
-        assumptions=tuple(dict.fromkeys([*notes, *(sd.assumptions if sd else ()), *b.assumptions, *sizing.assumptions])),
+        assumptions=tuple(dict.fromkeys([*notes, *(sd.assumptions if sd else ()), *template_assumptions, *sizing.assumptions])),
         summary=summary,
     )

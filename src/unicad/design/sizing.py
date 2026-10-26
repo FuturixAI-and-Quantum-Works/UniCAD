@@ -1,5 +1,6 @@
 """Size protection and cables on a built network with the rules engine's own design currents, then upsize cables until voltage drop fits."""
 
+import math
 from dataclasses import dataclass, field
 
 from unicad.catalog.store import Catalog
@@ -18,10 +19,11 @@ from unicad.design.select import (
     pick_lv_breaker,
     pick_rated,
 )
-from unicad.rules.cables import OVERLOAD_DEVICES, needs_cable, phases
+from unicad.rules.cables import K_BY_CABLE, OVERLOAD_DEVICES, needs_cable, phases
+from unicad.rules.faults import fault_at
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import CONTINUOUS_FACTOR
-from unicad.rules.topology import GENERATORS, design_current, edge_current, string_feeds, zone_at
+from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, edge_zone, string_feeds, zone_at
 from unicad.rules.vdrop import segment_drop
 
 MAX_VDROP_STEPS = 400
@@ -78,12 +80,15 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
         voc = max(max_dc_voc(project, catalog, node_id) or 0.0, hint.voltage_v or 0.0)
         return pick_rated(catalog, ["dc_isolator"], amps, voc, hint.poles).id
     need = k * amps
-    if role == "lv_breaker":
-        s.assumptions.append(BREAKING_ASSUMPTION)
-        return pick_lv_breaker(catalog, need, v or 0.0, hint.poles).id
-    if role == "vcb":
-        s.assumptions.append(BREAKING_ASSUMPTION)
-        return pick_rated(catalog, ["vcb"], need, v or 0.0, (3,)).id
+    if role in ("lv_breaker", "vcb"):
+        fault = fault_at(project.design_basis, v)
+        if fault is None:
+            s.assumptions.append(BREAKING_ASSUMPTION)
+        else:
+            s.assumptions.append(f"Breaking capacity at {fault.voltage_v:g} V is chosen at or above the {fault.ka:g} kA fault level from {fault.where}.")
+        if role == "lv_breaker":
+            return pick_lv_breaker(catalog, need, v or 0.0, hint.poles, fault.ka if fault else None).id
+        return pick_rated(catalog, ["vcb"], need, v or 0.0, (3,), fault.ka if fault else None).id
     if role == "ac_isolator":
         return pick_rated(catalog, ["ac_isolator", "sfu"], need, v or 0.0, hint.poles).id
     raise ValueError(f"unknown node sizing role {role!r}")
@@ -123,9 +128,26 @@ def _need(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing
     return max(amps, _device_in(project, catalog, e.src_node), _device_in(project, catalog, e.dst_node))
 
 
-def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint) -> list[CableOption]:
+def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:
     ph = phases(project, catalog, e) if e.service is not Service.DC else 1
-    return cable_options(catalog, hint.family, e.laying, ph, hint.runs)
+    options = cable_options(catalog, hint.family, e.laying, ph, hint.runs)
+    if e.service not in AC_SERVICES:
+        return options
+    zone = edge_zone(project.network, e)
+    fault = fault_at(project.design_basis, zone.voltage_v if zone else None)
+    if fault is None:
+        return options
+    s.assumptions.append(
+        f"AC cables in the {fault.voltage_v:g} V zone are sized for conductor area x runs >= I sqrt(t) / k with the {fault.ka:g} kA fault level cleared in {fault.clearing_s:g} s "
+        f"({fault.where}), k from the cited XLPE constants; the fault is taken at the cable's source end and only the conductor is checked."
+    )
+    s.assumptions.extend(fault.assumptions)
+
+    def withstands(o: CableOption) -> bool:
+        k = K_BY_CABLE.get((o.cable.conductor, o.cable.insulation))
+        return k is None or o.cable.size_mm2 * o.runs >= fault.ka * 1000 * math.sqrt(fault.clearing_s) / k.value - 1e-9
+
+    return [o for o in options if withstands(o)]
 
 
 def _apply(e: Edge, o: CableOption) -> Edge:
@@ -141,9 +163,9 @@ def size_cables(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], 
             edges.append(e)
             continue
         need = _need(project, catalog, e, hint, s)
-        fits = [o for o in _options(project, catalog, e, hint) if o.iz >= need - 1e-9]
+        fits = [o for o in _options(project, catalog, e, hint, s) if o.iz >= need - 1e-9]
         if not fits:
-            s.blockers.append(f"edge {e.id}: no {hint.family.name} cable option carries {need:.1f} A laid '{e.laying}' within {hint.family.max_runs} runs")
+            s.blockers.append(f"edge {e.id}: no {hint.family.name} cable option carries {need:.1f} A laid '{e.laying}' within {hint.family.max_runs} runs (and withstands the fault level where design_basis.fault_levels names its voltage)")
             edges.append(e)
             continue
         s.chosen[e.id] = fits[0]
@@ -206,7 +228,7 @@ def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s:
                     continue
                 e, cur = net.edge_by_id[eid], s.chosen[eid]
                 need = _need(project, catalog, e, hints[eid], s)
-                better = [o for o in _options(project, catalog, e, hints[eid]) if o.iz >= need - 1e-9 and o.r_eff < cur.r_eff - 1e-12 and o.cost >= cur.cost]
+                better = [o for o in _options(project, catalog, e, hints[eid], s) if o.iz >= need - 1e-9 and o.r_eff < cur.r_eff - 1e-12 and o.cost >= cur.cost]
                 if not better:
                     continue
                 s.chosen[eid] = better[0]

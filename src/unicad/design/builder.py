@@ -45,6 +45,8 @@ class NetBuilder:
     edges: list[dict[str, Any]] = field(default_factory=list)
     node_hints: dict[str, NodeHint] = field(default_factory=dict)
     edge_hints: dict[str, EdgeHint] = field(default_factory=dict)
+    edge_roles: dict[str, str] = field(default_factory=dict)
+    last_role: str | None = None
     assumptions: list[str] = field(default_factory=list)
     earth_title: str = "MAIN EARTH GRID"
     _earthed: set[str] = field(default_factory=set)
@@ -101,6 +103,9 @@ class NetBuilder:
         **kw: Any,
     ) -> str:
         self.edges.append({"id": id, "src": src, "dst": dst, "service": service.value, "length_m": length_m, "laying": laying.value if laying else None, **kw})
+        if length_m is not None and self.last_role is not None:
+            self.edge_roles[id] = self.last_role
+        self.last_role = None
         if hint is not None:
             self.edge_hints[id] = hint
         return id

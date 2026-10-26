@@ -9,12 +9,13 @@ from unicad.domain.catalog import CableSpec, MeterSpec, ProtectionSpec, Transfor
 from unicad.design.strings import DesignError
 from unicad.domain.network import Laying
 from unicad.rules.cables import table_ampacity
+from unicad.rules.protection import covers_fault
 
 # Placeholder minimum breaking capacities: no fault study exists at this stage, so these only stop the
 # picker from choosing the lowest-duty frame. They are reported as assumptions wherever they are used.
 MIN_BREAKING_KA = {"mcb": 10.0, "mccb": 25.0, "acb": 42.0, "vcb": 20.0}
 BREAKING_ASSUMPTION = (
-    "Breaking capacities are not checked against a fault level (no fault study yet). The picker takes the lowest catalogued breaking capacity "
+    "Breaking capacities are not checked against a fault level (none in design_basis.fault_levels for the device's voltage). The picker takes the lowest catalogued breaking capacity "
     "at or above a placeholder minimum (MCB 10 kA, MCCB 25 kA, ACB 42 kA, VCB 20 kA); confirm against the fault study."
 )
 SPD_AC_UC_FACTOR = 1.1
@@ -37,8 +38,13 @@ def _breaking_key(spec: ProtectionSpec) -> tuple:
     return (0, bc) if bc >= floor else (1, -bc)
 
 
-def pick_rated(catalog: Catalog, devices: Iterable[str], need_a: float, voltage_v: float, poles: Iterable[int]) -> ProtectionSpec:
-    """Smallest rated current >= need_a among `devices`, rated for voltage_v, with one of `poles` (first preferred)."""
+def pick_rated(
+    catalog: Catalog, devices: Iterable[str], need_a: float, voltage_v: float, poles: Iterable[int], fault_ka: float | None = None
+) -> ProtectionSpec:
+    """Smallest rated current >= need_a among `devices`, rated for voltage_v, with one of `poles` (first preferred).
+
+    With `fault_ka` only devices whose breaking capacity (and, for vacuum breakers, short-time withstand) covers the fault level qualify, and the
+    smallest breaking capacity that does is preferred; without it the lowest capacity at or above the placeholder minimum is."""
     poles = tuple(poles)
     fits = [
         s
@@ -46,21 +52,27 @@ def pick_rated(catalog: Catalog, devices: Iterable[str], need_a: float, voltage_
         if s.rated_current is not None and s.rated_current >= need_a - 1e-9 and s.rated_voltage >= voltage_v and s.poles in poles
         and (s.device not in MIN_BREAKING_KA or s.breaking_capacity_ka is not None)
     ]
+    if fault_ka is not None:
+        fits = [s for s in fits if s.device not in MIN_BREAKING_KA or covers_fault(s, fault_ka)]
+        if not fits:
+            raise NoFit(f"no catalog {'/'.join(devices)} rated >= {need_a:.1f} A at {voltage_v:g} V with {'/'.join(map(str, poles))} poles and breaking capacity >= {fault_ka:g} kA")
     if not fits:
         raise NoFit(f"no catalog {'/'.join(devices)} rated >= {need_a:.1f} A at {voltage_v:g} V with {'/'.join(map(str, poles))} poles")
+    if fault_ka is not None:
+        return min(fits, key=lambda s: (s.rated_current, poles.index(s.poles), s.breaking_capacity_ka or 0.0, s.id))
     return min(fits, key=lambda s: (s.rated_current, poles.index(s.poles), _breaking_key(s), s.id))
 
 
-def pick_lv_breaker(catalog: Catalog, need_a: float, voltage_v: float, poles: Iterable[int]) -> ProtectionSpec:
+def pick_lv_breaker(catalog: Catalog, need_a: float, voltage_v: float, poles: Iterable[int], fault_ka: float | None = None) -> ProtectionSpec:
     """MCB up to 63 A, MCCB up to 630 A, ACB above (Indian LT panel practice); falls through to the next type when none fits."""
     poles = tuple(poles)
     for device, upto in LV_BREAKER_LADDER:
         if need_a <= upto:
             try:
-                return pick_rated(catalog, [device], need_a, voltage_v, poles)
+                return pick_rated(catalog, [device], need_a, voltage_v, poles, fault_ka)
             except NoFit:
                 continue
-    return pick_rated(catalog, ["acb", "mccb"], need_a, voltage_v, poles)
+    return pick_rated(catalog, ["acb", "mccb"], need_a, voltage_v, poles, fault_ka)
 
 
 def pick_by_voltage(catalog: Catalog, device: str, need_v: float, poles: Iterable[int] = (1, 2, 3, 4)) -> ProtectionSpec:
