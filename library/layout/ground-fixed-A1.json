@@ -11,7 +11,7 @@
   "area_used_m2": 646256.9,
   "strings": 5210,
   "unstrung_modules": 0,
-  "block_balance": 0.038
+  "block_balance": 0.10883
  },
  "pitch": {
   "method": "solstice",
@@ -26,73 +26,109 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 401,
-   "tables_half": 63,
-   "modules": 24220,
-   "dc_kwp": 13078.8,
+   "tables_full": 280,
+   "tables_half": 53,
+   "modules": 17164,
+   "dc_kwp": 9268.56,
    "station": {
-    "x": 170.454,
+    "x": 126.103,
     "y": 228.626
    }
   },
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 425,
-   "tables_half": 31,
-   "modules": 24668,
-   "dc_kwp": 13320.72,
+   "tables_full": 295,
+   "tables_half": 21,
+   "modules": 17108,
+   "dc_kwp": 9238.32,
    "station": {
-    "x": 444.938,
-    "y": 279.404
+    "x": 335.759,
+    "y": 319.412
    }
   },
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 415,
-   "tables_half": 25,
-   "modules": 23940,
-   "dc_kwp": 12927.6,
+   "tables_full": 286,
+   "tables_half": 30,
+   "modules": 16856,
+   "dc_kwp": 9102.24,
    "station": {
-    "x": 793.572,
-    "y": 319.412
+    "x": 167.423,
+    "y": 591.768
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 414,
-   "tables_half": 42,
-   "modules": 24360,
-   "dc_kwp": 13154.4,
+   "tables_full": 295,
+   "tables_half": 10,
+   "modules": 16800,
+   "dc_kwp": 9072.0,
    "station": {
-    "x": 188.807,
+    "x": 495.936,
     "y": 682.554
    }
   },
   {
    "id": "B05",
    "name": "BLOCK-05",
-   "tables_full": 420,
-   "tables_half": 13,
-   "modules": 23884,
-   "dc_kwp": 12897.36,
+   "tables_full": 269,
+   "tables_half": 24,
+   "modules": 15736,
+   "dc_kwp": 8497.44,
    "station": {
-    "x": 494.06,
-    "y": 682.554
+    "x": 513.237,
+    "y": 228.626
    }
   },
   {
    "id": "B06",
    "name": "BLOCK-06",
-   "tables_full": 425,
-   "tables_half": 36,
-   "modules": 24808,
-   "dc_kwp": 13396.32,
+   "tables_full": 270,
+   "tables_half": 23,
+   "modules": 15764,
+   "dc_kwp": 8512.56,
    "station": {
-    "x": 764.015,
-    "y": 682.554
+    "x": 811.421,
+    "y": 228.626
+   }
+  },
+  {
+   "id": "B07",
+   "name": "BLOCK-07",
+   "tables_full": 277,
+   "tables_half": 0,
+   "modules": 15512,
+   "dc_kwp": 8376.48,
+   "station": {
+    "x": 669.873,
+    "y": 500.983
+   }
+  },
+  {
+   "id": "B08",
+   "name": "BLOCK-08",
+   "tables_full": 264,
+   "tables_half": 27,
+   "modules": 15540,
+   "dc_kwp": 8391.6,
+   "station": {
+    "x": 851.392,
+    "y": 591.768
+   }
+  },
+  {
+   "id": "B09",
+   "name": "BLOCK-09",
+   "tables_full": 264,
+   "tables_half": 22,
+   "modules": 15400,
+   "dc_kwp": 8316.0,
+   "station": {
+    "x": 424.033,
+    "y": 864.125
    }
   }
  ],
@@ -101,6 +137,8 @@
   "gap between tables along a row: 1.5 (default, not from a cited source)",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
- "warnings": [],
+ "warnings": [
+  "9 blocks instead of 6 so that no block crosses a road or line corridor and the blocks stay balanced"
+ ],
  "target_reached": null
 }

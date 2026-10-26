@@ -11,7 +11,7 @@
   "area_used_m2": 242635.7,
   "strings": 2141,
   "unstrung_modules": 0,
-  "block_balance": 0.02102
+  "block_balance": 0.07286
  },
  "pitch": {
   "method": "solstice",
@@ -26,60 +26,72 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 216,
+   "tables_full": 181,
    "tables_half": 0,
-   "modules": 12096,
-   "dc_kwp": 6531.84,
+   "modules": 10136,
+   "dc_kwp": 5473.44,
    "station": {
-    "x": 144.699,
+    "x": 114.055,
     "y": 90.944
    }
   },
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 210,
-   "tables_half": 5,
-   "modules": 11900,
-   "dc_kwp": 6426.0,
+   "tables_full": 178,
+   "tables_half": 4,
+   "modules": 10080,
+   "dc_kwp": 5443.2,
    "station": {
-    "x": 149.052,
+    "x": 132.651,
     "y": 342.774
    }
   },
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 200,
-   "tables_half": 34,
-   "modules": 12152,
-   "dc_kwp": 6562.08,
+   "tables_full": 168,
+   "tables_half": 30,
+   "modules": 10248,
+   "dc_kwp": 5533.92,
    "station": {
-    "x": 512.196,
-    "y": 90.944
+    "x": 335.304,
+    "y": 174.887
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 203,
-   "tables_half": 19,
-   "modules": 11900,
-   "dc_kwp": 6426.0,
+   "tables_full": 179,
+   "tables_half": 8,
+   "modules": 10248,
+   "dc_kwp": 5533.92,
    "station": {
-    "x": 367.388,
-    "y": 258.831
+    "x": 433.862,
+    "y": 426.718
    }
   },
   {
    "id": "B05",
    "name": "BLOCK-05",
-   "tables_full": 207,
-   "tables_half": 11,
-   "modules": 11900,
-   "dc_kwp": 6426.0,
+   "tables_full": 165,
+   "tables_half": 17,
+   "modules": 9716,
+   "dc_kwp": 5246.64,
    "station": {
-    "x": 573.579,
+    "x": 527.651,
+    "y": 90.944
+   }
+  },
+  {
+   "id": "B06",
+   "name": "BLOCK-06",
+   "tables_full": 165,
+   "tables_half": 10,
+   "modules": 9520,
+   "dc_kwp": 5140.8,
+   "station": {
+    "x": 571.792,
     "y": 258.831
    }
   }
@@ -89,6 +101,9 @@
   "gap between tables along a row: 1.5 (default, not from a cited source)",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
- "warnings": [],
+ "warnings": [
+  "6 blocks instead of 5 so that no block crosses a road or line corridor and the blocks stay balanced",
+  "some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than 10%"
+ ],
  "target_reached": null
 }

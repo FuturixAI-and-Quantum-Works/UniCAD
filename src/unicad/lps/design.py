@@ -130,7 +130,7 @@ def candidates(project: Project, radius: float) -> tuple[np.ndarray, list[str | 
     tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
     stations = unary_union([SPoint(b.station.x, b.station.y).buffer(6.0) for b in layout.blocks if b.station is not None]) if layout is not None else Polygon()
     pts, where = [], []
-    spacing = max(3.0, min(radius / 4, 25.0))
+    spacing = max(3.0, min(radius / 8, 12.0))
     if is_rooftop(project):
         for rid, poly in roofs(project):
             free = poly.buffer(-0.5).difference(tables.buffer(0.3)).difference(stations)

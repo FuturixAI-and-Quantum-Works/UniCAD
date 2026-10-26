@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 from shapely import STRtree
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
+from shapely.geometry import Point as ShapelyPoint
 from shapely.ops import unary_union
 
-from unicad.arrays import MountingKind, PlacementError, PlacementSpec, place_array, table_polygon
+from unicad.arrays import MountingKind, PlacementError, PlacementSpec, place_array, table_centre, table_polygon
 from unicad.arrays.strings import serpentine
 from unicad.arrays.sun import fixed_tilt_gap, sun_path, sun_position, tracker_pitch
 from unicad.catalog.store import load_catalog
@@ -107,14 +108,50 @@ def test_pitch_shorter_than_the_table_is_rejected(ground):
         place_array(ground, PlacementSpec(module=MODULE_ID, tilt_deg=25, pitch_method="explicit", pitch_m=2.0), MODULE)
 
 
-def test_blocks_are_balanced_within_five_percent(fixed):
+def _sides(site: SiteGeometry):
+    """Pieces of the site between the 132 kV corridor and the access road, the road carried on past its dead end to the corridor."""
+    feats = {f.id: f for f in site.features}
+    corridor = shape_of(feats["132-kv-transmission-corridor"])
+    road = feats["access-road"]
+    line = shape_of(road)
+    cs = list(line.coords)
+    inside = shape_of(feats["site-boundary"]).contains(ShapelyPoint(cs[-1]))
+    (x0, y0), (x1, y1) = cs[-2:] if inside else cs[1::-1]
+    n = math.hypot(x1 - x0, y1 - y0)
+    beyond = LineString([(x1, y1), (x1 + (x1 - x0) / n * 2000, y1 + (y1 - y0) / n * 2000)])
+    rest = beyond.difference(corridor)
+    beyond = min(getattr(rest, "geoms", [rest]), key=lambda g: g.distance(ShapelyPoint(x1, y1)))
+    cut = unary_union([corridor, line.buffer(road.width_m / 2), beyond.buffer(0.05)])
+    return [g for g in shape_of(feats["site-boundary"]).difference(cut).geoms if g.area > 100]
+
+
+def test_blocks_keep_to_one_side_of_every_corridor_and_stay_balanced(ground, fixed):
+    sides = _sides(ground)
+    assert len(sides) >= 3
+    for b in fixed.layout.blocks:
+        hit = {i for t in b.tables for i, s in enumerate(sides) if s.contains(ShapelyPoint(table_centre(t)))}
+        assert len(hit) == 1, (b.id, hit)
     caps = [b.dc_kwp for b in fixed.blocks]
-    assert len(caps) == math.ceil(fixed.metrics.dc_kwp / 15000)
     assert all(c <= 15000 for c in caps)
-    mean = sum(caps) / len(caps)
-    assert (max(caps) - min(caps)) / mean < 0.05
-    assert fixed.metrics.block_balance < 0.05
+    assert len(caps) >= math.ceil(fixed.metrics.dc_kwp / 15000)
+    assert fixed.metrics.block_balance < 0.11
+    assert any("no block crosses" in w for w in fixed.warnings)
     assert sum(caps) == pytest.approx(fixed.metrics.dc_kwp, abs=0.01)
+
+
+def test_blocks_without_corridors_are_balanced_within_five_percent(ground):
+    plain = ground.with_features([f for f in ground.features if f.kind not in (FeatureKind.TRANSMISSION_LINE, FeatureKind.ROAD)])
+    r = place_array(plain, PlacementSpec(module=MODULE_ID, tilt_deg=25, road_every_rows=12, block_dc_kwp=15000, latitude_deg=27.0), MODULE)
+    caps = [b.dc_kwp for b in r.blocks]
+    assert len(caps) == math.ceil(r.metrics.dc_kwp / 15000) and all(c <= 15000 for c in caps)
+    assert r.metrics.block_balance < 0.05
+
+
+def test_a_fixed_block_count_may_cross_a_corridor_and_says_so(ground):
+    r = place_array(ground, PlacementSpec(module=MODULE_ID, mounting="tracker_1p", table_rows=1, table_cols=56, half_cols=28, road_every_rows=20,
+                                          road_width_m=6, n_blocks=5), MODULE)  # fmt: skip
+    assert len(r.blocks) == 5 and r.metrics.block_balance < 0.05
+    assert any("cross a road or line corridor" in w for w in r.warnings)
 
 
 def test_blocks_are_spatially_compact(ground, fixed):

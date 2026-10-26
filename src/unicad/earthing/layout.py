@@ -74,6 +74,16 @@ class Switchyard:
         return box(self.x0, self.y0, self.x1, self.y1)
 
 
+@dataclass(frozen=True)
+class StationGroup:
+    """One equipment area (an inverter station or the plant panel area): its ring and the pits and items placed with it."""
+
+    name: str
+    ring: tuple[float, float, float, float]
+    pits: tuple[str, ...]
+    items: tuple[str, ...]
+
+
 @dataclass
 class EarthingLayout:
     items: list[Item] = field(default_factory=list)
@@ -81,6 +91,7 @@ class EarthingLayout:
     runs: list[Run] = field(default_factory=list)
     tables: dict[str, Table] = field(default_factory=dict)
     switchyard: Switchyard | None = None
+    stations: list[StationGroup] = field(default_factory=list)
     rooftop: bool = False
     warnings: list[str] = field(default_factory=list)
 
@@ -170,7 +181,7 @@ def _two_connections(p: tuple[float, float], ring: list[tuple[float, float]]) ->
 
 
 def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[tuple[str, str, NodeKind]], label: str, sizes: Sizes,
-                  on_roof: bool = False, pit_at: tuple[float, float] | None = None) -> None:  # fmt: skip
+                  on_roof: bool = False, name: str | None = None) -> None:  # fmt: skip
     """Equipment cluster with a local ring, each item bonded to the ring by its connections, and its pits on or beside the ring."""
     items = sorted(items, key=lambda t: (KIND_ORDER.get(t[2], 99), t[0]))
     pos = _cluster(centre, max(1, len(items)), STATION_PITCH_M / 2 if on_roof else STATION_PITCH_M)
@@ -188,8 +199,8 @@ def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[
         roles = [(PitRole.EP, label)] * GROUP_PITS + roles
     if on_roof:
         return
-    for (role, serves), q in zip(roles, _ring_points(ring, len(roles))):
-        lay.pit(role, q, (serves,))
+    pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, _ring_points(ring, len(roles)))]
+    lay.stations.append(StationGroup(name or label.upper(), (ring[0][0], ring[0][1], ring[2][0], ring[2][1]), tuple(p.tag for p in pits), tuple(i[0] for i in items)))
 
 
 # --- array rows --------------------------------------------------------------------------------
@@ -526,7 +537,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         if not rest:
             rest = [(f"{b.id}~station", f"{b.name} STATION", NodeKind.INVERTER)]
         on_roof = lay.rooftop and any(p.contains(SPoint(b.station.x, b.station.y)) for _, p in roof_polys)
-        _station_area(lay, _xy(b.station), rest, b.id, sizes, on_roof=on_roof)
+        _station_area(lay, _xy(b.station), rest, b.id, sizes, on_roof=on_roof, name=f"{b.name} STATION")
         if on_roof:
             poly = next(p for _, p in roof_polys if p.contains(SPoint(b.station.x, b.station.y)))
             edge, g = _outside_roof(poly, _xy(b.station), site)
@@ -550,7 +561,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     if yard_items:
         _switchyard(lay, switchyard[0], switchyard[1], yard_items, sizes, perimeter_pits)
     if panel_items:
-        _station_area(lay, _panel_area(project, lay, site, roof_polys), panel_items, "plant", sizes)
+        _station_area(lay, _panel_area(project, lay, site, roof_polys), panel_items, "plant", sizes, name="PLANT EQUIPMENT AREA")
     if lps is not None:
         _lps(lay, lps, sizes, site, dict(roof_polys))
     existing = np.asarray([_xy(p.at) for p in lay.pits], dtype=float).reshape(-1, 2)

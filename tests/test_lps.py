@@ -41,6 +41,18 @@ def test_greedy_cover_is_minimal_on_a_simple_case():
     assert far.terminals == () and far.uncovered == (0,)
 
 
+def test_local_search_drops_terminals_that_greedy_cover_keeps():
+    rng = np.random.default_rng(3)
+    pts = rng.uniform(0, 300, size=(1500, 2))
+    xs = np.arange(0, 301, 6.0)
+    cands = np.array([(x, y) for x in xs for y in xs])
+    plain = greedy_cover(pts, cands, 40.0, search=False)
+    best = greedy_cover(pts, cands, 40.0)
+    assert best.uncovered == () and len(best.terminals) < len(plain.terminals)
+    t = np.asarray(best.terminals)
+    assert (np.hypot(pts[:, None, 0] - t[None, :, 0], pts[:, None, 1] - t[None, :, 1]).min(axis=1) <= 40.0 + 1e-6).all()
+
+
 @pytest.mark.parametrize("which", [rajasthan, pune])
 def test_every_table_centroid_is_covered(which):
     p, _ = which()
@@ -65,7 +77,7 @@ def test_ground_terminals_stand_off_the_tables():
     d = design_lps(p)
     tables = [Polygon(table_corners(t)) for t in p.array_layout.table_by_id.values()]
     assert not any(poly.contains(Point(t.at.x, t.at.y)) for t in d.terminals for poly in tables)
-    assert len(d.terminals) <= 50
+    assert len(d.terminals) <= 37  # 44 with greedy cover alone on the 24 m grid before the local search
 
 
 def test_rooftop_terminals_sit_on_the_roofs():

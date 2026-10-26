@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "fixtures"
 MODULE = "waaree-bi-55-540"
 
-GROUND_SPEC = PlacementSpec(module=MODULE, table_rows=2, table_cols=28, tilt_deg=25, road_every_rows=12, road_width_m=6, block_dc_kwp=15000)
+# Six blocks, one per inverter block group of the 50 MWac network, so that the station equipment lands in its block.
+GROUND_SPEC = PlacementSpec(module=MODULE, table_rows=2, table_cols=28, tilt_deg=25, road_every_rows=12, road_width_m=6, n_blocks=6)
 ROOF_SPEC = PlacementSpec(
     module=MODULE, mounting="rooftop_flush", table_rows=2, table_cols=12, half_cols=6, pitch_method="gap", row_gap_m=0.6,
     table_gap_m=0.6, walkway_every_tables=4, walkway_width_m=1.2, modules_per_string=24,

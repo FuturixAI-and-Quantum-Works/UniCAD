@@ -26,6 +26,7 @@ from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Table
 from unicad.domain.site import FeatureKind, SiteFeature, SiteGeometry, shape_of
 from unicad.drafting.dxfrules import MIN_LINEWEIGHT, plain
+from unicad.drafting.labels import Label, LabelPlacer
 from unicad.drafting.legend import legend_drawer
 from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
@@ -35,7 +36,7 @@ from unicad.drafting.sheets.text import text_width
 from unicad.drafting.symbols import REGISTRY
 from unicad.drafting.symbols.install import install
 
-SCALES = (100, 200, 250, 500, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000)
+SCALES = (100, 200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000)
 PALETTE = (1, 5, 6, 30, 4, 200, 94, 40, 150, 12, 180, 230, 54, 110, 240, 70)
 TOTAL_COLOUR = 1
 # LibreCAD prints pure white (ACI 7 and 255, RGB FFFFFF) as black on a white page; off-white stays white.
@@ -98,6 +99,7 @@ class LayoutSheet:
     sheet: RenderedSheet
     block_colours: dict[str, int]
     warnings: tuple[str, ...] = ()
+    labels: tuple[Region, ...] = ()
 
 
 def choose_scale(width_m: float, height_m: float, room: Region) -> int:
@@ -162,6 +164,48 @@ class LayoutSheetWriter:
         self.warnings: list[str] = []
         self.colours = {b.id: PALETTE[i % len(PALETTE)] for i, b in enumerate(d.layout.blocks)}
         self.table_blocks: dict[tuple, str] = {}
+        self.clip: Region | None = None
+        self.placer: LabelPlacer | None = None
+
+    def _placer(self, room: Region) -> LabelPlacer:
+        self.placer = LabelPlacer(room, max_leader=10 * self.m.th, gap=0.15 * self.m.th)
+        return self.placer
+
+    def _clipped(self, pts: Sequence[tuple[float, float]], closed: bool) -> list[list[tuple[float, float]]] | None:
+        """Parts of the polyline inside the clip region, or None when there is no clip or it lies wholly inside."""
+        if self.clip is None:
+            return None
+        c = self.clip
+        if all(c.x0 <= x <= c.x1 and c.y0 <= y <= c.y1 for x, y in pts):
+            return None
+        ring = list(pts) + ([pts[0]] if closed else [])
+        if len(ring) < 2:
+            return []
+        g = LineString(ring).intersection(box(c.x0, c.y0, c.x1, c.y1))
+        parts = getattr(g, "geoms", [g])
+        return [list(p.coords) for p in parts if isinstance(p, LineString) and not p.is_empty and p.length > 0]
+
+    def _label_text(self, lines: Sequence[str], anchor: tuple[float, float], h: float, clear: float, key: str, layer: str = L_LABEL.name,
+                    colour: int | None = None, mask: bool = False, cost=None, hs: Sequence[float] | None = None) -> bool:  # fmt: skip
+        """Place a (multi-line) label beside `anchor` with the placer; a leader joins it when it had to move away. False if it found no room."""
+        hs = list(hs or [h] * len(lines))
+        pad = 0.15 * h
+        w = max(text_width(t, hh) for t, hh in zip(lines, hs)) + 2 * pad
+        ht = sum(1.45 * hh for hh in hs) - 0.45 * hs[-1] + 2 * pad
+        p = self.placer.place(Label(key, anchor, w, ht, clear), cost=cost)
+        if p is None:
+            return False
+        b = p.box
+        if mask:
+            self._mask(b)
+        if p.leader is not None:
+            self.msp.add_line(p.leader[0], p.leader[1], dxfattribs={"layer": layer, **({"color": colour} if colour is not None else {})})
+        y = b.y1 - pad
+        for t, hh in zip(lines, hs):
+            y -= hh
+            self._text(t, (b.x0 + pad, y), hh, layer=layer, align="BL", colour=colour)
+            y -= 0.45 * hh
+        return True
 
     def _layers(self) -> None:
         for spec in LAYERS:
@@ -180,9 +224,21 @@ class LayoutSheetWriter:
             attribs["color"] = colour
         if lineweight is not None:
             attribs["lineweight"] = lineweight
-        self.msp.add_lwpolyline(pts, close=closed, dxfattribs=attribs)
+        parts = self._clipped(pts, closed)
+        if parts is None:
+            self.msp.add_lwpolyline(pts, close=closed, dxfattribs=attribs)
+            return
+        for part in parts:
+            self.msp.add_lwpolyline(part, dxfattribs=attribs)
 
     def _dashed(self, pts: Sequence[tuple[float, float]], layer: str, dash: float, gap: float, closed: bool = True, colour: int | None = None, dot: bool = False) -> None:
+        parts = self._clipped(pts, closed)
+        if parts is not None:
+            clip, self.clip = self.clip, None
+            for part in parts:
+                self._dashed(part, layer, dash, gap, closed=False, colour=colour, dot=dot)
+            self.clip = clip
+            return
         ring = list(pts) + ([pts[0]] if closed else [])
         attribs: dict = {"layer": layer}
         if colour is not None:
@@ -205,11 +261,16 @@ class LayoutSheetWriter:
             s0 += seg
 
     def _fill(self, poly: Polygon, layer: str, to_paper: Callable) -> None:
-        h = self.msp.add_hatch(dxfattribs={"layer": layer, "color": 256})
-        h.set_solid_fill(color=256)
-        h.paths.add_polyline_path(to_paper(poly.exterior.coords[:-1]), is_closed=True, flags=1)
-        for hole in poly.interiors:
-            h.paths.add_polyline_path(to_paper(hole.coords[:-1]), is_closed=True, flags=0)
+        paper = Polygon(to_paper(poly.exterior.coords[:-1]), [to_paper(h.coords[:-1]) for h in poly.interiors])
+        if self.clip is not None:
+            c = self.clip
+            paper = paper.intersection(box(c.x0, c.y0, c.x1, c.y1))
+        for part in _polygons(paper):
+            h = self.msp.add_hatch(dxfattribs={"layer": layer, "color": 256})
+            h.set_solid_fill(color=256)
+            h.paths.add_polyline_path(list(part.exterior.coords)[:-1], is_closed=True, flags=1)
+            for hole in part.interiors:
+                h.paths.add_polyline_path(list(hole.coords)[:-1], is_closed=True, flags=0)
 
     def _mask(self, r: Region) -> None:
         self.msp.add_solid([(r.x0, r.y0), (r.x1, r.y0), (r.x0, r.y1), (r.x1, r.y1)], dxfattribs={"layer": L_MASK.name, "true_color": MASK_RGB})
@@ -229,9 +290,11 @@ class LayoutSheetWriter:
         self._layers()
         self.cv = Canvas(self.doc, self.profile)
         P = _Plan(bounds, plan_room, scale)
+        self._placer(plan_room)
         self._site(P)
         self._tables(P)
         self._blocks(P)
+        self._feature_labels(P)
         self.msp.add_line((panel.x0 - th, area.y0), (panel.x0 - th, area.y1), dxfattribs={"layer": self.profile.layer(LayerRole.FRAME).name})
         self._panel(panel)
         self._scale_bar(Region(area.x0 + th, area.y0, panel.x0 - 2 * th, area.y0 + 6 * th), scale)
@@ -239,7 +302,9 @@ class LayoutSheetWriter:
         x1, y1 = P(bounds[2], bounds[3])
         if not plan_room.contains(Region(x0, y0, x1, y1), tol=0.01):
             self.warnings.append(f"the site does not fit the plan area at 1:{scale}")
-        return LayoutSheet(scale, plan_room, panel, rendered, dict(self.colours), tuple([*rendered.warnings, *self.warnings, *self.cv.warnings]))
+        self.warnings += [f"label {lb.key} found no room on the plan" for lb in self.placer.overflow]
+        return LayoutSheet(scale, plan_room, panel, rendered, dict(self.colours), tuple([*rendered.warnings, *self.warnings, *self.cv.warnings]),
+                           tuple(p.box for p in self.placer.labels))  # fmt: skip
 
     def _legend_entries(self) -> tuple[tuple[str, str], ...]:
         mod = self.d.module
@@ -287,11 +352,26 @@ class LayoutSheetWriter:
             elif f.polygon:
                 layer = L_WATER if f.kind is FeatureKind.WATER else L_OBST if f.kind is FeatureKind.OBSTACLE else L_EXCL
                 self._poly(P.ring(g.exterior.coords[:-1]), layer.name)
+
+    def _feature_labels(self, P: _Plan) -> None:
+        feats = [f for f in self.d.site.features if self.view == "site" or f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)]
         for f in feats:
             if f.kind in (FeatureKind.WATER, FeatureKind.EXCLUSION, FeatureKind.TRANSMISSION_LINE, FeatureKind.ROAD, FeatureKind.BUILDING, FeatureKind.ROOF) or (
                 f.kind is FeatureKind.OBSTACLE and self.view == "roofs"
             ):  # fmt: skip
                 self._feature_label(f, P)
+
+    def _rotated(self, label: str, at: tuple[float, float], h: float, ang: float, key: str, mask: bool = False) -> bool:
+        """Centred text at `at`, rotated by `ang`, if its bounding box is clear of the labels placed so far."""
+        w = text_width(label, h)
+        c, s_ = abs(math.cos(math.radians(ang))), abs(math.sin(math.radians(ang)))
+        bw, bh = w * c + 1.3 * h * s_, w * s_ + 1.3 * h * c
+        if self.clip is not None and not self.clip.contains(Region(at[0] - bw / 2, at[1] - bh / 2, at[0] + bw / 2, at[1] + bh / 2)):
+            return False
+        if self.placer.fixed(Label(key, at, bw, bh), Region(at[0] - bw / 2, at[1] - bh / 2, at[0] + bw / 2, at[1] + bh / 2)) is None:
+            return False
+        self._text(label, at, h, align="MC", rotation=ang)
+        return True
 
     def _feature_label(self, f: SiteFeature, P: _Plan) -> None:
         th = self.m.th
@@ -300,7 +380,7 @@ class LayoutSheetWriter:
         label = _label(f)
         if f.kind is FeatureKind.ROOF:
             x0, y0, x1, y1 = g.bounds
-            self._text(label, P(x0, y1), 0.8 * th, align="BL")
+            self._label_text([label], P(x0, y1), 0.8 * th, 0.0, f.id)
             return
         if isinstance(g, LineString):
             mid = g.interpolate(0.5, normalized=True)
@@ -311,7 +391,10 @@ class LayoutSheetWriter:
             at = P(mid.x, mid.y)
             off = ((f.width_m or 1.0) / 2) * P.k + 0.8 * th
             n = math.radians(ang + 90)
-            self._text(label, (at[0] + off * math.cos(n), at[1] + off * math.sin(n)), h, align="MC", rotation=ang)
+            for side in (1, -1):
+                if self._rotated(label, (at[0] + side * off * math.cos(n), at[1] + side * off * math.sin(n)), h, ang, f.id):
+                    return
+            self._label_text([label], at, 0.6 * th, off - 0.6 * th, f.id)
             return
         rect = g.minimum_rotated_rectangle
         cs = list(rect.exterior.coords)
@@ -327,11 +410,9 @@ class LayoutSheetWriter:
         avail = math.hypot(*long) * P.k * 0.9
         while text_width(label, h) > avail and h > 0.35 * th:
             h *= 0.85
-        if text_width(label, h) > avail:
-            at = P(*g.bounds[2:4])
-            self._text(label, (at[0] + 0.5 * th, at[1]), 0.5 * th, align="ML")
+        if text_width(label, h) <= avail and self._rotated(label, P(c.x, c.y), h, ang, f.id):
             return
-        self._text(label, P(c.x, c.y), h, align="MC", rotation=ang)
+        self._label_text([label], P(c.x, c.y), max(0.5 * th, min(h, 0.6 * th)), 0.0, f.id)
 
     def _module_block(self) -> str:
         name = "ARR_MODULE"
@@ -380,6 +461,7 @@ class LayoutSheetWriter:
         footprints = [Polygon(P.ring(table_corners(t))) for t in self.d.layout.table_by_id.values()]
         tree = STRtree(footprints)
         taken: list[Polygon] = []
+        stations: list = []
 
         def clash(r: Region) -> float:
             g = box(r.x0, r.y0, r.x1, r.y1)
@@ -397,21 +479,22 @@ class LayoutSheetWriter:
             x, y = P(b.station.x, b.station.y)
             w, h = sym.width * s, sym.height * s
             icon = Region(x - w / 2 - 0.25 * th, y - h / 2 - 0.25 * th, x + w / 2 + 0.25 * th, y + h / 2 + 0.25 * th)
-            lw = max(text_width(t, hh) for t, hh in zip(lines, hs)) + 0.8 * th
-            lh = 2.9 * th
-            gap = 0.6 * th
-            options = [
-                Region(icon.x1 + gap, y - lh / 2, icon.x1 + gap + lw, y + lh / 2),
-                Region(icon.x0 - gap - lw, y - lh / 2, icon.x0 - gap, y + lh / 2),
-                Region(x - lw / 2, icon.y1 + gap, x + lw / 2, icon.y1 + gap + lh),
-                Region(x - lw / 2, icon.y0 - gap - lh, x + lw / 2, icon.y0 - gap),
-            ]
-            label = min(options, key=lambda r: (round(clash(r), 3), options.index(r)))
-            taken += [box(icon.x0, icon.y0, icon.x1, icon.y1), box(label.x0, label.y0, label.x1, label.y1)]
-            for r in (icon, label):
-                self._mask(r)
-                self._poly([(r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1)], L_STATION.name, colour=colour)
+            self.placer.block(icon)
+            self._mask(icon)
+            self._poly([(icon.x0, icon.y0), (icon.x1, icon.y0), (icon.x1, icon.y1), (icon.x0, icon.y1)], L_STATION.name, colour=colour)
             self.msp.add_blockref(sym.block_name, (x - w / 2, y - h / 2), dxfattribs={"layer": L_STATION.name, "xscale": s, "yscale": s})
+            stations.append((b, lines, hs, (x, y), icon, colour))
+        for b, lines, hs, (x, y), icon, colour in stations:
+            p = self.placer.place(Label(b.id, (x, y), max(text_width(t, hh) for t, hh in zip(lines, hs)) + 0.8 * th, 2.9 * th, clear=(icon.x1 - icon.x0) / 2 + 0.3 * th), cost=clash)
+            if p is None:
+                self.warnings.append(f"no room for the {b.name} station label")
+                continue
+            label = p.box
+            taken.append(box(label.x0, label.y0, label.x1, label.y1))
+            self._mask(label)
+            self._poly([(label.x0, label.y0), (label.x1, label.y0), (label.x1, label.y1), (label.x0, label.y1)], L_STATION.name, colour=colour)
+            if p.leader is not None:
+                self.msp.add_line(p.leader[0], p.leader[1], dxfattribs={"layer": L_STATION.name, "color": colour})
             tx, cy = label.x0 + 0.4 * th, label.centre[1]
             self._text(lines[0], (tx, cy + 0.6 * th), hs[0], align="ML")
             self._text(lines[1], (tx, cy - 0.65 * th), hs[1], align="ML")

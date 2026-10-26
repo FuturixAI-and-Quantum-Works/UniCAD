@@ -6,11 +6,13 @@ sections. LA layout: terminals with their protection circles, the terminal sched
 """
 
 import math
+import re
+from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ezdxf.document import Drawing
-from shapely.geometry import MultiPoint, box
+from shapely.geometry import LineString, MultiPoint, Polygon, box
 from shapely.geometry import Point as SPoint
 from shapely.ops import unary_union
 
@@ -19,13 +21,16 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.project import Project
 from unicad.domain.site import FeatureKind, shape_of
+from unicad.drafting.dxfrules import MIN_LINEWEIGHT
+from unicad.drafting.labels import LabelPlacer
 from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
-from unicad.drafting.site_plan.sheet import LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale
+from unicad.drafting.site_plan.sheet import SCALES, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale
 from unicad.earthing import ConductorRole, EarthingDesign, PitRole, pit_text
 from unicad.earthing.design import ROLE_TEXT
+from unicad.earthing.layout import StationGroup
 from unicad.earthing.sizing import FLAT_BY_NAME
 from unicad.lps import LpsDesign
 
@@ -71,8 +76,8 @@ L_DETAIL = "E-DETAIL"
 L_DETAIL_HATCH = "E-DETAIL-HATCH"
 L_LPS = "E-LPS"
 L_LPS_ZONE = "E-LPS-ZONE"
-GREY_SITE = {"L-BOUNDARY": (UNDERLAY, 50), "L-ROOF": (UNDERLAY, 35), "L-ROAD": (UNDERLAY_LIGHT, 18), "L-ROAD-FILL": (254, 0),
-             "L-WATER": (UNDERLAY_LIGHT, 18), "L-WATER-FILL": (254, 0), "L-EXCLUSION": (UNDERLAY_LIGHT, 18), "L-EXCLUSION-FILL": (254, 0),
+GREY_SITE = {"L-BOUNDARY": (UNDERLAY, 50), "L-ROOF": (UNDERLAY, 35), "L-ROAD": (UNDERLAY_LIGHT, 18), "L-ROAD-FILL": (254, MIN_LINEWEIGHT),
+             "L-WATER": (UNDERLAY_LIGHT, 18), "L-WATER-FILL": (254, MIN_LINEWEIGHT), "L-EXCLUSION": (UNDERLAY_LIGHT, 18), "L-EXCLUSION-FILL": (254, MIN_LINEWEIGHT),
              "L-TLINE": (UNDERLAY_LIGHT, 18), "L-OBSTACLE": (UNDERLAY_LIGHT, 18), "L-LABEL": (UNDERLAY, 18)}  # fmt: skip
 
 
@@ -85,6 +90,72 @@ class EarthingSheet:
     scale: int
     sheet: RenderedSheet
     warnings: tuple[str, ...]
+    labels: tuple[Region, ...] = ()
+    room: Region | None = None
+    extent: tuple[float, float, float, float] | None = None
+
+
+def clip_circle(cx: float, cy: float, r: float, rect: Region) -> list[tuple[float, float]]:
+    """Counter-clockwise arcs (start, end in degrees) of the circle that lie inside `rect`; [(0, 360)] when it is wholly inside."""
+    angs = set()
+    for X in (rect.x0, rect.x1):
+        dx = X - cx
+        if abs(dx) < r:
+            dy = math.sqrt(r * r - dx * dx)
+            for y in (cy - dy, cy + dy):
+                if rect.y0 <= y <= rect.y1:
+                    angs.add(round(math.degrees(math.atan2(y - cy, dx)) % 360, 9))
+    for Y in (rect.y0, rect.y1):
+        dy = Y - cy
+        if abs(dy) < r:
+            dx = math.sqrt(r * r - dy * dy)
+            for x in (cx - dx, cx + dx):
+                if rect.x0 <= x <= rect.x1:
+                    angs.add(round(math.degrees(math.atan2(dy, x - cx)) % 360, 9))
+
+    def inside(a: float) -> bool:
+        x, y = cx + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))
+        return rect.x0 - 1e-9 <= x <= rect.x1 + 1e-9 and rect.y0 - 1e-9 <= y <= rect.y1 + 1e-9
+
+    if len(angs) < 2:
+        return [(0.0, 360.0)] if inside(0.0) else []
+    a = sorted(angs)
+    out = []
+    for s, e in zip(a, a[1:] + [a[0] + 360]):
+        if e - s > 1e-6 and inside((s + e) / 2):
+            out.append((s, e % 360 if e > 360 else e))
+    return out
+
+
+def tag_ranges(tags: Sequence[str]) -> str:
+    """EP3, EP4, EPN1 .. EPN4 -> 'EP3-4, EPN1-4' (runs of consecutive numbers per prefix, in first-seen prefix order)."""
+    by: dict[str, list[int]] = defaultdict(list)
+    for t in tags:
+        m = re.fullmatch(r"([A-Z]+)(\d+)", t)
+        by[m.group(1) if m else t].append(int(m.group(2)) if m else -1)
+    parts = []
+    for k, ns in by.items():
+        ns = sorted(n for n in ns if n >= 0)
+        if not ns:
+            parts.append(k)
+            continue
+        runs, start = [], ns[0]
+        for a, b in zip(ns, ns[1:] + [None]):
+            if b != a + 1:
+                runs.append(f"{k}{start}" if start == a else f"{k}{start}-{a}")
+                start = b
+        parts += runs
+    return ", ".join(parts)
+
+
+def expand_ranges(text: str) -> set[str]:
+    out = set()
+    for part in text.split(","):
+        m = re.fullmatch(r"\s*([A-Z]+)(\d+)(?:-(\d+))?\s*", part)
+        if m:
+            a, b = int(m.group(2)), int(m.group(3) or m.group(2))
+            out |= {f"{m.group(1)}{n}" for n in range(a, b + 1)}
+    return out
 
 
 class _Writer(LayoutSheetWriter):
@@ -98,8 +169,8 @@ class _Writer(LayoutSheetWriter):
         for name, (colour, lw) in GREY_SITE.items():
             if name not in self.doc.layers:
                 self.doc.layers.add(name, color=colour, lineweight=lw)
-        for name, colour, lw in ((L_PIT, 7, 25), (L_PIT_TAG, 7, 18), (L_EQUIP, 7, 25), (L_YARD, 7, 35), (L_UNDER, UNDERLAY_LIGHT, 9),
-                                 (L_DETAIL, 7, 25), (L_DETAIL_HATCH, 8, 9), (L_LPS, LPS_COLOUR, 35), (L_LPS_ZONE, LPS_COLOUR, 25)):  # fmt: skip
+        for name, colour, lw in ((L_PIT, 7, 25), (L_PIT_TAG, 7, 18), (L_EQUIP, 7, 25), (L_YARD, 7, 35), (L_UNDER, UNDERLAY_LIGHT, MIN_LINEWEIGHT),
+                                 (L_DETAIL, 7, 25), (L_DETAIL_HATCH, 8, MIN_LINEWEIGHT), (L_LPS, LPS_COLOUR, 35), (L_LPS_ZONE, LPS_COLOUR, 25)):  # fmt: skip
             if name not in self.doc.layers:
                 self.doc.layers.add(name, color=colour, lineweight=lw)
         for size in FLAT_BY_NAME:
@@ -125,13 +196,21 @@ class _Writer(LayoutSheetWriter):
         self._layers()
         self.cv = Canvas(self.doc, self.profile)
         P = _Plan(bounds, room, scale)
+        self.room, self.bounds = room, bounds
+        self.msp.add_line((panel.x0 - th, area.y0), (panel.x0 - th, area.y1), dxfattribs={"layer": self.profile.layer(LayerRole.FRAME).name})
+        self._scale_bar(Region(area.x0 + th, area.y0, panel.x0 - 2 * th, area.y0 + 6 * th), scale)
+        self.clip = room
+        self._placer(room)
         self._site(P)
         for t in self.d.layout.table_by_id.values() if self.d.layout else ():
             self._poly(P.ring(table_corners(t)), L_UNDER)
-        self.msp.add_line((panel.x0 - th, area.y0), (panel.x0 - th, area.y1), dxfattribs={"layer": self.profile.layer(LayerRole.FRAME).name})
-        self._scale_bar(Region(area.x0 + th, area.y0, panel.x0 - 2 * th, area.y0 + 6 * th), scale)
         self.panel = panel
         return P, panel, scale
+
+    def _done(self, scale: int) -> EarthingSheet:
+        self.warnings += [f"label {lb.key} found no room on the plan" for lb in self.placer.overflow]
+        return EarthingSheet(scale, self.rendered, tuple([*self.rendered.warnings, *self.warnings, *self.cv.warnings]),
+                             tuple(p.box for p in self.placer.labels) + tuple(getattr(self, "detail_labels", ())), self.room, self.bounds)  # fmt: skip
 
     def _pit_symbol(self, x: float, y: float, r: float, role: PitRole) -> None:
         colour = LE_COLOUR if role is PitRole.LE else PIT_COLOUR[role.treated]
@@ -202,39 +281,88 @@ class EarthingSheetWriter(_Writer):
         th = self.m.th
         lay = self.e.layout
         if lay.switchyard is not None:
-            s = lay.switchyard
-            self._poly(P.ring([(s.x0, s.y0), (s.x1, s.y0), (s.x1, s.y1), (s.x0, s.y1)]), L_YARD)
-            x, y = P((s.x0 + s.x1) / 2, s.y0)
-            self._text(f"MV SWITCHYARD EARTH MAT, {s.spacing:.1f} m MESH", (x, y - 2.4 * th), 0.6 * th, layer=L_PIT_TAG, align="BC")
+            sy = lay.switchyard
+            self._poly(P.ring([(sy.x0, sy.y0), (sy.x1, sy.y0), (sy.x1, sy.y1), (sy.x0, sy.y1)]), L_YARD)
         order = {ConductorRole.ARRAY: 0, ConductorRole.GRID: 1, ConductorRole.MAIN: 2, ConductorRole.EQUIPMENT: 3, ConductorRole.DOWN: 4}
         for r in sorted(lay.runs, key=lambda r: order[r.role]):
-            pts = [P(p.x, p.y) for p in r.points]
-            if len(pts) == 2:
-                self.msp.add_line(pts[0], pts[1], dxfattribs={"layer": cond_layer(r.size, r.role)})
-            else:
-                self.msp.add_lwpolyline(pts, dxfattribs={"layer": cond_layer(r.size, r.role)})
-        sq = max(0.25 * th, 1.2 * P.k)
-        for it in lay.items:
-            if it.kind in ("ese", "air_terminal"):
-                x, y = P(it.at.x, it.at.y)
-                self._terminal(x, y, 0.45 * th)
-                self._text(it.tag, (x + 0.6 * th, y + 0.5 * th), 0.55 * th, layer=L_PIT_TAG, align="BL", colour=LPS_COLOUR)
-                continue
-            x, y = P(it.at.x, it.at.y)
-            self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
+            self._run(r, P)
         r = max(0.32 * th, 0.75 * P.k)
-        tag_h = 0.42 * th if len(lay.pits) > 150 else 0.5 * th
+        self.pit_r = r
+        groups = self._groups(P, r)
+        grouped = {t for g in groups for t in g.pits}
+        sq = max(0.25 * th, 1.2 * P.k)
+        terminals: dict[str, tuple[float, float]] = {}
+        for it in lay.items:
+            x, y = P(it.at.x, it.at.y)
+            if it.kind in ("ese", "air_terminal"):
+                self._terminal(x, y, 0.45 * th)
+                self.placer.block(Region(x - 0.99 * th, y - 0.99 * th, x + 0.99 * th, y + 0.99 * th))
+                terminals[it.tag] = (x, y)
+                continue
+            self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
+        at_mast: dict[str, str] = {}
+        drawn = []
         for p in lay.pits:
+            if p.tag in grouped:
+                continue
             x, y = P(p.at.x, p.at.y)
+            t = terminals.get(p.serves[0]) if p.role is PitRole.LE and p.serves else None
+            if t is not None and math.dist(t, (x, y)) < 1.2 * th:
+                at_mast[p.serves[0]] = p.tag
+                continue
             self._pit_symbol(x, y, r, p.role)
+            self.placer.block(Region(x - r, y - r, x + r, y + r))
+            drawn.append((p, x, y))
+        tag_h = 0.5 * th
+        for g in groups:
+            x0, y0 = P(g.ring[0], g.ring[1])
+            x1, y1 = P(g.ring[2], g.ring[3])
+            m = 0.5 * r
+            self._poly([(x0 - m, y0 - m), (x1 + m, y0 - m), (x1 + m, y1 + m), (x0 - m, y1 + m)], L_PIT, colour=PIT_COLOUR[True])
+            self.placer.block(Region(x0 - m, y0 - m, x1 + m, y1 + m))
+        if lay.switchyard is not None:
+            sy = lay.switchyard
+            x, y = P((sy.x0 + sy.x1) / 2, sy.y0)
+            self._label_text([f"MV SWITCHYARD EARTH MAT, {sy.spacing:.1f} m MESH"], (x, y), 0.6 * th, 0.3 * th, "switchyard", layer=L_PIT_TAG, mask=True)
+        for g in groups:
+            cx, cy = P((g.ring[0] + g.ring[2]) / 2, (g.ring[1] + g.ring[3]) / 2)
+            ref = ", SEE DETAIL A"
+            half = max(abs(P(g.ring[2], 0)[0] - P(g.ring[0], 0)[0]), abs(P(0, g.ring[3])[1] - P(0, g.ring[1])[1])) / 2 + r
+            self._label_text([f"{g.name}{ref}", tag_ranges(g.pits)], (cx, cy), tag_h, half, g.name, layer=L_PIT_TAG, mask=True,
+                             colour=PIT_COLOUR[True], hs=[0.55 * th, tag_h])  # fmt: skip
+        for tag, (x, y) in terminals.items():
+            text = f"{tag} ({at_mast[tag]})" if tag in at_mast else tag
+            self._label_text([text], (x, y), 0.55 * th, 0.99 * th, tag, layer=L_PIT_TAG, colour=LPS_COLOUR, mask=True)
+        for p, x, y in drawn:
             colour = LE_COLOUR if p.role is PitRole.LE else PIT_COLOUR[p.role.treated]
-            self._text(p.tag, (x + r + 0.15 * th, y + r * 0.2), tag_h, layer=L_PIT_TAG, align="BL", colour=colour)
-        for b in self.d.layout.blocks if self.d.layout else ():
-            if b.station is not None:
-                x, y = P(b.station.x, b.station.y)
-                self._text(f"{b.name} STATION", (x, y - 2.2 * th), 0.55 * th, layer=L_PIT_TAG, align="BC")
-        self._panel_e(panel)
-        return EarthingSheet(scale, self.rendered, tuple([*self.rendered.warnings, *self.warnings, *self.cv.warnings]))
+            self._label_text([p.tag], (x, y), tag_h, r, p.tag, layer=L_PIT_TAG, colour=colour, mask=True)
+        self._feature_labels(P)
+        self.clip = None
+        self._panel_e(panel, groups)
+        return self._done(scale)
+
+    def _run(self, r, P, layer: str | None = None) -> None:
+        pts = [P(p.x, p.y) for p in r.points]
+        a = {"layer": layer or cond_layer(r.size, r.role)}
+        parts = self._clipped(pts, False)
+        for part in [pts] if parts is None else parts:
+            if len(part) == 2:
+                self.msp.add_line(part[0], part[1], dxfattribs=a)
+            else:
+                self.msp.add_lwpolyline(part, dxfattribs=a)
+
+    def _groups(self, P: _Plan, r: float) -> list[StationGroup]:
+        """Station areas whose pits would crowd at this scale: they are drawn as one tag group and shown in Detail A."""
+        by_tag = {p.tag: p for p in self.e.layout.pits}
+        out = []
+        for g in self.e.layout.stations:
+            pts = [(by_tag[t].at.x, by_tag[t].at.y) for t in g.pits]
+            if len(pts) < 2:
+                continue
+            gap = min(math.dist(a, b) for i, a in enumerate(pts) for b in pts[i + 1 :]) * P.k
+            if gap < 2 * r + 2.5 * self.m.th:
+                out.append(g)
+        return out
 
     def _terminal(self, x: float, y: float, r: float) -> None:
         a = {"layer": L_LPS}
@@ -243,14 +371,83 @@ class EarthingSheetWriter(_Writer):
             ang = math.radians(45 * i + 22.5)
             self.msp.add_line((x + r * math.cos(ang), y + r * math.sin(ang)), (x + 2.2 * r * math.cos(ang), y + 2.2 * r * math.sin(ang)), dxfattribs=a)
 
-    def _panel_e(self, panel: Region) -> None:
+    def _panel_e(self, panel: Region, groups: Sequence[StationGroup] = ()) -> None:
         th = self.m.th
         y = panel.y1
         y = self._north(Region(panel.x0, y - 9 * th, panel.x0 + 12 * th, y))
         y = panel.y1 - 9.5 * th
         y = self._boq(Region(panel.x0, panel.y0, panel.x1, y)) - 1.5 * th
         y = self._calc(Region(panel.x0, panel.y0, panel.x1, y)) - 1.5 * th
+        if groups:
+            room = y - panel.y0
+            h = min(max(0.45 * room, room - 60 * th), 0.6 * room)
+            if room - h < 25 * th:
+                h = room - 25 * th
+            if h >= 30 * th:
+                self._station_detail(Region(panel.x0, y - h, panel.x1, y), groups[0], len(groups))
+                y -= h + 1.5 * th
+            else:
+                self.warnings.append("no room for the station earthing detail in the side panel")
         self._details(Region(panel.x0, panel.y0, panel.x1, y))
+
+    def _station_detail(self, r: Region, g: StationGroup, n: int) -> None:
+        """Detail A: the first crowded station drawn large, with its ring, equipment, bonds and every pit tagged."""
+        th = self.m.th
+        lay = self.e.layout
+        title_h = 2.2 * th
+        body = Region(r.x0 + th, r.y0 + 2.4 * th, r.x1 - th, r.y1 - title_h - 0.5 * th)
+        x0, y0, x1, y1 = g.ring
+        m = max(3.0, 0.3 * max(x1 - x0, y1 - y0))
+        win = (x0 - m, y0 - m, x1 + m, y1 + m)
+        fits = [s for s in SCALES if (win[2] - win[0]) * 1000 / s <= 0.9 * body.width and (win[3] - win[1]) * 1000 / s <= 0.85 * body.height]
+        scale = fits[0] if fits else SCALES[-1]
+        k = 1000 / scale
+        cx, cy = (win[0] + win[2]) / 2, (win[1] + win[3]) / 2
+        px, py = body.centre
+
+        def Q(x: float, y: float) -> tuple[float, float]:
+            return px + (x - cx) * k, py + (y - cy) * k
+
+        view = Region(body.x0, body.y0, body.x1, body.y1)
+        site_win = box(cx - view.width / 2 / k, cy - view.height / 2 / k, cx + view.width / 2 / k, cy + view.height / 2 / k)
+        self.cv.put(TXT, Region(r.x0, r.y1 - title_h, r.x1, r.y1), f"DETAIL A: TYPICAL STATION EARTHING ({g.name})", 0.8 * th, align="center", valign="middle", min_h=0.5 * th)
+        self.cv.put(TXT, Region(r.x0, r.y0, r.x1, r.y0 + 2.2 * th), f"SCALE 1:{scale}. {'ALL ' + str(n) + ' STATIONS SIMILAR; PITS PER STATION AS TAGGED ON PLAN.' if n > 1 else ''}",
+                    0.6 * th, align="center", valign="middle", min_h=0.4 * th)  # fmt: skip
+        self.cv.rect(TXT, r)
+        for run in lay.runs:
+            line = LineString([(p.x, p.y) for p in run.points])
+            if not line.intersects(site_win):
+                continue
+            part = line.intersection(site_win)
+            for seg in getattr(part, "geoms", [part]):
+                if isinstance(seg, LineString) and seg.length > 0:
+                    pts = [Q(x, y) for x, y in seg.coords]
+                    a = {"layer": cond_layer(run.size, run.role)}
+                    self.msp.add_lwpolyline(pts, dxfattribs=a) if len(pts) > 2 else self.msp.add_line(pts[0], pts[1], dxfattribs=a)
+        placer = LabelPlacer(view, max_leader=8 * th, gap=0.15 * th)
+        saved, self.placer = self.placer, placer
+        rr = 0.45 * th
+        sq = 0.5 * th
+        items = [it for it in lay.items if it.id in set(g.items)]
+        for it in items:
+            x, y = Q(it.at.x, it.at.y)
+            self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
+            placer.block(Region(x - sq, y - sq, x + sq, y + sq))
+        by_tag = {p.tag: p for p in lay.pits}
+        pits = [by_tag[t] for t in g.pits]
+        for p in pits:
+            x, y = Q(p.at.x, p.at.y)
+            self._pit_symbol(x, y, rr, p.role)
+            placer.block(Region(x - rr, y - rr, x + rr, y + rr))
+        for p in pits:
+            x, y = Q(p.at.x, p.at.y)
+            self._label_text([p.tag], (x, y), 0.55 * th, rr, p.tag, layer=L_PIT_TAG, colour=PIT_COLOUR[p.role.treated], mask=True)
+        for it in items:
+            x, y = Q(it.at.x, it.at.y)
+            self._label_text([it.tag], (x, y), 0.5 * th, sq, it.id, layer=L_PIT_TAG, mask=True)
+        self.detail_labels = [p.box for p in placer.labels]
+        self.warnings += [f"detail A: label {lb.key} found no room" for lb in placer.overflow]
+        self.placer = saved
 
     def _boq(self, r: Region) -> float:
         th = self.m.th
@@ -388,34 +585,32 @@ class LpsSheetWriter(_Writer):
     def _extent(self) -> tuple[float, float, float, float]:
         if not any(t.on_roof for t in self.lps.terminals):
             return super()._extent()
-        shapes = [SPoint(t.at.x, t.at.y).buffer(self.lps.radius_m) for t in self.lps.terminals]
-        shapes += [shape_of(f) for f in self.d.site.features if f.kind in (FeatureKind.ROOF, FeatureKind.BOUNDARY)]
+        shapes = [SPoint(t.at.x, t.at.y) for t in self.lps.terminals] + [Polygon(table_corners(t)) for t in self.d.layout.table_by_id.values()]
+        shapes += [shape_of(f) for f in self.d.site.features if f.kind is FeatureKind.ROOF]
         return unary_union(shapes).buffer(3.0).bounds
 
     def render(self) -> EarthingSheet:
         P, panel, scale = self._start(0)
         th = self.m.th
         d = self.lps
-        taken: list[Region] = []
         h = 0.6 * th
+        pts = []
         for t in d.terminals:
             x, y = P(t.at.x, t.at.y)
-            self.msp.add_circle((x, y), d.radius_m * P.k, dxfattribs={"layer": L_LPS_ZONE})
+            for a0, a1 in clip_circle(x, y, d.radius_m * P.k, self.room):
+                if a1 - a0 >= 360 - 1e-9:
+                    self.msp.add_circle((x, y), d.radius_m * P.k, dxfattribs={"layer": L_LPS_ZONE})
+                else:
+                    self.msp.add_arc((x, y), d.radius_m * P.k, a0, a1, dxfattribs={"layer": L_LPS_ZONE})
             EarthingSheetWriter._terminal(self, x, y, 0.45 * th)
-        for t in d.terminals:
-            x, y = P(t.at.x, t.at.y)
-            lines = (t.tag, f"RADIUS COVERED {d.radius_m:g} m")
-            w = max(text_width(s, h) for s in lines) + 0.4 * th
-            hh = 2.6 * h
-            opts = [Region(x + th, y + 0.2 * th, x + th + w, y + 0.2 * th + hh), Region(x + th, y - 0.2 * th - hh, x + th + w, y - 0.2 * th),
-                    Region(x - th - w, y + 0.2 * th, x - th, y + 0.2 * th + hh), Region(x - th - w, y - 0.2 * th - hh, x - th, y - 0.2 * th)]  # fmt: skip
-            box_ = next((o for o in opts if not any(o.overlaps(q) for q in taken)), opts[0])
-            taken.append(box_)
-            self._mask(box_)
-            self._text(lines[0], (box_.x0 + 0.2 * th, box_.y1 - 1.1 * h), h, layer=L_LPS, align="BL", colour=LPS_COLOUR)
-            self._text(lines[1], (box_.x0 + 0.2 * th, box_.y0 + 0.3 * h), 0.8 * h, layer=L_LPS, align="BL", colour=LPS_COLOUR)
+            self.placer.block(Region(x - 0.99 * th, y - 0.99 * th, x + 0.99 * th, y + 0.99 * th))
+            pts.append((t, x, y))
+        for t, x, y in pts:
+            self._label_text([t.tag, f"RADIUS COVERED {d.radius_m:g} m"], (x, y), h, 0.99 * th, t.tag, layer=L_LPS, colour=LPS_COLOUR, mask=True, hs=[h, 0.8 * h])
+        self._feature_labels(P)
+        self.clip = None
         self._panel_l(panel)
-        return EarthingSheet(scale, self.rendered, tuple([*self.rendered.warnings, *self.warnings, *self.cv.warnings]))
+        return self._done(scale)
 
     def _panel_l(self, panel: Region) -> None:
         th = self.m.th

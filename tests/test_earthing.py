@@ -2,6 +2,7 @@
 
 import math
 import os
+import re
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -13,7 +14,12 @@ from test_mcp import CREATE, session_test
 from unicad.catalog.store import load_catalog
 from unicad.domain.project import EarthingBasis
 from unicad.drafting.earthing_plan import earthing_notes, render_earthing_sheet
-from unicad.drafting.earthing_plan.sheet import ROLE_STYLE
+from unicad.drafting import dxfrules
+from unicad.drafting.earthing_plan import render_lps_sheet
+from unicad.drafting.earthing_plan.sheet import ROLE_STYLE, clip_circle, expand_ranges, tag_ranges
+from unicad.drafting.labels import overlapping
+from unicad.drafting.sheets.canvas import Region
+from unicad.drafting.site_plan.sheet import FILL_FRACTION, SCALES
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, SheetSpec, TitleBlockData
 from unicad.earthing import PitRole, bonding, components, design_earthing, select_flat
 from unicad.earthing.samples import pune, rajasthan, with_basis
@@ -207,7 +213,9 @@ def test_earthing_sheet_follows_the_writer_rules(tmp_path, roof):
     msp = doc.modelspace()
     texts = [t.dxf.text for t in msp.query("TEXT")]
     assert "EARTHING BOQ" in texts and "EARTHING DESIGN CALCULATION (SUMMARY)" in texts
-    assert {x.tag for x in d.layout.pits} <= set(texts)
+    shown = set(texts) | {t for s in texts for t in re.findall(r"\(([A-Z]+\d+)\)", s)} | {t for s in texts for t in expand_ranges(s)}
+    assert {x.tag for x in d.layout.pits} <= shown
+    assert dxfrules.violations(doc) == []
     used = {e.dxf.layer for e in msp.query("LINE LWPOLYLINE")}
     assert {f"E-COND-{r.size}-{r.role.value.upper()}" for r in d.layout.runs} <= used
     assert all(h.dxf.pattern_name in ("SOLID", "ANSI31") for h in msp.query("HATCH"))
@@ -225,6 +233,75 @@ def test_earthing_sheet_follows_the_writer_rules(tmp_path, roof):
     page = pymupdf.open(pdf)[0]
     assert abs(page.rect.width - 594 / 25.4 * 72) < 2 and abs(page.rect.height - 420 / 25.4 * 72) < 2
     assert len(page.get_drawings()) > 500
+
+
+@pytest.fixture(scope="module")
+def sample_sheets(ground, roof):
+    profile = CompanyProfile.load(ROOT / "profiles" / "default.json")
+    out = {}
+    for name, (p, d), paper in (("rajasthan", ground, PaperSize.A1), ("pune", roof, PaperSize.A2)):
+        doc = ezdxf.new("R2018", setup=True)
+        out[f"{name}-earthing"] = (doc, render_earthing_sheet(doc, p, CATALOG, d, _spec(paper, earthing_notes(d)), profile), p, d)
+    for name, (p, d), paper in (("rajasthan", ground, PaperSize.A1), ("pune", roof, PaperSize.A3)):
+        doc = ezdxf.new("R2018", setup=True)
+        out[f"{name}-lps"] = (doc, render_lps_sheet(doc, p, CATALOG, d.lps, _spec(paper, ()), profile), p, d)
+    return out
+
+
+@pytest.mark.parametrize("name", ["rajasthan-earthing", "pune-earthing", "rajasthan-lps", "pune-lps"])
+def test_sample_sheet_labels_never_overlap_and_all_find_room(sample_sheets, name):
+    doc, sheet, _, _ = sample_sheets[name]
+    assert len(sheet.labels) > 3
+    assert overlapping(sheet.labels) == []
+    assert not [w for w in sheet.warnings if "no room" in w]
+    assert dxfrules.violations(doc) == []
+
+
+@pytest.mark.parametrize("name", ["pune-earthing", "pune-lps", "rajasthan-earthing"])
+def test_plans_use_the_largest_standard_scale_that_fits(sample_sheets, name):
+    _, sheet, _, _ = sample_sheets[name]
+    x0, y0, x1, y1 = sheet.extent
+
+    def fits(s: int) -> bool:
+        return (x1 - x0) * 1000 / s <= sheet.room.width * FILL_FRACTION and (y1 - y0) * 1000 / s <= sheet.room.height * FILL_FRACTION
+
+    assert fits(sheet.scale)
+    assert not any(fits(s) for s in SCALES if s < sheet.scale)
+    assert 750 in SCALES and sheet.scale <= {"pune-earthing": 750, "pune-lps": 1000, "rajasthan-earthing": 2500}[name]
+
+
+def test_lps_circles_are_clipped_at_the_plan_edge(sample_sheets):
+    doc, sheet, _, d = sample_sheets["rajasthan-lps"]
+    msp = doc.modelspace()
+    zone = [e for e in msp.query("CIRCLE ARC") if e.dxf.layer == "E-LPS-ZONE"]
+    assert any(e.dxftype() == "ARC" for e in zone)
+    room = sheet.room
+    for e in zone:
+        if e.dxftype() == "ARC":
+            for pt in (e.start_point, e.end_point):
+                assert room.x0 - 1e-6 <= pt.x <= room.x1 + 1e-6 and room.y0 - 1e-6 <= pt.y <= room.y1 + 1e-6
+
+
+def test_clip_circle_keeps_only_the_arcs_inside():
+    r = Region(0, 0, 10, 10)
+    assert clip_circle(5, 5, 2, r) == [(0.0, 360.0)]
+    assert clip_circle(50, 50, 2, r) == []
+    arcs = clip_circle(10, 5, 2, r)
+    assert len(arcs) == 1 and arcs[0] == pytest.approx((90.0, 270.0))
+    corner = clip_circle(0, 0, 3, r)
+    assert corner == [pytest.approx((0.0, 90.0))]
+
+
+def test_crowded_stations_are_one_tag_group_and_detail_a(sample_sheets):
+    doc, sheet, p, d = sample_sheets["rajasthan-earthing"]
+    texts = [t.dxf.text for t in doc.modelspace().query("TEXT")]
+    groups = [s for s in texts if s.endswith("STATION, SEE DETAIL A")]
+    assert len(groups) == sum(1 for b in p.array_layout.blocks if b.station is not None)
+    assert any(s.startswith("DETAIL A: TYPICAL STATION EARTHING") for s in texts)
+    station_pits = {t for g in d.layout.stations for t in g.pits}
+    listed = set().union(*(expand_ranges(s) for s in texts))
+    assert station_pits <= listed
+    assert tag_ranges(["EP3", "EP4", "EPN1", "EPN2", "EPN3", "EP9"]) == "EP3-4, EP9, EPN1-3"
 
 
 # --- MCP -------------------------------------------------------------------------------------
