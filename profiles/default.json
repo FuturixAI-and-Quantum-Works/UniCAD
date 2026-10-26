@@ -1,0 +1,24 @@
+{
+  "name": "UniCAD Demo EPC",
+  "short_code": "UDEMO",
+  "logo": "demo-logo.dxf",
+  "address": "Plot 12, Solar Park Road, Sector 5, Pune - 411 001, Maharashtra. Tel: +91 20 5550 0100. www.example-epc.in",
+  "confidentiality_note": "THIS DRAWING IS THE PROPERTY OF UNICAD DEMO EPC. IT SHALL NOT BE COPIED OR MODIFIED WITHOUT WRITTEN PERMISSION.",
+  "drawing_number_pattern": "{company}-{client}-{project}-{discipline}-{seq:03d}",
+  "discipline_codes": {
+    "electrical": "EE",
+    "civil": "CE",
+    "substation": "PSS",
+    "mechanical": "ME"
+  },
+  "default_paper": "A3",
+  "text_style": "standard",
+  "text_font": "standard",
+  "date_format": "%d.%m.%y",
+  "layers": {
+    "frame": {"name": "G-FRAME", "colour": 7, "linetype": "CONTINUOUS", "lineweight": 50},
+    "title": {"name": "G-TITLE", "colour": 7, "linetype": "CONTINUOUS", "lineweight": 25},
+    "text": {"name": "G-TEXT", "colour": 7, "linetype": "CONTINUOUS", "lineweight": 25}
+  },
+  "roles": {"drawn": "DRAWN", "checked": "CHECKED", "approved": "APPROVED"}
+}
