@@ -1,0 +1,239 @@
+import os
+import subprocess
+from itertools import combinations
+from pathlib import Path
+
+import pymupdf
+import pytest
+
+from unicad.catalog.store import load_catalog
+from unicad.domain.network import SIGNAL_PORTS, NodeKind
+from unicad.drafting.sheets.layout import metrics_for
+from unicad.drafting.sheets.model import CompanyProfile, PaperSize
+from unicad.drafting.sld import SldOptions, layout_sld, plan_pages, render_sld
+from unicad.drafting.sld.model import Box, WireKind
+from unicad.drafting.sld.sheet import dxf_text
+from unicad.store import parse_project
+
+ROOT = Path(__file__).resolve().parent.parent
+LIBRECAD = Path(os.environ.get("LIBRECAD", "/tmp/opencode/proto/squashfs-root/AppRun"))
+FIXTURES = ("rooftop_500kwp", "utility_50mwac")
+EPS = 1e-6
+
+
+@pytest.fixture(scope="module")
+def catalog():
+    return load_catalog()
+
+
+@pytest.fixture(scope="module")
+def profile():
+    return CompanyProfile.load(ROOT / "profiles" / "default.json")
+
+
+@pytest.fixture(scope="module")
+def projects(catalog):
+    return {f: parse_project((ROOT / "fixtures" / "projects" / f"{f}.json").read_text(encoding="utf-8"), catalog) for f in FIXTURES}
+
+
+@pytest.fixture(scope="module")
+def layouts(projects, catalog):
+    out = {}
+    for f, p in projects.items():
+        out[f] = layout_sld(p.network, catalog)
+        out[f + ":compact"] = layout_sld(p.network, catalog, SldOptions().compact())
+    return out
+
+
+def _on_bus(layout, node_id, p):
+    return any(b.node_id == node_id and abs(b.y - p[1]) < EPS and b.x0 - EPS <= p[0] <= b.x1 + EPS for b in layout.busbars)
+
+
+def test_wires_are_orthogonal_and_end_exactly_on_pins(layouts):
+    for name, lay in layouts.items():
+        pins = {(p.owner, p.pin): p.at for s in lay.symbols for p in s.pins}
+        assert lay.wires, name
+        for w in lay.wires:
+            assert len(w.points) >= 2
+            for a, b in zip(w.points, w.points[1:]):
+                assert abs(a[0] - b[0]) < EPS or abs(a[1] - b[1]) < EPS, (name, w.edge_id, a, b)
+            assert w.end is not None and w.end.at == w.points[-1]
+            assert pins.get((w.end.owner, w.end.pin)) == w.end.at or _on_bus(lay, w.end.owner, w.end.at), (name, w.edge_id)
+            if w.kind is WireKind.EARTH:
+                continue
+            assert w.start is not None and w.start.at == w.points[0]
+            assert pins.get((w.start.owner, w.start.pin)) == w.start.at or _on_bus(lay, w.start.owner, w.start.at), (name, w.edge_id)
+
+
+def test_every_edge_of_the_network_is_drawn(layouts, projects):
+    for f, p in projects.items():
+        drawn = {w.edge_id for w in layouts[f].wires}
+        wanted = {e.id for e in p.network.edges if e.service.value != "earth"}
+        assert wanted <= drawn, wanted - drawn
+
+
+def _boxes(lay):
+    items = [(f"sym:{s.id}", s.body.grow(-0.05)) for s in lay.symbols]
+    items += [(f"txt:{t.text}@{t.at}", t.box) for t in lay.texts()]
+    items += [(f"bus:{b.node_id}", Box(b.x0, b.y - 0.05, b.x1, b.y + 0.05)) for b in lay.busbars]
+    return items
+
+
+def test_no_symbol_or_text_overlaps(layouts):
+    for name, lay in layouts.items():
+        clashes = [(a, b) for (a, ba), (b, bb) in combinations(_boxes(lay), 2) if ba.overlaps(bb)]
+        assert not clashes, (name, clashes[:5])
+
+
+def _crosses(box: Box, a, b) -> bool:
+    if abs(a[0] - b[0]) < EPS:
+        return box.x0 + EPS < a[0] < box.x1 - EPS and min(a[1], b[1]) < box.y1 - EPS and box.y0 + EPS < max(a[1], b[1])
+    return box.y0 + EPS < a[1] < box.y1 - EPS and min(a[0], b[0]) < box.x1 - EPS and box.x0 + EPS < max(a[0], b[0])
+
+
+def test_no_wire_runs_through_text(layouts):
+    for name, lay in layouts.items():
+        texts = lay.texts()
+        hits = [(w.edge_id, t.text) for w in lay.wires for a, b in zip(w.points, w.points[1:]) for t in texts if _crosses(t.box, a, b)]
+        assert not hits, (name, hits[:5])
+
+
+def test_every_power_node_is_drawn_exactly_once_and_groups_are_compressed(layouts, projects):
+    for f, p in projects.items():
+        lay = layouts[f]
+        ids = [n for n, _ in lay.represented]
+        assert len(ids) == len(set(ids))
+        power = {n.id for n in p.network.nodes if any(port not in SIGNAL_PORTS for port in n.port_names) and n.kind is not NodeKind.EARTH_ELECTRODE}
+        control = {n.id for n in p.network.nodes if n.ports is not None and all(port in SIGNAL_PORTS for port in n.ports) or n.kind is NodeKind.RELAY}
+        assert set(ids) == power | control
+        assert sum(1 for s in lay.symbols if s.role == "node") + len(lay.busbars) == len(ids)
+        assert len(ids) < len(p.network.expand().nodes)
+    util = layouts["utility_50mwac"]
+    titles = {f.group_id: " ".join(lb.text for lb in f.labels) for f in util.frames}
+    assert set(titles) == {"block", "inv_sec", "scb_sec"}
+    assert "BLOCK-01..BLOCK-06  (x 6)" in titles["block"]
+    assert "(x 15)" in titles["scb_sec"]
+    roof = layouts["rooftop_500kwp"]
+    assert [f.multiplicity for f in roof.frames] == [5]
+
+
+def test_poi_is_on_top_and_generation_at_the_bottom(layouts, projects):
+    for f, p in projects.items():
+        lay = layouts[f]
+        y = {s.node_id: s.body.y1 for s in lay.symbols if s.role == "node"}
+        y |= {b.node_id: b.y for b in lay.busbars}
+        net = p.network
+        poi = net.by_kind(NodeKind.POI_GRID)[0].id
+        assert y[poi] == max(y.values())
+        for s in net.by_kind(NodeKind.PV_STRING):
+            path = net.path_to_poi(s.id)
+            heights = [y[n] for n in path]
+            assert heights == sorted(heights), (f, path, heights)
+
+
+def test_frames_enclose_their_members_and_nothing_else(layouts, projects):
+    for f, p in projects.items():
+        lay = layouts[f]
+        net = p.network
+        for fr in lay.frames:
+            def inside(gid):
+                while gid is not None:
+                    if gid == fr.group_id:
+                        return True
+                    gid = net.group_by_id[gid].within
+                return False
+
+            for s in lay.symbols:
+                if s.node_id is None:
+                    continue
+                member = inside(net.node(s.node_id).group)
+                within = fr.box.x0 <= s.body.x0 and s.body.x1 <= fr.box.x1 and fr.box.y0 <= s.body.y0 and s.body.y1 <= fr.box.y1
+                assert member == within, (fr.group_id, s.node_id)
+
+
+def test_annotations_come_from_the_catalog_and_project(layouts, projects, catalog):
+    roof = layouts["rooftop_500kwp"]
+    vals = {s.node_id: dict(s.values) for s in roof.symbols if s.node_id}
+    assert vals["inv"]["RATING"] == "100 kVA, 400 V AC, 3 PH"
+    assert vals["inv"]["TAG"] == "INV-01"
+    assert vals["inv_mccb"]["RATING"] == "160 A, 4P, 25 kA, 415 V"
+    assert vals["str"]["RATING"] == "18 x 555 Wp = 9.99 kWp"
+    assert vals["str"]["COUNT"] == "x 10 NOS"
+    callouts = {c.edge_id: [lb.text for lb in c.labels] for c in roof.callouts}
+    assert callouts["e_acb_ct"][0] == "3R x 1C x 400 sq.mm Al XLPE ARM"
+    assert "ON TRAY" in callouts["e_acb_ct"][1]
+    util = layouts["utility_50mwac"]
+    uvals = {s.node_id: dict(s.values) for s in util.symbols if s.node_id}
+    assert uvals["aux_tr"]["VECTOR"] == "Dyn11"
+    assert uvals["idt"]["VECTOR"] == "Dy11y11"
+    assert uvals["blk_aux"]["VECTOR"] == ""
+    assert {lb.text for b in util.busbars for lb in b.labels} >= {"33 kV BUS"}
+
+
+def test_sheet_carries_legend_of_used_symbols_and_system_parameters(projects, catalog, profile):
+    doc, res = render_sld(projects["rooftop_500kwp"], "sld", profile, catalog)
+    used = set(res.layout.legend_keys())
+    assert {slot.key for slot in res.sheet.legend_slots} <= used
+    texts = {e.dxf.text for e in doc.modelspace().query("TEXT")}
+    assert "499.50 kWp" in texts
+    assert "500.00 kVA" in texts
+    assert "900 x 555 Wp" in texts
+
+
+@pytest.mark.parametrize("fixture, paper", [("rooftop_500kwp", "A3"), ("rooftop_500kwp", "A2"), ("utility_50mwac", "A0"), ("utility_50mwac", "A1")])
+def test_sheet_is_readable_and_inside_the_drawing_area(projects, catalog, profile, fixture, paper):
+    p = projects[fixture]
+    p = p.model_copy(update={"sheets": tuple(s.model_copy(update={"paper": paper}) if s.id == "sld" else s for s in p.sheets)})
+    _, res = render_sld(p, "sld", profile, catalog)
+    assert res.placement.readable, res.placement.scale
+    assert len(res.pages) == 1
+    area = res.sheet.drawing_area
+    ext = res.layout.extent
+    lo = res.placement.to_sheet((ext.x0, ext.y0))
+    hi = res.placement.to_sheet((ext.x1, ext.y1))
+    assert area.x0 - EPS <= lo[0] and hi[0] <= area.x1 + EPS and area.y0 - EPS <= lo[1] and hi[1] <= area.y1 + EPS
+
+
+def test_dxf_is_byte_identical_across_runs(projects, catalog, profile):
+    for f in FIXTURES:
+        a = dxf_text(render_sld(projects[f], "sld", profile, catalog)[0])
+        b = dxf_text(render_sld(projects[f], "sld", profile, catalog)[0])
+        assert a == b
+
+
+def test_split_plan_covers_every_node_once_when_the_sheet_is_too_small(projects, catalog):
+    p = projects["utility_50mwac"]
+    a4 = metrics_for(PaperSize.A4).drawing_area
+    pages = plan_pages(p.network, catalog, a4.width / 2, a4.height / 2)
+    assert len(pages) > 1
+    seen = [n for page in pages for n in page.node_ids]
+    full = layout_sld(p.network, catalog)
+    assert sorted(seen) == sorted(n for n, _ in full.represented)
+    cut = {e for page in pages for e in page.cut_edges}
+    assert cut
+    for e in cut:
+        edge = p.network.edge_by_id[e]
+        homes = {i for i, page in enumerate(pages) for n in page.node_ids if n in (edge.src_node, edge.dst_node)}
+        assert len(homes) == 2
+
+
+def test_split_plan_is_one_page_when_it_fits(projects, catalog):
+    a0 = metrics_for(PaperSize.A0).drawing_area
+    pages = plan_pages(projects["rooftop_500kwp"].network, catalog, a0.width, a0.height)
+    assert len(pages) == 1 and not pages[0].cut_edges
+
+
+@pytest.mark.skipif(not LIBRECAD.exists(), reason="LibreCAD binary not available")
+def test_librecad_exports_the_sld_to_pdf(projects, catalog, profile, tmp_path):
+    from unicad.drafting.sld import save_deterministic
+
+    doc, _ = render_sld(projects["rooftop_500kwp"], "sld", profile, catalog)
+    dxf, pdf = tmp_path / "sld.dxf", tmp_path / "sld.pdf"
+    save_deterministic(doc, dxf)
+    env = {**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":0")}
+    done = subprocess.run([str(LIBRECAD), "dxf2pdf", "-s", "1", "-c", "-p", "420x297", "-o", str(pdf), str(dxf)],
+                          env=env, capture_output=True, timeout=180)
+    assert done.returncode == 0, done.stderr.decode()
+    page = pymupdf.open(pdf)[0]
+    assert page.rect.width == pytest.approx(420 / 25.4 * 72, abs=2)
+    assert len(page.get_drawings()) > 500
