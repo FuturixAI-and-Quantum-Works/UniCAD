@@ -16,7 +16,7 @@ from unicad.rules.vdrop import segment_drop
 from unicad.schedules import LengthMode, build_bom, build_schedule, write_bom_xlsx, write_schedule_xlsx
 from unicad.schedules.bom import CABLES
 
-STRING_ID = re.compile(r"^B\d\d-I\d+-S\d\d-R\d{3}-\d{4}-IP\d\d-4 sqmm$")
+STRING_ID = re.compile(r"^INV-\d\d-DCFB-\d\d-R\d{3}-\d{4}-IP\d\d-4 sqmm$")
 
 
 def drops(project: Project) -> dict[str, float]:
@@ -75,11 +75,11 @@ def test_every_cabled_edge_instance_is_scheduled_once_with_a_unique_id():
 def test_cable_ids_follow_the_positional_scheme():
     roof = [r for r in build_schedule(fixture("rooftop_500kwp"), CATALOG).rows if r.is_string]
     assert len(roof) == 50 and all(STRING_ID.match(r.cable_id) for r in roof)
-    assert roof[0].cable_id == "B01-I1-S01-R001-0001-IP01-4 sqmm" and roof[0].to_tag == "DCFB-01"
-    assert roof[-1].cable_id.startswith("B01-I5-S01-") and roof[-1].cable_id.endswith("-IP10-4 sqmm")
+    assert roof[0].cable_id == "INV-01-DCFB-01-R001-0001-IP01-4 sqmm" and roof[0].to_tag == "DCFB-01" and roof[0].from_tag == "STR-01-01"
+    assert roof[-1].cable_id.startswith("INV-05-DCFB-05-") and roof[-1].cable_id.endswith("-IP10-4 sqmm")
     utility = {r.instance: r for r in build_schedule(fixture("utility_50mwac"), CATALOG).rows if r.is_string}
     r = utility["e_str@3.2.5.7"]
-    assert r.cable_id == "B03-I2-S05-IP07-4 sqmm" and r.to_tag == "SCB-03-2-05"
+    assert r.cable_id == "INV-03-2-SCB-03-2-05-IP07-4 sqmm" and r.to_tag == "SCB-03-2-05" and r.from_tag == "STR-03-2-05-07"
     assert len(utility) == 4320
 
 

@@ -66,8 +66,8 @@ def test_the_rooftop_fixture_gets_one_a3_sheet_for_its_five_identical_inverters(
     assert r.paper is PaperSize.A3 and r.warnings == ()
     assert r.instances == tuple(f"inv@{i}" for i in range(1, 6)) and len(r.strings) == 10
     texts = drawn_texts(r)
-    assert "TYPICAL FOR INV-01 .. INV-05 (5 NOS) : SHOWN FOR INV-01" in texts
-    assert [f"STRING S{i:02d} : 18 x 555 Wp" in texts for i in range(1, 11)] == [True] * 10
+    assert "TYPICAL FOR INV-01..INV-05 (5 NOS) : SHOWN FOR INV-01" in texts
+    assert [f"STR-01-{i:02d} : 18 x 555 Wp" in texts for i in range(1, 11)] == [True] * 10
     assert texts.count("...18 NOS...") == 10
     assert "DCFB-01 DC FUSE BOX" in texts and any(t.startswith("DC-ISO-01: DC ISOLATOR 250 A 1000 V") for t in texts)
 

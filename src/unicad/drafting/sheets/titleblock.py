@@ -14,6 +14,22 @@ from unicad.drafting.sheets.text import fit
 T = LayerRole.TITLE
 
 
+LOCATION_LINES = 6
+
+
+def compose_location(*parts: str | None) -> str:
+    """Comma-separated place parts with each place named once, in first-seen order and ignoring case."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for part in parts:
+        for piece in (part or "").split(","):
+            piece = piece.strip()
+            if piece and piece.casefold() not in seen:
+                seen.add(piece.casefold())
+                out.append(piece)
+    return ", ".join(out)
+
+
 @dataclass(frozen=True)
 class Row:
     height: float
@@ -104,7 +120,7 @@ class TitleBlock:
         if d.consultant:
             rows.append(self._kv_row("CONSULTANT", d.consultant, 2, kv_w))
         rows.append(self._kv_row("PROJECT TITLE", d.project_title, 3, kv_w))
-        rows.append(self._kv_row("LOCATION", d.location, 2, kv_w))
+        rows.append(self._kv_row("LOCATION", compose_location(d.location), LOCATION_LINES, kv_w))
         if d.loa_no:
             rows.append(self._kv_row("LOA / PO NO.", d.loa_no, 2, kv_w))
         rows.append(self._single_row("DRAWING TITLE", d.drawing_title, 1.2 * th, 3))

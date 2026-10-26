@@ -48,9 +48,7 @@ class StringLine:
     instance: str
     tag: str
     number: int
-    local_id: str
     ip: str
-    stem: str
     cable_id: str
     modules: int
     mppt: int | None
@@ -132,7 +130,7 @@ class DiagramType:
     @property
     def tag_range(self) -> str:
         first, last = self.members[0].tag, self.members[-1].tag
-        return first if len(self.members) == 1 else f"{first} .. {last}"
+        return first if len(self.members) == 1 else f"{first}..{last}"
 
     @property
     def typical(self) -> str:
@@ -285,11 +283,10 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
         lines: list[StringLine] = []
         for i, s in enumerate(rep.strings, start=1):
             node = net.node(s.partition("@")[0])
-            stem = ids.string_stem(s)
-            ip = stem.rsplit("-", 1)[-1]
+            sid = ids.string_id(s)
             lines.append(StringLine(
-                instance=s, tag=instance_tag(net, s), number=i, local_id=f"S{i:02d}", ip=ip, stem=stem,
-                cable_id=string_cable_ids.get(s, stem), modules=node.modules_in_series or n_series,
+                instance=s, tag=instance_tag(net, s), number=i, ip=f"IP{sid.input_no:02d}",
+                cable_id=string_cable_ids.get(s, sid.text()), modules=node.modules_in_series or n_series,
                 mppt=((i - 1) // mppt.inputs_per_mppt + 1) if mppt else None, voc_cold_v=round(voc, 1), isc_a=module.isc,
                 length_m=edge.length_m if edge else None, slots=slots_of.get(s, ()),
             ))  # fmt: skip

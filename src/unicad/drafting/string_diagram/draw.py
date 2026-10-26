@@ -105,7 +105,7 @@ class Ink:
 
 
 def string_label(t: DiagramType, ln: StringLine) -> str:
-    return f"STRING {ln.local_id} : {ln.modules} x {t.module.pmax:g} Wp"
+    return f"{ln.tag} : {ln.modules} x {t.module.pmax:g} Wp"
 
 
 def callout(t: DiagramType, ln: StringLine) -> str:
@@ -187,7 +187,7 @@ def table_cells(t: DiagramType, lines: tuple[StringLine, ...], with_positions: b
     rows = []
     for ln in lines:
         fuse = t.fuse.label.replace(" gPV", "") if t.fuse else "-"
-        row = [ln.local_id, ln.cable_id, str(ln.modules), f"{ln.voc_cold_v:.1f}", f"{ln.isc_a:g}", fuse, f"{ln.mppt} / {ln.ip}" if t.kind == "inverter" else ln.ip]
+        row = [ln.tag, ln.cable_id, str(ln.modules), f"{ln.voc_cold_v:.1f}", f"{ln.isc_a:g}", fuse, f"{ln.mppt} / {ln.ip}" if t.kind == "inverter" else ln.ip]
         if with_positions:
             row.append(ln.positions or "-")
         rows.append(tuple(row))
@@ -247,8 +247,12 @@ def plan_block_h(tp: float, rows: int) -> float:
     return 1.5 * tp + rows * 3.6 * tp + 0.3 * tp
 
 
+PLAN_TITLE = "TABLE POSITIONS (SCHEMATIC, NOT TO SCALE)"
+PLAN_KEYS = ("MODULE NUMBER = SERIES ORDER, 1+ IS THE (+) END, N- THE (-) END.", "ROW 1 IS NEAREST THE TABLE ORIGIN. GREY SLOTS HOLD OTHER STRINGS.")
+
+
 def pack_plan(tables, region: Region, u: float) -> PlanLayout | None:
-    if not tables:
+    if not tables or region.width < max(text_width(PLAN_TITLE, 0.85 * u), *(text_width(k, 0.7 * u) for k in PLAN_KEYS)):
         return None
     head = 4.4 * u
     max_cols = max(tb.cols for tb in tables)
@@ -277,9 +281,9 @@ def pack_plan(tables, region: Region, u: float) -> PlanLayout | None:
 
 def draw_plan(ink: Ink, lines: tuple[StringLine, ...], tables, marks: dict[str, str], region: Region, lay: PlanLayout, u: float) -> None:
     tp = lay.tp
-    ink.text("TABLE POSITIONS (SCHEMATIC, NOT TO SCALE)", region.x0, region.y1 - 1.1 * u, 0.85 * u, tag="plan title")
-    ink.text("MODULE NUMBER = SERIES ORDER, 1+ IS THE (+) END, N- THE (-) END.", region.x0, region.y1 - 2.3 * u, 0.7 * u, tag="plan key")
-    ink.text("ROW 1 IS NEAREST THE TABLE ORIGIN. GREY SLOTS HOLD OTHER STRINGS.", region.x0, region.y1 - 3.4 * u, 0.7 * u, tag="plan key 2")
+    ink.text(PLAN_TITLE, region.x0, region.y1 - 1.1 * u, 0.85 * u, tag="plan title")
+    ink.text(PLAN_KEYS[0], region.x0, region.y1 - 2.3 * u, 0.7 * u, tag="plan key")
+    ink.text(PLAN_KEYS[1], region.x0, region.y1 - 3.4 * u, 0.7 * u, tag="plan key 2")
     owner: dict[tuple[str, int, int], tuple[StringLine, int]] = {}
     for ln in lines:
         for k, slot in enumerate(ln.slots, start=1):
@@ -315,7 +319,7 @@ def draw_plan(ink: Ink, lines: tuple[StringLine, ...], tables, marks: dict[str, 
                 ink.text(label, x + lay.cw / 2, y_cell_bot + 0.6 * tp, tp, "center", layer, tag=f"plan {tb.id} {r},{c}")
                 prev = owner.get((tb.id, r, c - 1))
                 if prev is None or prev[0] is not ln:
-                    ink.text(ln.local_id, x, y_cell_top + 0.35 * tp, tp, tag=f"plan {tb.id} {ln.local_id} {r},{c}")
+                    ink.text(ln.tag, x, y_cell_top + 0.35 * tp, tp, tag=f"plan {tb.id} {ln.tag} {r},{c}")
 
 
 # ---------------------------------------------------------------- the diagram
@@ -340,7 +344,7 @@ def draw_chain(ink: Ink, ln: StringLine, x: float, y0: float, y_ret: float, u: f
             ink.line((x1 - 1.5 * u, y0), (x1, y0), L_MOD)
             for bx in (right + 1.5 * u, x1 - 1.5 * u):
                 ink.line((bx - 0.35 * u, y0 - 0.9 * u), (bx + 0.35 * u, y0 + 0.9 * u), L_MOD)
-            ink.text(f"...{n} NOS...", (right + x1) / 2, y0 + 0.7 * u, 0.7 * u, "center", tag=f"{ln.local_id} break")
+            ink.text(f"...{n} NOS...", (right + x1) / 2, y0 + 0.7 * u, 0.7 * u, "center", tag=f"{ln.tag} break")
             cx = x1
         elif right is not None:
             ink.line((right, y0), (cx, y0), L_MOD)
@@ -350,8 +354,8 @@ def draw_chain(ink: Ink, ln: StringLine, x: float, y0: float, y_ret: float, u: f
     assert right is not None
     stub = x - 1.5 * u
     ink.path((x, y0), (stub, y0), (stub, y_ret), layer=L_POS)
-    ink.text("+", stub - 1.0 * u, y0 + 0.4 * u, 0.9 * u, layer=L_POS, tag=f"{ln.local_id} plus")
-    ink.text("-", right + 0.5 * u, y0 - 1.5 * u, 0.9 * u, layer=L_NEG, tag=f"{ln.local_id} minus")
+    ink.text("+", stub - 1.0 * u, y0 + 0.4 * u, 0.9 * u, layer=L_POS, tag=f"{ln.tag} plus")
+    ink.text("-", right + 0.5 * u, y0 - 1.5 * u, 0.9 * u, layer=L_NEG, tag=f"{ln.tag} minus")
     return right
 
 
@@ -369,10 +373,10 @@ def draw_diagram(ink: Ink, t: DiagramType, lines: tuple[StringLine, ...], x0: fl
     x_dev = x_cable + cols.cable
     x_sink = x_dev + cols.device
     for ln, g in zip(lines, rows, strict=True):
-        ink.text(string_label(t, ln), x_chain - 1.5 * u, g.y0 + 1.95 * u, 0.85 * u, tag=f"{ln.local_id} label")
+        ink.text(string_label(t, ln), x_chain - 1.5 * u, g.y0 + 1.95 * u, 0.85 * u, tag=f"{ln.tag} label")
         x_minus = draw_chain(ink, ln, x_chain, g.y0, g.y_ret, u)
-        ink.text(ln.cable_id, x_minus + 1.8 * u, g.y0 + 1.8 * u, CABLE_H * u, tag=f"{ln.local_id} cable id")
-        ink.text(callout(t, ln), x_minus + 1.8 * u, g.y0 + 0.7 * u, CABLE_H * u, tag=f"{ln.local_id} cable")
+        ink.text(ln.cable_id, x_minus + 1.8 * u, g.y0 + 1.8 * u, CABLE_H * u, tag=f"{ln.tag} cable id")
+        ink.text(callout(t, ln), x_minus + 1.8 * u, g.y0 + 0.7 * u, CABLE_H * u, tag=f"{ln.tag} cable")
         ink.line((x_minus, g.y0), (x_sink if t.kind == "inverter" else x_sink - 1.5 * u, g.y0), L_NEG)
     y_bottom = rows[-1].y_ret - (1.8 if t.kind == "inverter" else 4.8) * u
     y_env_top = rows[0].y0 + 2.8 * u
@@ -385,7 +389,7 @@ def draw_diagram(ink: Ink, t: DiagramType, lines: tuple[StringLine, ...], x0: fl
         if t.fuse is not None:
             ink.line((x_plus, g.y_ret), (x_fuse_in, g.y_ret), L_POS)
             ink.symbol_with_pin("dc.fuse", "in", (x_fuse_in, g.y_ret), 90, FUSE_LEN / 20.0 * u)
-            ink.text(t.fuse.label.replace(" gPV", ""), x_fuse_in + FUSE_LEN * u / 2, g.y_ret - 1.9 * u, 0.7 * u, "center", tag=f"{ln.local_id} fuse")
+            ink.text(t.fuse.label.replace(" gPV", ""), x_fuse_in + FUSE_LEN * u / 2, g.y_ret - 1.9 * u, 0.7 * u, "center", tag=f"{ln.tag} fuse")
             ink.line((x_fuse_in + FUSE_LEN * u, g.y_ret), (x_plus_end, g.y_ret), L_POS)
         else:
             ink.line((x_plus, g.y_ret), (x_plus_end, g.y_ret), L_POS)

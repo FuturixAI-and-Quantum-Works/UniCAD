@@ -137,9 +137,8 @@ def build_schedule(
             eff = None if pos is None else ((pos + neg) / 2 if neg is not None else pos)
             vd, loss = elec.at_length(e, eff) if eff is not None else (None, None)
             from_tag, to_tag = instance_tag(net, ie.src_node), instance_tag(net, ie.dst_node)
-            cable_id = _unique(f"{ids.string_stem(ie.src_node)}-{cable.size_mm2:g} sqmm" if src_node.kind is NodeKind.PV_STRING else f"{from_tag}-{to_tag}", seen_ids)
-            if src_node.kind is NodeKind.PV_STRING:
-                from_tag = ids.string_stem(ie.src_node)
+            string_id = ids.string_id(ie.src_node) if src_node.kind is NodeKind.PV_STRING else None
+            cable_id = _unique(string_id.text(cable.size_mm2) if string_id else f"{from_tag}-{to_tag}", seen_ids)
             sl += 1
             rows.append(
                 CableRow(
@@ -150,7 +149,7 @@ def build_schedule(
                     length_pos_m=pos, length_neg_m=neg, length_source=source, length_basis=basis,
                     laying=e.laying.value if e.laying else None, ib_a=ib, iz_a=iz, vd_pct=vd, loss_w=loss,
                     module=module.model if module else None, module_wp=module.pmax if module else None, remarks=e.remarks or "",
-                    flags=_flags(e, iz, pos, vd),
+                    flags=_flags(e, iz, pos, vd), stem=string_id.stem if string_id else "",
                 )
             )  # fmt: skip
         if rows:

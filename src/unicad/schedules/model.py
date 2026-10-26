@@ -46,6 +46,7 @@ class CableRow:
     module_wp: float | None
     remarks: str
     flags: tuple[str, ...] = ()
+    stem: str = ""
 
     @property
     def is_dc(self) -> bool:
