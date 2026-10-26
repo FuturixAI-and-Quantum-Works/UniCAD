@@ -198,9 +198,12 @@ def test_rooftop_strings_take_one_mppt_each_in_order(projects):
 def test_string_inverter_strings_pair_up_on_mppts_and_input_numbers_follow_the_schedule(projects):
     types, _ = plan_types(projects["string"], CATALOG)
     first = types[0]
-    assert first.mppt.inputs_per_mppt == 2 and first.mppt.used == 12
-    assert [ln.mppt for ln in first.lines] == [i // 2 + 1 for i in range(24)]
-    assert [int(ln.ip[2:]) for ln in first.lines] == list(range(1, 25))
+    net = projects["string"].network.expand()
+    n = sum(1 for e in net.edges if e.is_power and e.dst_node == first.representative.instance and net.node(e.src_node).kind is NodeKind.PV_STRING)
+    assert n > 2 and n % 2 == 0
+    assert first.mppt.inputs_per_mppt == 2 and first.mppt.used == n // 2
+    assert [ln.mppt for ln in first.lines] == [i // 2 + 1 for i in range(n)]
+    assert [int(ln.ip[2:]) for ln in first.lines] == list(range(1, n + 1))
     assert first.fuse is None and dict(parameters_for(first))["STRING FUSE"] == "NONE (AT MOST 2 PER MPPT)"
 
 
