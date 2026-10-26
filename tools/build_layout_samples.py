@@ -72,6 +72,7 @@ def build(name: str, site: SiteGeometry, spec: PlacementSpec, paper: PaperSize, 
     drawing = LayoutDrawing.from_result(site, result, module, spec.table_gap_m, default_notes(result, site, spec_text(spec)))
     sheet = render_layout_sheet(doc, drawing, sheet_spec(paper, title, f"UDEMO-DEMO-{name.upper()[:10]}-EE-101", location), profile, view=view)  # type: ignore[arg-type]
     dxf = OUT / f"{name}.dxf"
+    ezdxf.options.write_fixed_meta_data_for_testing = True
     doc.saveas(dxf)
     for w in sheet.warnings:
         print(f"  warning: {w}")
@@ -81,7 +82,7 @@ def build(name: str, site: SiteGeometry, spec: PlacementSpec, paper: PaperSize, 
     summary = {
         "metrics": m.model_dump(), "pitch": result.pitch.model_dump(mode="json"), "scale": f"1:{sheet.scale}", "paper": paper.value,
         "blocks": [b.model_dump(mode="json") for b in result.blocks], "assumptions": list(result.assumptions), "warnings": list(result.warnings),
-        "target_reached": result.target_reached, "placement_seconds": round(elapsed, 3),
+        "target_reached": result.target_reached,
     }  # fmt: skip
     (OUT / f"{name}.json").write_text(json.dumps(summary, indent=1) + "\n")
     if LIBRECAD.exists():

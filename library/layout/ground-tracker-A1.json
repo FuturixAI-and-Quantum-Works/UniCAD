@@ -93,6 +93,5 @@
  "warnings": [
   "10584 modules do not make up a whole string of 56 and are left unstrung"
  ],
- "target_reached": null,
- "placement_seconds": 0.36
+ "target_reached": null
 }

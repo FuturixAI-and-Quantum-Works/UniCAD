@@ -102,6 +102,5 @@
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [],
- "target_reached": null,
- "placement_seconds": 0.472
+ "target_reached": null
 }
