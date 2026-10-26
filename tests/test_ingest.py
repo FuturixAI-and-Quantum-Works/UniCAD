@@ -135,3 +135,133 @@ def test_wrong_file_kind_rejected():
 def test_types():
     assert isinstance(module_from_pan(FIXTURES / "real_ET-M772BH550GL.PAN", tech=CellTech.TOPCON), ModuleSpec)
     assert isinstance(inverter_from_ond(FIXTURES / "synthetic_inverter_string_1100V.OND", topology="string"), InverterSpec)
+
+
+RAW = Path(__file__).resolve().parent.parent / "references" / "catalog-sources" / "raw" / "datasheets"
+EXTRACTED = Path(__file__).resolve().parent.parent / "references" / "catalog-sources" / "extracted"
+needs_raw = pytest.mark.skipif(not RAW.is_dir(), reason="raw datasheets are not checked out")
+
+
+def csv_row(name: str, model: str) -> dict[str, str]:
+    import csv
+
+    with open(EXTRACTED / name, newline="", encoding="utf-8") as f:
+        return next(r for r in csv.DictReader(f) if r["model"] == model)
+
+
+@pytest.fixture(scope="module")
+def waaree():
+    from unicad.ingest.datasheet import extract_text_and_tables
+
+    return extract_text_and_tables(RAW / "modules" / "Waaree_Elite_BiN-08-565-600_144_TOPCon.pdf")
+
+
+@needs_raw
+def test_module_datasheet_fields_match_csv(waaree):
+    from unicad.ingest.datasheet import draft_spec
+
+    row = csv_row("module_datasheets.csv", "BiN-08-580")
+    fields, missing, warnings = draft_spec("module", waaree.candidates, row="BiN-08-580")
+    expected = {
+        "pmax": "pmax_w", "vmp": "vmp_v", "imp": "imp_a", "voc": "voc_v", "isc": "isc_a",
+        "temp_coeff_isc": "alpha_isc_pct_per_c", "temp_coeff_voc": "beta_voc_pct_per_c", "temp_coeff_pmax": "gamma_pmax_pct_per_c",
+        "length": "length_mm", "width": "width_mm", "cells": "cells", "max_system_voltage": "max_system_v", "max_series_fuse": "max_series_fuse_a",
+    }
+    for field, col in expected.items():
+        assert fields[field] == float(row[col]), field
+    assert fields["bifaciality"] == 0.8
+    assert warnings and "tech not set" in warnings[0] and "topcon" in warnings[0]
+
+
+@needs_raw
+def test_draft_never_fills_what_the_sheet_does_not_state(waaree):
+    from unicad.ingest.datasheet import draft_spec
+
+    fields, missing, _ = draft_spec("module", waaree.candidates, row="BiN-08-580")
+    assert set(missing) == {"manufacturer", "model", "tech"}
+    assert not set(missing) & set(fields)
+
+
+@needs_raw
+def test_multi_model_sheet_is_ambiguous_without_a_row(waaree):
+    from unicad.ingest.datasheet import draft_spec
+
+    fields, missing, warnings = draft_spec("module", waaree.candidates)
+    assert "pmax" not in fields and "pmax" in missing
+    assert any(w.startswith("pmax is ambiguous, 8 distinct values") for w in warnings)
+
+
+@needs_raw
+def test_every_waaree_table_row_matches_csv(waaree):
+    import csv
+
+    from unicad.ingest.datasheet import draft_spec
+
+    with open(EXTRACTED / "module_datasheets.csv", newline="", encoding="utf-8") as f:
+        rows = [r for r in csv.DictReader(f) if r["source_file"].endswith("Waaree_Elite_BiN-08-565-600_144_TOPCon.pdf")]
+    assert len(rows) == 8
+    for r in rows:
+        fields, _, _ = draft_spec("module", waaree.candidates, row=r["model"])
+        assert [fields[k] for k in ("pmax", "vmp", "imp", "voc", "isc")] == [float(r[c]) for c in ("pmax_w", "vmp_v", "imp_a", "voc_v", "isc_a")], r["model"]
+
+
+@needs_raw
+def test_inverter_datasheet_fields_match_csv():
+    from unicad.ingest.datasheet import draft_spec, extract_text_and_tables
+
+    ex = extract_text_and_tables(RAW / "inverters" / "Sungrow_SG110CX-P2_DS_V3.pdf")
+    row = csv_row("inverter_datasheets.csv", "SG110CX-P2")
+    fields, missing, warnings = draft_spec("inverter", ex.candidates)
+    assert fields["dc_max_voltage"] == float(row["vdc_max_v"])
+    assert (fields["mppt_min"], fields["mppt_max"]) == (float(row["mppt_low_v"]), float(row["mppt_high_v"]))
+    assert fields["mppt_count"] == int(row["mppt_count"]) and fields["inputs_per_mppt"] == int(row["strings_per_mppt"])
+    assert fields["ac_rated_kva"] == float(row["ac_rated_kw"])
+    assert fields["max_dc_input_current"] == 360.0
+    assert "ac_voltage" in missing and any("ac_voltage is ambiguous" in w for w in warnings)
+    assert {"topology", "phases"} <= set(missing)
+
+
+@needs_raw
+def test_inverter_per_mppt_fields_from_second_datasheet():
+    from unicad.ingest.datasheet import draft_spec, extract_text_and_tables
+
+    ex = extract_text_and_tables(RAW / "inverters" / "Huawei_SUN2000-100KTL-M2_DS.pdf")
+    row = csv_row("inverter_datasheets.csv", "SUN2000-100KTL-M2")
+    fields, missing, _ = draft_spec("inverter", ex.candidates)
+    assert fields["max_input_current_per_mppt"] == float(row["idc_max_per_mppt_a"])
+    assert fields["max_short_circuit_current_per_mppt"] == float(row["isc_max_per_mppt_a"])
+    assert (fields["mppt_min"], fields["mppt_max"], fields["start_voltage"]) == (float(row["mppt_low_v"]), float(row["mppt_high_v"]), float(row["start_voltage_v"]))
+    assert fields["ac_rated_kva"] == float(row["ac_rated_kw"]) and fields["ac_max_kva"] == float(row["ac_rated_kva"])
+    assert "max_input_current_per_mppt or max_dc_input_current" not in missing
+
+
+@needs_raw
+def test_label_first_table_gives_one_value_per_power_class():
+    import csv
+
+    from unicad.ingest.datasheet import extract_text_and_tables
+
+    ex = extract_text_and_tables(RAW / "modules" / "Adani_ElanShine_TOPCon_G2G_GenII.pdf")
+    with open(EXTRACTED / "module_datasheets.csv", newline="", encoding="utf-8") as f:
+        rows = [r for r in csv.DictReader(f) if "Adani_ElanShine" in r["source_file"]]
+    pmax = [c for c in ex.candidates if c.label.startswith("Peak power, Pmax")]
+    assert [c.value for c in pmax] == [float(r["pmax_w"]) for r in rows]
+    voc = [c for c in ex.candidates if c.label.startswith("Open circuit voltage, Voc") and c.unit == "V" and c.column is not None][:7]
+    assert [c.value for c in voc] == [float(r["voc_v"]) for r in rows]
+    assert all(c.page == 2 for c in pmax)
+
+
+@needs_raw
+def test_image_only_pdf_is_reported_not_guessed():
+    from unicad.ingest.datasheet import draft_spec, extract_text_and_tables
+
+    ex = extract_text_and_tables(RAW / "modules" / "Premier_PE-144HC_TOPCon_DualGlass_560-590.pdf")
+    assert ex.image_only_pages and not ex.candidates
+    assert draft_spec("module", ex.candidates).fields == {}
+
+
+def test_unknown_kind_rejected():
+    from unicad.ingest.datasheet import draft_spec
+
+    with pytest.raises(ValueError, match="unsupported kind"):
+        draft_spec("transformer", [])
