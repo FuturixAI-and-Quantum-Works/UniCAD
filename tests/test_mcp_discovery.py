@@ -103,7 +103,7 @@ def test_instructions_and_prompts_name_only_real_tools():
 
 
 def test_instructions_walk_the_whole_workflow_in_order():
-    order = ["project_create", "site_import", "layout_place", "network_autobuild", "validate", "earthing_design", "lps_design", "cable_schedule", "bom", "project_snapshot"]
+    order = ["project_create", "project_design_basis", "site_import", "layout_place", "network_autobuild", "validate", "earthing_design", "lps_design", "cable_schedule", "bom", "project_snapshot"]
     positions = [INSTRUCTIONS.index(name) for name in order]
     assert positions == sorted(positions)
     for name in ("drawings_render", "explain_finding", "site_set_setbacks", "design_strings", "project_diff", "new_bess_project", "revise_after_comments"):

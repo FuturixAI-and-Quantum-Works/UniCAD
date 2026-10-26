@@ -91,9 +91,12 @@ Read-only.
 
 ### `project_design_basis`
 
-Set the design-basis inputs the rules and the earthing, lightning and drawing set use: fault levels per system voltage, earthing
-inputs and lightning protection inputs. Only the parts you pass (or clear) change; the design is not run (earthing_design and
-lps_design store the same inputs and report the design; drawings_render draws the earthing and LA layouts from them).
+Set the design-basis inputs the rules and the earthing, lightning and drawing set use: site values (ambient temperatures, altitude),
+limits (voltage drop, DC/AC target, power factor), fault levels per system voltage, earthing inputs and lightning protection inputs.
+Only the parts you pass (or clear) change, and a value you set replaces its placeholder in `assumptions`. The design is not run:
+after changing site values, limits or fault levels on a project with a network, re-run network_autobuild so strings, breakers and
+cables are sized for them (earthing_design and lps_design store the same inputs and report the design; drawings_render draws the
+earthing and LA layouts from them). Site setbacks are set with site_set_setbacks.
 
 Example: project_design_basis(project_id="p1", earthing={"soil_resistivity_ohm_m": 50, "fault_current_ka": 12.5, "fault_clearing_s": 1},
 lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6}).
@@ -105,6 +108,13 @@ lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6})
 | `earthing` | object | no | Replace the earthing inputs (soil resistivity from the Wenner test is required) |
 | `lps` | object | no | Replace the lightning protection inputs (level from the IS/IEC 62305-2 risk assessment is required) |
 | `clear` | list of `fault_levels` \| `earthing` \| `lps` | no | Inputs to remove Default: `[]`. |
+| `ambient_min_c` | number | no | Site minimum ambient °C (sets the coldest cell temperature for string Voc) |
+| `ambient_max_c` | number | no | Site maximum ambient °C |
+| `altitude_m` | number | no | Site altitude in metres |
+| `vdrop_dc_max` | number | no | Max DC voltage drop as a fraction, e.g. 0.015 |
+| `vdrop_ac_max` | number | no | Max AC voltage drop as a fraction |
+| `dc_ac_ratio_target` | number | no | Target DC/AC ratio |
+| `power_factor` | number | no | Design power factor |
 
 ## Catalog tools
 
@@ -244,7 +254,7 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `module` | string | yes | Catalog id of the PV module, e.g. 'waaree-bi-55-540' |
 | `mounting` | string | no | fixed_tilt, tracker_1p, rooftop_flush, rooftop_tilted or carport Default: `fixed_tilt`. |
 | `table_rows` | integer | no | Modules across a table (2 for 2P, 1 for a 1P tracker) Default: `2`. |
-| `table_cols` | integer | no | Modules along a table or tracker Default: `28`. |
+| `table_cols` | integer | no | Modules along a table or tracker; default the string length (modules_per_string), else 28 |
 | `orientation` | `portrait` \| `landscape` | no | portrait or landscape Default: `portrait`. |
 | `tilt_deg` | number | no | Fixed tilt; 0 for trackers and flat roofs Default: `0.0`. |
 | `azimuth_deg` | number | no | Direction the modules face, clockwise from grid north; 180 = south Default: `180.0`. |
@@ -253,8 +263,8 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `pitch_m` | number | no | Row-to-row pitch for pitch_method='explicit' |
 | `gcr` | number | no | Ground coverage ratio for pitch_method='gcr' |
 | `row_gap_m` | number | no | Clear gap between rows for pitch_method='gap' |
-| `half_tables` | boolean | no | Fill edges with half tables Default: `True`. |
-| `half_cols` | integer | no | Modules along a half table; default table_cols // 2 |
+| `half_tables` | boolean | no | Fill edges with half tables (only where a half table holds whole strings, unless half_cols is given) Default: `True`. |
+| `half_cols` | integer | no | Modules along a half table; default the longest shorter table that holds whole strings |
 | `table_gap_m` | number | no | Gap between tables along a row (default 1.5 m, reported as an assumption) |
 | `module_gap_m` | number | no | Gap between modules on a table (default 0.02 m, reported as an assumption) |
 | `road_every_rows` | integer | no | Leave an internal road after every N rows |
@@ -270,6 +280,9 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `modules_per_string` | integer | no | Modules in series; default the network pv_string modules_in_series, else table_cols |
 | `strings_per_inverter` | integer | no | Strings per inverter within a block (string inverters); default one inverter per block |
 | `regions` | string | no | auto (roofs for rooftop mountings, else ground), ground or roofs Default: `auto`. |
+| `whole_inverters` | boolean | no | With strings_per_inverter: size every block to whole inverters and leave out the few remainder tables instead of adding a part-loaded inverter Default: `True`. |
+| `station_x` | number | no | Local x (m) of the inverter station for every block, e.g. a ground-level inverter room; default on the block (on a roof for rooftop arrays) |
+| `station_y` | number | no | Local y (m) of the inverter station |
 
 ### `layout_summary`
 

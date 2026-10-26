@@ -88,6 +88,12 @@ def steps() -> list[Step]:
             keep=("revision", "setbacks_m", "buildable", "problems"),
         ),
         Step(
+            "project_design_basis",
+            p | {"fault_levels": [{"voltage_v": 415, "fault_ka": 10, "clearing_s": 1, "source": "example input: protection study"}]},
+            "Record the design-basis inputs before any design so network_autobuild sizes breakers and cables for them: here the LT fault level (an input of the example). Site values and limits the user gives (ambient_min_c, vdrop_ac_max, ...) go in the same call and replace their placeholders.",
+            keep=("revision", "changed", "design_basis", "problems"),
+        ),
+        Step(
             "design_strings",
             p | {"module": MODULE, "inverter": INVERTER},
             "Size the string before placing tables so the layout and the network agree.",
@@ -172,12 +178,6 @@ def steps() -> list[Step]:
             p,
             "Bill of materials, using the same lengths as the cable schedule.",
             keep=("revision", "files", "summary", "warnings"),
-        ),
-        Step(
-            "project_design_basis",
-            p | {"fault_levels": [{"voltage_v": 415, "fault_ka": 10, "clearing_s": 1, "source": "example input: protection study"}]},
-            "Record the fault level the earthing used as a design-basis input; earthing and LPS inputs were stored by earthing_design and lps_design. The values are inputs of the example.",
-            keep=("revision", "changed", "design_basis", "problems"),
         ),
         Step(
             "drawings_render",

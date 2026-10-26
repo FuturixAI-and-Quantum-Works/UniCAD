@@ -29,10 +29,6 @@ class Grouping:
     factor: float | None
     source: str
 
-    @property
-    def note(self) -> str:
-        return self.source
-
 
 def grouping(cable: CableSpec, laying: Laying, runs: int, dc: bool = False) -> Grouping | None:
     """The group rating factor for `runs` circuits of `cable` laid together; None for a single run. When the handbook has no row for

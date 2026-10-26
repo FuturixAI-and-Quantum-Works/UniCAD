@@ -11,12 +11,12 @@ UniCAD builds Indian (IS/CEA) solar EPC drawing sets from a typed project model.
 
 Workflow, in order. Every edit returns the new revision and a `problems` list; read it before the next step.
 0. Company: company_list shows the profiles (title block, drawing numbering, layers, symbols, rule thresholds). For a new company run company_onboard(dxf_path, answers) with its DXF and questionnaire, fix what it reports as failed, and check the result with company_preview_sheet.
-1. project_create(name, client, segment, site, grid_voltage_v). Read the `assumptions` it returns: they are placeholders, replace them with site data when the user has it. company_assign(project_id, profile_id) puts the project on the company's profile. project_list / project_get show what exists.
-2. site_import(project_id, file_path) from KML, KMZ, GeoJSON, DXF or a coordinate list; site_set_feature / site_remove_feature fix what the survey missed; site_set_setbacks takes clearances from the design basis (none are assumed); site_summary shows the buildable area.
-3. layout_place(project_id, module, ...) puts tables on the buildable area, splits them into inverter blocks and assigns strings. layout_summary and layout_blocks read the result. design_strings sizes a string for a module and inverter before you commit to one.
-4. network_autobuild(project_id, template, ac_kw or dc_kwp, module, inverter) builds the complete electrical network from intent and links layout strings. Use catalog_search / catalog_get for equipment ids. For hand edits use network_add_group, network_add_node, network_connect, network_update and network_remove; model identical equipment once with a count.
-5. validate(project_id) runs the engineering rules and says which issue purposes (approval, construction, as_built) are blocked. explain_finding(project_id, rule_id, subject) gives the formula, inputs and sources. Fix errors with network_update / layout_place / site tools, then validate again until no errors remain. Never edit a value just to silence a rule: change the design.
-6. project_design_basis(project_id, fault_levels, earthing, lps) stores the fault levels, earthing inputs (soil resistivity from the Wenner test) and lightning protection inputs (level from the risk assessment) the rules and drawings use. earthing_design(project_id, soil_resistivity, ...) and lps_design(project_id, method, level, ...) design the earth grid and lightning protection (run layout_place first). earthing_summary reads them back.
+1. project_create(name, client, segment, site, grid_voltage_v). Read the `assumptions` it returns: they are placeholders. company_assign(project_id, profile_id) puts the project on the company's profile. project_list / project_get show what exists.
+2. project_design_basis(project_id, ...) before any design: site values (ambient_min_c, ambient_max_c, altitude_m), limits (vdrop_dc_max, vdrop_ac_max, dc_ac_ratio_target, power_factor), fault levels per system voltage, earthing inputs (soil resistivity from the Wenner test) and lightning protection inputs (level from the risk assessment). A value you set replaces its placeholder. If you change site values, limits or fault levels after the network exists, build the network again (step 5).
+3. site_import(project_id, file_path) from KML, KMZ, GeoJSON, DXF or a coordinate list; site_set_feature / site_remove_feature fix what the survey missed; site_set_setbacks takes clearances from the design basis (none are assumed); site_summary shows the buildable area.
+4. design_strings sizes a string for a module and inverter. layout_place(project_id, module, modules_per_string, strings_per_inverter, ...) then puts tables on the buildable area (tables default to one string per row, half tables only where they hold whole strings), splits them into inverter blocks of whole inverters and assigns strings; it reports an error when a table cannot hold a string. For rooftops the inverter station stands on a roof unless station_x/station_y give its place. layout_summary and layout_blocks read the result.
+5. network_autobuild(project_id, template, ac_kw or dc_kwp, module, inverter) builds the complete electrical network from intent, links layout strings and sizes breakers for the prospective fault (declared levels and transformer-fed LV faults) and cables for the declared fault levels. Use catalog_search / catalog_get for equipment ids. For hand edits use network_add_group, network_add_node, network_connect, network_update and network_remove; model identical equipment once with a count.
+6. validate(project_id) runs the engineering rules and says which issue purposes (approval, construction, as_built) are blocked; its `next` says when a rebuild is the fix. explain_finding(project_id, rule_id, subject) gives the formula, inputs and sources. Fix errors with network_update / layout_place / site tools or by re-running network_autobuild, then validate again until no errors remain. Never edit a value just to silence a rule: change the design. earthing_design(project_id, soil_resistivity, ...) and lps_design(project_id, method, level, ...) design the earth grid and lightning protection (run layout_place first); earthing_summary reads them back.
 7. Deliverables: drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers; drawings_preview shows a sheet as PNG. cable_schedule and bom also export the schedules alone (xlsx, dxf or pdf).
 8. project_snapshot(project_id, label) names the issued revision; project_diff compares revisions (per-feature site changes, per-block layout changes, sheet changes). Use revision= on read tools to inspect an older state.
 
@@ -236,7 +236,52 @@ site_set_setbacks(project_id="pune-midc-factory-roof", roof_edge_m=1.0)
 }
 ```
 
-### 6. `design_strings`
+### 6. `project_design_basis`
+
+Record the design-basis inputs before any design so network_autobuild sizes breakers and cables for them: here the LT fault level (an input of the example). Site values and limits the user gives (ambient_min_c, vdrop_ac_max, ...) go in the same call and replace their placeholders.
+
+```python
+project_design_basis(
+    project_id="pune-midc-factory-roof",
+    fault_levels=[{"voltage_v": 415, "fault_ka": 10, "clearing_s": 1, "source": "example input: protection study"}],
+)
+```
+
+```json
+{
+  "revision": 5,
+  "changed": true,
+  "design_basis": {
+    "ambient_min_c": 10.0,
+    "ambient_max_c": 45.0,
+    "altitude_m": 0.0,
+    "vdrop_dc_max": 0.02,
+    "vdrop_ac_max": 0.02,
+    "dc_ac_ratio_target": 1.2,
+    "power_factor": 0.99,
+    "fault_levels": [
+      {
+        "voltage_v": 415.0,
+        "fault_ka": 10.0,
+        "clearing_s": 1.0,
+        "source": "example input: protection study"
+      }
+    ],
+    "earthing": null,
+    "lps": null,
+    "assumptions": [
+      "ambient_min_c = 10 is a placeholder, not site or standard data; replace it before issue.",
+      "ambient_max_c = 45 is a placeholder, not site or standard data; replace it before issue.",
+      "altitude_m = 0 is a placeholder, not site or standard data; replace it before issue.",
+      "vdrop_dc_max = 0.02 is a placeholder, not site or standard data; replace it before issue.",
+      "... 5 more"
+    ]
+  },
+  "problems": []
+}
+```
+
+### 7. `design_strings`
 
 Size the string before placing tables so the layout and the network agree.
 
@@ -264,7 +309,7 @@ design_strings(
 }
 ```
 
-### 7. `layout_place`
+### 8. `layout_place`
 
 Fill the buildable roof to the target capacity with 20-module strings.
 
@@ -284,7 +329,7 @@ layout_place(
 
 ```json
 {
-  "revision": 5,
+  "revision": 6,
   "metrics": {
     "tables_full": 22,
     "tables_half": 0,
@@ -318,7 +363,7 @@ layout_place(
 }
 ```
 
-### 8. `network_autobuild`
+### 9. `network_autobuild`
 
 Build the whole electrical network. It follows the layout and links each layout string to a pv_string instance.
 
@@ -334,7 +379,7 @@ network_autobuild(
 
 ```json
 {
-  "revision": 6,
+  "revision": 7,
   "design": {
     "templates": {"groups": 1, "nodes": 19, "edges": 20},
     "instances": {
@@ -364,7 +409,7 @@ network_autobuild(
     "inverters": 2,
     "strings": 22
   },
-  "rules": {"error": 0, "warning": 2, "info": 17},
+  "rules": {"error": 0, "warning": 2, "info": 20},
   "findings": [
     {
       "rule_id": "cables.missing",
@@ -392,7 +437,7 @@ network_autobuild(
 }
 ```
 
-### 9. `validate`
+### 10. `validate`
 
 Two warnings: the two connections marked 'by others' have no cable. The example's user states a cable and length for the DISCOM service connection.
 
@@ -402,8 +447,8 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 6,
-  "counts": {"error": 0, "warning": 2, "info": 17},
+  "revision": 7,
+  "counts": {"error": 0, "warning": 2, "info": 20},
   "blocking": false,
   "findings": [
     {
@@ -422,7 +467,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 10. `network_update`
+### 11. `network_update`
 
 Fix the model, not the drawing. Cable, length and laying method are example inputs.
 
@@ -435,10 +480,10 @@ network_update(
 ```
 
 ```json
-{"revision": 7, "changed": true, "problems": []}
+{"revision": 8, "changed": true, "problems": []}
 ```
 
-### 11. `validate`
+### 12. `validate`
 
 Costing the cable exposes a real problem: AC voltage drop to the point of interconnection is over the design-basis limit.
 
@@ -448,16 +493,16 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 7,
-  "counts": {"error": 1, "warning": 1, "info": 18},
+  "revision": 8,
+  "counts": {"error": 1, "warning": 1, "info": 22},
   "blocking": true,
   "findings": [
     {
       "rule_id": "vdrop.ac",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.80 + 0.86 + 0.18 + 0.29 = 2.12 % exceeds vdrop_ac_max...",
-      "measured": 2.119,
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.64 + 1.05 + 0.18 + 0.29 = 2.15 % exceeds vdrop_ac_max...",
+      "measured": 2.152,
       "limit": 2.0,
       "unit": "%"
     },
@@ -471,7 +516,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 12. `explain_finding`
+### 13. `explain_finding`
 
 The formula, every input with its source, and the measured value against the limit.
 
@@ -488,18 +533,18 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
       "title": "AC voltage drop from inverter to the point of interconnection within the design basis",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.80 + 0.86 + 0.18 + 0.29 = 2.12 % exceeds vdrop_ac_max...",
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.64 + 1.05 + 0.18 + 0.29 = 2.15 % exceeds vdrop_ac_max...",
       "formula": "dV%_total = sum(dV%_segment)",
       "inputs": [
         {
           "name": "dV%[e_inv_brk_b01a]",
-          "value": 0.7973,
+          "value": 0.6358,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         {
           "name": "dV%[e_brk_ct]",
-          "value": 0.8595,
+          "value": 1.0548,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
@@ -517,7 +562,7 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
         },
         "... 1 more"
       ],
-      "measured": 2.119,
+      "measured": 2.152,
       "limit": 2.0,
       "unit": "%",
       "assumptions": [
@@ -531,7 +576,7 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
 }
 ```
 
-### 13. `network_update`
+### 14. `network_update`
 
 Upsize the longest, most loaded AC run (the example's choice).
 
@@ -544,10 +589,10 @@ network_update(
 ```
 
 ```json
-{"revision": 8, "changed": true, "problems": []}
+{"revision": 9, "changed": true, "problems": []}
 ```
 
-### 14. `validate`
+### 15. `validate`
 
 No errors left, so approval is allowed. The warning that remains is the load connection 'by others'; it stays visible rather than being hidden.
 
@@ -557,8 +602,8 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 8,
-  "counts": {"error": 0, "warning": 1, "info": 19},
+  "revision": 9,
+  "counts": {"error": 0, "warning": 1, "info": 23},
   "blocking": false,
   "findings": [
     {
@@ -571,7 +616,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 15. `earthing_design`
+### 16. `earthing_design`
 
 Soil resistivity, fault level and clearing time are inputs of the example, from a site test and the protection study.
 
@@ -581,12 +626,12 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
 
 ```json
 {
-  "revision": 9,
+  "revision": 10,
   "earthing": {
     "conductor": {"main": "25x6", "array": "25x6", "equipment": "25x6", "down": "25x3"},
     "pits": 36,
     "pits_by_role": {"EP": 36},
-    "resistance_ohm": 1.2076,
+    "resistance_ohm": 1.166,
     "target_ohm": 2.0,
     "tables": 22,
     "items": 8,
@@ -601,7 +646,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 238.0,
+        "quantity": 244.0,
         "unit": "m"
       },
       {
@@ -619,7 +664,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       "... 1 more"
     ],
     "warnings": [
-      "the buried network's area limits the earth resistance to about 3.79 ohm, above the 2 ohm target; more pits..."
+      "the buried network's area limits the earth resistance to about 5.35 ohm, above the 2 ohm target; more pits..."
     ],
     "assumptions": [
       "earth electrode 40 mm dia x 3 m long (as on the CIL/Refex earthing layout unless set)",
@@ -632,7 +677,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
 }
 ```
 
-### 16. `lps_design`
+### 17. `lps_design`
 
 Level III and the terminal's efficiency are inputs of the example.
 
@@ -648,7 +693,7 @@ lps_design(
 
 ```json
 {
-  "revision": 10,
+  "revision": 11,
   "lps": {
     "method": "ese",
     "level": "III",
@@ -668,7 +713,7 @@ lps_design(
 }
 ```
 
-### 17. `validate`
+### 18. `validate`
 
 Re-run after every design step; approval and construction stay blocked while any error remains.
 
@@ -678,8 +723,8 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 10,
-  "counts": {"error": 0, "warning": 4, "info": 25},
+  "revision": 11,
+  "counts": {"error": 0, "warning": 4, "info": 29},
   "blocking": false,
   "gates": {
     "proposal": {"allowed": true, "watermark": false},
@@ -691,7 +736,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 18. `cable_schedule`
+### 19. `cable_schedule`
 
 Cable schedule as xlsx in the project's exports folder. Voltage drops come from the same rules as validate.
 
@@ -701,16 +746,16 @@ cable_schedule(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 10,
+  "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-cable-schedule.xlsx"],
   "rows": 31,
-  "totals": {"rows": 31.0, "cable_m": 3936.2, "loss_w": 7621.09, "cable_m_dc": 3621.2, "cable_m_lv_ac": 315.0},
+  "totals": {"rows": 31.0, "cable_m": 4301.4, "loss_w": 7657.83, "cable_m_dc": 3986.4, "cable_m_lv_ac": 315.0},
   "length_sources": {"network": 31},
   "warnings": []
 }
 ```
 
-### 19. `bom`
+### 20. `bom`
 
 Bill of materials, using the same lengths as the cable schedule.
 
@@ -720,7 +765,7 @@ bom(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 10,
+  "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-bom.xlsx"],
   "summary": {
     "lines": 31,
@@ -728,49 +773,9 @@ bom(project_id="pune-midc-factory-roof")
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 4134.0
+    "cable_m_ordered": 4517.0
   },
   "warnings": []
-}
-```
-
-### 20. `project_design_basis`
-
-Record the fault level the earthing used as a design-basis input; earthing and LPS inputs were stored by earthing_design and lps_design. The values are inputs of the example.
-
-```python
-project_design_basis(
-    project_id="pune-midc-factory-roof",
-    fault_levels=[{"voltage_v": 415, "fault_ka": 10, "clearing_s": 1, "source": "example input: protection study"}],
-)
-```
-
-```json
-{
-  "revision": 11,
-  "changed": true,
-  "design_basis": {
-    "fault_levels": [
-      {
-        "voltage_v": 415.0,
-        "fault_ka": 10.0,
-        "clearing_s": 1.0,
-        "source": "example input: protection study"
-      }
-    ],
-    "earthing": {
-      "soil_resistivity_ohm_m": 100.0,
-      "fault_current_ka": 10.0,
-      "fault_clearing_s": 1.0,
-      "electrode_length_m": 3.0,
-      "electrode_diameter_mm": 40.0,
-      "burial_depth_m": 0.6,
-      "corrosion_allowance": 0.0,
-      "tables_per_pit": 20
-    },
-    "lps": {"level": "III", "method": "ese", "ese_delta_t_us": 60.0, "mast_height_m": 6.0}
-  },
-  "problems": []
 }
 ```
 
@@ -904,8 +909,7 @@ project_diff(project_id="pune-midc-factory-roof", from_revision="issued-approval
       {
         "id": "B01",
         "fields": [
-          {"path": "station.x", "before": 71.62, "after": 80.07},
-          {"path": "station.y", "before": 28.966, "after": 25.596},
+          {"path": "station.x", "before": 71.778, "after": 80.07},
           {"path": "boundary_points", "before": 16, "after": 18},
           {"path": "tables_modified", "before": 0, "after": 22}
         ]

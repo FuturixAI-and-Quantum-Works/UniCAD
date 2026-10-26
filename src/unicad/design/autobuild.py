@@ -1,6 +1,7 @@
 """From a short intent to a sized, rule-checked electrical network."""
 
 import math
+import re
 from collections import Counter
 from typing import Any, Literal
 
@@ -233,15 +234,18 @@ BREAKER_PREFIX = {"acb": "ACB", "mccb": "MCCB", "mcb": "MCB"}
 
 def _breaker_tags(project: Project, catalog: Catalog) -> Project:
     """Breaker tags name the device the sizer picked: an inverter breaker that had to be an ACB (no MCCB breaks the bus fault) is tagged ACB."""
+    def shape(tag: str) -> str:
+        return re.sub(r"\d", "#", re.sub(r"\{\d+:02d\}", "##", tag))
+
     net = project.network
-    used = {n.tag for n in net.nodes}
+    used = {shape(n.tag) for n in net.nodes}
     nodes = []
     for n in net.nodes:
         head, sep, rest = n.tag.partition("-")
         want = BREAKER_PREFIX.get(getattr(catalog.get(n.spec), "device", "")) if n.kind is NodeKind.BREAKER and n.spec is not None else None
         tag = f"{want}{sep}{rest}"
-        if want and head in BREAKER_PREFIX.values() and head != want and tag not in used:
-            used.add(tag)
+        if want and head in BREAKER_PREFIX.values() and head != want and shape(tag) not in used:
+            used.add(shape(tag))
             n = n.model_copy(update={"tag": tag})
         nodes.append(n)
     return project.model_copy(update={"network": net.model_copy(update={"nodes": tuple(nodes)})})
@@ -285,6 +289,14 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
         inverter = _inverter(catalog, intent.inverter, template, project, module, (intent.ac_kw or (intent.dc_kwp or 0.0) / basis.dc_ac_ratio_target), notes)
         sd = size_strings(module, inverter, basis, intent.modules_per_string)
         plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis)
+        short = [(b.name or b.part, ic.strings) for b in plan.blocks for ic in b.invs if plan.from_layout and ic.strings < max(i.strings for i in b.invs)]
+        if short:
+            spi = max(i.strings for b in plan.blocks for i in b.invs)
+            listed = ", ".join(f"{name} ({n} strings)" for name, n in short[:6]) + (f" and {len(short) - 6} more" if len(short) > 6 else "")
+            notes.append(
+                f"Part-loaded inverters: {listed} carry fewer than {spi} strings because the layout blocks do not hold whole inverters; "
+                f"re-run layout_place with strings_per_inverter={spi} to size every block to whole inverters."
+            )
         if plan.unstrung_modules:
             notes.append(f"{plan.unstrung_modules} layout modules do not make up a whole string of {plan.modules_per_string} and are left unstrung.")
     if template == "residential":

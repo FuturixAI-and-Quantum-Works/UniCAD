@@ -13,16 +13,16 @@ from unicad.rules import families as rule_families
 from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
-SIZED_BY_AUTOBUILD = ("protection.rated_current", "protection.fault_level", "cables.", "vdrop.")
+SIZED_BY_AUTOBUILD = ("protection.fault_level", "cables.short_circuit", "structure.missing_spec")
 
 
 def rebuild_hint(findings: tuple[Finding, ...]) -> str | None:
-    """What to do when errors are in quantities network_autobuild sizes (breakers, cables), e.g. after fault levels were added later."""
+    """What to do when errors are in quantities network_autobuild sizes from the design basis (breaking capacity, short-circuit withstand, breaker specs), e.g. after fault levels were added later."""
     ids = sorted({f.rule_id for f in findings if f.severity is Severity.ERROR and f.rule_id.startswith(SIZED_BY_AUTOBUILD)})
     if not ids:
         return None
     return (f"Errors in {', '.join(ids)} concern ratings network_autobuild sizes: re-run network_autobuild with the same intent so breakers and cables "
-            "are sized for the current design basis (fault levels, limits), then validate again.")
+            "are sized for the current design basis (fault levels, limits; hand edits made since the last build are replaced), then validate again.")
 
 
 def compact(f: Finding) -> dict[str, Any]:
