@@ -3,7 +3,7 @@ from ..registry import symbol
 from .kit import DC, DC_NEG, DC_POS, Pen, pin_s, std_attrs
 
 C = Category.PV
-STD = "IEC 60617-6 photovoltaic generator / IS 12032"
+STD = "IEC 60617 S00908 photovoltaic generator / IS 12032"
 
 
 @symbol(
@@ -15,6 +15,7 @@ STD = "IEC 60617-6 photovoltaic generator / IS 12032"
     20.0,
     (Pin("dc+", 5.0, 20.0, Side.N, DC_POS), Pin("dc-", 5.0, 0.0, Side.S, DC_NEG)),
     std_attrs(10.0, 20.0),
+    tag_prefix="PVM",
 )
 def module(b):
     p = Pen(b)
@@ -36,6 +37,7 @@ def module(b):
     15.0,
     (pin_s(15.0, "dc", DC),),
     std_attrs(30.0, 15.0, ("COUNT", "")),
+    tag_prefix="STR",
 )
 def string(b):
     p = Pen(b)
@@ -57,6 +59,7 @@ def string(b):
     40.0,
     (pin_s(17.5, "dc", DC),),
     std_attrs(35.0, 40.0, ("COUNT", "")),
+    tag_prefix="ARR",
 )
 def array(b):
     p = Pen(b)

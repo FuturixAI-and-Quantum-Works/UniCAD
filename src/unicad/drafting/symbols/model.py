@@ -57,6 +57,8 @@ class Attr:
     height: float = 2.0
     default: str = ""
     visible: bool = True
+    centred: bool = False
+    max_chars: int = 0
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,7 @@ class SymbolDef:
     pins: tuple[Pin, ...]
     attrs: tuple[Attr, ...]
     draw: Callable[[BlockLayout], None]
+    tag_prefix: str = ""
 
     @property
     def block_name(self) -> str:

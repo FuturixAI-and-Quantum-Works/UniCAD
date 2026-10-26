@@ -34,7 +34,7 @@ def _ensure_resources(doc: Drawing) -> None:
 def install(doc: Drawing, keys: Iterable[str] | None = None) -> None:
     """Create the block definitions for `keys` (default: all) unless the doc already has them.
 
-    ATTDEF anchors are the left-middle point of the text.
+    ATTDEF anchors are the left-middle point of the text, or its middle for centred attributes.
     """
     _ensure_resources(doc)
     for key in REGISTRY if keys is None else keys:
@@ -51,7 +51,10 @@ def install(doc: Drawing, keys: Iterable[str] | None = None) -> None:
                 height=a.height,
                 dxfattribs={"layer": LAYER, "style": TEXT_STYLE, "prompt": a.tag},
             )
-            attdef.set_placement((a.x, a.y), align=TextEntityAlignment.MIDDLE_LEFT)
+            attdef.set_placement(
+                (a.x, a.y),
+                align=TextEntityAlignment.MIDDLE_CENTER if a.centred else TextEntityAlignment.MIDDLE_LEFT,
+            )
             if not a.visible:
                 attdef.dxf.flags |= _ATTRIB_INVISIBLE
 
@@ -91,7 +94,8 @@ def insert(
     invisible (still readable by ezdxf and AutoCAD tools) and each non-empty visible
     value is also written as a plain TEXT on TEXT_LAYER. Pass visible_text=False to
     get classic visible ATTRIBs instead. Text stays horizontal; it is right-aligned
-    when the symbol is rotated so that its local +x points west.
+    when the symbol is rotated so that its local +x points west. Centred attributes
+    (text inside a circle) stay centred.
     """
     sym = _symbol(key)
     values = dict(values or {})
@@ -100,8 +104,9 @@ def insert(
         raise ValueError(f"symbol {key!r} has no attribute(s) {sorted(unknown)}; valid: {[a.tag for a in sym.attrs]}")
     install(layout.doc, [key])
     ref = layout.add_blockref(sym.block_name, at, dxfattribs={"layer": LAYER, "rotation": rotation})
-    align = TextEntityAlignment.MIDDLE_LEFT if math.cos(math.radians(rotation)) > -1e-9 else TextEntityAlignment.MIDDLE_RIGHT
+    flow = TextEntityAlignment.MIDDLE_LEFT if math.cos(math.radians(rotation)) > -1e-9 else TextEntityAlignment.MIDDLE_RIGHT
     for a in sym.attrs:
+        align = TextEntityAlignment.MIDDLE_CENTER if a.centred else flow
         dx, dy = _rotate(a.x, a.y, rotation)
         pos = (_clean(at[0] + dx), _clean(at[1] + dy))
         value = values.get(a.tag, a.default)

@@ -10,7 +10,7 @@ import pytest
 from ezdxf import bbox
 from ezdxf.path import make_path
 
-from unicad.drafting.symbols import GRID, REGISTRY, Category, PinKind, Side, insert, install, pin_at
+from unicad.drafting.symbols import GRID, REGISTRY, Category, PinKind, Side, busbar, insert, install, pin_at
 from unicad.drafting.symbols.catalogue import build_catalogue, manifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +19,7 @@ ALLOWED = {"LINE", "ARC", "CIRCLE", "LWPOLYLINE", "TEXT", "SOLID"}
 TOL = 1e-6
 NO_ATTRS = {"layout.module", "ann.junction", "ann.north"}
 SHORT_ATTRS = {"REV": 1, "NUM": 2, "ID": 1}
-TWO_AC_PINS_ON_A_SIDE = {"sw.changeover", "sw.rmu"}
+TWO_AC_PINS_ON_A_SIDE = {"sw.changeover", "sw.rmu", "tx.idt_2lv", "tx.idt_3lv", "tx.idt_4lv"}
 CHAR_W = 0.8
 
 ALL = list(REGISTRY.values())
@@ -110,6 +110,9 @@ def test_required_symbols_exist():
     ann.junction ann.offsheet ann.cable_tag ann.revision ann.north ann.note_marker
     ann.section_marker layout.module layout.inverter layout.earth_pit layout.ese_la
     layout.transformer layout.scb
+    prot.relay_group prot.la_counter tx.ct_2core tx.ct_3core tx.idt_2lv tx.idt_3lv tx.idt_4lv
+    tx.earthing earth.ngr inst.lamp_ryb inst.annunciator inst.metering_cubicle inst.wms
+    inst.scada_box inst.cctv grid.cable_term_kit dc.fuse_switch dc.scb_monitored
     """.split()
     assert not [k for k in required if k not in REGISTRY]
 
@@ -173,8 +176,12 @@ def test_attributes_are_unique_and_complete(sym, full_doc):
 def test_attribute_text_clears_geometry(sym, full_doc):
     segs = list(segments(geometry(full_doc, sym)))
     for a in sym.attrs:
-        n = SHORT_ATTRS.get(a.tag, max(10, len(a.default)))
-        x0, x1 = a.x, a.x + n * CHAR_W * a.height
+        if a.centred:
+            half = a.max_chars * CHAR_W * a.height / 2
+            x0, x1 = a.x - half, a.x + half
+        else:
+            n = SHORT_ATTRS.get(a.tag, max(10, len(a.default)))
+            x0, x1 = a.x, a.x + n * CHAR_W * a.height
         y0, y1 = a.y - a.height / 2, a.y + a.height / 2
         hit = [s for s in segs if seg_hits_rect(*s, x0, y0, x1, y1)]
         assert not hit, f"{a.tag} text box ({x0:.1f},{y0:.1f})-({x1:.1f},{y1:.1f}) overlaps geometry"
@@ -321,3 +328,212 @@ def test_librecad_renders_catalogue_to_pdf(catalogue_dxf, tmp_path):
     assert proc.returncode == 0, proc.stderr.decode()[-500:]
     assert out.exists() and out.stat().st_size > 10_000
     assert out.read_bytes()[:5] == b"%PDF-"
+
+
+def _texts(doc, sym):
+    return [e.dxf.text for e in geometry(doc, sym) if e.dxftype() == "TEXT"]
+
+
+def _circles(doc, sym):
+    return [e for e in geometry(doc, sym) if e.dxftype() == "CIRCLE"]
+
+
+def test_relay_is_a_circle_with_a_centred_ansi_attribute(full_doc):
+    sym = REGISTRY["prot.relay"]
+    (circle,) = _circles(full_doc, sym)
+    ansi = next(a for a in sym.attrs if a.tag == "ANSI")
+    assert ansi.centred and ansi.max_chars >= 4
+    assert (ansi.x, ansi.y) == pytest.approx((circle.dxf.center.x, circle.dxf.center.y))
+    assert circle.dxf.radius * 2 > ansi.max_chars * CHAR_W * ansi.height
+    assert "IEEE C37.2" in sym.standard and "IEC 60617" in sym.standard
+
+
+def test_relay_group_has_six_touching_circles_with_one_ansi_attribute_each(full_doc):
+    sym = REGISTRY["prot.relay_group"]
+    tags = [a.tag for a in sym.attrs if a.tag.startswith("ANSI")]
+    assert tags == [f"ANSI{i}" for i in range(1, 7)]
+    circles = sorted(_circles(full_doc, sym), key=lambda c: c.dxf.center.x)
+    assert len(circles) == 6
+    for left, right in zip(circles, circles[1:]):
+        assert right.dxf.center.x - left.dxf.center.x == pytest.approx(left.dxf.radius + right.dxf.radius)
+    for attr, circle in zip((a for a in sym.attrs if a.tag.startswith("ANSI")), circles):
+        assert attr.centred
+        assert (attr.x, attr.y) == pytest.approx((circle.dxf.center.x, circle.dxf.center.y))
+
+
+def test_relay_group_values_are_written_centred_in_each_circle():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    values = {"ANSI1": "50", "ANSI2": "51", "ANSI3": "50N"}
+    ref = insert(msp, "prot.relay_group", (100, 40), values=values)
+    placed = {t.dxf.text: t for t in msp.query("TEXT") if t.dxf.text in values.values()}
+    assert set(placed) == set(values.values())
+    for t in placed.values():
+        assert t.dxf.halign == 1 and t.dxf.valign == 2
+    assert {a.dxf.tag: a.dxf.text for a in ref.attribs}["ANSI4"] == ""
+
+
+def test_relay_ansi_text_stays_centred_when_symbol_is_flipped():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    insert(msp, "prot.relay", (0, 0), rotation=180, values={"ANSI": "87T"})
+    text = next(t for t in msp.query("TEXT") if t.dxf.text == "87T")
+    assert text.dxf.halign == 1
+
+
+def test_mccb_and_acb_carry_a_type_label_that_mcb_lacks(full_doc):
+    assert _texts(full_doc, REGISTRY["sw.mcb"]) == []
+    assert _texts(full_doc, REGISTRY["sw.mccb"]) == ["MCCB"]
+    assert _texts(full_doc, REGISTRY["sw.acb"]) == ["ACB"]
+
+
+def _band(msp):
+    (solid,) = msp.query("SOLID")
+    xs = [v.x for v in solid.vertices()]
+    ys = [v.y for v in solid.vertices()]
+    return min(xs), max(xs), min(ys), max(ys)
+
+
+def test_busbar_is_a_solid_band_on_the_symbol_layer_with_its_label():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    band = busbar(msp, 10.0, 210.0, 150.0, "33 kV, 1200 A, 25 kA FOR 1 SEC, AL. BUSBAR")
+    assert band.dxf.layer == "G-SYMBOL"
+    x0, x1, y0, y1 = _band(msp)
+    assert (x0, x1) == (10.0, 210.0)
+    assert y0 < 150.0 < y1 and (y1 - y0) == pytest.approx(1.0)
+    assert (y0 + y1) / 2 == pytest.approx(150.0)
+    (label,) = msp.query("TEXT")
+    assert label.dxf.text == "33 kV, 1200 A, 25 kA FOR 1 SEC, AL. BUSBAR"
+    assert label.dxf.layer == "G-SYMBOL-TXT"
+    assert label.dxf.insert.x == pytest.approx(10.0) and label.dxf.insert.y > y1
+    assert not doc.audit().errors
+
+
+def test_busbar_without_label_writes_no_text_and_rejects_empty_span():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    busbar(msp, 0.0, 50.0, 0.0)
+    assert not msp.query("TEXT")
+    with pytest.raises(ValueError):
+        busbar(msp, 50.0, 50.0, 0.0)
+    with pytest.raises(ValueError):
+        busbar(msp, 60.0, 50.0, 0.0)
+
+
+@pytest.mark.parametrize("lv", [2, 3, 4])
+def test_inverter_duty_transformer_has_one_hv_and_n_lv_pins(lv, full_doc):
+    sym = REGISTRY[f"tx.idt_{lv}lv"]
+    hv = [p for p in sym.pins if p.name == "hv"]
+    lvs = [p for p in sym.pins if p.name.startswith("lv")]
+    assert len(sym.pins) == 1 + lv and len(hv) == 1
+    assert [p.name for p in lvs] == [f"lv{i}" for i in range(1, lv + 1)]
+    assert hv[0].side is Side.N and all(p.side is Side.S for p in lvs)
+    xs = [p.x for p in lvs]
+    assert xs == sorted(xs) and len(set(xs)) == lv
+    assert hv[0].x == pytest.approx(sum(xs) / lv)
+    assert len(_circles(full_doc, sym)) == 1 + lv
+
+
+def test_inverter_duty_transformer_windings_interlock(full_doc):
+    circles = _circles(full_doc, REGISTRY["tx.idt_4lv"])
+    hv = max(circles, key=lambda c: c.dxf.center.y)
+    lvs = sorted((c for c in circles if c is not hv), key=lambda c: c.dxf.center.x)
+
+    def overlap(c, d):
+        return math.dist(tuple(c.dxf.center)[:2], tuple(d.dxf.center)[:2]) < c.dxf.radius + d.dxf.radius
+
+    assert all(overlap(a, b) for a, b in zip(lvs, lvs[1:]))
+    assert sum(overlap(hv, lv) for lv in lvs) >= 2
+
+
+@pytest.mark.parametrize("cores", [2, 3])
+def test_multi_core_ct_has_a_ratio_attribute_and_secondary_pin_per_core(cores, full_doc):
+    sym = REGISTRY[f"tx.ct_{cores}core"]
+    ratios = [a for a in sym.attrs if a.tag.startswith("RATIO")]
+    secs = [p for p in sym.pins if p.name.startswith("sec")]
+    assert [a.tag for a in ratios] == [f"RATIO{i}" for i in range(1, cores + 1)]
+    assert [p.name for p in secs] == [f"sec{i}" for i in range(1, cores + 1)]
+    assert len(_circles(full_doc, sym)) == cores
+    for attr, pin in zip(ratios, secs):
+        assert attr.y == pytest.approx(pin.y)
+    assert all(p.side is Side.E and p.kind is PinKind.SIGNAL for p in secs)
+
+
+def test_multi_core_ct_ratio_values_are_written_per_core():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    insert(msp, "tx.ct_3core", (0, 0), values={"RATIO1": "CL 0.2S 15 VA", "RATIO2": "CL 5P20 15 VA", "RATIO3": "CL PS"})
+    assert {"CL 0.2S 15 VA", "CL 5P20 15 VA", "CL PS"} <= {t.dxf.text for t in msp.query("TEXT")}
+
+
+def test_every_symbol_with_a_tag_attribute_has_a_tag_prefix():
+    for sym in ALL:
+        has_tag = any(a.tag == "TAG" for a in sym.attrs)
+        assert bool(sym.tag_prefix) == has_tag, f"{sym.key}: tag_prefix {sym.tag_prefix!r}, TAG attribute {has_tag}"
+        if has_tag:
+            assert sym.tag_prefix == sym.tag_prefix.upper() and sym.tag_prefix.isalnum()
+
+
+@pytest.mark.parametrize(
+    "key,prefix",
+    [
+        ("inv.string", "INV"), ("dc.scb", "SCB"), ("tx.idt_4lv", "IDT"), ("tx.power_2w", "TX"), ("sw.vcb", "VCB"),
+        ("sw.acb", "ACB"), ("sw.mccb", "MCCB"), ("sw.mcb", "MCB"), ("sw.isolator", "ISO"), ("prot.spd_ac", "SPD"),
+        ("prot.lightning_arrester", "LA"), ("tx.ct", "CT"), ("tx.pt", "PT"), ("inst.kwh", "EM"),
+        ("inst.net_meter", "NM"), ("inst.abt", "ABT"), ("prot.relay", "RLY"), ("bat.bess", "BESS"),
+        ("inv.pcs", "PCS"), ("grid.dg", "DG"), ("sw.rmu", "RMU"), ("sw.lbs", "LBS"), ("sw.hrc_fuse", "FU"),
+    ],
+)
+def test_indian_tag_prefixes(key, prefix):
+    assert REGISTRY[key].tag_prefix == prefix
+
+
+def test_catalogue_sample_tags_use_the_tag_prefix():
+    doc = build_catalogue()
+    texts = {t.dxf.text for t in doc.modelspace().query("TEXT")}
+    for sym in ALL:
+        if sym.tag_prefix:
+            assert f"{sym.tag_prefix}-01" in texts, sym.key
+
+
+IEC_60617_IDS = {
+    "S00050": "Cable sealing end (multi-core cable)",
+    "S00051": "Cable sealing end (one-core cables)",
+    "S00200": "Earth, general symbol",
+    "S00284": "Contactor; Main make contact of a contactor",
+    "S00287": "Circuit breaker",
+    "S00288": "Disconnector; Isolator",
+    "S00289": "Two-way disconnector; Two-way isolator",
+    "S00290": "Switch-disconnector; On-load isolating switch",
+    "S00327": "Measuring relay; Device related to a measuring relay",
+    "S00362": "Fuse, general symbol",
+    "S00370": "Fuse switch-disconnector; On-load isolating fuse switch",
+    "S00373": "Surge diverter; Lightning arrester",
+    "S00409": "Overhead line",
+    "S00641": "Semiconductor diode, general symbol",
+    "S00841": "Transformer with two windings, general symbol",
+    "S00850": "Current transformer, general symbol",
+    "S00866": "Three-phase transformer, connection star-zigzag with the neutral brought out",
+    "S00878": "Voltage transformer",
+    "S00896": "Inverter",
+    "S00908": "Photovoltaic generator",
+    "S00910": "Indicating instrument, general symbol",
+    "S00913": "Voltmeter",
+    "S00933": "Watt-hour meter",
+    "S00937": "Watt-hour meter, counting in both energy flow directions",
+    "S00965": "Lamp, general symbol",
+    "S00967": "Indicator, electromechanical; annunciator element",
+    "S01342": "Battery of primary or secondary cells",
+    "S01848": "Combined disconnector and earthing switch",
+}
+
+
+def test_iec_60617_identifiers_are_confirmed_ones():
+    """IEC_60617_IDS is copied from the IEC 60617 database listing (std.iec.ch, IEC webstore preview of 2026-03-02)."""
+    import re
+
+    for sym in ALL:
+        for ident in re.findall(r"S\d{5}", sym.standard):
+            assert ident in IEC_60617_IDS, f"{sym.key}: {ident} is not in the confirmed list"
+        assert not re.search(r"IEC 60617-\d", sym.standard), f"{sym.key}: part numbers are not confirmed; name the S-number"
