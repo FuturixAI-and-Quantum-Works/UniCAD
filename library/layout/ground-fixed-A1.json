@@ -1,0 +1,107 @@
+{
+ "metrics": {
+  "tables_full": 2500,
+  "tables_half": 210,
+  "modules": 145880,
+  "dc_kwp": 78775.2,
+  "module_wp": 540.0,
+  "pitch_m": 7.3301,
+  "gcr": 0.6254,
+  "buildable_m2": 702346.6,
+  "area_used_m2": 646256.9,
+  "strings": 5210,
+  "unstrung_modules": 0,
+  "block_balance": 0.0023
+ },
+ "pitch": {
+  "method": "solstice",
+  "pitch_m": 7.3301,
+  "note": "shade-free fixed-tilt pitch 09:00-15:00 apparent solar time on the winter solstice at latitude 27.0996: plan depth + top-edge height / tan(profile angle)",
+  "shade_angle_deg": 31.386,
+  "shade_hour": 9.0
+ },
+ "scale": "1:2500",
+ "paper": "A1",
+ "blocks": [
+  {
+   "id": "B01",
+   "name": "BLOCK-01",
+   "tables_full": 402,
+   "tables_half": 64,
+   "modules": 24304,
+   "dc_kwp": 13124.16,
+   "station": {
+    "x": 170.043,
+    "y": 228.626
+   }
+  },
+  {
+   "id": "B02",
+   "name": "BLOCK-02",
+   "tables_full": 419,
+   "tables_half": 31,
+   "modules": 24332,
+   "dc_kwp": 13139.28,
+   "station": {
+    "x": 443.617,
+    "y": 276.76
+   }
+  },
+  {
+   "id": "B03",
+   "name": "BLOCK-03",
+   "tables_full": 421,
+   "tables_half": 25,
+   "modules": 24276,
+   "dc_kwp": 13109.04,
+   "station": {
+    "x": 790.9,
+    "y": 319.412
+   }
+  },
+  {
+   "id": "B04",
+   "name": "BLOCK-04",
+   "tables_full": 414,
+   "tables_half": 41,
+   "modules": 24332,
+   "dc_kwp": 13139.28,
+   "station": {
+    "x": 189.685,
+    "y": 682.554
+   }
+  },
+  {
+   "id": "B05",
+   "name": "BLOCK-05",
+   "tables_full": 428,
+   "tables_half": 13,
+   "modules": 24332,
+   "dc_kwp": 13139.28,
+   "station": {
+    "x": 497.264,
+    "y": 682.554
+   }
+  },
+  {
+   "id": "B06",
+   "name": "BLOCK-06",
+   "tables_full": 416,
+   "tables_half": 36,
+   "modules": 24304,
+   "dc_kwp": 13124.16,
+   "station": {
+    "x": 766.706,
+    "y": 682.554
+   }
+  }
+ ],
+ "assumptions": [
+  "gap between modules on a table: 0.02 (default, not from a cited source)",
+  "gap between tables along a row: 1.5 (default, not from a cited source)",
+  "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
+ ],
+ "warnings": [],
+ "target_reached": null,
+ "placement_seconds": 0.488
+}

@@ -1,0 +1,95 @@
+{
+ "metrics": {
+  "tables_full": 1036,
+  "tables_half": 69,
+  "modules": 59948,
+  "dc_kwp": 32371.92,
+  "module_wp": 540.0,
+  "pitch_m": 6.6994,
+  "gcr": 0.6842,
+  "buildable_m2": 266556.0,
+  "area_used_m2": 242635.7,
+  "strings": 2141,
+  "unstrung_modules": 0,
+  "block_balance": 0.00467
+ },
+ "pitch": {
+  "method": "solstice",
+  "pitch_m": 6.6994,
+  "note": "shade-free fixed-tilt pitch 09:00-15:00 apparent solar time on the winter solstice at latitude 23.4500: plan depth + top-edge height / tan(profile angle)",
+  "shade_angle_deg": 35.035,
+  "shade_hour": 9.0
+ },
+ "scale": "1:2000",
+ "paper": "A1",
+ "blocks": [
+  {
+   "id": "B01",
+   "name": "BLOCK-01",
+   "tables_full": 214,
+   "tables_half": 0,
+   "modules": 11984,
+   "dc_kwp": 6471.36,
+   "station": {
+    "x": 145.017,
+    "y": 90.944
+   }
+  },
+  {
+   "id": "B02",
+   "name": "BLOCK-02",
+   "tables_full": 212,
+   "tables_half": 5,
+   "modules": 12012,
+   "dc_kwp": 6486.48,
+   "station": {
+    "x": 148.693,
+    "y": 342.774
+   }
+  },
+  {
+   "id": "B03",
+   "name": "BLOCK-03",
+   "tables_full": 197,
+   "tables_half": 34,
+   "modules": 11984,
+   "dc_kwp": 6471.36,
+   "station": {
+    "x": 510.485,
+    "y": 90.944
+   }
+  },
+  {
+   "id": "B04",
+   "name": "BLOCK-04",
+   "tables_full": 205,
+   "tables_half": 19,
+   "modules": 12012,
+   "dc_kwp": 6486.48,
+   "station": {
+    "x": 368.301,
+    "y": 258.831
+   }
+  },
+  {
+   "id": "B05",
+   "name": "BLOCK-05",
+   "tables_full": 208,
+   "tables_half": 11,
+   "modules": 11956,
+   "dc_kwp": 6456.24,
+   "station": {
+    "x": 575.446,
+    "y": 258.831
+   }
+  }
+ ],
+ "assumptions": [
+  "gap between modules on a table: 0.02 (default, not from a cited source)",
+  "gap between tables along a row: 1.5 (default, not from a cited source)",
+  "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
+ ],
+ "warnings": [],
+ "target_reached": null,
+ "placement_seconds": 0.189
+}

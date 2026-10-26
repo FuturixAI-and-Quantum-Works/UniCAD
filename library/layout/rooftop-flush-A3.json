@@ -1,0 +1,47 @@
+{
+ "metrics": {
+  "tables_full": 53,
+  "tables_half": 28,
+  "modules": 1608,
+  "dc_kwp": 868.32,
+  "module_wp": 540.0,
+  "pitch_m": 5.184,
+  "gcr": 0.8843,
+  "buildable_m2": 6370.5,
+  "area_used_m2": 5057.6,
+  "strings": 53,
+  "unstrung_modules": 336,
+  "block_balance": 0.0
+ },
+ "pitch": {
+  "method": "gap",
+  "pitch_m": 5.184,
+  "note": "pitch = plan depth 4.584 m + row gap 0.6 m",
+  "shade_angle_deg": null,
+  "shade_hour": null
+ },
+ "scale": "1:1500",
+ "paper": "A3",
+ "blocks": [
+  {
+   "id": "B01",
+   "name": "BLOCK-01",
+   "tables_full": 53,
+   "tables_half": 28,
+   "modules": 1608,
+   "dc_kwp": 868.32,
+   "station": {
+    "x": 69.944,
+    "y": 56.888
+   }
+  }
+ ],
+ "assumptions": [
+  "gap between modules on a table: 0.02 (default, not from a cited source)"
+ ],
+ "warnings": [
+  "336 modules do not make up a whole string of 24 and are left unstrung"
+ ],
+ "target_reached": null,
+ "placement_seconds": 0.0
+}
