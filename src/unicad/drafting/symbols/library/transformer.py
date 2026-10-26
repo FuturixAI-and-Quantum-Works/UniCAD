@@ -31,8 +31,8 @@ def power_2w(b):
     20.0,
     (pin_n(7.5, 20.0), pin_s(7.5), Pin("ter", 20.0, 10.0, Side.E, AC)),
     (
-        Attr("TAG", 22.5, 15.0, TAG_H),
-        Attr("RATING", 22.5, 18.5, ATTR_H),
+        Attr("TAG", 22.5, 18.0, TAG_H),
+        Attr("RATING", 22.5, 14.0, ATTR_H),
         Attr("VECTOR", 22.5, 5.0, ATTR_H, "YNyn0d11"),
         Attr("DESC", 22.5, 1.5, ATTR_H),
     ),
@@ -72,8 +72,8 @@ def aux(b):
     15.0,
     (pin_n(5.0, 15.0), pin_s(5.0), Pin("sec", 10.0, 7.5, Side.E, SIG)),
     (
-        Attr("TAG", 12.5, 12.5, TAG_H),
-        Attr("DESC", 12.5, 16.5, ATTR_H),
+        Attr("TAG", 12.5, 15.5, TAG_H),
+        Attr("DESC", 12.5, 12.0, ATTR_H),
         Attr("RATING", 12.5, 3.0, ATTR_H),
     ),
 )
@@ -93,7 +93,7 @@ def ct(b):
     10.0,
     12.5,
     (pin_n(5.0, 12.5, "pri"), pin_s(5.0, "sec", SIG)),
-    std_attrs(10.0, 12.5, ("RATIO", "")),
+    std_attrs(10.0, 12.5),
 )
 def pt(b):
     p = Pen(b)

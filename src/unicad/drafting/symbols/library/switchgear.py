@@ -57,12 +57,21 @@ def acb(b):
     p.dot(CX, yh, 0.7)
 
 
-@_inline("sw.rccb", "Residual current circuit breaker (RCCB / RCD)", "IEC 60617 S00287 + residual-current release")
+@symbol(
+    "sw.rccb",
+    "Residual current circuit breaker (RCCB / RCD)",
+    C,
+    "IEC 60617 S00287 + residual-current release",
+    W,
+    25.0,
+    inline_pins(CX, 25.0, AC),
+    std_attrs(W, 25.0),
+)
 def rccb(b):
     p = Pen(b)
-    p.switch(CX, 0, H, "cross")
-    p.circle(CX, 3.0, 2.2)
-    p.dashed(3.9, 4.9, 3.4, 10.5, dash=2.0, gap=1.2)
+    p.switch(CX, 0, 25.0, "cross")
+    p.circle(CX, 4.0, 2.0)
+    p.dashed(3.4, 5.9, 3.2, 14.0, dash=2.2, gap=1.4)
 
 
 @_inline("sw.hrc_fuse", "HRC fuse", "IEC 60617 S00362")

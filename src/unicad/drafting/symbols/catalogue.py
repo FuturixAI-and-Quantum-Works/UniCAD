@@ -165,7 +165,9 @@ def _pin_marker(msp, sym: SymbolDef, ox: float, oy: float) -> None:
             _label(msp, p.name, x - gap, y + 1.2, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_RIGHT)
 
 
-def build_catalogue(categories: Iterable[Category] | None = None) -> Drawing:
+def build_catalogue(
+    categories: Iterable[Category] | None = None, columns: int = COLUMNS, keys: Iterable[str] | None = None
+) -> Drawing:
     """A DXF holding every block definition plus a laid-out catalogue sheet in modelspace."""
     doc = ezdxf.new("R2018", setup=False)
     doc.units = units.MM
@@ -176,8 +178,10 @@ def build_catalogue(categories: Iterable[Category] | None = None) -> Drawing:
 
     wanted = list(Category) if categories is None else list(categories)
     by_cat: dict[Category, list[SymbolDef]] = defaultdict(list)
+    selected = None if keys is None else set(keys)
     for sym in REGISTRY.values():
-        by_cat[sym.category].append(sym)
+        if selected is None or sym.key in selected:
+            by_cat[sym.category].append(sym)
 
     y_cursor = 0.0
     for cat in wanted:
@@ -185,7 +189,7 @@ def build_catalogue(categories: Iterable[Category] | None = None) -> Drawing:
         if not syms:
             continue
         cell_h = max(max(s.height for s in syms), 30.0) + FOOTER + 10.0
-        rows = -(-len(syms) // COLUMNS)
+        rows = -(-len(syms) // columns)
         _label(
             msp,
             f"{CATEGORY_TITLES[cat].upper()}  ({len(syms)})",
@@ -197,7 +201,7 @@ def build_catalogue(categories: Iterable[Category] | None = None) -> Drawing:
         )
         top = y_cursor - HEADER
         for i, sym in enumerate(syms):
-            col, row = i % COLUMNS, i // COLUMNS
+            col, row = i % columns, i // columns
             x0 = MARGIN + col * CELL_W
             y0 = top - (row + 1) * cell_h
             msp.add_lwpolyline(

@@ -45,7 +45,7 @@ def pdf_to_png(pdf: Path, png: Path, width_px: int) -> None:
     LibreCAD writes these PDFs with a page 1000x too large and hairline strokes, which
     MuPDF renders blank. Poppler draws hairlines at 1 px; we thicken them afterwards.
     """
-    from PIL import Image, ImageFilter
+    from PIL import Image, ImageFilter, ImageOps
 
     if not shutil.which("pdftoppm"):
         print("pdftoppm missing; skipping", png.name)
@@ -62,7 +62,11 @@ def pdf_to_png(pdf: Path, png: Path, width_px: int) -> None:
             stderr=subprocess.DEVNULL,
         )
         img = Image.open(f"{stem}.png").convert("L")
-    img = img.point(lambda v: 0 if v < 235 else 255).filter(ImageFilter.MinFilter(3))
+    img = img.point(lambda v: 0 if v < 250 else 255).filter(ImageFilter.MinFilter(3))
+    box = ImageOps.invert(img).getbbox()
+    if box:
+        pad = 30 * oversample
+        img = img.crop((max(box[0] - pad, 0), max(box[1] - pad, 0), min(box[2] + pad, img.width), min(box[3] + pad, img.height)))
     img.resize((width_px, round(img.height * width_px / img.width)), Image.LANCZOS).save(png)
 
 
@@ -88,7 +92,7 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         for cat in Category:
-            d = build_catalogue([cat])
+            d = build_catalogue([cat], columns=4)
             cat_dxf = Path(tmp) / f"{cat.value}.dxf"
             d.saveas(cat_dxf)
             cat_pdf = Path(tmp) / f"{cat.value}.pdf"

@@ -84,7 +84,7 @@ def north(b):
     10.0,
     10.0,
     (),
-    (Attr("NUM", 3.3, 5.0, TAG_H),),
+    (Attr("NUM", 3.9, 5.0, TAG_H),),
 )
 def note_marker(b):
     Pen(b).circle(5.0, 5.0, 4.5)
@@ -99,8 +99,8 @@ def note_marker(b):
     12.0,
     (),
     (
-        Attr("ID", 3.3, 4.0, TAG_H),
-        Attr("SHEET", 10.0 + ATTR_GAP, 4.0, ATTR_H),
+        Attr("ID", 4.0, 4.5, TAG_H),
+        Attr("SHEET", 10.0 + ATTR_GAP, 4.5, ATTR_H),
     ),
 )
 def section_marker(b):

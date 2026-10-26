@@ -55,8 +55,8 @@ def lightning_arrester(b):
     20.0,
     (Pin("in", 0.0, 10.0, Side.W, SIG), Pin("trip", 20.0, 10.0, Side.E, SIG)),
     (
-        Attr("TAG", 20.0 + ATTR_GAP, 14.25, TAG_H),
-        Attr("DESC", 20.0 + ATTR_GAP, 18.25, ATTR_H),
+        Attr("TAG", 20.0 + ATTR_GAP, 18.0, TAG_H),
+        Attr("DESC", 20.0 + ATTR_GAP, 14.25, ATTR_H),
         Attr("ANSI", 20.0 + ATTR_GAP, 6.25, ATTR_H),
         Attr("RATING", 20.0 + ATTR_GAP, 2.25, ATTR_H),
     ),

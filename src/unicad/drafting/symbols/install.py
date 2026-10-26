@@ -12,6 +12,7 @@ from .registry import REGISTRY
 
 _ATTRIB_INVISIBLE = 1
 _SYMBOL_LINEWEIGHT = 25
+TEXT_LAYER = "G-SYMBOL-TXT"
 
 
 def _symbol(key: str) -> SymbolDef:
@@ -24,6 +25,8 @@ def _symbol(key: str) -> SymbolDef:
 def _ensure_resources(doc: Drawing) -> None:
     if LAYER not in doc.layers:
         doc.layers.add(LAYER, color=7, lineweight=_SYMBOL_LINEWEIGHT)
+    if TEXT_LAYER not in doc.layers:
+        doc.layers.add(TEXT_LAYER, color=7, lineweight=_SYMBOL_LINEWEIGHT)
     if TEXT_STYLE not in doc.styles:
         doc.styles.add(TEXT_STYLE, font="simplex.shx")
 
@@ -79,9 +82,17 @@ def insert(
     at: tuple[float, float],
     rotation: float = 0,
     values: Mapping[str, str] | None = None,
+    *,
+    visible_text: bool = True,
 ) -> Insert:
-    """Place a symbol with ATTRIBs. Attribute text stays horizontal; it is
-    right-aligned when rotation moves it to the west of the symbol."""
+    """Place a symbol with one ATTRIB per ATTDEF.
+
+    LibreCAD does not draw ATTRIB entities, so by default the ATTRIBs are flagged
+    invisible (still readable by ezdxf and AutoCAD tools) and each non-empty visible
+    value is also written as a plain TEXT on TEXT_LAYER. Pass visible_text=False to
+    get classic visible ATTRIBs instead. Text stays horizontal; it is right-aligned
+    when the symbol is rotated so that its local +x points west.
+    """
     sym = _symbol(key)
     values = dict(values or {})
     unknown = set(values) - {a.tag for a in sym.attrs}
@@ -89,17 +100,17 @@ def insert(
         raise ValueError(f"symbol {key!r} has no attribute(s) {sorted(unknown)}; valid: {[a.tag for a in sym.attrs]}")
     install(layout.doc, [key])
     ref = layout.add_blockref(sym.block_name, at, dxfattribs={"layer": LAYER, "rotation": rotation})
-    cx, cy = _rotate(sym.width / 2, sym.height / 2, rotation)
+    align = TextEntityAlignment.MIDDLE_LEFT if math.cos(math.radians(rotation)) > -1e-9 else TextEntityAlignment.MIDDLE_RIGHT
     for a in sym.attrs:
         dx, dy = _rotate(a.x, a.y, rotation)
-        attrib = ref.add_attrib(
-            a.tag,
-            values.get(a.tag, a.default),
-            (at[0] + dx, at[1] + dy),
-            dxfattribs={"layer": LAYER, "style": TEXT_STYLE, "height": a.height},
-        )
-        align = TextEntityAlignment.MIDDLE_LEFT if dx >= cx else TextEntityAlignment.MIDDLE_RIGHT
-        attrib.set_placement((at[0] + dx, at[1] + dy), align=align)
-        if not a.visible:
+        pos = (_clean(at[0] + dx), _clean(at[1] + dy))
+        value = values.get(a.tag, a.default)
+        attrib = ref.add_attrib(a.tag, value, pos, dxfattribs={"layer": LAYER, "style": TEXT_STYLE, "height": a.height})
+        attrib.set_placement(pos, align=align)
+        if not a.visible or visible_text:
             attrib.dxf.flags |= _ATTRIB_INVISIBLE
+        if visible_text and a.visible and value:
+            layout.add_text(
+                value, height=a.height, dxfattribs={"layer": TEXT_LAYER, "style": TEXT_STYLE}
+            ).set_placement(pos, align=align)
     return ref
