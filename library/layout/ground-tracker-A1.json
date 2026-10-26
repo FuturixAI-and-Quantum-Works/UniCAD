@@ -91,6 +91,7 @@
   "modules per string: 56 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [
+  "some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than 10%",
   "10584 modules do not make up a whole string of 56 and are left unstrung"
  ],
  "target_reached": null

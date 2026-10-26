@@ -124,10 +124,69 @@ def hex_seeds(points: np.ndarray, candidates: np.ndarray, radius: float) -> list
     return out
 
 
-def greedy_cover(points: np.ndarray, candidates: np.ndarray, radius: float) -> Cover:
+class _Search:
+    """Local search over a fixed candidate set: drop one terminal, then move the others one at a time (best move first, a short
+    tabu list against cycling) until every point is covered again. Point sets are bit-packed so a move costs a popcount."""
+
+    def __init__(self, points: np.ndarray, candidates: np.ndarray, hits: np.ndarray, radius: float):
+        self.p, self.c, self.hits, self.r = points, candidates, hits, radius
+        self.packed = np.ascontiguousarray(np.packbits(hits, axis=0).T)
+        self.near: dict[int, np.ndarray] = {}
+
+    def _local(self, j: int) -> np.ndarray:
+        if j not in self.near:
+            c = self.c
+            self.near[j] = np.flatnonzero(np.hypot(c[:, 0] - c[j, 0], c[:, 1] - c[j, 1]) <= self.r)
+        return self.near[j]
+
+    def repair(self, chosen: list[int], iters: int) -> list[int] | None:
+        chosen = list(chosen)
+        cnt = self.hits[:, chosen].sum(axis=1)
+        tabu: list[int] = []
+        for _ in range(iters):
+            unc = cnt == 0
+            if not unc.any():
+                return chosen
+            up = self.p[unc]
+            best: tuple[int, int, int] | None = None
+            for j in chosen:
+                if np.hypot(up[:, 0] - self.c[j, 0], up[:, 1] - self.c[j, 1]).min() > 2.2 * self.r:
+                    continue
+                zero = np.packbits((cnt - self.hits[:, j]) == 0)
+                F = np.asarray([k for k in self._local(j) if k not in tabu], dtype=int)
+                if not len(F):
+                    continue
+                new = np.bitwise_count(zero[None, :] & ~self.packed[F]).sum(axis=1, dtype=np.int64)
+                k = int(np.argmin(new))
+                if best is None or (int(new[k]), j) < (best[0], best[1]):
+                    best = (int(new[k]), j, int(F[k]))
+            if best is None:
+                return None
+            _, j, c = best
+            cnt += self.hits[:, c].astype(cnt.dtype) - self.hits[:, j]
+            chosen[chosen.index(j)] = c
+            tabu = (tabu + [j])[-8:]
+        return chosen if not (cnt == 0).any() else None
+
+    def reduce(self, chosen: list[int], iters: int = 120, attempts: int = 12) -> list[int]:
+        while len(chosen) > 1:
+            cnt = self.hits[:, chosen].sum(axis=1)
+            order = sorted(chosen, key=lambda i: (int((self.hits[:, i] & (cnt == 1)).sum()), i))[:attempts]
+            for i in order:
+                fixed = self.repair([x for x in chosen if x != i], iters)
+                if fixed is not None:
+                    chosen = _prune(self.hits, fixed, np.ones(len(self.p), dtype=bool))
+                    break
+            else:
+                return chosen
+        return chosen
+
+
+def greedy_cover(points: np.ndarray, candidates: np.ndarray, radius: float, search: bool = True) -> Cover:
     """Pick candidates until every point lies within `radius` of one (greedy set cover, once from nothing and once from a hexagonal
-    lattice start), drop any terminal the others make redundant, and keep the smaller cover. Ties go to the lower candidate index,
-    so the result is deterministic."""
+    lattice start), drop any terminal the others make redundant, and keep the smaller cover; then, with `search`, keep removing a
+    terminal and relocating the rest while the cover stays complete. Ties go to the lower candidate index, so the result is
+    deterministic."""
     if not len(points):
         return Cover((), ())
     hits = _hits(points, candidates, radius)
@@ -139,4 +198,6 @@ def greedy_cover(points: np.ndarray, candidates: np.ndarray, radius: float) -> C
         if best is None or (left.sum(), len(chosen)) < (best[1].sum(), len(best[0])):
             best = (chosen, left)
     chosen, left = best
+    if search and not left.any() and len(chosen) > 1:
+        chosen = _Search(points, candidates, hits, radius).reduce(chosen)
     return Cover(tuple((float(candidates[c][0]), float(candidates[c][1])) for c in chosen), tuple(int(i) for i in np.flatnonzero(left)))

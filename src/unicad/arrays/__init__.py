@@ -48,7 +48,9 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     total = sum(kwp)
     n = block_count(total, spec.n_blocks, spec.block_dc_kwp, len(placed.tables))
     closing = 1.0 + max(placed.pitch.pitch_m, spec.road_width_m if spec.road_every_rows else 0, spec.walkway_width_m if spec.walkway_every_tables else 0, spec.table_gap_m)
-    blocks = tuple(build_blocks(placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp))
+    block_notes: list[str] = []
+    blocks = tuple(build_blocks(placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp, block_notes,
+                               flexible=spec.n_blocks is None and spec.block_dc_kwp is not None))  # fmt: skip
     mps = spec.modules_per_string or spec.table_cols
     strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter)
     layout = ArrayLayout(blocks=blocks, strings=tuple(strings))
@@ -69,7 +71,7 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     assumptions = spec.assumptions()
     if spec.modules_per_string is None:
         assumptions.append(f"modules per string: {mps} (one table row; set modules_per_string from the string sizing)")
-    warnings = list(placed.warnings)
+    warnings = list(placed.warnings) + sorted(set(block_notes))
     warnings += [f"{f.kind.value} {f.id!r} has no width_m, so it carves nothing from the buildable area and tables may cover it"
                  for f in site.features if f.polyline and f.width_m is None]  # fmt: skip
     if unstrung:

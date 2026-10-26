@@ -6,22 +6,22 @@
   "equipment": "50x6",
   "down": "25x3"
  },
- "pits": 425,
+ "pits": 418,
  "pits_by_role": {
   "EP": 335,
   "EPN": 19,
   "EPB": 19,
   "EPT": 1,
   "ELA": 7,
-  "LE": 44
+  "LE": 37
  },
  "pits_needed_by_resistance": 0,
  "pits_needed_by_current": 31,
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 0.0257,
+ "resistance_ohm": 0.0261,
  "target_ohm": 1.0,
  "tables": 2687,
- "items": 266,
+ "items": 259,
  "unbonded": [],
  "quantities": [
   {
@@ -57,13 +57,13 @@
   {
    "item": "pit.LE",
    "description": "EARTH PIT, 40 MM DIA 3 M LONG MS ROD (UNTREATED) - LE",
-   "quantity": 44.0,
+   "quantity": 37.0,
    "unit": "nos"
   },
   {
    "item": "flat.50x6.main",
    "description": "50x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 5141.0,
+   "quantity": 4160.0,
    "unit": "m"
   },
   {
@@ -87,13 +87,13 @@
   {
    "item": "flat.25x3.down",
    "description": "25x3 MM GS FLAT - DOWN CONDUCTOR (ROOF TO PIT / LPS)",
-   "quantity": 66.0,
+   "quantity": 56.0,
    "unit": "m"
   },
   {
    "item": "lps.terminal",
    "description": "ESE LIGHTNING ARRESTER, PROTECTION RADIUS 97.49 M, WITH MAST",
-   "quantity": 44.0,
+   "quantity": 37.0,
    "unit": "nos"
   }
  ],
@@ -236,7 +236,7 @@
     },
     {
      "name": "L",
-     "value": 9803073.699982043,
+     "value": 9703928.145642666,
      "unit": "cm",
      "source": null
     },
@@ -275,7 +275,7 @@
  "switchyard_grid": {
   "spacing_m": 3.5,
   "rg_ohm": 0.4888,
-  "gpr_v": 322,
+  "gpr_v": 326,
   "e_touch_tolerable_v": 519.5,
   "e_step_tolerable_v": 1730.2,
   "e_mesh_v": 467.2,
@@ -286,7 +286,7 @@
   "method": "ese",
   "level": "III",
   "radius_m": 97.49,
-  "terminals": 44,
+  "terminals": 37,
   "tables_covered": 2687,
   "tables": 2687,
   "uncovered": 0

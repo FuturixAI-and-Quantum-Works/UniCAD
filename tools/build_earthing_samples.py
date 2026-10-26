@@ -15,6 +15,7 @@ import pymupdf
 from unicad.catalog.store import load_catalog
 from unicad.drafting.earthing_plan import earthing_notes, lps_notes, render_earthing_sheet, render_lps_sheet
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
+from unicad.drafting.sld import save_deterministic
 from unicad.earthing import design_earthing, summary
 from unicad.earthing.samples import pune, rajasthan
 from unicad.lps import coverage_points
@@ -47,7 +48,7 @@ def export(dxf: Path, paper: PaperSize) -> None:
 
 def write(name: str, doc, paper: PaperSize, warnings) -> Path:
     dxf = OUT / f"{name}.dxf"
-    doc.saveas(dxf)
+    save_deterministic(doc, dxf)
     for w in warnings:
         print(f"  warning: {w}")
     if LIBRECAD.exists():

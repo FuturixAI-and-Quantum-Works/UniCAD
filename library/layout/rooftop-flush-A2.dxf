@@ -5517,7 +5517,7 @@ UC_ANN_NORTH
   0
 BLOCK_RECORD
   5
-1B6
+1AC
 330
 9
 100
@@ -5537,7 +5537,7 @@ ARR_MODULE
   0
 BLOCK_RECORD
   5
-1BA
+1B0
 330
 9
 100
@@ -5557,7 +5557,7 @@ ARR_TABLE_2x12_1
   0
 BLOCK_RECORD
   5
-202
+1F8
 330
 9
 100
@@ -6907,9 +6907,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-1B7
+1AD
 330
-1B6
+1AC
 100
 AcDbEntity
   8
@@ -6933,9 +6933,9 @@ ARR_MODULE
   0
 LWPOLYLINE
   5
-1B9
+1AF
 330
-1B6
+1AC
 100
 AcDbEntity
   8
@@ -6969,9 +6969,9 @@ AcDbPolyline
   0
 ENDBLK
   5
-1B8
+1AE
 330
-1B6
+1AC
 100
 AcDbEntity
   8
@@ -6981,9 +6981,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-1BB
+1B1
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7007,9 +7007,9 @@ ARR_TABLE_2x12_1
   0
 INSERT
   5
-1BD
+1B3
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7022,6 +7022,116 @@ AcDbBlockReference
 ARR_MODULE
  10
 0.0
+ 20
+0.0
+ 30
+0.0
+  0
+INSERT
+  5
+1B5
+330
+1B0
+100
+AcDbEntity
+  8
+0
+ 62
+0
+100
+AcDbBlockReference
+  2
+ARR_MODULE
+ 10
+1.153
+ 20
+0.0
+ 30
+0.0
+  0
+INSERT
+  5
+1B7
+330
+1B0
+100
+AcDbEntity
+  8
+0
+ 62
+0
+100
+AcDbBlockReference
+  2
+ARR_MODULE
+ 10
+2.306
+ 20
+0.0
+ 30
+0.0
+  0
+INSERT
+  5
+1B9
+330
+1B0
+100
+AcDbEntity
+  8
+0
+ 62
+0
+100
+AcDbBlockReference
+  2
+ARR_MODULE
+ 10
+3.459
+ 20
+0.0
+ 30
+0.0
+  0
+INSERT
+  5
+1BB
+330
+1B0
+100
+AcDbEntity
+  8
+0
+ 62
+0
+100
+AcDbBlockReference
+  2
+ARR_MODULE
+ 10
+4.612
+ 20
+0.0
+ 30
+0.0
+  0
+INSERT
+  5
+1BD
+330
+1B0
+100
+AcDbEntity
+  8
+0
+ 62
+0
+100
+AcDbBlockReference
+  2
+ARR_MODULE
+ 10
+5.765000000000001
  20
 0.0
  30
@@ -7031,117 +7141,7 @@ INSERT
   5
 1BF
 330
-1BA
-100
-AcDbEntity
-  8
-0
- 62
-0
-100
-AcDbBlockReference
-  2
-ARR_MODULE
- 10
-1.153
- 20
-0.0
- 30
-0.0
-  0
-INSERT
-  5
-1C1
-330
-1BA
-100
-AcDbEntity
-  8
-0
- 62
-0
-100
-AcDbBlockReference
-  2
-ARR_MODULE
- 10
-2.306
- 20
-0.0
- 30
-0.0
-  0
-INSERT
-  5
-1C3
-330
-1BA
-100
-AcDbEntity
-  8
-0
- 62
-0
-100
-AcDbBlockReference
-  2
-ARR_MODULE
- 10
-3.459
- 20
-0.0
- 30
-0.0
-  0
-INSERT
-  5
-1C5
-330
-1BA
-100
-AcDbEntity
-  8
-0
- 62
-0
-100
-AcDbBlockReference
-  2
-ARR_MODULE
- 10
-4.612
- 20
-0.0
- 30
-0.0
-  0
-INSERT
-  5
-1C7
-330
-1BA
-100
-AcDbEntity
-  8
-0
- 62
-0
-100
-AcDbBlockReference
-  2
-ARR_MODULE
- 10
-5.765000000000001
- 20
-0.0
- 30
-0.0
-  0
-INSERT
-  5
-1C9
-330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7161,9 +7161,9 @@ ARR_MODULE
   0
 INSERT
   5
-1CB
+1C1
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7183,9 +7183,9 @@ ARR_MODULE
   0
 INSERT
   5
-1CD
+1C3
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7205,9 +7205,9 @@ ARR_MODULE
   0
 INSERT
   5
-1CF
+1C5
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7227,9 +7227,9 @@ ARR_MODULE
   0
 INSERT
   5
-1D1
+1C7
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7249,9 +7249,9 @@ ARR_MODULE
   0
 INSERT
   5
-1D3
+1C9
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7271,9 +7271,9 @@ ARR_MODULE
   0
 INSERT
   5
-1D5
+1CB
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7293,9 +7293,9 @@ ARR_MODULE
   0
 INSERT
   5
-1D7
+1CD
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7315,9 +7315,9 @@ ARR_MODULE
   0
 INSERT
   5
-1D9
+1CF
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7337,9 +7337,9 @@ ARR_MODULE
   0
 INSERT
   5
-1DB
+1D1
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7359,9 +7359,9 @@ ARR_MODULE
   0
 INSERT
   5
-1DD
+1D3
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7381,9 +7381,9 @@ ARR_MODULE
   0
 INSERT
   5
-1DF
+1D5
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7403,9 +7403,9 @@ ARR_MODULE
   0
 INSERT
   5
-1E1
+1D7
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7425,9 +7425,9 @@ ARR_MODULE
   0
 INSERT
   5
-1E3
+1D9
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7447,9 +7447,9 @@ ARR_MODULE
   0
 INSERT
   5
-1E5
+1DB
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7469,9 +7469,9 @@ ARR_MODULE
   0
 INSERT
   5
-1E7
+1DD
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7491,9 +7491,9 @@ ARR_MODULE
   0
 INSERT
   5
-1E9
+1DF
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7513,9 +7513,9 @@ ARR_MODULE
   0
 INSERT
   5
-1EB
+1E1
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7535,9 +7535,9 @@ ARR_MODULE
   0
 LWPOLYLINE
   5
-1ED
+1E3
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7571,9 +7571,9 @@ AcDbPolyline
   0
 ENDBLK
   5
-1BC
+1B2
 330
-1BA
+1B0
 100
 AcDbEntity
   8
@@ -7583,9 +7583,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-203
+1F9
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7609,9 +7609,9 @@ ARR_TABLE_2x6_2
   0
 INSERT
   5
-205
+1FB
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7631,9 +7631,9 @@ ARR_MODULE
   0
 INSERT
   5
-207
+1FD
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7653,9 +7653,9 @@ ARR_MODULE
   0
 INSERT
   5
-209
+1FF
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7675,9 +7675,9 @@ ARR_MODULE
   0
 INSERT
   5
-20B
+201
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7697,9 +7697,9 @@ ARR_MODULE
   0
 INSERT
   5
-20D
+203
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7719,9 +7719,9 @@ ARR_MODULE
   0
 INSERT
   5
-20F
+205
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7741,9 +7741,9 @@ ARR_MODULE
   0
 INSERT
   5
-211
+207
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7763,9 +7763,9 @@ ARR_MODULE
   0
 INSERT
   5
-213
+209
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7785,9 +7785,9 @@ ARR_MODULE
   0
 INSERT
   5
-215
+20B
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7807,9 +7807,9 @@ ARR_MODULE
   0
 INSERT
   5
-217
+20D
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7829,9 +7829,9 @@ ARR_MODULE
   0
 INSERT
   5
-219
+20F
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7851,9 +7851,9 @@ ARR_MODULE
   0
 INSERT
   5
-21B
+211
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7873,9 +7873,9 @@ ARR_MODULE
   0
 LWPOLYLINE
   5
-21D
+213
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -7909,9 +7909,9 @@ AcDbPolyline
   0
 ENDBLK
   5
-204
+1FA
 330
-202
+1F8
 100
 AcDbEntity
   8
@@ -13565,9 +13565,2283 @@ AcDbPolyline
  20
 234.998
   0
+INSERT
+  5
+1E4
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1E6
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1E8
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+100.64399999999998
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1EA
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+129.51599999999996
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1EC
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1EE
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+188.45999999999998
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1F0
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+217.33199999999997
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1F2
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+133.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1F4
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+1F6
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+214
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+114.47999999999998
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+216
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+129.51599999999996
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+218
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+21A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+202.29599999999996
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+21C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+217.33199999999997
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+21E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+143.768
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+220
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+222
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+224
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+114.47999999999998
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+226
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+129.51599999999996
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+228
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+22A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+202.29599999999996
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+22C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+217.33199999999997
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+22E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+154.136
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+230
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+232
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+234
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+114.47999999999998
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+236
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+129.51599999999996
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+238
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+23A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+202.29599999999996
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+23C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+217.33199999999997
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+23E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+164.50400000000002
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+240
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+242
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+244
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+114.47999999999998
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+246
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+129.51599999999996
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+248
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+24A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+202.29599999999996
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+24C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+217.33199999999997
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+24E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+174.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+250
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+252
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+254
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+114.47999999999998
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+256
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+129.51599999999996
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+258
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+25A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+202.29599999999996
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+25C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+217.33199999999997
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+25E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+185.24
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+260
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+262
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+264
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+114.47999999999998
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+266
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+129.51599999999996
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+268
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+26A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+202.29599999999996
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+26C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+217.33199999999997
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+26E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+246.20399999999998
+ 20
+195.608
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+270
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+249.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+272
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+249.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+274
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+100.64399999999998
+ 20
+249.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+276
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+129.51599999999996
+ 20
+249.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+278
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+249.4
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+27A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+259.76800000000003
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+27C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+259.76800000000003
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+27E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+100.64399999999998
+ 20
+259.76800000000003
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+280
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+129.51599999999996
+ 20
+259.76800000000003
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+282
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+259.76800000000003
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+284
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+270.13599999999997
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+286
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+270.13599999999997
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+288
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+100.64399999999998
+ 20
+270.13599999999997
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+28A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+143.35199999999998
+ 20
+270.13599999999997
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+28C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+270.13599999999997
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+28E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+280.504
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+290
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+280.504
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+292
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+100.64399999999998
+ 20
+280.504
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+294
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x6_2
+ 10
+143.35199999999998
+ 20
+280.504
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+296
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+280.504
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+298
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+42.89999999999998
+ 20
+290.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+29A
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+71.77199999999998
+ 20
+290.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+29C
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+100.64399999999998
+ 20
+290.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+29E
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+129.51599999999996
+ 20
+290.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+INSERT
+  5
+2A0
+330
+17
+100
+AcDbEntity
+  8
+L-ARRAY
+ 62
+1
+100
+AcDbBlockReference
+  2
+ARR_TABLE_2x12_1
+ 10
+159.58799999999997
+ 20
+290.872
+ 30
+0.0
+ 41
+2.0
+ 42
+2.0
+  0
+SOLID
+  5
+2A2
+330
+17
+100
+AcDbEntity
+  8
+L-MASK
+420
+16777214
+100
+AcDbTrace
+ 10
+136.03799999999998
+ 20
+201.626
+ 30
+0.0
+ 11
+144.73799999999997
+ 21
+201.626
+ 31
+0.0
+ 12
+136.03799999999998
+ 22
+207.92600000000002
+ 32
+0.0
+ 13
+144.73799999999997
+ 23
+207.92600000000002
+ 33
+0.0
+  0
+LWPOLYLINE
+  5
+2A3
+330
+17
+100
+AcDbEntity
+  8
+L-STATION
+ 62
+1
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+136.03799999999998
+ 20
+201.626
+ 10
+144.73799999999997
+ 20
+201.626
+ 10
+144.73799999999997
+ 20
+207.92600000000002
+ 10
+136.03799999999998
+ 20
+207.92600000000002
+  0
+INSERT
+  5
+2A4
+330
+17
+100
+AcDbEntity
+  8
+L-STATION
+100
+AcDbBlockReference
+  2
+UC_LAYOUT_INVERTER
+ 10
+136.78799999999998
+ 20
+202.376
+ 30
+0.0
+ 41
+0.48
+ 42
+0.48
+  0
+SOLID
+  5
+2A6
+330
+17
+100
+AcDbEntity
+  8
+L-MASK
+420
+16777214
+100
+AcDbTrace
+ 10
+145.02304049999998
+ 20
+209.4110405
+ 30
+0.0
+ 11
+165.32577149999997
+ 21
+209.4110405
+ 31
+0.0
+ 12
+145.02304049999998
+ 22
+218.1110405
+ 32
+0.0
+ 13
+165.32577149999997
+ 23
+218.1110405
+ 33
+0.0
+  0
+LWPOLYLINE
+  5
+2A7
+330
+17
+100
+AcDbEntity
+  8
+L-STATION
+ 62
+1
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+145.02304049999998
+ 20
+209.4110405
+ 10
+165.32577149999997
+ 20
+209.4110405
+ 10
+165.32577149999997
+ 20
+218.1110405
+ 10
+145.02304049999998
+ 20
+218.1110405
+  0
 TEXT
   5
-1AC
+2A8
 330
 17
 100
@@ -13577,9 +15851,77 @@ L-LABEL
 100
 AcDbText
  10
-40.49999999999997
+146.22304049999997
  20
-215.0
+215.56104050000002
+ 30
+0.0
+ 40
+2.55
+  1
+BLOCK-01
+  7
+standard
+ 11
+146.22304049999997
+ 21
+215.56104050000002
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2A9
+330
+17
+100
+AcDbEntity
+  8
+L-LABEL
+100
+AcDbText
+ 10
+146.22304049999997
+ 20
+211.81104050000002
+ 30
+0.0
+ 40
+2.0999999999999996
+  1
+868.32 kWp
+  7
+standard
+ 11
+146.22304049999997
+ 21
+211.81104050000002
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2AA
+330
+17
+100
+AcDbEntity
+  8
+L-LABEL
+100
+AcDbText
+ 10
+41.327999999999975
+ 20
+213.79999999999998
  30
 0.0
  40
@@ -13589,9 +15931,9 @@ SHED A ROOF
   7
 standard
  11
-40.49999999999997
+41.327999999999975
  21
-215.0
+213.79999999999998
  31
 0.0
 100
@@ -13601,7 +15943,7 @@ AcDbText
   0
 TEXT
   5
-1AD
+2AB
 330
 17
 100
@@ -13611,9 +15953,9 @@ L-LABEL
 100
 AcDbText
  10
-40.49999999999997
+41.327999999999975
  20
-307.0
+305.8
  30
 0.0
  40
@@ -13623,9 +15965,9 @@ SHED B ROOF
   7
 standard
  11
-40.49999999999997
+41.327999999999975
  21
-307.0
+305.8
  31
 0.0
 100
@@ -13635,7 +15977,7 @@ AcDbText
   0
 TEXT
   5
-1AE
+2AC
 330
 17
 100
@@ -13673,7 +16015,7 @@ AcDbText
   0
 TEXT
   5
-1AF
+2AD
 330
 17
 100
@@ -13711,7 +16053,7 @@ AcDbText
   0
 TEXT
   5
-1B0
+2AE
 330
 17
 100
@@ -13749,7 +16091,7 @@ AcDbText
   0
 TEXT
   5
-1B1
+2AF
 330
 17
 100
@@ -13787,7 +16129,7 @@ AcDbText
   0
 TEXT
   5
-1B2
+2B0
 330
 17
 100
@@ -13797,9 +16139,9 @@ L-LABEL
 100
 AcDbText
  10
-233.99999999999997
+227.17479997999794
  20
-271.0
+265.2504999833316
  30
 0.0
  40
@@ -13809,19 +16151,19 @@ ROOFTOP AHU 1
   7
 standard
  11
-233.99999999999997
+227.17479997999794
  21
-271.0
+265.2504999833316
  31
 0.0
 100
 AcDbText
  73
-2
+1
   0
 TEXT
   5
-1B3
+2B1
 330
 17
 100
@@ -13831,9 +16173,9 @@ L-LABEL
 100
 AcDbText
  10
-254.00199999999998
+247.17550001388767
  20
-271.0
+265.2498611226842
  30
 0.0
  40
@@ -13843,2357 +16185,15 @@ ROOFTOP AHU 2
   7
 standard
  11
-254.00199999999998
+247.17550001388767
  21
-271.0
+265.2498611226842
  31
 0.0
 100
 AcDbText
  73
-2
-  0
-TEXT
-  5
-1B4
-330
-17
-100
-AcDbEntity
-  8
-L-LABEL
-100
-AcDbText
- 10
-131.99999999999997
- 20
-281.0
- 30
-0.0
- 40
-1.5
-  1
-OVERHEAD WATER TANK
-  7
-standard
- 11
-131.99999999999997
- 21
-281.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-1B5
-330
-17
-100
-AcDbEntity
-  8
-L-LABEL
-100
-AcDbText
- 10
-266.0
- 20
-235.0
- 30
-0.0
- 40
-1.5
-  1
-CHIMNEY STACK
-  7
-standard
- 11
-266.0
- 21
-235.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-1EE
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
 1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1F0
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1F2
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-100.64399999999998
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1F4
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-129.51599999999996
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1F6
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1F8
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-188.45999999999998
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1FA
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-217.33199999999997
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1FC
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-133.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-1FE
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-200
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-21E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-114.47999999999998
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-220
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-129.51599999999996
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-222
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-224
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-202.29599999999996
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-226
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-217.33199999999997
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-228
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-143.768
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-22A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-22C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-22E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-114.47999999999998
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-230
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-129.51599999999996
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-232
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-234
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-202.29599999999996
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-236
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-217.33199999999997
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-238
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-154.136
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-23A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-23C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-23E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-114.47999999999998
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-240
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-129.51599999999996
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-242
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-244
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-202.29599999999996
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-246
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-217.33199999999997
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-248
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-164.50400000000002
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-24A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-24C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-24E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-114.47999999999998
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-250
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-129.51599999999996
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-252
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-254
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-202.29599999999996
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-256
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-217.33199999999997
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-258
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-174.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-25A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-25C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-25E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-114.47999999999998
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-260
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-129.51599999999996
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-262
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-264
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-202.29599999999996
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-266
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-217.33199999999997
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-268
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-185.24
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-26A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-26C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-26E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-114.47999999999998
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-270
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-129.51599999999996
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-272
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-274
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-202.29599999999996
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-276
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-217.33199999999997
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-278
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-246.20399999999998
- 20
-195.608
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-27A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-249.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-27C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-249.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-27E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-100.64399999999998
- 20
-249.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-280
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-129.51599999999996
- 20
-249.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-282
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-249.4
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-284
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-259.76800000000003
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-286
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-259.76800000000003
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-288
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-100.64399999999998
- 20
-259.76800000000003
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-28A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-129.51599999999996
- 20
-259.76800000000003
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-28C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-259.76800000000003
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-28E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-270.13599999999997
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-290
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-270.13599999999997
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-292
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-100.64399999999998
- 20
-270.13599999999997
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-294
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-143.35199999999998
- 20
-270.13599999999997
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-296
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-270.13599999999997
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-298
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-280.504
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-29A
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-280.504
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-29C
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-100.64399999999998
- 20
-280.504
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-29E
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x6_2
- 10
-143.35199999999998
- 20
-280.504
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-2A0
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-280.504
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-2A2
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-42.89999999999998
- 20
-290.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-2A4
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-71.77199999999998
- 20
-290.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-2A6
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-100.64399999999998
- 20
-290.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-2A8
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-129.51599999999996
- 20
-290.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-INSERT
-  5
-2AA
-330
-17
-100
-AcDbEntity
-  8
-L-ARRAY
- 62
-1
-100
-AcDbBlockReference
-  2
-ARR_TABLE_2x12_1
- 10
-159.58799999999997
- 20
-290.872
- 30
-0.0
- 41
-2.0
- 42
-2.0
-  0
-SOLID
-  5
-2AC
-330
-17
-100
-AcDbEntity
-  8
-L-MASK
-420
-16777214
-100
-AcDbTrace
- 10
-136.03799999999998
- 20
-201.626
- 30
-0.0
- 11
-144.73799999999997
- 21
-201.626
- 31
-0.0
- 12
-136.03799999999998
- 22
-207.92600000000002
- 32
-0.0
- 13
-144.73799999999997
- 23
-207.92600000000002
- 33
-0.0
-  0
-LWPOLYLINE
-  5
-2AD
-330
-17
-100
-AcDbEntity
-  8
-L-STATION
- 62
-1
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-136.03799999999998
- 20
-201.626
- 10
-144.73799999999997
- 20
-201.626
- 10
-144.73799999999997
- 20
-207.92600000000002
- 10
-136.03799999999998
- 20
-207.92600000000002
-  0
-SOLID
-  5
-2AE
-330
-17
-100
-AcDbEntity
-  8
-L-MASK
-420
-16777214
-100
-AcDbTrace
- 10
-130.23663449999998
- 20
-209.72600000000003
- 30
-0.0
- 11
-150.53936549999997
- 21
-209.72600000000003
- 31
-0.0
- 12
-130.23663449999998
- 22
-218.42600000000002
- 32
-0.0
- 13
-150.53936549999997
- 23
-218.42600000000002
- 33
-0.0
-  0
-LWPOLYLINE
-  5
-2AF
-330
-17
-100
-AcDbEntity
-  8
-L-STATION
- 62
-1
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-130.23663449999998
- 20
-209.72600000000003
- 10
-150.53936549999997
- 20
-209.72600000000003
- 10
-150.53936549999997
- 20
-218.42600000000002
- 10
-130.23663449999998
- 20
-218.42600000000002
-  0
-INSERT
-  5
-2B0
-330
-17
-100
-AcDbEntity
-  8
-L-STATION
-100
-AcDbBlockReference
-  2
-UC_LAYOUT_INVERTER
- 10
-136.78799999999998
- 20
-202.376
- 30
-0.0
- 41
-0.48
- 42
-0.48
   0
 TEXT
   5
@@ -16207,27 +16207,27 @@ L-LABEL
 100
 AcDbText
  10
-131.43663449999997
+126.17499999999997
  20
-215.87600000000003
+275.24999999999994
  30
 0.0
  40
-2.55
+1.5
   1
-BLOCK-01
+OVERHEAD WATER TANK
   7
 standard
  11
-131.43663449999997
+126.17499999999997
  21
-215.87600000000003
+275.24999999999994
  31
 0.0
 100
 AcDbText
  73
-2
+1
   0
 TEXT
   5
@@ -16241,27 +16241,27 @@ L-LABEL
 100
 AcDbText
  10
-131.43663449999997
+263.17516670834374
  20
-212.12600000000003
+232.2495000416771
  30
 0.0
  40
-2.0999999999999996
+1.5
   1
-868.32 kWp
+CHIMNEY STACK
   7
 standard
  11
-131.43663449999997
+263.17516670834374
  21
-212.12600000000003
+232.2495000416771
  31
 0.0
 100
 AcDbText
  73
-2
+1
   0
 LINE
   5

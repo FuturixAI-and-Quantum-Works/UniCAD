@@ -11,7 +11,7 @@
   "area_used_m2": 492285.5,
   "strings": 3968,
   "unstrung_modules": 0,
-  "block_balance": 0.00202
+  "block_balance": 0.06804
  },
  "pitch": {
   "method": "solstice",
@@ -26,48 +26,72 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 456,
-   "tables_half": 80,
-   "modules": 27776,
-   "dc_kwp": 14999.04,
+   "tables_full": 302,
+   "tables_half": 53,
+   "modules": 18396,
+   "dc_kwp": 9933.84,
    "station": {
-    "x": 260.952,
+    "x": 200.034,
     "y": 228.626
    }
   },
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 468,
-   "tables_half": 55,
-   "modules": 27748,
-   "dc_kwp": 14983.92,
+   "tables_full": 297,
+   "tables_half": 48,
+   "modules": 17976,
+   "dc_kwp": 9707.04,
    "station": {
-    "x": 242.432,
+    "x": 144.426,
     "y": 500.983
    }
   },
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 484,
-   "tables_half": 25,
-   "modules": 27804,
-   "dc_kwp": 15014.16,
+   "tables_full": 314,
+   "tables_half": 12,
+   "modules": 17920,
+   "dc_kwp": 9676.8,
    "station": {
-    "x": 735.14,
-    "y": 228.626
+    "x": 430.84,
+    "y": 500.983
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 488,
-   "tables_half": 16,
-   "modules": 27776,
-   "dc_kwp": 14999.04,
+   "tables_full": 325,
+   "tables_half": 35,
+   "modules": 19180,
+   "dc_kwp": 10357.2,
    "station": {
-    "x": 715.048,
+    "x": 627.684,
+    "y": 137.84
+   }
+  },
+  {
+   "id": "B05",
+   "name": "BLOCK-05",
+   "tables_full": 332,
+   "tables_half": 12,
+   "modules": 18928,
+   "dc_kwp": 10221.12,
+   "station": {
+    "x": 634.581,
+    "y": 410.197
+   }
+  },
+  {
+   "id": "B06",
+   "name": "BLOCK-06",
+   "tables_full": 326,
+   "tables_half": 16,
+   "modules": 18704,
+   "dc_kwp": 10100.16,
+   "station": {
+    "x": 851.64,
     "y": 500.983
    }
   }
@@ -77,6 +101,8 @@
   "gap between tables along a row: 1.5 (default, not from a cited source)",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
- "warnings": [],
+ "warnings": [
+  "6 blocks instead of 4 so that no block crosses a road or line corridor and the blocks stay balanced"
+ ],
  "target_reached": true
 }
