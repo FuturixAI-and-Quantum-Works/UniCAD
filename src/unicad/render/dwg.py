@@ -20,7 +20,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-import ezdxf
 from ezdxf import recover
 from ezdxf.document import Drawing
 
@@ -30,6 +29,7 @@ DwgVersion = Literal["R12", "R14", "R2000", "R2004", "R2007", "R2010", "R2013", 
 
 DEFAULT_LIBREDWG_BIN = Path("/tmp/opencode/libredwg/install/bin")
 _LIBREDWG_WRITES: frozenset[str] = frozenset({"R12", "R14", "R2000"})
+_STRUCTURAL = frozenset({"SECTION", "ENDSEC", "EOF", "BLOCK", "ENDBLK", "SEQEND"})
 
 
 class DwgUnavailable(RenderError):
@@ -62,14 +62,28 @@ class DwgResult:
         return not self.mismatches
 
 
-def entity_counts(doc: Drawing) -> dict[str, int]:
-    """Entity totals by type over modelspace, paperspace layouts and named blocks."""
+def entity_counts(dxf: Path) -> dict[str, int]:
+    """Entity totals by type over ENTITIES and named blocks, counted from the raw DXF tag stream.
+
+    Counting the tags instead of loading a document keeps the comparison symmetric and works on
+    converter output that ezdxf's loader rejects.
+    """
+    lines = Path(dxf).read_bytes().decode("utf-8", errors="replace").splitlines()
     counts: Counter[str] = Counter()
-    for block in doc.blocks:
-        name = block.name
-        if name.startswith("*") and not name.lower().startswith(("*model_space", "*paper_space")):
-            continue
-        counts.update(e.dxftype() for e in block)
+    section, in_named_block, previous = "", False, ""
+    for code, value in zip(lines[0::2], lines[1::2]):
+        code, value = code.strip(), value.strip()
+        if code == "2" and previous == "SECTION":
+            section = value
+        elif code == "2" and previous == "BLOCK":
+            lowered = value.lower()
+            in_named_block = not value.startswith("*") or lowered.startswith(("*model_space", "*paper_space"))
+        elif code == "0":
+            previous = value
+            if value in _STRUCTURAL:
+                continue
+            if section == "ENTITIES" or (section == "BLOCKS" and in_named_block):
+                counts[value] += 1
     return dict(counts)
 
 
@@ -140,31 +154,37 @@ class DwgConverter:
             self._oda_write(dxf, dwg, version)
         if not dwg.is_file() or dwg.stat().st_size == 0:
             raise RenderFailed(f"{converter} produced no {dwg.name}")
-        source = entity_counts(ezdxf.readfile(dxf))
-        back = entity_counts(self.from_dwg(dwg)) if verify else source
+        source = entity_counts(dxf)
+        back = self._readback_counts(dwg) if verify else source
         result = DwgResult(dwg, converter, version, source, back)
         if strict and not result.verified:
             raise DwgMismatch(f"{dwg.name} reads back differently from {dxf.name} (type: source, readback): {result.mismatches}")
         return result
 
     def from_dwg(self, dwg: Path) -> Drawing:
-        dwg = Path(dwg).resolve()
-        converter = self.name
-        if converter == "oda":
-            from ezdxf.addons import odafc
-
-            return odafc.readfile(str(dwg))
-        reader = _libredwg_tool("dwg2dxf")
-        assert reader is not None
         with tempfile.TemporaryDirectory(prefix="unicad-dwg-") as tmp:
-            out = Path(tmp) / "back.dxf"
-            self._run([str(reader), "-y", "-o", str(out), str(dwg)], out)
+            out = self._dwg_to_dxf(Path(dwg).resolve(), Path(tmp) / "back.dxf")
             ezdxf_log = logging.getLogger("ezdxf")
             previous, ezdxf_log.disabled = ezdxf_log.disabled, True
             try:
                 return recover.readfile(str(out))[0]
             finally:
                 ezdxf_log.disabled = previous
+
+    def _readback_counts(self, dwg: Path) -> dict[str, int]:
+        with tempfile.TemporaryDirectory(prefix="unicad-dwg-") as tmp:
+            return entity_counts(self._dwg_to_dxf(dwg, Path(tmp) / "back.dxf"))
+
+    def _dwg_to_dxf(self, dwg: Path, out: Path) -> Path:
+        if self.name == "oda":
+            from ezdxf.addons import odafc
+
+            odafc.readfile(str(dwg)).saveas(out)
+            return out
+        reader = _libredwg_tool("dwg2dxf")
+        assert reader is not None
+        self._run([str(reader), "-y", "-o", str(out), str(dwg)], out)
+        return out
 
     def _libredwg_write(self, dxf: Path, dwg: Path, version: str) -> None:
         if version not in _LIBREDWG_WRITES:

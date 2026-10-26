@@ -38,6 +38,7 @@ from .backend import (
 DEFAULT_BINARY = Path("/tmp/opencode/proto/squashfs-root/AppRun")
 PAGE_TOLERANCE_PT = 2.0
 INSUNITS_MM = 4
+CRASH_ENTITIES = {"IMAGE": "LibreCAD 2.2.1.6 segfaults in dxf2pdf on IMAGE entities"}
 
 
 def locate_librecad(binary: str | os.PathLike[str] | None = None) -> Path:
@@ -66,12 +67,16 @@ def check_dxf(dxf: Path, *, strict_units: bool = True) -> None:
         doc = ezdxf.readfile(dxf)
     except (DXFError, OSError, UnicodeDecodeError) as exc:
         raise InvalidDrawing(f"{dxf.name} is not a readable DXF ({exc}); LibreCAD would hang on it") from exc
+    present = {e.dxftype() for block in doc.blocks for e in block}
+    for kind, why in CRASH_ENTITIES.items():
+        if kind in present:
+            raise InvalidDrawing(f"{dxf.name} contains {kind}: {why}")
     if strict_units:
         units = doc.header.get("$INSUNITS", 0)
         if units != INSUNITS_MM:
             raise InvalidDrawing(
-                f"{dxf.name} has $INSUNITS={units}, expected {INSUNITS_MM} (mm); "
-                "LibreCAD would print the page 1000x too large"
+                f"{dxf.name} has $INSUNITS={units}, expected {INSUNITS_MM} (mm); LibreCAD rescales the page by the "
+                "unit conversion (1000x for metres, which is the ezdxf default)"
             )
 
 
@@ -129,6 +134,7 @@ class LibreCadRenderer:
     def to_pdf(self, dxf: Path, pdf: Path, paper: PaperSpec, scale_mode: ScaleMode = ScaleMode.ACTUAL) -> Path:
         dxf, pdf = Path(dxf).resolve(), Path(pdf).resolve()
         w, h = paper_size_mm(paper)
+        self._command_prefix()
         check_dxf(dxf, strict_units=self.strict_units)
         flags = {
             ScaleMode.ACTUAL: ["-s", "1"],
@@ -141,6 +147,7 @@ class LibreCadRenderer:
 
     def to_svg(self, dxf: Path, svg: Path) -> Path:
         dxf, svg = Path(dxf).resolve(), Path(svg).resolve()
+        self._command_prefix()
         check_dxf(dxf, strict_units=self.strict_units)
         self._run(["dxf2svg", "-o", str(svg), str(dxf)], svg)
         return svg
