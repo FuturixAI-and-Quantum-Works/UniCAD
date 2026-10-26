@@ -496,25 +496,29 @@ Read-only.
 
 Design the earthing system: store the inputs in the design basis, then size the GS flat conductor (IS 3043 adiabatic, IEEE 80
 cross-check), count pits for the target resistance and the fault current, check the MV switchyard grid's touch and step voltage
-(IEEE 80) and lay out pits and conductors bonding every table row, station, panel, switchyard item and lightning terminal.
+(IEEE 80, grid current split between the switchyard grid and the rest of the plant earth) and lay out pits and conductors bonding
+every table row, station, panel, switchyard item and lightning terminal.
 
-Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the design summary and quantities.
-Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1).
+Inputs you leave out keep the values already in the design basis (set with project_design_basis or an earlier call); use
+project_design_basis to clear one. Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the
+design summary and quantities.
+Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1, switchyard_m=[60, 45]).
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `soil_resistivity` | number | yes | Soil resistivity in ohm m from the site's Wenner test |
+| `soil_resistivity` | number | no | Soil resistivity in ohm m from the site's Wenner test; required unless already in the design basis |
 | `fault_ka` | number | no | Earth fault current in kA the conductors and electrodes must carry |
 | `clearing_s` | number | no | Fault clearing time in s (backup protection) |
 | `target_ohm` | number | no | Target earth resistance; default from practice (1 ohm utility, 2 ohm C&I), reported as an assumption |
-| `electrode_length_m` | number | no | Electrode (pipe) length Default: `3.0`. |
-| `electrode_diameter_mm` | number | no | Electrode (pipe) diameter Default: `40.0`. |
-| `burial_depth_m` | number | no | Burial depth of the earth conductor Default: `0.6`. |
-| `corrosion_allowance` | number | no | Extra cross-section for corrosion, e.g. 0.2 for 20 % Default: `0.0`. |
-| `tables_per_pit` | integer | no | At least one array pit per this many tables Default: `20`. |
+| `electrode_length_m` | number | no | Electrode (pipe) length; default 3 m |
+| `electrode_diameter_mm` | number | no | Electrode (pipe) diameter; default 40 mm |
+| `burial_depth_m` | number | no | Burial depth of the earth conductor; default 0.6 m |
+| `corrosion_allowance` | number | no | Extra cross-section for corrosion, e.g. 0.2 for 20 %; default 0 |
+| `tables_per_pit` | integer | no | Ground-mount arrays: at least one array pit per this many tables; default 20 |
 | `surface_resistivity` | number | no | Switchyard surface layer (crushed rock) resistivity, ohm m |
 | `surface_layer_m` | number | no | Switchyard surface layer thickness |
+| `switchyard_m` | list of any | no | MV switchyard earth grid length x width in m, from the substation layout; needed for the IEEE 80 touch and step check unless the site marks a switchyard area |
 
 ### `earthing_summary`
 

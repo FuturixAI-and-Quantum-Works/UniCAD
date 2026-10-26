@@ -8,7 +8,7 @@ shortest links (a minimum spanning tree over the parts).
 
 import math
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -114,39 +114,62 @@ def _xy(p: Point) -> tuple[float, float]:
 # --- equipment from the network ----------------------------------------------------------------
 
 
-def _block_group(project: Project, n_blocks: int) -> str | None:
+STATION_KINDS = frozenset({NodeKind.INVERTER, NodeKind.PCS, NodeKind.TRANSFORMER})
+Instance = tuple[str, str, NodeKind]
+
+
+def _instances(project: Project):
+    """(instance id, tag, kind, unit) for every node instance; the unit is the outermost group instance the node sits in."""
     net = project.network
-    for g in net.groups:
-        if g.within is None and g.count == n_blocks and n_blocks > 1:
-            return g.id
-    return None
+    for n in net.nodes:
+        chain = net._chain(n.group)
+        top = chain[0] if chain else None
+        for path in net._paths(n):
+            unit = None if top is None else (top.id, path[0] if top.count > 1 else 0)
+            yield net._instance_id(n.id, path), n.tag.format(*path), n.kind, unit
 
 
-def equipment(project: Project) -> tuple[dict[int, list[tuple[str, str, NodeKind]]], list[tuple[str, str, NodeKind]], list[str]]:
+def _unit_blocks(project: Project, insts) -> dict[tuple[str, int], int]:
+    """Layout block index of each top-level group instance holding station equipment: by the blocks its strings are laid in, else in
+    order when the network has exactly one such instance per block (a group repeated once per block, or one group per block)."""
+    blocks = project.array_layout.blocks
+    units = list(dict.fromkeys(u for _, _, k, u in insts if u is not None and k in STATION_KINDS))
+    table_block = {t.id: i for i, b in enumerate(blocks) for t in b.tables}
+    string_unit = {iid: u for iid, _, k, u in insts if k is NodeKind.PV_STRING and u is not None}
+    votes: dict[tuple[str, int], Counter] = defaultdict(Counter)
+    for a in project.array_layout.strings:
+        u = string_unit.get(a.string)
+        slots = a.slots()
+        if u is not None and slots and slots[0][0] in table_block:
+            votes[u][table_block[slots[0][0]]] += 1
+    out = {u: min(votes[u], key=lambda b: (-votes[u][b], b)) for u in units if votes[u]}
+    if not out and len(units) == len(blocks):
+        out = {u: i for i, u in enumerate(units)}
+    return out
+
+
+def equipment(project: Project) -> tuple[dict[int, list[Instance]], list[Instance], list[str]]:
     """Bonded equipment instances (id, tag, kind) per layout block index and the plant-level rest, plus assumptions."""
-    net = project.network
     layout = project.array_layout
     n_blocks = len(layout.blocks) if layout is not None else 0
-    gid = _block_group(project, n_blocks)
-    per_block: dict[int, list[tuple[str, str, NodeKind]]] = defaultdict(list)
-    plant: list[tuple[str, str, NodeKind]] = []
+    per_block: dict[int, list[Instance]] = defaultdict(list)
+    plant: list[Instance] = []
     notes: list[str] = []
-    if not net.nodes:
+    if not project.network.nodes:
         return per_block, plant, notes
-    expanded = net.expand()
-    for n in expanded.nodes:
-        if n.kind not in BONDED_KINDS:
+    insts = list(_instances(project))
+    unit_block = _unit_blocks(project, insts) if n_blocks > 1 else {}
+    for iid, tag, kind, unit in insts:
+        if kind not in BONDED_KINDS:
             continue
-        tpl = net.node(n.template_id)
-        chain = [g.id for g in net._chain(tpl.group)]
-        if gid is not None and gid in chain:
-            per_block[int(n.id.split("@", 1)[1].split(".")[0]) - 1].append((n.id, n.tag, n.kind))
-        elif gid is None and n_blocks == 1 and tpl.group is not None:
-            per_block[0].append((n.id, n.tag, n.kind))
+        if unit is not None and n_blocks == 1:
+            per_block[0].append((iid, tag, kind))
+        elif unit in unit_block:
+            per_block[unit_block[unit]].append((iid, tag, kind))
         else:
-            plant.append((n.id, n.tag, n.kind))
-    if n_blocks > 1 and gid is None:
-        notes.append(f"no network group repeats once per layout block ({n_blocks} blocks); all equipment is placed at the plant equipment area")
+            plant.append((iid, tag, kind))
+    if n_blocks > 1 and not unit_block:
+        notes.append(f"the network's block groups do not match the {n_blocks} layout blocks; all equipment is placed at the plant equipment area")
     return per_block, plant, notes
 
 
@@ -167,6 +190,32 @@ def _cluster(centre: tuple[float, float], n: int, pitch: float) -> list[tuple[fl
     return out
 
 
+def _cluster_box(centre: tuple[float, float], n: int) -> Polygon:
+    pos = _cluster(centre, max(1, n), STATION_PITCH_M)
+    xs, ys = [p[0] for p in pos], [p[1] for p in pos]
+    return box(min(xs) - 2.0, min(ys) - 2.0, max(xs) + 2.0, max(ys) + 2.0)
+
+
+def _free_spot(centre: tuple[float, float], n: int, avoid, site: Polygon | None, reach: float = 40.0) -> tuple[float, float]:
+    """The centre nearest `centre` whose ground equipment cluster of `n` items keeps clear of `avoid` (roofs, other stations) and
+    inside the plot; `centre` itself when nothing nearby is free."""
+    if not _cluster_box(centre, n).intersects(avoid):
+        return centre
+    near = nearest_points(avoid, SPoint(centre))[0]
+    away = (centre[0] - near.x, centre[1] - near.y)
+    if math.hypot(*away) < TOL:
+        away = (centre[0] - avoid.centroid.x, centre[1] - avoid.centroid.y)
+    a0 = math.atan2(away[1], away[0])
+    angles = sorted((a0 + math.radians(22.5 * k) for k in range(16)), key=lambda a: abs(math.remainder(a - a0, 2 * math.pi)))
+    for d in np.arange(0.5, reach, 0.5):
+        for a in angles:
+            c = (centre[0] + d * math.cos(a), centre[1] + d * math.sin(a))
+            b = _cluster_box(c, n)
+            if not b.intersects(avoid) and (site is None or site.contains(b)):
+                return c
+    return centre
+
+
 def _ring_points(ring: list[tuple[float, float]], k: int) -> list[tuple[float, float]]:
     line = LineString(ring)
     return [tuple(line.interpolate((i + 0.5) / k, normalized=True).coords[0]) for i in range(k)]
@@ -181,8 +230,9 @@ def _two_connections(p: tuple[float, float], ring: list[tuple[float, float]]) ->
 
 
 def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[tuple[str, str, NodeKind]], label: str, sizes: Sizes,
-                  on_roof: bool = False, name: str | None = None) -> None:  # fmt: skip
-    """Equipment cluster with a local ring, each item bonded to the ring by its connections, and its pits on or beside the ring."""
+                  on_roof: bool = False, name: str | None = None, avoid: Polygon | None = None) -> None:  # fmt: skip
+    """Equipment cluster with a local ring, each item bonded to the ring by its connections, and its pits on or beside the ring (off
+    any `avoid` area, e.g. a roof the ring overlaps)."""
     items = sorted(items, key=lambda t: (KIND_ORDER.get(t[2], 99), t[0]))
     pos = _cluster(centre, max(1, len(items)), STATION_PITCH_M / 2 if on_roof else STATION_PITCH_M)
     xs, ys = [p[0] for p in pos], [p[1] for p in pos]
@@ -199,7 +249,12 @@ def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[
         roles = [(PitRole.EP, label)] * GROUP_PITS + roles
     if on_roof:
         return
-    pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, _ring_points(ring, len(roles)))]
+    pts = _ring_points(ring, len(roles))
+    if avoid is not None and any(avoid.contains(SPoint(q)) for q in pts):
+        free = [q for q in _ring_points(ring, 8 * len(roles)) if not avoid.contains(SPoint(q))]
+        if len(free) >= len(roles):
+            pts = [free[round(i * len(free) / len(roles))] for i in range(len(roles))]
+    pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, pts)]
     lay.stations.append(StationGroup(name or label.upper(), (ring[0][0], ring[0][1], ring[2][0], ring[2][1]), tuple(p.tag for p in pits), tuple(i[0] for i in items)))
 
 
@@ -491,7 +546,10 @@ def _outside_roof(poly: Polygon, toward: tuple[float, float], site: Polygon | No
 
 
 def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit: int, electrode_m: float, lps: LpsDesign | None,
-                 switchyard: tuple[tuple[float, float, float, float] | None, float] | None, perimeter_pits: int = 8) -> EarthingLayout:  # fmt: skip
+                 switchyard: tuple[tuple[float, float, float, float] | None, float] | None, perimeter_pits: int = 8,
+                 ring: bool = False) -> EarthingLayout:  # fmt: skip
+    """`ring` lays a buried ring earth conductor around each roof carrying an array (rooftop projects); `array_pits` extra pits go on
+    the buried conductors, on rooftops along those rings at the building perimeter."""
     layout = project.array_layout
     lay = EarthingLayout(rooftop=is_rooftop(project))
     per_block, plant, notes = equipment(project)
@@ -503,6 +561,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     lay.tables = {t.id: t for t in tables}
     blocks = layout.blocks if layout is not None else ()
     roof_polys = roofs(project) if lay.rooftop else []
+    roof_union = unary_union([q for _, q in roof_polys]) if roof_polys else None
     pitch = _row_pitch(tables)
     array_runs: list[Run] = []
     if lay.rooftop:
@@ -521,6 +580,8 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
                 lay.run(ConductorRole.DOWN, sizes.down, [(start.x, start.y), edge], (rid,), buried=False)
                 lay.run(ConductorRole.DOWN, sizes.down, [edge, g], (rid,), buried=False)
                 lay.pit(PitRole.EP, g, (f"{rid} array",))
+            if ring:
+                _perimeter_ring(lay, poly, site, sizes)
     else:
         segs = _row_runs(lay, tables, sizes.array, avoid, buried=True)
         array_runs += [s[3] for s in segs]
@@ -537,7 +598,8 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         if not rest:
             rest = [(f"{b.id}~station", f"{b.name} STATION", NodeKind.INVERTER)]
         on_roof = lay.rooftop and any(p.contains(SPoint(b.station.x, b.station.y)) for _, p in roof_polys)
-        _station_area(lay, _xy(b.station), rest, b.id, sizes, on_roof=on_roof, name=f"{b.name} STATION")
+        at = _xy(b.station) if on_roof or roof_union is None else _free_spot(_xy(b.station), len(rest), roof_union, site)
+        _station_area(lay, at, rest, b.id, sizes, on_roof=on_roof, name=f"{b.name} STATION", avoid=roof_union)
         if on_roof:
             poly = next(p for _, p in roof_polys if p.contains(SPoint(b.station.x, b.station.y)))
             edge, g = _outside_roof(poly, _xy(b.station), site)
@@ -561,7 +623,10 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     if yard_items:
         _switchyard(lay, switchyard[0], switchyard[1], yard_items, sizes, perimeter_pits)
     if panel_items:
-        _station_area(lay, _panel_area(project, lay, site, roof_polys), panel_items, "plant", sizes, name="PLANT EQUIPMENT AREA")
+        at = _panel_area(project, lay, site, roof_polys)
+        if roof_union is not None:
+            at = _free_spot(at, len(panel_items), unary_union([roof_union, *(box(*g.ring).buffer(2.0) for g in lay.stations)]), site)
+        _station_area(lay, at, panel_items, "plant", sizes, name="PLANT EQUIPMENT AREA", avoid=roof_union)
     if lps is not None:
         _lps(lay, lps, sizes, site, dict(roof_polys))
     existing = np.asarray([_xy(p.at) for p in lay.pits], dtype=float).reshape(-1, 2)
@@ -570,23 +635,25 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     for q in _farthest(_along(buried_array, max(2.0, electrode_m)), existing, want, 2 * electrode_m):
         lay.pit(PitRole.EP, q, ("array",))
     if lay.rooftop and array_pits > 0:
-        ground = [r for r in lay.runs if r.buried]
-        base = _along(ground, 1.0) if ground else existing
+        rings = [r for r in lay.runs if r.links == ("perimeter ring",)]
+        base = _along(rings, 1.0) if rings else _along([r for r in lay.runs if r.buried], 1.0)
         extra = _farthest(base, existing, array_pits, 2 * electrode_m)
         for q in extra:
             lay.pit(PitRole.EP, q, ("additional",))
-        if len(extra) < array_pits and len(existing):
-            g0 = (float(existing[0][0]), float(existing[0][1]))
-            sign = 1.0 if site is None or site.contains(SPoint(g0[0] + 2 * electrode_m * (array_pits - len(extra)), g0[1])) else -1.0
-            prev = g0
-            for k in range(array_pits - len(extra)):
-                q = (g0[0] + sign * 2 * electrode_m * (k + 1), g0[1])
-                lay.run(ConductorRole.MAIN, sizes.main, [prev, q])
-                lay.pit(PitRole.EP, q, ("additional",))
-                prev = q
+        if len(extra) < array_pits:
+            lay.warnings.append(f"only {len(extra)} of {array_pits} additional pits fit {2 * electrode_m:g} m apart at the building perimeter inside the plot")
     _pit_spurs(lay, sizes)
     connect_all(lay, sizes.main)
     return lay
+
+
+def _perimeter_ring(lay: EarthingLayout, poly: Polygon, site: Polygon | None, sizes: Sizes, offset: float = 1.5) -> None:
+    """A buried ring earth conductor `offset` m outside the building, kept inside the plot."""
+    ring = poly.buffer(offset, join_style="mitre").exterior
+    path = ring if site is None else ring.intersection(site.buffer(-0.5))
+    for part in getattr(path, "geoms", [path]):
+        if isinstance(part, LineString) and part.length > 1.0:
+            lay.run(ConductorRole.MAIN, sizes.main, list(part.coords), ("perimeter ring",))
 
 
 def _pit_spurs(lay: EarthingLayout, sizes: Sizes) -> None:

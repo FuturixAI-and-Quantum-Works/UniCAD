@@ -113,7 +113,8 @@ def test_ground_design_bonds_the_network_equipment(ground):
 def test_ground_sizing_and_counts(ground):
     _, d = ground
     assert d.sizes.main == "50x6"  # 12.5 kA 1 s: IS 3043 156.25 mm2, IEEE 80 183.4 mm2
-    assert d.pits_by_current == math.ceil(12500 / electrode_current(50, 1, 3, 40).value)
+    cap = next(s for s in d.steps if s.name == "strip_current")
+    assert d.pits_by_current == max(0, math.ceil((12500 - cap.value) / electrode_current(50, 1, 3, 40).value))
     assert d.pit_count >= d.pits_by_current and d.resistance_ohm <= d.target_ohm
     assert d.pit_count >= math.ceil(len(d.layout.tables) / d.basis.tables_per_pit)
     q = {x.item: x.quantity for x in d.quantities}
@@ -145,11 +146,18 @@ def test_rooftop_design(roof):
     assert any("2 ohm" in a for a in d.assumptions)
 
 
-def test_more_fault_current_needs_more_pits_and_a_bigger_conductor():
+def test_more_fault_current_needs_more_electrode_surface_and_a_bigger_conductor():
     p, _ = pune()
     small = design_earthing(p)
     big = design_earthing(with_basis(p, EarthingBasis(soil_resistivity_ohm_m=50.0, fault_current_ka=25.0, fault_clearing_s=1.0), p.design_basis.lps))
-    assert big.sizes.main == "75x6" and big.pit_count > small.pit_count >= small.pits_by_current
+    assert big.sizes.main == "75x6" and big.pit_count >= small.pit_count >= small.pits_by_current
+
+    def capacity(d):
+        per, strip = (next(s for s in d.steps if s.name == n).value for n in ("electrode_current", "strip_current"))
+        return per * sum(1 for x in d.layout.pits if x.on_ground) + strip
+
+    assert capacity(big) >= 25000 and capacity(small) >= 10000
+    assert sum(r.length_m for r in big.layout.runs if r.buried) >= sum(r.length_m for r in small.layout.runs if r.buried)
 
 
 def test_no_fault_data_reports_the_size_as_unverified():

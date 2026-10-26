@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project
 from unicad.earthing import EarthingDesign, Step, design_earthing
+from unicad.earthing.design import SWITCHYARD_UNKNOWN
 from unicad.earthing.layout import BONDED_KINDS
 from unicad.earthing.sizing import FLAT_BY_NAME
 from unicad.rules.model import Finding, Quantity, Severity
@@ -72,14 +73,15 @@ def electrode_resistance(project: Project, catalog: Catalog) -> Iterator[Finding
     yield Finding(
         rule_id="earthing.electrode_resistance", severity=Severity.INFO if ok else Severity.ERROR, subjects=("earth_network",),
         message=f"earth resistance {d.resistance_ohm:.3g} ohm with {d.pit_count} pits and {sum(r.length_m for r in d.layout.runs if r.buried):,.0f} m of buried conductor "
-        f"({'within' if ok else 'above'} the {d.target_ohm:g} ohm target)",
-        measured=d.resistance_ohm, limit=d.target_ohm, unit="ohm", formula="R = 1 / (n / R_pit + 1 / R_strip)", inputs=inputs,
-        assumptions=tuple(a for a in d.assumptions if "target" in a or "parallel" in a or "electrode" in a),
+        f"({'within' if ok else 'above'} the {d.target_ohm:g} ohm target); method: {d.resistance_method}",
+        measured=d.resistance_ohm, limit=d.target_ohm, unit="ohm", formula="R = 1 / (n / R_pit + 1 / R_strip), not below the Sverak value of the network area; in parallel with the switchyard grid Rg",
+        inputs=inputs + tuple(Quantity(name=k, value=v, unit="ohm") for k, v in d.resistance_parts.items()),
+        assumptions=tuple(a for a in d.assumptions if "target" in a or "parallel" in a or "electrode" in a or "earth resistance" in a),
     )  # fmt: skip
     if d.pits_by_current is not None and d.pit_count < d.pits_by_current:
         yield Finding(
             rule_id="earthing.electrode_resistance", severity=Severity.ERROR, subjects=("earth_network",),
-            message=f"{d.pit_count} pits cannot dissipate the earth fault current; IS 3043 current density needs {d.pits_by_current}",
+            message=f"{d.pit_count} pits cannot dissipate the earth fault current; IS 3043 current density needs {d.pits_by_current} besides the buried conductor",
             measured=d.pit_count, limit=d.pits_by_current, unit="pits",
         )  # fmt: skip
 
@@ -89,8 +91,13 @@ def touch_step(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """For a project with an MV switchyard and fault data, the IEEE 80 mesh voltage Em = rho Km Ki IG / LM and step voltage
     Es = rho Ks Ki IG / LS of the switchyard grid are compared with the tolerable touch and step voltages for a 50 kg body,
     (1000 + 1.5 Cs rho_s) 0.116 / sqrt(ts) and (1000 + 6 Cs rho_s) 0.116 / sqrt(ts). A ground potential rise below the tolerable
-    touch voltage passes without the mesh check."""
+    touch voltage passes without the mesh check. The grid current is the earth fault current times the split factor
+    Sf = R_rest / (Rg + R_rest) between the grid and the rest of the plant earth; GPR, mesh and step voltage all use it. Without a
+    switchyard size (switchyard_m or a marked area) the check is not done and a warning says so."""
     d = design_for(project)
+    if d is not None and d.switchyard_unsized:
+        yield Finding(rule_id="earthing.touch_step", severity=Severity.WARNING, subjects=("switchyard",), message=SWITCHYARD_UNKNOWN)
+        return
     if d is None or d.grid is None:
         return
     g = d.grid
@@ -100,9 +107,10 @@ def touch_step(project: Project, catalog: Catalog) -> Iterator[Finding]:
             rule_id="earthing.touch_step", severity=Severity.INFO if ok else Severity.ERROR, subjects=("switchyard",),
             message=f"switchyard grid {d.grid_spacing_m:g} m mesh: {what} voltage {got:,.0f} V against {lim:,.0f} V tolerable (GPR {g.gpr:,.0f} V)",
             measured=round(got, 1), limit=round(lim, 1), unit="V", formula="Em = rho Km Ki IG / LM; Es = rho Ks Ki IG / LS",
-            inputs=(Quantity(name="Rg", value=round(g.rg, 4), unit="ohm"), Quantity(name="Km", value=round(g.km, 4)), Quantity(name="Ki", value=round(g.ki, 4)),
+            inputs=(Quantity(name="Rg", value=round(g.rg, 4), unit="ohm"), Quantity(name="Sf", value=round(d.split_factor, 4)), Quantity(name="IG", value=round(g.gpr / g.rg, 1), unit="A"),
+                    Quantity(name="Km", value=round(g.km, 4)), Quantity(name="Ki", value=round(g.ki, 4)),
                     Quantity(name="Ks", value=round(g.ks, 4)), Quantity(name="Cs", value=round(g.cs, 4)), Quantity(name="LM", value=round(g.lm, 1), unit="m")),
-            assumptions=tuple(a for a in d.assumptions if "grid" in a or "surface" in a or "body" in a or "strip" in a),
+            assumptions=tuple(a for a in d.assumptions if "grid" in a or "surface" in a or "body" in a or "strip" in a or "GPR" in a),
         )  # fmt: skip
 
 

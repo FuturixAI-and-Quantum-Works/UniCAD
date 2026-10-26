@@ -117,8 +117,26 @@ def electrode_current(rho: float, clearing_s: float, length_m: float, diameter_m
     )  # fmt: skip
 
 
+def strip_current(rho: float, clearing_s: float, length_m: float, width_mm: float, thickness_mm: float) -> Step:
+    """IS 3043 current the buried flat conductor can dissipate: the same surface current density over its surface, 2 (w + t) per metre."""
+    j = 7.57 * 1000 / math.sqrt(rho * clearing_s)
+    area = 2 * (width_mm + thickness_mm) / 1000 * length_m
+    return Step(
+        name="strip_current", value=round(j * area, 1), unit="A", formula="I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L",
+        inputs=(Value("rho", rho, "ohm m"), Value("t", clearing_s, "s"), Value("w", width_mm / 1000, "m"), Value("t_flat", thickness_mm / 1000, "m"), Value("L", length_m, "m")),
+        source=SOURCES["is3043_density"],
+        assumptions=("the surface current density limit is applied to the buried flat conductor as an electrode as well as to the pits",),
+    )  # fmt: skip
+
+
 def parallel(*rs: float) -> float:
     return 1 / sum(1 / r for r in rs)
+
+
+def split_factor(rg: float, r_rest: float) -> float:
+    """Share of the earth fault current that flows into the soil through the switchyard grid when it is bonded to the rest of the plant
+    earth (resistance `r_rest`): the two paths to remote earth divide the current inversely to their resistances."""
+    return 1.0 if math.isinf(r_rest) else r_rest / (rg + r_rest)
 
 
 # --- IEEE 80 grid -----------------------------------------------------------------------------
