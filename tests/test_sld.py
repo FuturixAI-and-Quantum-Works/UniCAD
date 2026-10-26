@@ -402,3 +402,61 @@ def test_relay_circles_carry_the_ansi_numbers_from_attributes(catalog, ansi, key
     else:
         assert [values[f"ANSI{i + 1}"] for i in range(len(circles))] == circles
         assert values["ANSI5"] == ""
+
+
+def _pin(lay, owner, pin):
+    return next(p.at for s in lay.symbols for p in s.pins if (p.owner, p.pin) == (owner, pin))
+
+
+def test_hv_side_branch_taps_the_conductor_above_the_transformer(layouts):
+    for name in ("utility_50mwac", "utility_50mwac:compact"):
+        lay = layouts[name]
+        sym = {s.node_id: s for s in lay.symbols if s.node_id}
+        idt, aux, inv = sym["idt"], sym["blk_aux"], sym["inv"]
+        assert idt.body.y0 < aux.body.y1 and aux.body.y0 < idt.body.y1, name
+        assert aux.body.y0 > inv.body.y1, name
+        hv = _pin(lay, "idt", "hv")
+        wire = next(w for w in lay.wires if w.edge_id == "e_idt_aux")
+        tap = [p for p in wire.points if abs(p[0] - hv[0]) < EPS and p[1] > hv[1] + EPS]
+        assert tap and tap[0] in lay.junctions, (name, wire.points)
+        feed = next(w for w in lay.wires if w.edge_id == "e_idt_vcb")
+        assert any(abs(a[0] - hv[0]) < EPS and min(a[1], b[1]) - EPS <= tap[0][1] <= max(a[1], b[1]) + EPS
+                   for a, b in zip(feed.points, feed.points[1:]) if abs(a[0] - b[0]) < EPS), name
+
+
+def test_group_titles_do_not_repeat_themselves(layouts):
+    for name, lay in layouts.items():
+        for f in lay.frames:
+            texts = [lb.text for lb in f.labels]
+            for a, b in combinations(texts, 2):
+                assert not (a in b or b in a), (name, f.group_id, texts)
+    mvsb = next(f for f in layouts["utility_50mwac"].frames if f.group_id == "mvsb")
+    assert [lb.text for lb in mvsb.labels] == ["33 kV MAIN HT SWITCHBOARD PANEL"]
+
+
+def _segments(f):
+    from unicad.drafting.sld.layout import _edges_of
+
+    return _edges_of(f)
+
+
+def test_group_outlines_are_one_clean_loop_clear_of_text_and_other_frames(layouts):
+    for name, lay in layouts.items():
+        texts = lay.texts()
+        for f in lay.frames:
+            loops = f.outline or ()
+            assert len(loops) <= 1, (name, f.group_id)
+            for e in _segments(f):
+                a, b = (e.x0, e.y0), (e.x1, e.y1)
+                hits = [t.text for t in texts if _crosses(t.box, a, b)]
+                assert not hits, (name, f.group_id, hits)
+            if loops:
+                assert len(loops[0]) <= 12, (name, f.group_id, loops[0])
+        for f, g in combinations(lay.frames, 2):
+            for e in _segments(f):
+                for d in _segments(g):
+                    crossing = (e.x0 == e.x1) != (d.x0 == d.x1) and (
+                        (e.x0 == e.x1 and d.x0 + EPS < e.x0 < d.x1 - EPS and e.y0 + EPS < d.y0 < e.y1 - EPS)
+                        or (d.x0 == d.x1 and e.x0 + EPS < d.x0 < e.x1 - EPS and d.y0 + EPS < e.y0 < d.y1 - EPS)
+                    )
+                    assert not crossing, (name, f.group_id, g.group_id, e, d)
