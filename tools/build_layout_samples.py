@@ -72,7 +72,6 @@ def build(name: str, site: SiteGeometry, spec: PlacementSpec, paper: PaperSize, 
     drawing = LayoutDrawing.from_result(site, result, module, spec.table_gap_m, default_notes(result, site, spec_text(spec)))
     sheet = render_layout_sheet(doc, drawing, sheet_spec(paper, title, f"UDEMO-DEMO-{name.upper()[:10]}-EE-101", location), profile, view=view)  # type: ignore[arg-type]
     dxf = OUT / f"{name}.dxf"
-    ezdxf.options.write_fixed_meta_data_for_testing = True
     doc.saveas(dxf)
     for w in sheet.warnings:
         print(f"  warning: {w}")
@@ -91,6 +90,7 @@ def build(name: str, site: SiteGeometry, spec: PlacementSpec, paper: PaperSize, 
 
 
 def main() -> None:
+    ezdxf.options.write_fixed_meta_data_for_testing = True
     OUT.mkdir(parents=True, exist_ok=True)
     if not LIBRECAD.exists():
         print(f"LibreCAD not found at {LIBRECAD}; writing DXF only", file=sys.stderr)
