@@ -418,6 +418,63 @@ Read-only.
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 | `block` | string | no | One block id (e.g. 'B03') to list its tables and strings |
 
+## Design tools
+
+### `design_strings`
+
+Size PV strings for a module on an inverter against the project's design basis, with the rules engine's temperature models.
+
+Returns the allowed modules-per-string range and the chosen length, string voltages at the coldest and hottest cell temperatures,
+strings per MPPT and per inverter (limit and the count nearest the DC/AC target), the DC/AC ratio achieved, which constraint binds
+each quantity, and the margins to each limit. Example: design_strings(project_id="p1", module="waaree-bi-55-540", inverter="sungrow-sg110cx").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `module` | string | yes | Catalog id of the PV module |
+| `inverter` | string | yes | Catalog id of the inverter |
+| `modules_per_string` | integer | no | Check a given string length instead of picking the longest |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Network tools
+
+### `network_autobuild`
+
+Replace the project's electrical network with a complete one built from a short intent: strings sized from the catalog and design basis,
+a topology template (residential, ci_rooftop, utility_string, utility_central, bess_ac, bess_dc, hybrid) with protection, metering, SPDs and
+earthing, breakers rated >= 1.25 x design current and cables sized for ampacity and voltage drop. Then runs the rules.
+
+Returns the new revision, a summary (instances per kind, DC kWp, AC kVA), rule counts, the remaining error and warning findings, blockers
+(what the catalog or the intent could not satisfy) and every assumption made. Example:
+network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp", inverter="huawei-sun2000-100ktl-m2").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `template` | `residential` \| `ci_rooftop` \| `utility_string` \| `utility_central` \| `bess_ac` \| `bess_dc` \| `hybrid` | no | Topology; default from the project segment (utility: central when the inverter is central, else string) |
+| `ac_kw` | number | no | PV AC capacity in kW (sets the inverter count); for bess_ac the storage power |
+| `dc_kwp` | number | no | PV DC capacity in kWp |
+| `module` | string | no | Catalog module id; default the highest-Pmax ALMM-listed module |
+| `inverter` | string | no | Catalog inverter id; default picked per template |
+| `grid_voltage_v` | number | no | Grid connection voltage; updates the design basis when it differs |
+| `modules_per_string` | integer | no | Fix the string length (default: longest inside the limits) |
+| `strings_per_inverter` | integer | no | Fix strings per inverter (default: nearest the DC/AC target) |
+| `inverters_per_block` | integer | no | Inverters per transformer block (central default 2) |
+| `step_up_kv` | number | no | C&I: step-up voltage in kV for an HT connection |
+| `connection` | `lt_panel` \| `dedicated_feeder` | no | C&I LT: via the consumer LT panel or a dedicated feeder Default: `lt_panel`. |
+| `metering` | `net` \| `abt` | no | C&I HT metering: net or ABT Default: `net`. |
+| `block_switch` | `vcb` \| `rmu` | no | Switch on each block transformer's HV side Default: `vcb`. |
+| `auxiliary` | boolean | no | Add block and plant auxiliary transformers Default: `True`. |
+| `export_limit_kw` | number | no | Sanctioned export capacity, recorded on the POI |
+| `bess_kw` | number | no | Storage power in kW (bess_dc, hybrid) |
+| `bess_kwh` | number | no | Storage energy in kWh |
+| `pcs` | string | no | Catalog PCS id |
+| `battery` | string | no | Catalog battery id |
+| `use_layout` | boolean | no | Build the PV plan from the project's array layout (layout_place) and link every layout string to one pv_string instance Default: `True`. |
+| `lengths` | object | no | Cable route length overrides in m by role, e.g. {"vcb_bus": 650} |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.
