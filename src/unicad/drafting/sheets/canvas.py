@@ -4,6 +4,7 @@ from typing import Literal
 from ezdxf.document import Drawing
 from ezdxf.layouts import Modelspace
 
+from unicad.drafting.dxfrules import plain
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole
 from unicad.drafting.sheets.text import DESCENDER, LINE_PITCH, Fitted, fit, text_width
 
@@ -104,6 +105,7 @@ class Canvas:
     ) -> None:
         if not s:
             return
+        s = plain(s)
         w = text_width(s, h, wf)
         left = {"left": x, "center": x - w / 2, "right": x - w}[align]
         box = Region(left, baseline - DESCENDER * h, left + w, baseline + h)

@@ -25,6 +25,7 @@ from unicad.arrays.spec import PlacementResult, RoadLine
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Table
 from unicad.domain.site import FeatureKind, SiteFeature, SiteGeometry, shape_of
+from unicad.drafting.dxfrules import MIN_LINEWEIGHT, plain
 from unicad.drafting.legend import legend_drawer
 from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
@@ -54,18 +55,18 @@ class _LayerDef:
 L_BOUNDARY = _LayerDef("L-BOUNDARY", 3, 70)
 L_ROOF = _LayerDef("L-ROOF", 7, 50)
 L_ROAD = _LayerDef("L-ROAD", 8, 25)
-L_ROAD_FILL = _LayerDef("L-ROAD-FILL", 254, 0)
+L_ROAD_FILL = _LayerDef("L-ROAD-FILL", 254, MIN_LINEWEIGHT)
 L_WATER = _LayerDef("L-WATER", 4, 25)
-L_WATER_FILL = _LayerDef("L-WATER-FILL", 131, 0)
+L_WATER_FILL = _LayerDef("L-WATER-FILL", 131, MIN_LINEWEIGHT)
 L_EXCL = _LayerDef("L-EXCLUSION", 8, 25)
-L_EXCL_FILL = _LayerDef("L-EXCLUSION-FILL", 253, 0)
+L_EXCL_FILL = _LayerDef("L-EXCLUSION-FILL", 253, MIN_LINEWEIGHT)
 L_TLINE = _LayerDef("L-TLINE", 6, 25)
 L_OBST = _LayerDef("L-OBSTACLE", 8, 25)
-L_TABLE = _LayerDef("L-ARRAY", 7, 9)
+L_TABLE = _LayerDef("L-ARRAY", 7, MIN_LINEWEIGHT)
 L_BLOCK = _LayerDef("L-BLOCK-OUTLINE", 7, 35)
 L_STATION = _LayerDef("L-STATION", 7, 25)
 L_LABEL = _LayerDef("L-LABEL", 7, 18)
-L_MASK = _LayerDef("L-MASK", 7, 0)
+L_MASK = _LayerDef("L-MASK", 7, MIN_LINEWEIGHT)
 L_DIM = _LayerDef("L-DIM", 7, 18)
 LAYERS = (L_BOUNDARY, L_ROOF, L_ROAD, L_ROAD_FILL, L_WATER, L_WATER_FILL, L_EXCL, L_EXCL_FILL, L_TLINE, L_OBST, L_TABLE, L_BLOCK, L_STATION,
           L_LABEL, L_MASK, L_DIM)  # fmt: skip
@@ -171,7 +172,7 @@ class LayoutSheetWriter:
         attribs: dict = {"layer": layer, "style": self.profile.text_style, "height": h, "rotation": rotation}
         if colour is not None:
             attribs["color"] = colour
-        self.msp.add_text(s, dxfattribs=attribs).set_placement(at, align=TextEntityAlignment[{"ML": "MIDDLE_LEFT", "MC": "MIDDLE_CENTER", "MR": "MIDDLE_RIGHT", "BL": "BOTTOM_LEFT", "BC": "BOTTOM_CENTER"}[align]])
+        self.msp.add_text(plain(s), dxfattribs=attribs).set_placement(at, align=TextEntityAlignment[{"ML": "MIDDLE_LEFT", "MC": "MIDDLE_CENTER", "MR": "MIDDLE_RIGHT", "BL": "BOTTOM_LEFT", "BC": "BOTTOM_CENTER"}[align]])
 
     def _poly(self, pts: Sequence[tuple[float, float]], layer: str, closed: bool = True, colour: int | None = None, lineweight: int | None = None) -> None:
         attribs: dict = {"layer": layer}
@@ -486,7 +487,7 @@ class LayoutSheetWriter:
     def _swatch_layer(self, colour: int) -> str:
         name = f"L-SWATCH-{colour}"
         if name not in self.doc.layers:
-            self.doc.layers.add(name, color=colour, lineweight=0)
+            self.doc.layers.add(name, color=colour, lineweight=MIN_LINEWEIGHT)
         return name
 
     def _inset(self, r: Region) -> float:

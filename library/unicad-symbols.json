@@ -4297,7 +4297,7 @@
     "key": "tx.power_3w",
     "title": "Three-winding power transformer",
     "category": "transformer",
-    "standard": "IEC 60617 S00841 transformer with two windings / IS 12032",
+    "standard": "IEC 60617 transformer with three windings / IS 12032",
     "tag_prefix": "TX",
     "block_name": "UC_TX_POWER_3W",
     "size": {
