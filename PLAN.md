@@ -89,6 +89,17 @@ Manual edits in LibreCAD survive regeneration. Generated content goes only on `G
 - **DWG.** We convert with the ODA File Converter (free download). Its licence terms for bundling inside a commercial product must be checked. If they don't allow it, we ask the customer to install it.
 - **Headless.** Production and CI hosts run LibreCAD under `xvfb-run`. We pin a LibreCAD version and keep a known-good AppImage.
 
+### LibreCAD 2.2.1.6 facts found while building the symbol library
+
+| Fact | Evidence | Rule for the writer |
+| --- | --- | --- |
+| `dxf2pdf` makes the page 1000x too big when `$INSUNITS` is unset | A4 came out as 595276 x 841890 pt. Setting `doc.units = MM` gave 842 x 595 pt. | Every DXF we write sets `$INSUNITS = 4` (mm) |
+| ATTRIB entities are not drawn | A test block's ATTRIB was missing from the PDF, but plain TEXT next to it printed | `insert()` writes invisible ATTRIBs for machine reading plus visible TEXT on `G-SYMBOL-TXT` |
+| Line weights print only at a fixed scale | Lines with weights 0.70, 0.35 and default printed at distinct widths with `-s 1 -c` | Sheets are drawn at paper mm and exported with `-s 1 -c`, not `-a` |
+| LWPOLYLINE width is ignored | Symbol agent's test, not rechecked | Filled shapes use SOLID |
+| Text is exported as strokes, not as PDF text | `pdftotext` returns nothing | Search and indexing read the model or the DXF, never the PDF |
+| `dxf2png` draws text as empty boxes | Symbol agent's report, not rechecked | Agent previews come from PDF rasterising (`pdftoppm`), not from `dxf2png` |
+
 ## 6. Standards scope (India): to be confirmed with your samples
 
 This is my starting list. Every clause reference gets checked against the source document before a rule cites it.
