@@ -13,15 +13,17 @@ x positions come from a tidy-tree pass over per-level contours (levels: 2r for r
 
 import heapq
 import math
+import re
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import ProtectionSpec, TransformerSpec
+from unicad.domain.catalog import PROTECTION_SYMBOLS, ProtectionSpec, TransformerSpec
 from unicad.domain.network import (
     EARTH_PORT,
     KIND_SYMBOLS,
+    PROTECTION_DEVICES,
     SIGNAL_PORTS,
     SOURCE_KINDS,
     Edge,
@@ -59,6 +61,8 @@ BUS_KINDS = frozenset({NodeKind.BUSBAR, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKi
 _TERMINAL_KINDS = SOURCE_KINDS | {NodeKind.LOAD}
 # A string's catalog spec is its module, whose symbol is one module; the string symbol comes from its kind.
 _ARRAY_KINDS = frozenset({NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK})
+# Kinds without a symbol of their own draw a spec-less node as their most common device.
+FALLBACK_SYMBOLS = {NodeKind.BREAKER: "sw.mccb"}
 EARTH_SYMBOL = "earth.earth"
 OFFSHEET_SYMBOL = "ann.offsheet"
 STUB = 2.5
@@ -276,7 +280,9 @@ class _Builder:
             key = _idt_key(n, catalog, net) or (KIND_SYMBOLS[n.kind] if n.kind is NodeKind.AUX_TRANSFORMER and not n.symbol else key)
             key = _variant_key(n, key, catalog)
             if key is None and n.kind not in BUS_KINDS:
-                raise LayoutError(f"node {n.id!r} ({n.kind}) has no symbol")
+                key = _fallback_key(n)
+            if annotate.unspecified(n):
+                self.warnings.append(f"node {n.id!r} ({n.kind}) has no catalog spec: drawn as {_symbol(key).title} marked {annotate.UNSPECIFIED}")
             self.recs[n.id] = _Rec(n, key)
         self.power_edges = [e for e in edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
         self.frames: list[_FrameRec] = []
@@ -589,7 +595,7 @@ class _Builder:
             for lv, (lo, hi) in cc.items():
                 clo, chi = contour.get(lv, (math.inf, -math.inf))
                 contour[lv] = (min(clo, lo + off), max(chi, hi + off))
-            tlo, thi = contour[lvl - 1]
+            tlo, thi = contour.get(lvl - 1, (0.0, 0.0))
             contour[lvl - 1] = (min(tlo, 0.0), max(thi, off))
         self._frames_at(nid, contour)
         return contour
@@ -1204,6 +1210,17 @@ def _variant_key(node: Node, key: str | None, catalog: Catalog | None) -> str | 
         if isinstance(spec, ProtectionSpec) and spec.surge_counter:
             return "prot.la_counter"
     return key
+
+
+def _fallback_key(node: Node) -> str:
+    """The symbol of a node that names none and has no spec: the device its tag prefix names (ACB-01 -> ACB) among those its kind
+    allows, else the kind's fallback."""
+    prefix = (m.group().lower() if (m := re.match(r"[A-Za-z]+", node.tag)) else "")
+    if prefix in PROTECTION_DEVICES.get(node.kind, ()) and prefix in PROTECTION_SYMBOLS:
+        return PROTECTION_SYMBOLS[prefix]
+    if node.kind in FALLBACK_SYMBOLS:
+        return FALLBACK_SYMBOLS[node.kind]
+    raise LayoutError(f"node {node.id!r} ({node.kind}) has no symbol; set one with network_update fields={{'symbol': ...}}")
 
 
 def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[str]:

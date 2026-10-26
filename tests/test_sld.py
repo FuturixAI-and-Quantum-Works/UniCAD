@@ -460,3 +460,44 @@ def test_group_outlines_are_one_clean_loop_clear_of_text_and_other_frames(layout
                         or (d.x0 == d.x1 and e.x0 + EPS < d.x0 < e.x1 - EPS and d.y0 + EPS < e.y0 < d.y1 - EPS)
                     )
                     assert not crossing, (name, f.group_id, g.group_id, e, d)
+
+
+@pytest.fixture(scope="module")
+def central_two_scb_types(catalog):
+    """utility_central on the Rajasthan layout: each inverter collects two SCB types, and its DC SPD hangs off both SCB outputs."""
+    from test_design_p5 import GROUND_MODULE, ground_build
+    from unicad.arrays import PlacementSpec, place_array
+    from unicad.ingest.site_import import import_site
+
+    site = import_site(ROOT / "fixtures" / "sites" / "ground_mount_rajasthan.kml", None).geometry
+    spec = PlacementSpec(module=GROUND_MODULE, table_rows=2, table_cols=27, tilt_deg=25, n_blocks=2, modules_per_string=27, road_every_rows=12, target_dc_kwp=2 * 144 * 27 * 0.58 * 1.1)
+    return ground_build((site, place_array(site, spec, catalog.get(GROUND_MODULE)))).project
+
+
+def test_utility_central_with_two_scb_types_per_inverter_lays_out(central_two_scb_types, catalog):
+    """close-e2e-1 B2: KeyError 3 in _subtree (MCP text '3') for an SC 4000 UP design whose DC SPD branches off an SCB output."""
+    net = central_two_scb_types.network
+    spd_edges = {e.id for e in net.edges if e.id.startswith("e_scb_spd_")}
+    assert {"scb_sec_b01aa", "scb_sec_b01ab"} <= {g.id for g in net.groups} and len(spd_edges) >= 2
+    lay = layout_sld(net, catalog)
+    assert {e.id for e in net.edges if e.service.value != "earth"} <= {w.edge_id for w in lay.wires}
+    assert {"inv_dcspd_b01a", "inv_dcspd_b02a"} <= {n for n, _ in lay.represented}
+
+
+def test_a_node_left_without_a_catalog_spec_is_drawn_with_its_default_symbol_and_an_open_rating(catalog):
+    """close-e2e-1 B3: the block ACB of a 20 x SG350HX block (~6350 A, above every catalog ACB) had no spec, so no symbol, and the SLD failed."""
+    from test_design import blank
+    from unicad.design import autobuild
+
+    r = autobuild(blank("utility_50mwac"), catalog, {"template": "utility_string", "ac_kw": 7040, "module": "waaree-bin-21-635", "inverter": "sungrow-sg350hx",
+                                                     "modules_per_string": 28, "inverters_per_block": 20})  # fmt: skip
+    net = r.project.network
+    assert net.node("acdb_brk").spec is None and any("ACB-01 (breaker)" in b for b in r.blockers)
+    lay = layout_sld(net, catalog)
+    sym = {s.node_id: s for s in lay.symbols if s.role == "node"}
+    assert sym["acdb_brk"].key == "sw.acb" and sym["acdb_spd"].key == "prot.spd_ac"
+    for nid in ("acdb_brk", "acdb_spd"):
+        assert dict(sym[nid].values)["RATING"].endswith("RATING TO BE SPECIFIED"), nid
+        assert any(w.startswith(f"node {nid!r}") and "has no catalog spec" in w for w in lay.warnings), lay.warnings
+    bare = net.model_copy(update={"nodes": tuple(n.model_copy(update={"tag": "Q-01"}) if n.id == "acdb_brk" else n for n in net.nodes)})
+    assert next(s for s in layout_sld(bare, catalog).symbols if s.node_id == "acdb_brk").key == "sw.mccb"

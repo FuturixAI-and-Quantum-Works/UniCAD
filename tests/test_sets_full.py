@@ -8,11 +8,11 @@ import pytest
 
 from test_design import CATALOG
 from test_sets import PROFILE, fixture
-from unicad.domain.project import SheetKind
+from unicad.domain.project import Sheet, SheetKind
 from unicad.drafting.sheets.model import Numbering
 from unicad.drafting.sld import SldOptions
 from unicad.earthing.samples import pune
-from unicad.sets import ALL_KINDS, SldBuilder, plan_set, render_set
+from unicad.sets import ALL_KINDS, RegisterBuilder, SldBuilder, plan_set, render_set
 from unicad.sets.numbering import Numberer
 from unicad.sets.render import load_profile
 
@@ -152,3 +152,70 @@ def test_the_company_layer_map_applies_to_every_sheet_kind(acme_set):
         if layers & {spec.name for spec in ACME.layer_map.values()}:
             moved.add(s["kind"])
     assert moved - {"sld"}, moved
+
+
+THAR_SHEETS = (  # the 34 sheets of drawings_render(kinds=[every kind but the register]) in close-e2e-1 scenario B
+    ('sld', 'sld', 'OVERALL SINGLE LINE DIAGRAM (PART 1 OF 4)', 'A0', 'NTS'),
+    ('sld', 'sld_detail', 'OVERALL SINGLE LINE DIAGRAM (PART 2 OF 4)', 'A0', 'NTS'),
+    ('sld', 'sld_detail', 'OVERALL SINGLE LINE DIAGRAM (PART 3 OF 4)', 'A0', 'NTS'),
+    ('sld', 'sld_detail', 'OVERALL SINGLE LINE DIAGRAM (PART 4 OF 4)', 'A3', 'NTS'),
+    ('sld', 'sld_detail', 'TYPICAL STRING INVERTER BLOCK (20 X 352 kVA) SLD (BLOCK-01-01)', 'A1', 'NTS'),
+    ('sld', 'sld_detail', 'TYPICAL STRING INVERTER BLOCK (19 X 352 kVA) SLD (BLOCK-01-02)', 'A2', 'NTS'),
+    ('sld', 'sld_detail', 'TYPICAL STRING INVERTER BLOCK (19 X 352 kVA) SLD (BLOCK-01-03)', 'A2', 'NTS'),
+    ('sld', 'sld_detail', 'TYPICAL STRING INVERTER BLOCK (20 X 352 kVA) SLD (BLOCK-01-04)', 'A1', 'NTS'),
+    ('sld', 'sld_detail', 'TYPICAL STRING INVERTER BLOCK (19 X 352 kVA) SLD (BLOCK-01-05)', 'A2', 'NTS'),
+    ('sld', 'sld_detail', 'TYPICAL STRING INVERTER BLOCK (19 X 352 kVA) SLD (BLOCK-01-06)', 'A2', 'NTS'),
+    ('layout', 'layout', 'SOLAR PV ARRAY LAYOUT', 'A1', '1:2500'),
+    ('earthing', 'earthing', 'EARTHING LAYOUT', 'A1', '1:2500'),
+    ('lps', 'lps', 'LIGHTNING ARRESTER (LA) LAYOUT', 'A1', '1:2500'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-01-01 .. INV-01-19', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-01-20', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-02-01 .. INV-02-18', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-02-19', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-03-01 .. INV-03-18', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-03-19', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-04-01 .. INV-04-19', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-04-20', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-05-01 .. INV-05-18', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-05-19', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-06-01 .. INV-06-18', 'A1', 'NTS'),
+    ('strings', 'string_diagram', 'STRING WIRING DIAGRAM : INVERTER INV-06-19', 'A1', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'DC CABLE SCHEDULE (PART 1 OF 4)', 'A3', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'DC CABLE SCHEDULE (PART 2 OF 4)', 'A3', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'DC CABLE SCHEDULE (PART 3 OF 4)', 'A3', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'DC CABLE SCHEDULE (PART 4 OF 4)', 'A3', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'AC AND MV CABLE SCHEDULE (PART 1 OF 3)', 'A3', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'AC AND MV CABLE SCHEDULE (PART 2 OF 3)', 'A3', 'NTS'),
+    ('cable_schedule', 'cable_schedule', 'AC AND MV CABLE SCHEDULE (PART 3 OF 3)', 'A3', 'NTS'),
+    ('bom', 'bom', 'BILL OF MATERIALS (PART 1 OF 2)', 'A3', 'NTS'),
+    ('bom', 'bom', 'BILL OF MATERIALS (PART 2 OF 2)', 'A3', 'NTS'),
+)
+
+
+
+def test_the_register_of_a_34_sheet_utility_set_draws_the_pages_it_planned():
+    """close-e2e-1 B1: drawings_render(['all']) on the 40 MWac project failed with 'planned 2 register pages, drew 1'."""
+    project = fixture("utility_50mwac").model_copy(update={"sheets": (), "revisions": ()})
+    numbers = Numberer.for_project(project, PROFILE)
+    others = [Sheet(id=f"s{i}", number=numbers.fresh(k), kind=SheetKind(sk), title=t, paper=p, scale="NTS")
+              for i, (k, sk, t, p, _) in enumerate(THAR_SHEETS)]  # fmt: skip
+    owner = {s.id: k for s, (k, *_) in zip(others, THAR_SHEETS)}
+    planned = RegisterBuilder().plan(project, PROFILE, CATALOG, numbers, others, kinds=owner)
+    drawn = [s.model_copy(update={"scale": sc}) for s, (*_, sc) in zip(others, THAR_SHEETS)]
+    built = RegisterBuilder().build(project, planned, [*planned, *drawn], PROFILE, CATALOG, kinds=owner | {s.id: "register" for s in planned})
+    listed = [r["number"] for r in built[0].meta["rows"] if r["kind"] == "register"]
+    assert listed == [b.sheet.number for b in built] and len(built) == len(planned)
+    assert [r["number"] for r in built[0].meta["rows"] if r["kind"] != "register"] == [s.number for s in drawn]
+    if len(built) > 1:
+        assert [b.sheet.title for b in built] == [f"DRAWING REGISTER (PART {k} OF {len(built)})" for k in range(1, len(built) + 1)]
+
+
+def test_a_register_planned_on_more_pages_than_it_needs_drops_the_spare_pages():
+    project = fixture("utility_50mwac").model_copy(update={"sheets": (), "revisions": ()})
+    numbers = Numberer.for_project(project, PROFILE)
+    one = RegisterBuilder().plan(project, PROFILE, CATALOG, numbers)
+    two = (one[0].model_copy(update={"id": "register_1", "title": "DRAWING REGISTER (PART 1 OF 2)"}),
+           one[0].model_copy(update={"id": "register_2", "number": numbers.fresh("register"), "title": "DRAWING REGISTER (PART 2 OF 2)"}))  # fmt: skip
+    built = RegisterBuilder().build(project, two, two, PROFILE, CATALOG)
+    assert [(b.sheet.id, b.sheet.number, b.sheet.title) for b in built] == [("register", one[0].number, "DRAWING REGISTER")]
+    assert [(r["number"], r["title"]) for r in built[0].meta["rows"]] == [(one[0].number, "DRAWING REGISTER")]
