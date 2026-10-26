@@ -266,7 +266,7 @@ class _Builder:
             if not power:
                 self.control_only.append(n)
             key = None if n.kind in BUS_KINDS else (KIND_SYMBOLS[n.kind] if n.kind in _ARRAY_KINDS and not n.symbol else n.symbol_key(catalog))
-            key = _idt_key(n, catalog, net) or key
+            key = _idt_key(n, catalog, net) or (KIND_SYMBOLS[n.kind] if n.kind is NodeKind.AUX_TRANSFORMER and not n.symbol else key)
             if key is None and n.kind not in BUS_KINDS:
                 raise LayoutError(f"node {n.id!r} ({n.kind}) has no symbol")
             self.recs[n.id] = _Rec(n, key)
@@ -1002,7 +1002,7 @@ class _Builder:
                     if ends <= members:
                         grown += [Box(min(p[0], q[0]) - pad, min(p[1], q[1]), max(p[0], q[0]) + pad, max(p[1], q[1]))
                                   for p, q in zip(w.points, w.points[1:]) if b.y1 - 1e-6 <= min(p[1], q[1]) and max(p[1], q[1]) <= a.y0 + 1e-6]
-            loops = union_outline(grown)
+            loops = union_outline(_square_off(grown, 2 * pad, others))
             outsiders = [s.body for s in symbols if s.node_id is not None and s.node_id not in members]
             if any(inside(loops, ((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2)) for b in outsiders):
                 self.warnings.append(f"group {g.id!r}: its outline would take in other equipment; drawn without a frame")
@@ -1141,6 +1141,22 @@ def _markers(net: ElectricalNetwork, keep: frozenset[str], cut: list[Edge]) -> t
         update = {"dst": f"{mid}:{port}"} if inside_src else {"src": f"{mid}:{port}"}
         swap[e.id] = e.model_copy(update=update)
     return markers, [swap.get(e.id, e) for e in net.edges if e.id in swap or (e.src_node in keep and e.dst_node in keep)]
+
+
+def _square_off(boxes: list[Box], tol: float, obstacles: list[Box]) -> list[Box]:
+    """Line up box edges that nearly coincide, so the outline has no small notches."""
+    out = list(boxes)
+    for lo in (True, False):
+        edges = sorted({b.x0 if lo else b.x1 for b in out}, reverse=not lo)
+        for e in edges:
+            target = e
+            for i, b in enumerate(out):
+                v = b.x0 if lo else b.x1
+                if v != target and abs(v - target) < tol:
+                    wider = Box(target, b.y0, b.x1, b.y1) if lo else Box(b.x0, b.y0, target, b.y1)
+                    if not any(wider.overlaps(ob) for ob in obstacles):
+                        out[i] = wider
+    return out
 
 
 def _grow_clear(b: Box, pad: float, obstacles: list[Box]) -> Box:
