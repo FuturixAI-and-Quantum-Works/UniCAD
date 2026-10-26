@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from unicad.domain.catalog import (  # noqa: E402
+    Ampacity,
     BatterySpec,
     CableSpec,
     CellTech,
@@ -253,16 +254,21 @@ def import_inverters(b: Build) -> None:
             mppt_count=int(r["mppt_count"]), inputs_per_mppt=min(strings) if strings else None,
             max_input_current_per_mppt=num(r["idc_max_per_mppt_a"]),
             max_short_circuit_current_per_mppt=num(r["isc_max_per_mppt_a"]),
+            dc_input_count=int(r["dc_input_count"]) if r["dc_input_count"] else None,
+            max_dc_input_current=num(r["idc_max_total_a"]), max_dc_short_circuit_current=num(r["isc_max_total_a"]),
         )
-        if gaps := missing(**fields):
-            b.skip("inverter", ref, f"missing {', '.join(gaps)} (datasheet gives DC input totals only)")
+        required = {k: v for k, v in fields.items() if k in ("ac_rated_kva", "ac_max_kva", "ac_voltage", "dc_max_voltage", "mppt_min", "mppt_max")}
+        if gaps := missing(**required):
+            b.skip("inverter", ref, f"missing {', '.join(gaps)}")
             continue
         extra = "inputs per MPPT differ between trackers; smallest used" if len(set(strings)) > 1 else ""
+        if int(r["mppt_count"]) > 1 and not r["idc_max_per_mppt_a"]:
+            extra = "datasheet gives DC input totals only; per-MPPT currents left empty"
         b.add(
             "inverter", ref, InverterSpec,
             id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
             source=source("datasheet", r["source_file"], "inverter_datasheets.csv", line, r["pdf_page"], extra),
-            topology="central" if "central" in r["note"] else "string", phases=3,
+            topology="central" if "central" in r["note"] or "skid" in r["note"] else "string", phases=3,
             start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, **fields,
         )
     cec = read_csv("cec_inverters_core.csv")
@@ -337,17 +343,12 @@ def import_cables(b: Build) -> None:
     r90 = {r["size_mm2"]: r for _, r in read_csv("polycab_lt_conductor.csv")}
     reactance = {r["size_mm2"]: r for _, r in read_csv("polycab_lt_reactance.csv")}
     seen: dict[tuple, tuple[str, str, str]] = {}
+    pending_2x1c: dict[tuple, tuple[int, dict[str, str]]] = {}
     for line, r in read_csv("polycab_lt_ampacity.csv"):
         ref = f"polycab_lt_ampacity.csv row {line} ({r['type_code']} {r['cores_in_weight_table']}C {r['size_mm2']} mm2)"
         cores = r["cores_in_weight_table"]
-        if cores == "3.5":
-            b.skip("cable", ref, "3.5-core: CableSpec.cores is an integer and has no reduced-neutral field")
-            continue
-        if r["arrangement"] == "2x1c":
-            b.skip("cable", ref, "2x1c arrangement ampacity: CableSpec holds one ampacity per cable, 3x1c used for single-core")
-            continue
         armoured = r["armoured"] == "True"
-        key = (r["material"], armoured, cores, r["size_mm2"])
+        key = (r["material"], armoured, cores, r["size_mm2"], r["arrangement"])
         amps = (r["ground_a"], r["duct_a"], r["air_a"])
         if key in seen:
             if seen[key] != amps:
@@ -355,32 +356,42 @@ def import_cables(b: Build) -> None:
             b.skip("cable", ref, "duplicate of a strip/wire-armour variant with identical ampacity")
             continue
         seen[key] = amps
+        if r["arrangement"] == "2x1c":
+            pending_2x1c[key[:4]] = (line, r)
+            continue
+        two = pending_2x1c.pop(key[:4], None)
         material = r["material"].lower()
+        reduced = cores == "3.5"
+        n_cores = 3 if reduced else int(cores)
         reactance_col = ("x_1c_armoured_ohm_km" if armoured else "x_1c_unarmoured_ohm_km") if cores == "1" else "x_multicore_ohm_km"
         rr = r90.get(r["size_mm2"])
+        extra = "R at 90 C from polycab_lt_conductor.csv, X from polycab_lt_reactance.csv"
+        if two:
+            extra += f"; ampacity_2x1c from row {two[0]}, ampacity_air/ground/duct are the 3 single-core cable circuit"
+        if reduced:
+            extra += "; 3.5C reduced neutral, neutral size not stated in catalogue"
         b.add(
             "cable", ref, CableSpec,
             id=slug("polycab-lt-xlpe", material, f"{cores}c", r["size_mm2"], "arm" if armoured else "unarm"),
             manufacturer="Polycab", model=f"{r['type_code']} {cores}C {r['size_mm2']} sq.mm",
-            source=source("catalog", "raw/datasheets/cables/Polycab_LT_Cable_Catalog_V9.pdf", "polycab_lt_ampacity.csv", line, r["pdf_page"],
-                          "R at 90 C from polycab_lt_conductor.csv, X from polycab_lt_reactance.csv"),
-            service="lv_ac", conductor=material, cores=int(cores), size_mm2=float(r["size_mm2"]), insulation="xlpe",
+            source=source("catalog", "raw/datasheets/cables/Polycab_LT_Cable_Catalog_V9.pdf", "polycab_lt_ampacity.csv", line, r["pdf_page"], extra),
+            service="lv_ac", conductor=material, cores=n_cores, reduced_neutral=reduced, size_mm2=float(r["size_mm2"]), insulation="xlpe",
             armoured=armoured, voltage_grade="1.1 kV", ampacity_air=num(r["air_a"]), ampacity_ground=num(r["ground_a"]),
+            ampacity_duct=num(r["duct_a"]),
+            ampacity_2x1c=Ampacity(air=num(two[1]["air_a"]), ground=num(two[1]["ground_a"]), duct=num(two[1]["duct_a"])) if two else None,
             r_ohm_per_km_90c=num(rr[f"r_ac90_{material}_ohm_km"]) if rr else None,
             x_ohm_per_km=num(reactance[r["size_mm2"]][reactance_col]) if r["size_mm2"] in reactance else None,
         )
+    for (_, _, cores, size), (line, r) in pending_2x1c.items():
+        b.skip("cable", f"polycab_lt_ampacity.csv row {line} ({r['type_code']} {cores}C {size} mm2)", "2x1c row without a matching 3x1c row")
 
     r20_ref = {(mat, size): float(row[f"r_dc20_{mat.lower()}_ohm_km"]) for size, row in r90.items() for mat in ("Cu", "Al")}
     kei_seen: dict[tuple, tuple] = {}
+    kei_pending: dict[tuple, tuple[int, dict[str, str]]] = {}
     for line, r in read_csv("kei_lt_cables.csv"):
         ref = f"kei_lt_cables.csv row {line} ({r['standard']} {r['cores']}C {r['size_mm2']} mm2)"
-        if r["cores"] == "3.5":
-            b.skip("cable", ref, "3.5-core: CableSpec.cores is an integer and has no reduced-neutral field")
-            continue
-        if r["arrangement"] == "2x1c":
-            b.skip("cable", ref, "2x1c arrangement ampacity: CableSpec holds one ampacity per cable, 3x1c used for single-core")
-            continue
-        if reason := kei_row_problem(r, r20_ref):
+        size, _, neutral = r["size_mm2"].partition("/")
+        if reason := kei_row_problem({**r, "size_mm2": size}, r20_ref):
             b.skip("cable", ref, reason)
             continue
         dedupe_key = (r["material"], r["insulation"], r["cores"], r["arrangement"], r["armour_scope"], r["size_mm2"])
@@ -391,24 +402,36 @@ def import_cables(b: Build) -> None:
             b.skip("cable", ref, "duplicate of a solid/stranded conductor row with identical values")
             continue
         kei_seen[dedupe_key] = values
+        if r["arrangement"] == "2x1c":
+            kei_pending[dedupe_key[:3] + dedupe_key[4:]] = (line, r)
+            continue
+        two = kei_pending.pop(dedupe_key[:3] + dedupe_key[4:], None)
         scope = r["armour_scope"]
         variants = {"armoured & unarmoured": (True, False), "armoured only": (True,), "unarmoured only": (False,)}[scope]
         insulation, material = r["insulation"].lower(), r["material"].lower()
+        reduced = r["cores"] == "3.5"
         hot_r = num(r["r_ac_ohm_km"]) if num(r["rac_temp_c"]) == 90 else None
         for armoured in variants:
             x = num(r["x_armoured_ohm_km"] if armoured else r["x_unarmoured_ohm_km"])
             if x is None and r["arrangement"] == "multicore":
                 x = num(r["x_armoured_ohm_km"]) or num(r["x_unarmoured_ohm_km"])
+            extra = "" if hot_r else f"R given at {r['rac_temp_c']} C only, so r_ohm_per_km_90c left empty"
+            if two:
+                extra += ("; " if extra else "") + f"ampacity_2x1c from row {two[0]}, ampacity_air/ground/duct are the 3 single-core cable circuit"
             b.add(
                 "cable", ref, CableSpec,
-                id=slug("kei-lt", insulation, material, f"{r['cores']}c", r["size_mm2"], "arm" if armoured else "unarm"),
-                manufacturer="KEI", model=f"{r['standard']} {r['cores']}C {r['size_mm2']} sq.mm",
-                source=source("catalog", "raw/datasheets/cables/KEI_Technical_Handbook.pdf", "kei_lt_cables.csv", line, r["pdf_page"],
-                              "" if hot_r else f"R given at {r['rac_temp_c']} C only, so r_ohm_per_km_90c left empty"),
-                service="lv_ac", conductor=material, cores=int(r["cores"]), size_mm2=float(r["size_mm2"]), insulation=insulation,
+                id=slug("kei-lt", insulation, material, f"{r['cores']}c", size, "arm" if armoured else "unarm"),
+                manufacturer="KEI", model=f"{r['standard']} {r['cores']}C {size} sq.mm" + (f" (neutral {neutral})" if neutral else ""),
+                source=source("catalog", "raw/datasheets/cables/KEI_Technical_Handbook.pdf", "kei_lt_cables.csv", line, r["pdf_page"], extra),
+                service="lv_ac", conductor=material, cores=3 if reduced else int(r["cores"]), reduced_neutral=reduced,
+                neutral_size_mm2=float(neutral) if neutral else None, size_mm2=float(size), insulation=insulation,
                 armoured=armoured, voltage_grade="1.1 kV", ampacity_air=num(r["air_a"]), ampacity_ground=num(r["ground_a"]),
+                ampacity_duct=num(r["duct_a"]),
+                ampacity_2x1c=Ampacity(air=num(two[1]["air_a"]), ground=num(two[1]["ground_a"]), duct=num(two[1]["duct_a"])) if two else None,
                 r_ohm_per_km_90c=hot_r, x_ohm_per_km=x,
             )
+    for (line, r) in kei_pending.values():
+        b.skip("cable", f"kei_lt_cables.csv row {line}", "2x1c row without a matching 3x1c row")
 
     for line, r in read_csv("polycab_solar_dc_en50618.csv"):
         size = r["size_mm2"]

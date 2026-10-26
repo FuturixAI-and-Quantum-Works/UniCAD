@@ -101,15 +101,38 @@ class InverterSpec(Spec):
     mppt_max: Volts
     start_voltage: Volts | None = None
     mppt_count: int = Field(gt=0)
-    inputs_per_mppt: int = Field(gt=0)
-    max_input_current_per_mppt: Amps
-    max_short_circuit_current_per_mppt: Amps
+    inputs_per_mppt: int | None = Field(default=None, gt=0)
+    max_input_current_per_mppt: Amps | None = None
+    max_short_circuit_current_per_mppt: Amps | None = None
+    dc_input_count: int | None = Field(default=None, gt=0)
+    max_dc_input_current: Amps | None = None
+    max_dc_short_circuit_current: Amps | None = None
     max_efficiency: float | None = Field(default=None, gt=0, le=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _single_mppt_totals(cls, data: object) -> object:
+        """With one MPPT the datasheet totals are the per-MPPT values, so each side fills the other. With several, nothing is split."""
+        if not isinstance(data, dict) or data.get("mppt_count") != 1:
+            return data
+        out = dict(data)
+        for per_mppt, total in (
+            ("inputs_per_mppt", "dc_input_count"),
+            ("max_input_current_per_mppt", "max_dc_input_current"),
+            ("max_short_circuit_current_per_mppt", "max_dc_short_circuit_current"),
+        ):
+            if out.get(per_mppt) is None:
+                out[per_mppt] = out.get(total)
+            if out.get(total) is None:
+                out[total] = out.get(per_mppt)
+        return out
 
     @model_validator(mode="after")
     def _window(self) -> "InverterSpec":
         if not (self.mppt_min < self.mppt_max <= self.dc_max_voltage):
             raise ValueError("expected mppt_min < mppt_max <= dc_max_voltage")
+        if self.max_input_current_per_mppt is None and self.max_dc_input_current is None:
+            raise ValueError("expected max_input_current_per_mppt or max_dc_input_current")
         if self.ac_max_kva < self.ac_rated_kva:
             raise ValueError("ac_max_kva below ac_rated_kva")
         return self
@@ -164,6 +187,13 @@ class Conductor(StrEnum):
     AL = "al"
 
 
+class Ampacity(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    air: Amps | None = None
+    ground: Amps | None = None
+    duct: Amps | None = None
+
+
 class CableSpec(Spec):
     kind: Literal["cable"] = "cable"
 
@@ -173,18 +203,36 @@ class CableSpec(Spec):
 
     service: Literal["dc_solar", "lv_ac", "mv_ac", "earthing", "control"]
     conductor: Conductor
-    cores: int = Field(gt=0)
+    cores: int = Field(gt=0, description="full-size cores; a 3.5C cable has cores=3 and reduced_neutral=True")
+    reduced_neutral: bool = False
+    neutral_size_mm2: Mm2 | None = Field(default=None, description="only when the source states it")
     size_mm2: Mm2
     insulation: Literal["xlpe", "pvc", "epr", "xlpo"]
     armoured: bool
     voltage_grade: str
-    ampacity_air: Amps | None = None
+    ampacity_air: Amps | None = Field(default=None, description="multicore cable; for single-core, a circuit of three cables")
     ampacity_ground: Amps | None = None
+    ampacity_duct: Amps | None = None
+    ampacity_2x1c: Ampacity | None = Field(default=None, description="single-core only: circuit of two cables (1-phase or DC pair)")
     r_ohm_per_km_90c: float | None = Field(default=None, gt=0)
     x_ohm_per_km: float | None = Field(default=None, ge=0)
 
+    @model_validator(mode="after")
+    def _cores(self) -> "CableSpec":
+        if self.reduced_neutral and self.cores != 3:
+            raise ValueError("reduced_neutral applies to 3.5C cables, which have 3 full-size cores")
+        if self.neutral_size_mm2 is not None and not (self.reduced_neutral and self.neutral_size_mm2 < self.size_mm2):
+            raise ValueError("neutral_size_mm2 needs reduced_neutral and a size below size_mm2")
+        if self.ampacity_2x1c is not None and self.cores != 1:
+            raise ValueError("ampacity_2x1c applies to single-core cables")
+        return self
+
+    @property
+    def core_label(self) -> str:
+        return "3.5" if self.reduced_neutral else str(self.cores)
+
     def callout(self) -> str:
-        return f"{self.cores}C x {self.size_mm2:g} sq.mm {self.conductor.value.capitalize()} {self.insulation.upper()}{' ARM' if self.armoured else ''}"
+        return f"{self.core_label}C x {self.size_mm2:g} sq.mm {self.conductor.value.capitalize()} {self.insulation.upper()}{' ARM' if self.armoured else ''}"
 
 
 PROTECTION_SYMBOLS = {
@@ -200,6 +248,10 @@ PROTECTION_SYMBOLS = {
     "spd_dc": "dc.spd",
     "spd_ac": "prot.spd_ac",
     "sfu": "sw.switch_fuse",
+    "rmu": "sw.rmu",
+    "ct": "tx.ct",
+    "pt": "tx.pt",
+    "lightning_arrester": "prot.lightning_arrester",
 }
 
 
@@ -210,11 +262,17 @@ class ProtectionSpec(Spec):
     def symbol_for(cls, data: dict) -> str:
         return PROTECTION_SYMBOLS[data["device"]]
 
-    device: Literal["mcb", "mccb", "acb", "vcb", "rccb", "fuse_gpv", "fuse_hrc", "dc_isolator", "ac_isolator", "spd_dc", "spd_ac", "sfu"]
+    device: Literal["mcb", "mccb", "acb", "vcb", "rccb", "fuse_gpv", "fuse_hrc", "dc_isolator", "ac_isolator", "spd_dc", "spd_ac", "sfu", "rmu", "ct", "pt", "lightning_arrester"]
     rated_current: Amps | None = None
     rated_voltage: Volts
     poles: int = Field(gt=0, le=4)
     breaking_capacity_ka: float | None = Field(default=None, gt=0)
+    short_time_withstand_ka: float | None = Field(default=None, gt=0, description="rated short-time withstand current")
+    short_time_duration_s: float | None = Field(default=None, gt=0)
+    ratio: str | None = Field(default=None, description="CT or PT ratio as published, e.g. 200-100/1-1 A")
+    accuracy_class: str | None = None
+    burden_va: float | None = Field(default=None, gt=0)
+    nominal_discharge_current_ka: float | None = Field(default=None, gt=0)
     curve: str | None = None
     spd_type: Literal["1", "2", "1+2", "3"] | None = None
 
