@@ -713,7 +713,9 @@ drawings_render(project_id="pune-midc-factory-roof")
       "paper": "A1",
       "sheet_no": 1,
       "sheet_of": "1 of 1",
+      "kind_sheet_of": "1 of 1",
       "scale": 1.372,
+      "drawing_scale": "NTS",
       "scope": [],
       "files": {
         "dxf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.dxf",

@@ -89,6 +89,23 @@ Read-only.
 | `from_revision` | integer or string | yes | Older revision number or snapshot label |
 | `to_revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
+### `project_design_basis`
+
+Set the design-basis inputs the rules and the earthing, lightning and drawing set use: fault levels per system voltage, earthing
+inputs and lightning protection inputs. Only the parts you pass (or clear) change; the design is not run (earthing_design and
+lps_design store the same inputs and report the design; drawings_render draws the earthing and LA layouts from them).
+
+Example: project_design_basis(project_id="p1", earthing={"soil_resistivity_ohm_m": 50, "fault_current_ka": 12.5, "fault_clearing_s": 1},
+lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6}).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `fault_levels` | list of object | no | Replace the fault levels: one per system voltage, e.g. [{"voltage_v": 33000, "fault_ka": 25, "clearing_s": 1, "source": "DISCOM letter"}] |
+| `earthing` | object | no | Replace the earthing inputs (soil resistivity from the Wenner test is required) |
+| `lps` | object | no | Replace the lightning protection inputs (level from the IS/IEC 62305-2 risk assessment is required) |
+| `clear` | list of `fault_levels` \| `earthing` \| `lps` | no | Inputs to remove Default: `[]`. |
+
 ## Catalog tools
 
 ### `catalog_search`
@@ -579,19 +596,24 @@ Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5).
 
 ### `drawings_render`
 
-Plan and render the project's drawing set and return where every file is. The model is not changed.
+Plan and render the project's drawing set from the stored project and return where every file is. The model is not changed.
 
-SLD: one overall SLD with each identical block drawn once (x N), a detail sheet per distinct block type (inverters, SCBs, strings),
-and more sheets wherever a sheet would not be readable even on A0. Every conductor that leaves a sheet ends in an off-sheet marker
-naming the sheet number and the equipment on the other side. Numbers follow the company profile pattern (the project's existing SLD
-numbers are reused). Returns per sheet: number, title, paper, 'sheet x of y', drawing scale, files (absolute paths), cross-references
-and warnings; plus the merged set PDF. A missing DWG converter is a warning, not an error.
-Example: drawings_render(project_id="utility-50mwac", formats=["dxf", "pdf"]).
+kinds=["all"] gives the complete EPC set: register (drawing list of every sheet with number, title, size, scale, revision, purpose
+and date), SLD (overall SLD with each identical block drawn once, a detail sheet per block type, more sheets wherever one would not
+be readable on A0; conductors leaving a sheet end in off-sheet markers naming the other sheet), array layout (site plan at a true
+scale; internal roads are not stored with the layout and are not drawn), earthing and lightning (LA) layouts (designed at render
+time from design_basis.earthing and .lps, see project_design_basis), string wiring diagrams per inverter or SCB type, cable
+schedule and bill of materials pages. A kind the project cannot draw yet (no layout, no earthing inputs) is skipped with a warning.
+Numbers follow the company profile pattern: the project's stored sheet numbers of a kind are reused first, then each kind takes
+fresh numbers from its block (register 000, SLD 001, layout 101, earthing 301, LPS after earthing, strings 401, cable schedule 501,
+BOM 601). Returns per sheet: number, title, paper, 'sheet x of y' in the set and within its kind, drawing scale, files (absolute
+paths), cross-references and warnings; plus the merged set PDF (one page per sheet). A missing DWG converter is a warning.
+Example: drawings_render(project_id="utility-50mwac", kinds=["all"], formats=["dxf", "pdf"]).
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `kinds` | list of string | no | Drawing kinds to include, in set order. Available: ['sld'] Default: `['sld']`. |
+| `kinds` | list of string | no | Drawing kinds to include, in set order, or 'all' for the complete set. Available: ['register', 'sld', 'layout', 'earthing', 'lps', 'strings', 'cable_schedule', 'bom'] Default: `['sld']`. |
 | `formats` | list of `dxf` \| `pdf` \| `dwg` | no | Files per sheet: dxf (always written), pdf (LibreCAD, plus one merged set PDF), dwg Default: `['dxf', 'pdf', 'dwg']`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 

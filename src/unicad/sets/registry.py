@@ -1,7 +1,9 @@
 """Sheet builders by drawing kind. A builder plans its sheets of a set and draws them; the set renderer
 (`unicad.sets.render`) numbers, files and indexes whatever the builders return.
 
-To add a drawing kind (layout, schedules, earthing), implement `SheetBuilder` and call `register`."""
+To add a drawing kind, implement `SheetBuilder` and call `register`. A builder may also define `missing(project, catalog) -> str | None`
+(why it draws nothing for this project, reported as a set warning) and `summary = True` (planned and drawn after every other kind,
+with the other kinds' sheets: `plan(..., others)` and `build(..., drawing_set=<drawn sheets>, kinds=<sheet id -> kind>)`)."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -32,7 +34,7 @@ class SheetBuilder(Protocol):
     def build(
         self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile, catalog: Catalog | None
     ) -> list[BuiltSheet]:
-        """Draw `sheets` (this builder's plan); `drawing_set` is every sheet of the set, for 'sheet x of y'."""
+        """Draw `sheets` (this builder's plan); `drawing_set` is the sheets 'sheet x of y' counts (the kind's own sheets)."""
         ...
 
 

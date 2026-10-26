@@ -12,7 +12,7 @@ from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
 from unicad.render import RenderError, preview
-from unicad.sets import BUILDERS, render_set
+from unicad.sets import ALL_KINDS, BUILDERS, render_set
 from unicad.sets.render import INDEX
 
 WRITES_FILES = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True)
@@ -25,9 +25,11 @@ def _out_dir(ws: Workspace, project_id: str, rev: int) -> Path:
 
 
 def _kinds(kinds: list[str]) -> list[str]:
+    if "all" in kinds:
+        kinds = [k for k in ALL_KINDS if k in BUILDERS] + [k for k in kinds if k != "all" and k not in ALL_KINDS]
     unknown = [k for k in kinds if k not in BUILDERS]
     if unknown or not kinds:
-        raise ValueError(f"unknown drawing kinds {unknown}; available: {sorted(BUILDERS)}")
+        raise ValueError(f"unknown drawing kinds {unknown}; available: {['all', *ALL_KINDS]}")
     return list(dict.fromkeys(kinds))
 
 
@@ -47,18 +49,23 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def drawings_render(
         project_id: ProjectIdArg,
-        kinds: Annotated[list[str], Field(description=f"Drawing kinds to include, in set order. Available: {sorted(BUILDERS)}")] = ["sld"],  # noqa: B006
+        kinds: Annotated[list[str], Field(description=f"Drawing kinds to include, in set order, or 'all' for the complete set. Available: {list(ALL_KINDS)}")] = ["sld"],  # noqa: B006
         formats: Annotated[list[Format], Field(description="Files per sheet: dxf (always written), pdf (LibreCAD, plus one merged set PDF), dwg")] = ["dxf", "pdf", "dwg"],  # noqa: B006
         revision: RevisionArg = None,
     ) -> dict[str, Any]:
-        """Plan and render the project's drawing set and return where every file is. The model is not changed.
+        """Plan and render the project's drawing set from the stored project and return where every file is. The model is not changed.
 
-        SLD: one overall SLD with each identical block drawn once (x N), a detail sheet per distinct block type (inverters, SCBs, strings),
-        and more sheets wherever a sheet would not be readable even on A0. Every conductor that leaves a sheet ends in an off-sheet marker
-        naming the sheet number and the equipment on the other side. Numbers follow the company profile pattern (the project's existing SLD
-        numbers are reused). Returns per sheet: number, title, paper, 'sheet x of y', drawing scale, files (absolute paths), cross-references
-        and warnings; plus the merged set PDF. A missing DWG converter is a warning, not an error.
-        Example: drawings_render(project_id="utility-50mwac", formats=["dxf", "pdf"])."""
+        kinds=["all"] gives the complete EPC set: register (drawing list of every sheet with number, title, size, scale, revision, purpose
+        and date), SLD (overall SLD with each identical block drawn once, a detail sheet per block type, more sheets wherever one would not
+        be readable on A0; conductors leaving a sheet end in off-sheet markers naming the other sheet), array layout (site plan at a true
+        scale; internal roads are not stored with the layout and are not drawn), earthing and lightning (LA) layouts (designed at render
+        time from design_basis.earthing and .lps, see project_design_basis), string wiring diagrams per inverter or SCB type, cable
+        schedule and bill of materials pages. A kind the project cannot draw yet (no layout, no earthing inputs) is skipped with a warning.
+        Numbers follow the company profile pattern: the project's stored sheet numbers of a kind are reused first, then each kind takes
+        fresh numbers from its block (register 000, SLD 001, layout 101, earthing 301, LPS after earthing, strings 401, cable schedule 501,
+        BOM 601). Returns per sheet: number, title, paper, 'sheet x of y' in the set and within its kind, drawing scale, files (absolute
+        paths), cross-references and warnings; plus the merged set PDF (one page per sheet). A missing DWG converter is a warning.
+        Example: drawings_render(project_id="utility-50mwac", kinds=["all"], formats=["dxf", "pdf"])."""
         return _render(ws, project_id, revision, kinds, list(formats))
 
     @server.tool(annotations=WRITES_FILES)

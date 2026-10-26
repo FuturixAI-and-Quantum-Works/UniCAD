@@ -1,15 +1,15 @@
 import re
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from unicad.domain.project import DesignBasis, GridConnection, NoctThermal, Party, Project, Segment, Site
+from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, LpsBasis, NoctThermal, Party, Project, Segment, Site
 from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
-from unicad.mcp.workspace import Workspace, counts
+from unicad.mcp.workspace import Edit, Workspace, counts
 from unicad.store import canonical_json
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
@@ -200,3 +200,44 @@ def register(server: MCPServer, ws: Workspace) -> None:
         if d.fields:
             out["fields"] = [f.model_dump(mode="json") for f in d.fields]
         return out
+
+    @server.tool()
+    @guarded
+    def project_design_basis(
+        project_id: ProjectIdArg,
+        fault_levels: Annotated[list[FaultLevel] | None, Field(description="Replace the fault levels: one per system voltage, e.g. [{\"voltage_v\": 33000, \"fault_ka\": 25, \"clearing_s\": 1, \"source\": \"DISCOM letter\"}]")] = None,
+        earthing: Annotated[EarthingBasis | None, Field(description="Replace the earthing inputs (soil resistivity from the Wenner test is required)")] = None,
+        lps: Annotated[LpsBasis | None, Field(description="Replace the lightning protection inputs (level from the IS/IEC 62305-2 risk assessment is required)")] = None,
+        clear: Annotated[list[Literal["fault_levels", "earthing", "lps"]], Field(description="Inputs to remove")] = [],  # noqa: B006
+    ) -> dict[str, Any]:
+        """Set the design-basis inputs the rules and the earthing, lightning and drawing set use: fault levels per system voltage, earthing
+        inputs and lightning protection inputs. Only the parts you pass (or clear) change; the design is not run (earthing_design and
+        lps_design store the same inputs and report the design; drawings_render draws the earthing and LA layouts from them).
+
+        Example: project_design_basis(project_id="p1", earthing={"soil_resistivity_ohm_m": 50, "fault_current_ka": 12.5, "fault_clearing_s": 1},
+        lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6})."""
+
+        def change(p: Project) -> Edit:
+            data = p.model_dump(mode="json")
+            basis = data["design_basis"]
+            touched = []
+            for key, value in (("fault_levels", fault_levels), ("earthing", earthing), ("lps", lps)):
+                if key in clear and value is not None:
+                    raise ValueError(f"{key} is both given and cleared")
+                if key in clear:
+                    basis[key] = [] if key == "fault_levels" else None
+                elif value is not None:
+                    basis[key] = [f.model_dump(mode="json") for f in value] if key == "fault_levels" else value.model_dump(mode="json")
+                else:
+                    continue
+                touched.append(f"design_basis.{key}")
+            updated = Project.model_validate(data, context={"catalog": ws.catalog})
+            db = updated.design_basis
+            extra = {"design_basis": {
+                "fault_levels": [f.model_dump(mode="json", exclude_none=True) for f in db.fault_levels],
+                "earthing": db.earthing.model_dump(mode="json", exclude_none=True) if db.earthing else None,
+                "lps": db.lps.model_dump(mode="json", exclude_none=True) if db.lps else None,
+            }}  # fmt: skip
+            return Edit(updated, tuple(touched), extra)
+
+        return ws.mutate(project_id, change)

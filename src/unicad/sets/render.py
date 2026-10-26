@@ -30,8 +30,27 @@ def load_profile(name: str, root: Path = PROFILES) -> CompanyProfile:
 
 
 def plan_set(project: Project, kinds: Sequence[str], profile: CompanyProfile, catalog: Catalog | None) -> list[tuple[str, tuple[Sheet, ...]]]:
+    """Sheets of each kind in `kinds` order. Kinds whose builder summarises the set (the register) are planned last, knowing the rest."""
     numbers = Numberer.for_project(project, profile)
-    return [(k, builder(k).plan(project, profile, catalog, numbers)) for k in kinds]
+    planned: dict[str, tuple[Sheet, ...]] = {}
+    for k in kinds:
+        if not getattr(builder(k), "summary", False):
+            planned[k] = builder(k).plan(project, profile, catalog, numbers)
+    others = tuple(s for sheets in planned.values() for s in sheets)
+    for k in kinds:
+        if getattr(builder(k), "summary", False):
+            planned[k] = builder(k).plan(project, profile, catalog, numbers, others)
+    return [(k, planned[k]) for k in kinds]
+
+
+def missing_kinds(project: Project, kinds: Sequence[str], catalog: Catalog | None) -> list[str]:
+    """Why each requested kind with a `missing` check draws nothing for this project."""
+    out = []
+    for k in kinds:
+        check = getattr(builder(k), "missing", None)
+        if check is not None and (why := check(project, catalog)):
+            out.append(f"{k}: not drawn: {why}")
+    return out
 
 
 def _file_stem(i: int, sheet: Sheet) -> str:
@@ -95,13 +114,24 @@ def render_set(
     catalog = catalog if catalog is not None else load_catalog()
     profile = profile if profile is not None else load_profile(project.company_profile)
     planned = plan_set(project, kinds, profile, catalog)
-    drawing_set = tuple(s for _, sheets in planned for s in sheets)
-    built: list[tuple[str, BuiltSheet]] = []
+    warnings: list[str] = missing_kinds(project, kinds, catalog)
+    done: dict[str, list[BuiltSheet]] = {}
     for kind, sheets in planned:
-        built += [(kind, b) for b in builder(kind).build(project, sheets, drawing_set, profile, catalog)]
-    warnings: list[str] = []
+        if not getattr(builder(kind), "summary", False):
+            done[kind] = builder(kind).build(project, sheets, sheets, profile, catalog)
+    for kind, sheets in planned:
+        if getattr(builder(kind), "summary", False):
+            final: list[Sheet] = []
+            for k, s in planned:
+                final += [b.sheet for b in done[k]] if k in done else list(s)
+            owner = {s.id: k for k, ss in planned for s in ss}
+            done[kind] = builder(kind).build(project, sheets, final, profile, catalog, kinds=owner)
+    built = [(kind, b) for kind, _ in planned for b in done[kind]]
+    per_kind = {kind: len(done[kind]) for kind, _ in planned}
+    seen: dict[str, int] = {}
     entries: list[dict[str, Any]] = []
     for i, (kind, b) in enumerate(built, start=1):
+        seen[kind] = seen.get(kind, 0) + 1
         stem = _file_stem(i, b.sheet)
         dxf = out_dir / f"{stem}.dxf"
         save_deterministic(b.doc, dxf)
@@ -114,7 +144,9 @@ def render_set(
             "paper": b.sheet.paper,
             "sheet_no": i,
             "sheet_of": f"{i} of {len(built)}",
+            "kind_sheet_of": f"{seen[kind]} of {per_kind[kind]}",
             "scale": None if b.scale is None else round(b.scale, 3),
+            "drawing_scale": b.sheet.scale,
             "scope": list(b.sheet.scope.nodes),
             "files": {"dxf": dxf.name, "pdf": None, "dwg": None},
             "warnings": list(b.warnings),

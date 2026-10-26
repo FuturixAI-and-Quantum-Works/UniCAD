@@ -1,6 +1,7 @@
 """The SLD part of a drawing set: an overall SLD with each identical block drawn once, a detail sheet per
 distinct block type, and further sheets wherever a sheet would not be readable on A0."""
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -94,7 +95,14 @@ class SldBuilder:
             ))
             if old:
                 fixed.add(sid)
-        return self._fit(project, catalog, profile, sheets, fixed, numbers)
+        return self._renumber(self._fit(project, catalog, profile, sheets, fixed, numbers), fixed)
+
+    @staticmethod
+    def _renumber(sheets: tuple[Sheet, ...], fixed: set[str]) -> tuple[Sheet, ...]:
+        """Give the freshly numbered sheets their numbers in sheet order, so split pieces follow the sheet they were split from."""
+        free = sorted((s.number for s in sheets if s.id not in fixed), key=lambda n: [int(x) if x.isdigit() else x for x in re.split(r"(\d+)", n)])
+        it = iter(free)
+        return tuple(s if s.id in fixed else s.model_copy(update={"number": next(it)}) for s in sheets)
 
     def _fit(self, project: Project, catalog: Catalog | None, profile: CompanyProfile, sheets: list[Sheet], fixed: set[str],
              numbers: Numberer) -> tuple[Sheet, ...]:
