@@ -11,7 +11,7 @@
   "area_used_m2": 242635.7,
   "strings": 2141,
   "unstrung_modules": 0,
-  "block_balance": 0.00467
+  "block_balance": 0.02102
  },
  "pitch": {
   "method": "solstice",
@@ -26,60 +26,60 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 214,
+   "tables_full": 216,
    "tables_half": 0,
-   "modules": 11984,
-   "dc_kwp": 6471.36,
+   "modules": 12096,
+   "dc_kwp": 6531.84,
    "station": {
-    "x": 145.017,
+    "x": 144.699,
     "y": 90.944
    }
   },
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 212,
+   "tables_full": 210,
    "tables_half": 5,
-   "modules": 12012,
-   "dc_kwp": 6486.48,
+   "modules": 11900,
+   "dc_kwp": 6426.0,
    "station": {
-    "x": 148.693,
+    "x": 149.052,
     "y": 342.774
    }
   },
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 197,
+   "tables_full": 200,
    "tables_half": 34,
-   "modules": 11984,
-   "dc_kwp": 6471.36,
+   "modules": 12152,
+   "dc_kwp": 6562.08,
    "station": {
-    "x": 510.485,
+    "x": 512.196,
     "y": 90.944
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 205,
+   "tables_full": 203,
    "tables_half": 19,
-   "modules": 12012,
-   "dc_kwp": 6486.48,
+   "modules": 11900,
+   "dc_kwp": 6426.0,
    "station": {
-    "x": 368.301,
+    "x": 367.388,
     "y": 258.831
    }
   },
   {
    "id": "B05",
    "name": "BLOCK-05",
-   "tables_full": 208,
+   "tables_full": 207,
    "tables_half": 11,
-   "modules": 11956,
-   "dc_kwp": 6456.24,
+   "modules": 11900,
+   "dc_kwp": 6426.0,
    "station": {
-    "x": 575.446,
+    "x": 573.579,
     "y": 258.831
    }
   }
@@ -91,5 +91,5 @@
  ],
  "warnings": [],
  "target_reached": null,
- "placement_seconds": 0.189
+ "placement_seconds": 0.332
 }

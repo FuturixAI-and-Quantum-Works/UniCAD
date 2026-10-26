@@ -17,6 +17,7 @@ MODULES = (
     "unicad.mcp.tools.catalog",
     "unicad.mcp.tools.network",
     "unicad.mcp.tools_site",
+    "unicad.mcp.tools_layout",
     "unicad.mcp.resources",
     "unicad.mcp.prompts",
 )

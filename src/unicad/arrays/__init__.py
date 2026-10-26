@@ -48,7 +48,7 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     total = sum(kwp)
     n = block_count(total, spec.n_blocks, spec.block_dc_kwp, len(placed.tables))
     closing = 1.0 + max(placed.pitch.pitch_m, spec.road_width_m if spec.road_every_rows else 0, spec.walkway_width_m if spec.walkway_every_tables else 0, spec.table_gap_m)
-    blocks = tuple(build_blocks(placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing))
+    blocks = tuple(build_blocks(placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp))
     mps = spec.modules_per_string or spec.table_cols
     strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter)
     layout = ArrayLayout(blocks=blocks, strings=tuple(strings))

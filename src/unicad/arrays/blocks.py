@@ -15,6 +15,8 @@ from unicad.domain.layout import LayoutBlock, Point, Table
 from unicad.domain.site import FeatureKind, SiteGeometry, shape_of
 
 CONCAVE_RATIO = 0.25
+CUT_SLACK = 0.02
+WIDE_GAP_RATIO = 2.5
 
 
 def block_count(total_kwp: float, n_blocks: int | None, block_dc_kwp: float | None, n_tables: int) -> int:
@@ -27,30 +29,59 @@ def block_count(total_kwp: float, n_blocks: int | None, block_dc_kwp: float | No
     return max(1, min(n, n_tables))
 
 
-def partition(tables: Sequence[Table], weights: Sequence[float], n: int, azimuth_deg: float) -> list[list[int]]:
-    """Recursive capacity-weighted bisection of table centres in the array frame: each cut goes across the longer side of the
-    group's extent at the table where the cumulative capacity is nearest the share of the blocks on that side."""
+def _median(values: list[float]) -> float:
+    v = sorted(values)
+    return v[len(v) // 2] if v else 0.0
+
+
+def partition(tables: Sequence[Table], weights: Sequence[float], n: int, azimuth_deg: float, cap: float | None = None) -> list[list[int]]:
+    """Recursive capacity-weighted bisection of table centres in the array frame.
+
+    Each cut may move off the exact capacity share by up to CUT_SLACK of one block, and within that window takes the widest
+    gap between tables, so blocks split along corridors, ponds and roads rather than through rows. The cut runs across the
+    group's longer side unless the other axis offers a gap much wider than its usual table spacing. With `cap`, the slack
+    never takes either side's mean block capacity above it.
+    """
     (ux, uy), (vx, vy) = frame(azimuth_deg)
     pts = []
     for t in tables:
         x, y = table_centre(t)
         pts.append((x * ux + y * uy, x * vx + y * vy))
 
+    def best_cut(idx: list[int], k: int, axis: int) -> tuple[float, float, int, list[int]]:
+        ordered = sorted(idx, key=lambda i: (round(pts[i][axis], 6), round(pts[i][1 - axis], 6), tables[i].id))
+        k_lo = k // 2
+        total = sum(weights[i] for i in ordered)
+        want = total * k_lo / k
+        slack = CUT_SLACK * total / k
+        coords = [pts[i][axis] for i in ordered]
+        steps = [b - a for a, b in zip(coords, coords[1:]) if b - a > 1e-6]
+        typical = _median(steps)
+        acc, best = 0.0, (-1.0, math.inf, 1)
+        lo, hi = k_lo, len(ordered) - (k - k_lo)
+        for pos in range(1, len(ordered)):
+            acc += weights[ordered[pos - 1]]
+            if not lo <= pos <= hi:
+                continue
+            miss = abs(acc - want)
+            within_cap = cap is None or (acc <= cap * k_lo + 1e-9 and total - acc <= cap * (k - k_lo) + 1e-9)
+            gap = coords[pos] - coords[pos - 1] if miss <= slack and within_cap else -1.0
+            if (gap, -miss) > (best[0], -best[1]):
+                best = (gap, miss, pos)
+        ratio = best[0] / typical if typical > 0 and best[0] > 0 else 0.0
+        return ratio, best[1], best[2], ordered
+
     def split(idx: list[int], k: int) -> list[list[int]]:
         if k == 1 or len(idx) <= 1:
             return [idx]
         xs = [pts[i][0] for i in idx]
         ys = [pts[i][1] for i in idx]
-        axis = 0 if max(xs) - min(xs) >= max(ys) - min(ys) else 1
-        ordered = sorted(idx, key=lambda i: (round(pts[i][axis], 6), round(pts[i][1 - axis], 6), tables[i].id))
+        longer = 0 if max(xs) - min(xs) >= max(ys) - min(ys) else 1
+        cuts = {axis: best_cut(idx, k, axis) for axis in (0, 1)}
+        other = 1 - longer
+        axis = other if cuts[other][0] >= WIDE_GAP_RATIO and cuts[other][0] > cuts[longer][0] else longer
+        _, _, cut, ordered = cuts[axis]
         k_lo = k // 2
-        want = sum(weights[i] for i in ordered) * k_lo / k
-        acc, cut, best = 0.0, 1, math.inf
-        for pos, i in enumerate(ordered[:-1], start=1):
-            acc += weights[i]
-            if abs(acc - want) < best:
-                best, cut = abs(acc - want), pos
-        cut = max(k_lo, min(cut, len(ordered) - (k - k_lo))) if len(ordered) >= k else cut
         return split(ordered[:cut], k_lo) + split(ordered[cut:], k - k_lo)
 
     return [g for g in split(list(range(len(tables))), n) if g]
@@ -106,8 +137,9 @@ def station_point(tables: Sequence[Table], weights: Sequence[float], hull: Polyg
 
 def build_blocks(
     tables: Sequence[Table], kwp: Sequence[float], n: int, azimuth_deg: float, site: SiteGeometry, internal: Sequence[RoadLine], closing_m: float,
+    cap: float | None = None,
 ) -> list[LayoutBlock]:  # fmt: skip
-    groups = partition(tables, kwp, n, azimuth_deg)
+    groups = partition(tables, kwp, n, azimuth_deg, cap)
     roads = site_roads(site) + [LineString([(p.x, p.y) for p in r.points]) for r in internal]
     blocks = []
     for bi, idx in enumerate(groups, start=1):

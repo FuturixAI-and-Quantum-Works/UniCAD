@@ -11,7 +11,7 @@
   "area_used_m2": 609209.7,
   "strings": 1904,
   "unstrung_modules": 10584,
-  "block_balance": 0.00119
+  "block_balance": 0.01911
  },
  "pitch": {
   "method": "solstice",
@@ -26,61 +26,61 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 388,
+   "tables_full": 390,
    "tables_half": 61,
-   "modules": 23436,
-   "dc_kwp": 12655.44,
+   "modules": 23548,
+   "dc_kwp": 12715.92,
    "station": {
     "x": 790.0,
-    "y": 295.389
+    "y": 296.261
    }
   },
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 409,
+   "tables_full": 411,
    "tables_half": 19,
-   "modules": 23436,
-   "dc_kwp": 12655.44,
+   "modules": 23548,
+   "dc_kwp": 12715.92,
    "station": {
     "x": 698.172,
-    "y": 649.194
+    "y": 651.526
    }
   },
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 354,
+   "tables_full": 352,
    "tables_half": 130,
-   "modules": 23464,
-   "dc_kwp": 12670.56,
+   "modules": 23352,
+   "dc_kwp": 12610.08,
    "station": {
     "x": 330.863,
-    "y": 210.961
+    "y": 210.31
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 405,
+   "tables_full": 408,
    "tables_half": 27,
-   "modules": 23436,
-   "dc_kwp": 12655.44,
+   "modules": 23604,
+   "dc_kwp": 12746.16,
    "station": {
     "x": 239.035,
-    "y": 447.633
+    "y": 447.384
    }
   },
   {
    "id": "B05",
    "name": "BLOCK-05",
-   "tables_full": 348,
+   "tables_full": 343,
    "tables_half": 141,
-   "modules": 23436,
-   "dc_kwp": 12655.44,
+   "modules": 23156,
+   "dc_kwp": 12504.24,
    "station": {
     "x": 330.863,
-    "y": 747.186
+    "y": 747.076
    }
   }
  ],
@@ -94,5 +94,5 @@
   "10584 modules do not make up a whole string of 56 and are left unstrung"
  ],
  "target_reached": null,
- "placement_seconds": 0.359
+ "placement_seconds": 0.36
 }

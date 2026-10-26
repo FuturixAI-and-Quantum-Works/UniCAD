@@ -309,6 +309,78 @@ Read-only.
 | `exclusion_setback_m` | number | no | Trial exclusion clearance; not stored |
 | `obstacle_setback_m` | number | no | Trial obstacle clearance; not stored |
 
+## Layout tools
+
+### `layout_place`
+
+Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
+site an inverter station per block and assign strings to module slots. Replaces any existing array layout.
+
+Uses the site setbacks stored with site_set_setbacks. When the network has pv_string nodes, their instances are linked to the
+planned string slots in block order; otherwise the layout is stored without string assignments and the plan is reported.
+Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, road_every_rows=12, block_dc_kwp=15000).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `module` | string | yes | Catalog id of the PV module, e.g. 'waaree-bi-55-540' |
+| `mounting` | string | no | fixed_tilt, tracker_1p, rooftop_flush, rooftop_tilted or carport Default: `fixed_tilt`. |
+| `table_rows` | integer | no | Modules across a table (2 for 2P, 1 for a 1P tracker) Default: `2`. |
+| `table_cols` | integer | no | Modules along a table or tracker Default: `28`. |
+| `orientation` | `portrait` \| `landscape` | no | portrait or landscape Default: `portrait`. |
+| `tilt_deg` | number | no | Fixed tilt; 0 for trackers and flat roofs Default: `0.0`. |
+| `azimuth_deg` | number | no | Direction the modules face, clockwise from grid north; 180 = south Default: `180.0`. |
+| `axis_azimuth_deg` | number | no | Tracker axis direction; 0 = north-south Default: `0.0`. |
+| `pitch_method` | string | no | solstice (shade-free 09:00-15:00 solar time on the winter solstice), explicit (pitch_m), gcr (gcr) or gap (row_gap_m) Default: `solstice`. |
+| `pitch_m` | number | no | Row-to-row pitch for pitch_method='explicit' |
+| `gcr` | number | no | Ground coverage ratio for pitch_method='gcr' |
+| `row_gap_m` | number | no | Clear gap between rows for pitch_method='gap' |
+| `half_tables` | boolean | no | Fill edges with half tables Default: `True`. |
+| `half_cols` | integer | no | Modules along a half table; default table_cols // 2 |
+| `table_gap_m` | number | no | Gap between tables along a row (default 1.5 m, reported as an assumption) |
+| `module_gap_m` | number | no | Gap between modules on a table (default 0.02 m, reported as an assumption) |
+| `road_every_rows` | integer | no | Leave an internal road after every N rows |
+| `road_width_m` | number | no | Internal road width (default 6 m) |
+| `walkway_every_tables` | integer | no | Leave a walkway after every N tables along a row |
+| `walkway_width_m` | number | no | Walkway width (default 4 m) |
+| `target_dc_kwp` | number | no | Stop at this DC capacity instead of filling the site |
+| `fill` | string | no | With a target: 'rows' (front rows first) or 'nearest' (closest to fill_from) Default: `rows`. |
+| `fill_from_x` | number | no | Local x (m) of the point to fill around, e.g. the pooling substation |
+| `fill_from_y` | number | no | Local y (m) of the point to fill around |
+| `n_blocks` | integer | no | Number of inverter blocks |
+| `block_dc_kwp` | number | no | Largest DC capacity per block; the block count is rounded up from it |
+| `modules_per_string` | integer | no | Modules in series; default the network pv_string modules_in_series, else table_cols |
+| `strings_per_inverter` | integer | no | Strings per inverter within a block (string inverters); default one inverter per block |
+| `regions` | string | no | auto (roofs for rooftop mountings, else ground), ground or roofs Default: `auto`. |
+
+### `layout_summary`
+
+Array layout totals: tables (full and half), modules, DC kWp, blocks and their balance, row pitch and GCR, linked strings.
+
+Example: layout_summary(project_id="p1").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+### `layout_blocks`
+
+Inverter blocks: tables full/half, modules, DC kWp, station location (local metres) and outline extent. With `block`,
+also that block's tables (id, centre, modules) and linked strings.
+
+Example: layout_blocks(project_id="p1", block="B02").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+| `block` | string | no | One block id (e.g. 'B03') to list its tables and strings |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.
