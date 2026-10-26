@@ -1,5 +1,7 @@
+import json
 import os
 import subprocess
+import typing
 import sys
 from itertools import combinations
 from pathlib import Path
@@ -8,10 +10,11 @@ import pymupdf
 import pytest
 
 from unicad.catalog.store import load_catalog
+from unicad.domain.catalog import ProtectionSpec
 from unicad.domain.network import SIGNAL_PORTS, NodeKind
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
-from unicad.drafting.sld import SldOptions, layout_sld, plan_pages, render_sld
+from unicad.drafting.sld import SldOptions, annotate, layout_sld, plan_pages, render_sld
 from unicad.drafting.sld.model import Box, WireKind
 from unicad.drafting.sld.outline import inside as in_outline
 from unicad.drafting.sld.sheet import dxf_text
@@ -180,8 +183,8 @@ def test_annotations_come_from_the_catalog_and_project(layouts, projects, catalo
     util = layouts["utility_50mwac"]
     uvals = {s.node_id: dict(s.values) for s in util.symbols if s.node_id}
     assert uvals["aux_tr"]["VECTOR"] == "Dyn11"
-    assert uvals["idt"]["VECTOR"] == "Dy11y11"
-    assert uvals["blk_aux"]["VECTOR"] == ""
+    assert uvals["idt"]["VECTOR"] == "YNd11d11"
+    assert uvals["blk_aux"]["VECTOR"] == "Dyn11"
     assert {lb.text for b in util.busbars for lb in b.labels} >= {"33 kV BUS"}
 
 
@@ -333,3 +336,69 @@ def test_notes_are_engineer_worded(projects, catalog, profile):
     roof = layout_sld(projects["rooftop_500kwp"].network, catalog)
     callouts = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in roof.callouts}
     assert "SEE NOTE 1" in callouts["e_str"] and roof.notes[0].startswith("DERATING 1.0")
+
+
+def _utility_with(catalog, edit) -> object:
+    data = json.loads((ROOT / "fixtures" / "projects" / "utility_50mwac.json").read_text(encoding="utf-8"))
+    edit(data["network"])
+    return parse_project(json.dumps(data), catalog)
+
+
+def _values(lay, node_id) -> dict[str, str]:
+    return next(dict(s.values) for s in lay.symbols if s.node_id == node_id)
+
+
+def test_every_protection_device_has_a_text_formatter():
+    from unicad.drafting.sld.annotate import PROTECTION_TEXT
+
+    devices = set(typing.get_args(ProtectionSpec.model_fields["device"].annotation))
+    assert set(PROTECTION_TEXT) == devices
+
+
+def test_instrument_transformers_arresters_and_idt_show_their_spec_ratings(layouts):
+    util = layouts["utility_50mwac"]
+    assert _values(util, "mv_pt")["RATING"] == "33 kV/\u221a3 / 110 V/\u221a3 - 110 V/\u221a3, CL 0.5 / 3P, 100 VA"
+    assert _values(util, "out_la")["RATING"] == "30 kV, 20 kA, WITH SURGE COUNTER"
+    assert next(s.key for s in util.symbols if s.node_id == "out_la") == "prot.la_counter"
+    assert _values(util, "icog_la")["RATING"] == "30 kV, 10 kA"
+    idt = _values(util, "idt")
+    assert idt["RATING"] == "8.8 MVA, 33/0.66-0.66 kV"
+    assert idt["VECTOR"] == "YNd11d11"
+    assert idt["DESC"] == "Z = 7 % ON 4.4 MVA, OCTC +/-10 % IN 2.5 % STEPS"
+
+
+def test_ct_text_follows_ratio_class_and_burden(catalog):
+    base = catalog.get("generic-ct-33kv-200-100-50-1-1a")
+    ct = base.model_copy(update={"ratio": "250/1-1 A", "accuracy_class": "5P20 (15 VA, protection) + 0.2S (15 VA, metering)", "burden_va": None})
+    assert annotate._instrument_rating(ct) == "250/1-1 A, CL 5P20 / 0.2S, 15 VA"
+    assert annotate._instrument_rating(base) == "200-100-50/1-1 A, CL 0.5S / 5P20, 15/30 VA"
+
+
+def test_pt_secondary_wire_stays_clear_of_group_outlines(layouts):
+    from unicad.drafting.sld.layout import _edges_of, _seg_touches
+
+    util = layouts["utility_50mwac"]
+    wire = next(w for w in util.wires if w.edge_id == "c_pt_abt")
+    edges = [e for f in util.frames for e in _edges_of(f)]
+    inner = list(zip(wire.points[1:-2], wire.points[2:-1]))
+    assert inner
+    for p, q in inner:
+        seg = Box(min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
+        assert not [e for e in edges if _seg_touches(seg, e)], (p, q)
+
+
+@pytest.mark.parametrize("ansi, key, circles", [("50/51, 50N/51N", "prot.relay_group", ["50", "51", "50N", "51N"]), ("87T", "prot.relay", ["87T"])])
+def test_relay_circles_carry_the_ansi_numbers_from_attributes(catalog, ansi, key, circles):
+    def edit(net):
+        relay = next(n for n in net["nodes"] if n["id"] == "out_relay")
+        relay["attributes"] = {"ansi": ansi}
+
+    lay = layout_sld(_utility_with(catalog, edit).network, catalog)
+    sym = next(s for s in lay.symbols if s.node_id == "out_relay")
+    assert sym.key == key
+    values = dict(sym.values)
+    if key == "prot.relay":
+        assert values["ANSI"] == circles[0]
+    else:
+        assert [values[f"ANSI{i + 1}"] for i in range(len(circles))] == circles
+        assert values["ANSI5"] == ""

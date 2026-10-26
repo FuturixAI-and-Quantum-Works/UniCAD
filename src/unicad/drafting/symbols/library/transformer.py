@@ -6,6 +6,7 @@ from .kit import AC, ATTR_H, SIG, TAG_H, Pen, pin_n, pin_s, std_attrs
 
 C = Category.TRANSFORMER
 STD = "IEC 60617 S00841 transformer with two windings / IS 12032"
+STD_3W = "IEC 60617 transformer with three windings / IS 12032"
 
 
 @symbol(
@@ -29,7 +30,7 @@ def power_2w(b):
     "tx.power_3w",
     "Three-winding power transformer",
     C,
-    STD,
+    STD_3W,
     20.0,
     20.0,
     (pin_n(7.5, 20.0), pin_s(7.5), Pin("ter", 20.0, 10.0, Side.E, AC)),

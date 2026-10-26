@@ -5,6 +5,7 @@ Every value comes from the project or the catalog; when the model has no value t
 
 import re
 from collections.abc import Callable, Mapping
+from typing import Final
 
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import (
@@ -32,20 +33,6 @@ _KIND_LABEL = {
     NodeKind.POI_GRID: "GRID",
     NodeKind.VCB: "VACUUM CIRCUIT BREAKER",
     NodeKind.AUX_TRANSFORMER: "AUXILIARY TRANSFORMER",
-}
-_DEVICE_LABEL = {
-    "mcb": "MCB",
-    "mccb": "MCCB",
-    "acb": "ACB",
-    "vcb": "VCB",
-    "rccb": "RCCB",
-    "fuse_gpv": "gPV FUSE",
-    "fuse_hrc": "HRC FUSE",
-    "dc_isolator": "DC ISOLATOR",
-    "ac_isolator": "AC ISOLATOR",
-    "spd_dc": "DC SPD",
-    "spd_ac": "AC SPD",
-    "sfu": "SWITCH FUSE UNIT",
 }
 _METER_LABEL = {"net": "NET METER", "generation": "GENERATION METER", "abt": "ABT METER", "check": "CHECK METER"}
 _LAYING = {
@@ -101,6 +88,136 @@ def _join(*parts: str | None) -> str:
     return ", ".join(p for p in parts if p)
 
 
+SQRT = "\u221a"
+_CORE = r"([0-9][0-9A-Za-z.]*)\s*\((\d+(?:\.\d+)?) VA[^)]*\)"
+_CORES = re.compile(rf"{_CORE}(?:\s*\+\s*{_CORE})*")
+_CORE_ITEM = re.compile(_CORE)
+_ROOT3 = re.compile(r"(\d+(?:\.\d+)?)(/sqrt3)?")
+
+
+def _switching_rating(spec: ProtectionSpec) -> str:
+    parts = [f"{spec.rated_current:g} A" if spec.rated_current else None, f"{spec.poles}P"]
+    if spec.breaking_capacity_ka:
+        parts.append(f"{spec.breaking_capacity_ka:g} kA")
+    if spec.spd_type:
+        parts.append(f"TYPE {spec.spd_type}")
+    dc = spec.device in ("spd_dc", "dc_isolator", "fuse_gpv")
+    parts.append(f"{volts(spec.rated_voltage)}{' DC' if dc else ''}")
+    return _join(*parts)
+
+
+def _rmu_rating(spec: ProtectionSpec) -> str:
+    withstand = spec.short_time_withstand_ka
+    duration = f" {spec.short_time_duration_s:g} s" if spec.short_time_duration_s else ""
+    return _join(
+        volts(spec.rated_voltage),
+        f"{spec.rated_current:g} A" if spec.rated_current else None,
+        f"{spec.breaking_capacity_ka:g} kA BREAKING" if spec.breaking_capacity_ka and spec.breaking_capacity_ka != withstand else None,
+        f"{withstand:g} kA{duration}" if withstand else None,
+    )
+
+
+def _classes_and_burden(spec: ProtectionSpec) -> tuple[str, str]:
+    """('0.5S / 5P20', '15/30 VA') from a class string like '0.5S (15 VA, metering) + 5P20 (30 VA, protection)'."""
+    acc = spec.accuracy_class or ""
+    classes, burdens = acc, []
+    if _CORES.fullmatch(acc):
+        found = _CORE_ITEM.findall(acc)
+        classes = " / ".join(c for c, _ in found)
+        burdens = [b for _, b in found]
+    burden = f"{spec.burden_va:g}" if spec.burden_va else "/".join(dict.fromkeys(burdens))
+    return (f"CL {classes}" if classes else ""), (f"{burden} VA" if burden else "")
+
+
+def _root3_voltage(term: str, unit_kv: bool) -> str:
+    m = _ROOT3.fullmatch(term.strip())
+    if m is None:
+        return term.strip().replace("sqrt3", SQRT)
+    v = float(m.group(1))
+    return f"{volts(v) if unit_kv else f'{v:g} V'}{'/' + SQRT + '3' if m.group(2) else ''}"
+
+
+def _pt_ratio(ratio: str) -> str:
+    """'33 kV/\u221a3 / 110 V/\u221a3 - 110 V/\u221a3' from '33000/sqrt3 : 110/sqrt3 - 110/sqrt3 V'."""
+    primary, sep, secondary = ratio.partition(":")
+    if not sep:
+        return ratio.replace("sqrt3", SQRT)
+    sec = secondary.strip().removesuffix("V").strip()
+    return f"{_root3_voltage(primary, True)} / {' - '.join(_root3_voltage(t, False) for t in sec.split(' - '))}"
+
+
+def _instrument_rating(spec: ProtectionSpec) -> str:
+    classes, burden = _classes_and_burden(spec)
+    ratio = _pt_ratio(spec.ratio) if spec.device == "pt" and spec.ratio else spec.ratio
+    return _join(ratio, classes, burden) or volts(spec.rated_voltage)
+
+
+def _arrester_rating(spec: ProtectionSpec) -> str:
+    return _join(
+        volts(spec.rated_voltage),
+        f"{spec.nominal_discharge_current_ka:g} kA" if spec.nominal_discharge_current_ka else None,
+        "WITH SURGE COUNTER" if spec.surge_counter else None,
+    )
+
+
+ProtectionText = tuple[str, Callable[[ProtectionSpec], str]]
+PROTECTION_TEXT: Final[dict[str, ProtectionText]] = {
+    "mcb": ("MCB", _switching_rating),
+    "mccb": ("MCCB", _switching_rating),
+    "acb": ("ACB", _switching_rating),
+    "vcb": ("VCB", _switching_rating),
+    "rccb": ("RCCB", _switching_rating),
+    "fuse_gpv": ("gPV FUSE", _switching_rating),
+    "fuse_hrc": ("HRC FUSE", _switching_rating),
+    "dc_isolator": ("DC ISOLATOR", _switching_rating),
+    "ac_isolator": ("AC ISOLATOR", _switching_rating),
+    "spd_dc": ("DC SPD", _switching_rating),
+    "spd_ac": ("AC SPD", _switching_rating),
+    "sfu": ("SWITCH FUSE UNIT", _switching_rating),
+    "rmu": ("RING MAIN UNIT", _rmu_rating),
+    "ct": ("CURRENT TRANSFORMER", _instrument_rating),
+    "pt": ("POTENTIAL TRANSFORMER", _instrument_rating),
+    "lightning_arrester": ("LIGHTNING ARRESTER", _arrester_rating),
+}
+
+
+def _tap_text(spec: TransformerSpec) -> str | None:
+    if spec.tap_changer is None:
+        return None
+    name = spec.tap_changer.upper()
+    if spec.tap_range_pct is None or spec.tap_step_pct is None:
+        return name
+    lo, hi = spec.tap_range_pct
+    span = f"+/-{hi:g} %" if lo == -hi else f"{lo:+g} TO {hi:+g} %"
+    return f"{name} {span} IN {spec.tap_step_pct:g} % STEPS"
+
+
+def _impedance_text(spec: TransformerSpec) -> str:
+    base = spec.impedance_base_kva
+    return f"Z = {spec.impedance_pct:g} %{f' ON {_kva(base)}' if base and base != spec.rated_kva else ''}"
+
+
+ANSI_CIRCLES = 6
+ANSI_CIRCLE_CHARS = 4
+_ANSI_SPLIT = re.compile(r"[,;\s]+")
+
+
+def ansi_functions(node: Node) -> tuple[str, ...]:
+    """ANSI device numbers from node.attributes['ansi'], one per circle: '50/51, 50N/51N' -> 50 51 50N 51N."""
+    raw = node.attributes.get("ansi")
+    items = raw if isinstance(raw, list | tuple) else _ANSI_SPLIT.split(str(raw)) if raw else []
+    return tuple(f for item in items for f in re.split(r"/(?=\d)", str(item).strip().upper()) if f)
+
+
+def _ansi_texts(node: Node) -> dict[str, str]:
+    functions = ansi_functions(node)
+    fits = [f for f in functions if len(f) <= ANSI_CIRCLE_CHARS][:ANSI_CIRCLES]
+    out = {"RATING": ", ".join(f for f in functions if f not in fits)}
+    if len(functions) == 1 and fits:
+        return out | {"ANSI": fits[0]}
+    return out | {f"ANSI{i + 1}": f for i, f in enumerate(fits)}
+
+
 def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> dict[str, str]:
     """TAG / RATING / DESC / VECTOR / COUNT values for the node's symbol."""
     spec = _spec(node, catalog)
@@ -124,17 +241,11 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
         case TransformerSpec():
             rating = f"{_kva(spec.rated_kva)}, {spec.hv_kv:g}/{'-'.join(f'{v:g}' for v in spec.lv_kv)} kV"
             vector = spec.vector_group
-            desc = node.title or f"{spec.cooling}, Z = {spec.impedance_pct:g} %"
+            desc = node.title or _join(spec.cooling if "cooling" in spec.model_fields_set else None, _impedance_text(spec), _tap_text(spec))
         case ProtectionSpec():
-            parts = [f"{spec.rated_current:g} A" if spec.rated_current else None, f"{spec.poles}P"]
-            if spec.breaking_capacity_ka:
-                parts.append(f"{spec.breaking_capacity_ka:g} kA")
-            if spec.spd_type:
-                parts.append(f"TYPE {spec.spd_type}")
-            dc = spec.device in ("spd_dc", "dc_isolator", "fuse_gpv")
-            parts.append(f"{volts(spec.rated_voltage)}{' DC' if dc else ''}")
-            rating = _join(*parts)
-            desc = node.title or _DEVICE_LABEL[spec.device]
+            label, rating_of = PROTECTION_TEXT[spec.device]
+            rating = rating_of(spec)
+            desc = node.title or label
         case MeterSpec():
             rating = f"CL {spec.accuracy_class}, {spec.connection.upper().replace('_', '/')} OPERATED"
             desc = node.title or _METER_LABEL[spec.function]
@@ -148,6 +259,9 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
             elif node.voltage_v:
                 rating = volts(node.voltage_v)
     out = {"TAG": node_tag(net, node), "RATING": rating, "DESC": desc, "VECTOR": vector}
+    if node.kind is NodeKind.RELAY:
+        ansi = _ansi_texts(node)
+        out |= ansi | {"RATING": _join(rating, ansi["RATING"])}
     if node.count > 1:
         out["COUNT"] = f"x {node.count} NOS"
     return out

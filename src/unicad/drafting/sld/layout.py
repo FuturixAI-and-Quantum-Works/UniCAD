@@ -11,12 +11,13 @@ x positions come from a tidy-tree pass over per-level contours (levels: 2r for r
 2r - 1 for the channel above it), so subtrees never overlap and chains stay straight.
 """
 
+import heapq
 import math
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import TransformerSpec
+from unicad.domain.catalog import ProtectionSpec, TransformerSpec
 from unicad.domain.network import (
     EARTH_PORT,
     KIND_SYMBOLS,
@@ -267,6 +268,7 @@ class _Builder:
                 self.control_only.append(n)
             key = None if n.kind in BUS_KINDS else (KIND_SYMBOLS[n.kind] if n.kind in _ARRAY_KINDS and not n.symbol else n.symbol_key(catalog))
             key = _idt_key(n, catalog, net) or (KIND_SYMBOLS[n.kind] if n.kind is NodeKind.AUX_TRANSFORMER and not n.symbol else key)
+            key = _variant_key(n, key, catalog)
             if key is None and n.kind not in BUS_KINDS:
                 raise LayoutError(f"node {n.id!r} ({n.kind}) has no symbol")
             self.recs[n.id] = _Rec(n, key)
@@ -857,6 +859,7 @@ class _Builder:
         frames = self._emit_frames()
         bodies = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
         bodies += [lb.box for x in (*busbars, *callouts, *frames) for lb in x.labels]
+        late: list[tuple[int, PinRef, Side | None, PinRef, Side | None]] = []
         for e in self.edges:
             if e.id in drawn_edges or e.service is Service.EARTH:
                 continue
@@ -872,8 +875,13 @@ class _Builder:
             sa = self._side_of(e.src_node, e.src_port) if not self.recs[e.src_node].is_bus else Side.S
             sb = self._side_of(e.dst_node, e.dst_port) if not self.recs[e.dst_node].is_bus else Side.S
             pts = self._route(a, sa, b, sb, bodies)
+            late.append((len(wires), a, sa, b, sb))
             wires.append(Wire(e.id, _kind(e), _clean(list(pts)), a, b))
         frames += self._loose_frames(symbols, busbars, wires, callouts, frames)
+        outlines = [edge for f in frames for edge in _edges_of(f)]
+        for i, a, sa, b, sb in late:
+            w = wires[i]
+            wires[i] = Wire(w.edge_id, w.kind, _clean(list(self._route(a, sa, b, sb, bodies, outlines))), a, b)
         junctions = _junctions(wires)
         boxes = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
         boxes += [Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5) for b in busbars] + [lb.box for b in busbars for lb in b.labels]
@@ -941,27 +949,35 @@ class _Builder:
         pins = tuple(PinRef(sid if nid is None else nid, p, (round(a[0], 6) + 0.0, round(a[1], 6) + 0.0)) for p, (a, _) in sh.pins.items())
         return PlacedSymbol(sid, nid, g.key, at, g.rotation, g.values, tuple(sh.labels), sh.body, pins, role)
 
-    def _route(self, a: PinRef, sa: Side | None, b: PinRef, sb: Side | None, bodies: list[Box]) -> tuple[Point, ...]:
+    def _route(
+        self, a: PinRef, sa: Side | None, b: PinRef, sb: Side | None, bodies: list[Box], outlines: list[Box] = ()
+    ) -> tuple[Point, ...]:
+        """Cheapest of the one-bend and two-bend orthogonal paths: fewest symbol hits, then fewest
+        crossings of group outline edges, then shortest."""
         def stub(p: Point, s: Side | None) -> Point:
             d = {Side.N: (0, STUB), Side.S: (0, -STUB), Side.E: (STUB, 0), Side.W: (-STUB, 0)}.get(s, (0, 0))
             return (p[0] + d[0], p[1] + d[1])
 
         a1, b1 = stub(a.at, sa), stub(b.at, sb)
-        xs = sorted({a1[0], b1[0]} | {bx for bd in bodies for bx in (bd.x0 - STUB, bd.x1 + STUB) if min(a1[0], b1[0]) - 60 <= bx <= max(a1[0], b1[0]) + 60})
-        ys = sorted({a1[1], b1[1]} | {by for bd in bodies for by in (bd.y0 - STUB, bd.y1 + STUB) if min(a1[1], b1[1]) - 60 <= by <= max(a1[1], b1[1]) + 60})
+        if outlines:
+            return (a.at, *_search_route(a1, b1, bodies, outlines), b.at)
+        around = [*bodies, *outlines]
+        xs = sorted({a1[0], b1[0]} | {bx for bd in around for bx in (bd.x0 - STUB, bd.x1 + STUB) if min(a1[0], b1[0]) - 60 <= bx <= max(a1[0], b1[0]) + 60})
+        ys = sorted({a1[1], b1[1]} | {by for bd in around for by in (bd.y0 - STUB, bd.y1 + STUB) if min(a1[1], b1[1]) - 60 <= by <= max(a1[1], b1[1]) + 60})
         cands: list[list[Point]] = []
         for x in xs:
             cands.append([a.at, a1, (x, a1[1]), (x, b1[1]), b1, b.at])
         for y in ys:
             cands.append([a.at, a1, (a1[0], y), (b1[0], y), b1, b.at])
 
-        def cost(pts: list[Point]) -> tuple[int, float]:
-            hits = 0
+        def cost(pts: list[Point]) -> tuple[int, int, float]:
+            hits = crossings = 0
             for p, q in zip(pts[1:-2], pts[2:-1]):
                 seg = Box(min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
                 hits += sum(1 for bd in bodies if _seg_hits(seg, bd))
+                crossings += sum(1 for edge in outlines if _seg_touches(seg, edge))
             length = sum(abs(p[0] - q[0]) + abs(p[1] - q[1]) for p, q in zip(pts, pts[1:]))
-            return hits, round(length, 6)
+            return hits, crossings, round(length, 6)
 
         return tuple(min(cands, key=cost))
 
@@ -1008,7 +1024,7 @@ class _Builder:
                 self.warnings.append(f"group {g.id!r}: its outline would take in other equipment; drawn without a frame")
                 continue
             box = union_all(grown)
-            if any(b.overlaps(f.box) for b in grown for f in frames):
+            if any(b.overlaps(f.box) and not f.box.contains(b) for b in grown for f in frames):
                 self.warnings.append(f"group {g.id!r}: its outline would cross another frame; drawn without a frame")
                 continue
             lines = self._frame_lines(g)
@@ -1038,6 +1054,13 @@ class _Builder:
             cands += [(x0 + STUB, y - STUB / 2), (x0 + STUB, y + 1.0 + len(lines) * pitch)]
         for y, x0, _ in bottoms:
             cands.append((x0 + STUB, y - 1.0))
+        width = max(text_width(t, h) for t in lines)
+        for loop in loops:
+            for a, b in zip(loop, loop[1:] + loop[:1]):
+                if a[1] != b[1]:
+                    continue
+                for x in range(int(min(a[0], b[0]) + STUB), int(max(a[0], b[0]) - width - STUB) + 1, int(STUB)):
+                    cands += [(float(x), a[1] - STUB / 2), (float(x), a[1] + 1.0 + len(lines) * pitch), (float(x), a[1] - 1.0)]
         for x, top in cands:
             labels = tuple(label(t, (x, top - (i + 0.5) * pitch), h) for i, t in enumerate(lines))
             if not any(lb.box.overlaps(ob) for lb in labels for ob in obstacles):
@@ -1085,6 +1108,19 @@ def _idt_key(node: Node, catalog: Catalog | None, net: ElectricalNetwork) -> str
         return None
     key = f"tx.idt_{lv_windings(node, catalog, net)}lv"
     return key if key in REGISTRY else None
+
+
+def _variant_key(node: Node, key: str | None, catalog: Catalog | None) -> str | None:
+    """Symbol variants chosen by the node's data: a multi-function relay, an arrester with a surge counter."""
+    if node.symbol:
+        return key
+    if node.kind is NodeKind.RELAY and len(annotate.ansi_functions(node)) > 1:
+        return "prot.relay_group"
+    if key == "prot.lightning_arrester" and node.spec and catalog is not None:
+        spec = catalog.get(node.spec)
+        if isinstance(spec, ProtectionSpec) and spec.surge_counter:
+            return "prot.la_counter"
+    return key
 
 
 def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[str]:
@@ -1209,6 +1245,73 @@ def _seg_hits(seg: Box, body: Box) -> bool:
     )
 
 
+HIT_COST = 1000.0
+CROSS_COST = 300.0
+BEND_COST = 5.0
+SEARCH_MARGIN = 60.0
+
+
+def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[Box]) -> tuple[Point, ...]:
+    """Cheapest orthogonal path on the grid of lines STUB clear of every body and outline edge:
+    a body hit costs most, then a group outline crossing, then bends and length."""
+    around = [*bodies, *outlines]
+    lo_x, hi_x = min(start[0], goal[0]) - SEARCH_MARGIN, max(start[0], goal[0]) + SEARCH_MARGIN
+    lo_y, hi_y = min(start[1], goal[1]) - SEARCH_MARGIN, max(start[1], goal[1]) + SEARCH_MARGIN
+    xs = sorted({start[0], goal[0]} | {x for bd in around for x in (bd.x0 - STUB, bd.x1 + STUB) if lo_x <= x <= hi_x})
+    ys = sorted({start[1], goal[1]} | {y for bd in around for y in (bd.y0 - STUB, bd.y1 + STUB) if lo_y <= y <= hi_y})
+    ix = {x: i for i, x in enumerate(xs)}
+    iy = {y: i for i, y in enumerate(ys)}
+    steps = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+    def move_cost(p: Point, q: Point) -> float:
+        seg = Box(min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
+        hits = sum(1 for bd in bodies if _seg_hits(seg, bd))
+        crossings = sum(1 for edge in outlines if _seg_touches(seg, edge))
+        return abs(p[0] - q[0]) + abs(p[1] - q[1]) + HIT_COST * hits + CROSS_COST * crossings
+
+    begin = (ix[start[0]], iy[start[1]])
+    end = (ix[goal[0]], iy[goal[1]])
+    best: dict[tuple[int, int, int], float] = {}
+    came: dict[tuple[int, int, int], tuple[int, int, int] | None] = {}
+    queue: list[tuple[float, int, tuple[int, int, int]]] = []
+    tie = 0
+    for d in range(4):
+        state = (*begin, d)
+        best[state], came[state] = 0.0, None
+        heapq.heappush(queue, (0.0, tie, state))
+        tie += 1
+    final = None
+    while queue:
+        cost, _, state = heapq.heappop(queue)
+        if cost > best[state]:
+            continue
+        x, y, d = state
+        if (x, y) == end:
+            final = state
+            break
+        for nd, (dx, dy) in enumerate(steps):
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < len(xs) and 0 <= ny < len(ys)):
+                continue
+            step = move_cost((xs[x], ys[y]), (xs[nx], ys[ny])) + (BEND_COST if nd != d else 0.0)
+            nxt = (nx, ny, nd)
+            if cost + step < best.get(nxt, math.inf):
+                best[nxt], came[nxt] = cost + step, state
+                heapq.heappush(queue, (cost + step, tie, nxt))
+                tie += 1
+    path: list[Point] = []
+    state = final
+    while state is not None:
+        path.append((xs[state[0]], ys[state[1]]))
+        state = came[state]
+    return tuple(reversed(path))
+
+
+def _seg_touches(seg: Box, edge: Box, tol: float = 1e-6) -> bool:
+    """Two axis-aligned segments share a point (a crossing, or running along one another)."""
+    return seg.x0 <= edge.x1 + tol and edge.x0 <= seg.x1 + tol and seg.y0 <= edge.y1 + tol and edge.y0 <= seg.y1 + tol
+
+
 def _kind(e: Edge) -> WireKind:
     if e.service is Service.DC:
         return WireKind.DC
@@ -1327,7 +1430,17 @@ def plan_pages(
         current = trial
     if current:
         pages += _flush(network, catalog, width, height, options, current)
-    return tuple(pages)
+    return _own_once(pages)
+
+
+def _own_once(pages: list[SldPage]) -> tuple[SldPage, ...]:
+    """A meter or relay fed from two pages is drawn on both but listed only on the first."""
+    seen: set[str] = set()
+    out = []
+    for p in pages:
+        out.append(replace(p, node_ids=tuple(n for n in p.node_ids if n not in seen)))
+        seen.update(p.node_ids)
+    return tuple(out)
 
 
 def _flush(network, catalog, width, height, options, ids: frozenset[str]) -> list[SldPage]:
