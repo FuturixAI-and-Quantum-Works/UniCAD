@@ -3,5 +3,5 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-references/**/raw/
-references/**/pages/
+references/**/raw
+references/**/pages
