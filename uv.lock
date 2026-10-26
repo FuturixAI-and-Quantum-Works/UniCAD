@@ -1332,7 +1332,9 @@ source = { editable = "." }
 dependencies = [
     { name = "ezdxf" },
     { name = "mcp" },
+    { name = "pillow" },
     { name = "pydantic" },
+    { name = "pymupdf" },
     { name = "pyproj" },
     { name = "shapely" },
 ]
@@ -1354,8 +1356,10 @@ dev = [
 requires-dist = [
     { name = "ezdxf", specifier = ">=1.4" },
     { name = "mcp", specifier = ">=2.3.0" },
+    { name = "pillow", specifier = ">=10" },
     { name = "pillow", marker = "extra == 'preview'", specifier = ">=10" },
     { name = "pydantic", specifier = ">=2.8" },
+    { name = "pymupdf", specifier = ">=1.24" },
     { name = "pymupdf", marker = "extra == 'preview'", specifier = ">=1.24" },
     { name = "pyproj", specifier = ">=3.6" },
     { name = "shapely", specifier = ">=2.0" },
