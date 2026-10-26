@@ -1,0 +1,97 @@
+{
+ "metrics": {
+  "tables_full": 1904,
+  "tables_half": 378,
+  "modules": 117208,
+  "dc_kwp": 63292.32,
+  "module_wp": 540.0,
+  "pitch_m": 4.3966,
+  "gcr": 0.5213,
+  "buildable_m2": 702346.6,
+  "area_used_m2": 609209.7,
+  "strings": 1904,
+  "unstrung_modules": 10584,
+  "block_balance": 0.01911
+ },
+ "pitch": {
+  "method": "solstice",
+  "pitch_m": 4.3966,
+  "note": "shade-free tracker pitch 09:00-15:00 apparent solar time on the winter solstice at latitude 27.0996, true tracking within +/-60.0 deg, no backtracking",
+  "shade_angle_deg": 23.349,
+  "shade_hour": 9.0
+ },
+ "scale": "1:2500",
+ "paper": "A1",
+ "blocks": [
+  {
+   "id": "B01",
+   "name": "BLOCK-01",
+   "tables_full": 390,
+   "tables_half": 61,
+   "modules": 23548,
+   "dc_kwp": 12715.92,
+   "station": {
+    "x": 790.0,
+    "y": 296.261
+   }
+  },
+  {
+   "id": "B02",
+   "name": "BLOCK-02",
+   "tables_full": 411,
+   "tables_half": 19,
+   "modules": 23548,
+   "dc_kwp": 12715.92,
+   "station": {
+    "x": 698.172,
+    "y": 651.526
+   }
+  },
+  {
+   "id": "B03",
+   "name": "BLOCK-03",
+   "tables_full": 352,
+   "tables_half": 130,
+   "modules": 23352,
+   "dc_kwp": 12610.08,
+   "station": {
+    "x": 330.863,
+    "y": 210.31
+   }
+  },
+  {
+   "id": "B04",
+   "name": "BLOCK-04",
+   "tables_full": 408,
+   "tables_half": 27,
+   "modules": 23604,
+   "dc_kwp": 12746.16,
+   "station": {
+    "x": 239.035,
+    "y": 447.384
+   }
+  },
+  {
+   "id": "B05",
+   "name": "BLOCK-05",
+   "tables_full": 343,
+   "tables_half": 141,
+   "modules": 23156,
+   "dc_kwp": 12504.24,
+   "station": {
+    "x": 330.863,
+    "y": 747.076
+   }
+  }
+ ],
+ "assumptions": [
+  "gap between modules on a table: 0.02 (default, not from a cited source)",
+  "gap between tables along a row: 1.5 (default, not from a cited source)",
+  "tracker rotation limit: 60.0 (default, not from a cited source)",
+  "modules per string: 56 (one table row; set modules_per_string from the string sizing)"
+ ],
+ "warnings": [
+  "10584 modules do not make up a whole string of 56 and are left unstrung"
+ ],
+ "target_reached": null
+}

@@ -1,0 +1,82 @@
+{
+ "metrics": {
+  "tables_full": 1896,
+  "tables_half": 176,
+  "modules": 111104,
+  "dc_kwp": 59996.16,
+  "module_wp": 540.0,
+  "pitch_m": 7.3301,
+  "gcr": 0.6254,
+  "buildable_m2": 702346.6,
+  "area_used_m2": 492285.5,
+  "strings": 3968,
+  "unstrung_modules": 0,
+  "block_balance": 0.00202
+ },
+ "pitch": {
+  "method": "solstice",
+  "pitch_m": 7.3301,
+  "note": "shade-free fixed-tilt pitch 09:00-15:00 apparent solar time on the winter solstice at latitude 27.0996: plan depth + top-edge height / tan(profile angle)",
+  "shade_angle_deg": 31.386,
+  "shade_hour": 9.0
+ },
+ "scale": "1:2000",
+ "paper": "A0",
+ "blocks": [
+  {
+   "id": "B01",
+   "name": "BLOCK-01",
+   "tables_full": 456,
+   "tables_half": 80,
+   "modules": 27776,
+   "dc_kwp": 14999.04,
+   "station": {
+    "x": 260.952,
+    "y": 228.626
+   }
+  },
+  {
+   "id": "B02",
+   "name": "BLOCK-02",
+   "tables_full": 468,
+   "tables_half": 55,
+   "modules": 27748,
+   "dc_kwp": 14983.92,
+   "station": {
+    "x": 242.432,
+    "y": 500.983
+   }
+  },
+  {
+   "id": "B03",
+   "name": "BLOCK-03",
+   "tables_full": 484,
+   "tables_half": 25,
+   "modules": 27804,
+   "dc_kwp": 15014.16,
+   "station": {
+    "x": 735.14,
+    "y": 228.626
+   }
+  },
+  {
+   "id": "B04",
+   "name": "BLOCK-04",
+   "tables_full": 488,
+   "tables_half": 16,
+   "modules": 27776,
+   "dc_kwp": 14999.04,
+   "station": {
+    "x": 715.048,
+    "y": 500.983
+   }
+  }
+ ],
+ "assumptions": [
+  "gap between modules on a table: 0.02 (default, not from a cited source)",
+  "gap between tables along a row: 1.5 (default, not from a cited source)",
+  "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
+ ],
+ "warnings": [],
+ "target_reached": true
+}

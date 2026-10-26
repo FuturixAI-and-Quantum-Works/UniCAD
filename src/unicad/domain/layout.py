@@ -93,10 +93,13 @@ class StringAssignment(_Frozen):
 
 
 class LayoutBlock(_Frozen):
+    """`station` is where the block's inverter station stands, in site metres."""
+
     id: LayoutId
     name: str
     boundary: tuple[Point, ...] = ()
     tables: tuple[Table, ...] = ()
+    station: Point | None = None
 
     @model_validator(mode="after")
     def _boundary_is_polygon(self) -> Self:
