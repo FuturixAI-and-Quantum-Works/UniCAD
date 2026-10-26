@@ -222,7 +222,7 @@ def _devices(net: ElectricalNetwork, catalog: Catalog, path: tuple[str, ...], ch
 def _tag_range(net: ElectricalNetwork, template: str) -> str:
     ids = net.instance_ids(template)
     tags = [instance_tag(net, i) for i in ids]
-    return tags[0] if len(tags) == 1 else f"{tags[0]} .. {tags[-1]}"
+    return tags[0] if len(tags) == 1 else f"{tags[0]}..{tags[-1]}"
 
 
 def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], list[str]]:

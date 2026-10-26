@@ -112,6 +112,18 @@ class LabelPlacer:
         """Keep labels off `r` (a symbol or a fixed piece of text)."""
         self._add(r)
 
+    def block_path(self, points: Sequence[tuple[float, float]], closed: bool = False, thickness: float = 0.0, step: float | None = None) -> None:
+        """Keep labels off a polyline (a feature outline): straight axis-aligned runs are one thin box, slanted ones a chain of small boxes."""
+        pts = list(points) + ([points[0]] if closed and points else [])
+        half = thickness / 2
+        step = step or max(thickness * 4, 1e-3)
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            n = 1 if abs(x1 - x0) < 1e-9 or abs(y1 - y0) < 1e-9 else max(1, math.ceil(max(abs(x1 - x0), abs(y1 - y0)) / step))
+            for i in range(n):
+                ax, ay = x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n
+                bx, by = x0 + (x1 - x0) * (i + 1) / n, y0 + (y1 - y0) * (i + 1) / n
+                self._add(Region(min(ax, bx) - half, min(ay, by) - half, max(ax, bx) + half, max(ay, by) + half))
+
     def _leader_clear(self, a: tuple[float, float], b: tuple[float, float]) -> bool:
         seg = Region(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
         return not any(_segment_hits(p.box, a, b) for p in self.labels if p.box.overlaps(seg.inset(-1e-6)))

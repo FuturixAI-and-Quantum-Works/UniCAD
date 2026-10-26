@@ -334,3 +334,26 @@ def test_legend_shows_the_real_symbol_instead_of_a_placeholder(profile):
     for slot in result.legend_slots:
         assert REGISTRY[slot.key].block_name in inserted
         assert slot.key not in texts
+
+
+@pytest.mark.parametrize("paper", [PaperSize.A1, PaperSize.A3])
+def test_a_long_location_wraps_in_the_title_block_instead_of_truncating(paper, profile):
+    place = "SHREE GANESH TEXTILES FACTORY ROOF, GAT NO 123 BEHIND THE OLD MIDC WATER TANK, MIDC CHAKAN PHASE II, TALUKA KHED, DISTRICT PUNE, MAHARASHTRA, INDIA 410501"
+    spec = samples.rooftop_500kwp(paper)
+    spec = spec.model_copy(update={"title_block": spec.title_block.model_copy(update={"location": place})})
+    doc, result = render(spec, profile)
+    texts = [e.dxf.text for e in doc.modelspace().query("TEXT")]
+    start = next(i for i, t in enumerate(texts) if place.startswith(t) and t != place or t == place)
+    shown, i = "", start
+    while len(shown) < len(place) and i < len(texts):
+        shown = f"{shown} {texts[i]}".strip()
+        i += 1
+    assert shown == place and not any(t.endswith("...") for t in texts) and result.warnings == ()
+
+
+def test_a_location_naming_a_place_twice_is_drawn_once(profile):
+    spec = samples.rooftop_500kwp(PaperSize.A3)
+    spec = spec.model_copy(update={"title_block": spec.title_block.model_copy(update={"location": "PUNE, MIDC CHAKAN, PUNE, MAHARASHTRA, MAHARASHTRA"})})
+    doc, _ = render(spec, profile)
+    texts = " ".join(e.dxf.text for e in doc.modelspace().query("TEXT"))
+    assert "PUNE, MIDC CHAKAN, MAHARASHTRA" in texts and "MAHARASHTRA, MAHARASHTRA" not in texts

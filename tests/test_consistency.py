@@ -139,6 +139,7 @@ def test_string_diagrams_label_every_drawn_string_with_its_network_tag(projects,
     assert len(tags) >= 10 and all(any(tag == t or t.startswith(f"{tag} : ") for t in drawn) for tag in tags)
     assert not any(re.match(r"STRING S\d\d", t) or re.fullmatch(r"S\d\d", t) for t in drawn)
     assert all(any(t.tag_range in x for x in drawn) for t in types)
+    assert not any(" .. " in t for t in drawn)
 
 
 @pytest.mark.parametrize("name", NAMES)
