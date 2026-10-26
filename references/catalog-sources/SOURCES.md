@@ -1,0 +1,135 @@
+# Catalog seed sources
+
+Retrieved 2026-10-26. `raw/` holds the files as downloaded. `extracted/` holds CSV/JSON built from them. `scripts/` has the extractors; each extracted row carries the PDF page (or source file) it came from.
+
+Rerun all extractors from this directory:
+
+```sh
+uv run --with pdfplumber python scripts/extract_almm.py
+uv run --with pandas python scripts/extract_cec.py
+python3 scripts/extract_polycab_lt.py
+python3 scripts/extract_polycab_solar.py
+python3 scripts/extract_kei_lt.py
+python3 scripts/extract_is1180.py
+python3 scripts/extract_module_datasheets.py
+```
+
+`extracted/inverter_datasheets.csv`, `extracted/bess_pcs_datasheets.csv` and `extracted/protection_ladders.json` were transcribed by hand from `pdftotext -layout` output of the cited pages. They have no script.
+
+Licence column: what the source itself states. "Unstated" means the file and its landing page carry no licence or terms we could read. Read the licence notes at the end before shipping any of this.
+
+No file is over 20 MB. The largest is `raw/datasheets/protection/Schneider_MasterPact_MTZ_selection_0614CT1701_thirdparty.pdf` at 15.4 MB. `raw/` totals 135 MB, so consider gitignoring `raw/` and keeping `extracted/` plus this file.
+
+## Raw downloads
+
+| File | Source URL | Retrieved | Licence / terms as stated | Contents |
+|---|---|---|---|---|
+| raw/CEC_Modules.csv | https://raw.githubusercontent.com/NREL/SAM/develop/deploy/libraries/CEC%20Modules.csv | 2026-10-26 | SAM repo is BSD 3-Clause (see raw/SAM_LICENSE.txt). The data come from the California Energy Commission PV module list. | 21,677 modules. Fields: Voc, Isc, Vmp, Imp, alpha_sc, beta_oc, gamma_pmp, NOCT, N_s, length, width, bifacial flag, CEC single-diode params. Last commit to this file on `develop` is cba319d, 2026-07-01. |
+| raw/CEC_Inverters.csv | https://raw.githubusercontent.com/NREL/SAM/develop/deploy/libraries/CEC%20Inverters.csv | 2026-10-26 | BSD 3-Clause (SAM repo). The data come from the CEC inverter list. | 2,343 inverters. Fields: Vac, Paco, Pdco, Vdco, Pso, Pnt, Vdcmax, Idcmax, Mppt_low, Mppt_high, Sandia C0-C3. |
+| raw/Sandia_Modules.csv | https://raw.githubusercontent.com/NREL/SAM/develop/deploy/libraries/Sandia%20Modules.csv | 2026-10-26 | BSD 3-Clause (SAM repo) | Sandia array performance model module library. Fetched alongside the CEC files and not extracted. |
+| raw/SAM_LICENSE.txt | https://raw.githubusercontent.com/NREL/SAM/develop/LICENSE | 2026-10-26 | BSD 3-Clause | The SAM licence text. |
+| raw/ALMM_List-I_2026-09-16.pdf | https://cdnbbsr.s3waas.gov.in/s3716e1b8c6cd17b771da77391355749f3/uploads/2026/09/202609161469951718.pdf | 2026-10-26 | Unstated (MNRE, Government of India publication) | ALMM List-I (modules), Revision LI (51), 16-09-2026, 328 pages. It holds the "new additions" tables of every revision from 21.04.2025 to 16.09.2026. Link found in MNRE's Sept-2026 policy update PDF (below). |
+| raw/ALMM_List-II_Rev10_2026-09-28.pdf | https://cdnbbsr.s3waas.gov.in/s3716e1b8c6cd17b771da77391355749f3/uploads/2026/09/202609291561386241.pdf | 2026-10-26 | Unstated (MNRE) | ALMM List-II (cells), Revision 10, 28-09-2026, 26 pages, Revisions 1-10. The odd-numbered pages are scanned cover OMs (images). |
+| raw/datasheets/modules/Waaree_Elite_BiN-08-565-600_144_TOPCon.pdf | https://www.waaree.com/upload/media/elite_series_bin_08_565_600_wel_epd_565_600_144_bin_hc_09_03012025_1756378918.pdf | 2026-10-26 | Unstated (manufacturer copyright) | Waaree Elite BiN-08 565-600 Wp, N-type TOPCon 144 HC bifacial |
+| raw/datasheets/modules/Waaree_EliteR_BiN-21-600-635_132_TOPCon.pdf | https://www.waaree.com/upload/media/elite_r_series_bin_21_600_635_wel_epd_600_635_132_bin_hc_03_16102024_1758688896.pdf | 2026-10-26 | Unstated | Waaree Elite R BiN-21 600-635 Wp, G12R TOPCon 132 HC |
+| raw/datasheets/modules/Waaree_Ahnay_Bi-55-520-550_144_PERC.pdf | https://www.waaree.com/upload/media/datasheet_bi_55_520_550_12_03012025_1756379026.pdf | 2026-10-26 | Unstated | Waaree Ahnay Bi-55 520-550 Wp, mono PERC bifacial |
+| raw/datasheets/modules/Adani_ElanShine_TOPCon_G2G_GenII.pdf | https://www.adanisolar.com/-/media/project/adanisolar/downloads/pdf/newdatasheet1/shine-topcon-g2g-modules-gen-ii.pdf | 2026-10-26 | Unstated | Adani Elan Shine TOPCon G2G Gen-II 550-580 Wp |
+| raw/datasheets/modules/Premier_PE-144HC_TOPCon_DualGlass_560-590.pdf | https://www.premierenergies.com/downloads/newfiles/PE-144%20HC%20TOPCon_Bifacial%20Dual%20Glass%20560-590W.pdf | 2026-10-26 | Unstated | Premier Energies PE-144 HC TOPCon 560-590 Wp. Image-only PDF with no text layer. |
+| raw/datasheets/modules/Premier_PE-144HC_PERC_Transparent_525-555.pdf | https://www.premierenergies.com/downloads/newfiles/PE-144%20HC%20PERC_Bifacial%20Transparent%20525-555W.pdf | 2026-10-26 | Unstated | Premier PE-144 HC PERC 525-555 Wp. Values are text but the row labels are images. |
+| raw/datasheets/modules/TataPowerSolar_TP600LG10TB_PERC.pdf | https://www.tatapowersolar.com/wp-content/themes/tpsolar/assets/pdf/TP600LG10TB(Glass-Transparent-Backsheet).pdf | 2026-10-26 | Unstated | Tata Power Solar TP600LG10TB 570-600 Wp, mono PERC bifacial |
+| raw/datasheets/modules/TataPowerSolar_TP540HG10TB_PERC.pdf | https://www.tatapowersolar.com/wp-content/themes/tpsolar/assets/pdf/TP540HG10TB(Glass-Transparent-Backsheet).pdf | 2026-10-26 | Unstated | Tata Power Solar TP540HG10TB, mono PERC bifacial. Row labels are images. |
+| raw/datasheets/modules/TataPowerSolar_Module_Tech_Brochure.pdf | https://www.tatapowersolar.com/wp-content/themes/tpsolar/assets/pdf/Module-Manufacturing-Tech-Brochure.pdf | 2026-10-26 | Unstated | Tata module brochure (TP540HG10B, TP580HG10NB TOPCon and others). Mostly images. |
+| raw/datasheets/modules/VikramSolar_Hypersol_M10R_580-605_144.pdf | https://www.vikramsolar.com/wp-content/uploads/2026/10/HYPERSOL-M10R-580-605W-144-CELLS.pdf | 2026-10-26 | Unstated | Vikram Solar Hypersol M10R 580-605 Wp N-type bifacial. Link taken from https://www.vikramsolar.com/pv-modules/hypersol/hypersol-580-605w-144-cell/ |
+| raw/datasheets/modules/Renewsys_DESERV_Extreme_144X_565-610_TOPCon_DualGlass.pdf | https://www.renewsysworld.com/_files/ugd/37b508_f62de2d784304cf0a1f0eca424f390db.pdf | 2026-10-26 | Unstated. The site links a "Terms and Conditions - Legal Disclaimer" docx that was not fetched. | RenewSys DESERV Extreme 144X 565-610 Wp TOPCon dual glass (183.75 mm). Link taken from https://www.renewsysworld.com/pv-module-downloads-deserv |
+| raw/datasheets/modules/Renewsys_DESERV_Extreme_132X_615-635_TOPCon_DualGlass.pdf | https://www.renewsysworld.com/_files/ugd/37b508_99803750a7974e90918105867aa1af7e.pdf | 2026-10-26 | Unstated | RenewSys DESERV Extreme 132X 615-635 Wp |
+| raw/datasheets/inverters/Sungrow_SG110CX_DS_V1.21.pdf | https://www.sungrowpowerservice.com/Files/KnowledgeBase/String/Manual/DS_201909_SG110CX%20Datasheet_V1.21.pdf | 2026-10-26 | Unstated | Sungrow SG110CX (2019, V1.21) |
+| raw/datasheets/inverters/Sungrow_SG110CX-P2_DS_V3.pdf | https://info-support.sungrowpower.com/application/pdf/2024/04/09/DS_20240402_SG110CX-P2_Datasheet_V3_EN.pdf | 2026-10-26 | Unstated | Sungrow SG110CX-P2 |
+| raw/datasheets/inverters/Sungrow_SG350HX_DS_V20.pdf | https://info-support.sungrowpower.com/application/pdf/2023/12/29/DS_20231208_SG350HX_Datasheet_V20_EN.pdf | 2026-10-26 | Unstated | Sungrow SG350HX 1500 V string inverter |
+| raw/datasheets/inverters/Sungrow_SG3125HV-30_SG3400HV-30_DS.pdf | https://en.sungrowpower.com/upload/file/20210115/20201121%20SG3125HV-30%20SG3400HV-30.pdf | 2026-10-26 | Unstated | Sungrow SG3125HV-30 / SG3400HV-30 central inverters |
+| raw/datasheets/inverters/Sungrow_SG3400-3125-2500HV-MV-20_DS.pdf | https://www.sungrowpowerservice.com/Files/KnowledgeBase/Central/Manual/DS_SG3400-3125-2500HV-MV-20.pdf | 2026-10-26 | Unstated | Sungrow SG3400/3125/2500HV-MV-20 turnkey station (inverter + MV transformer) |
+| raw/datasheets/inverters/Sungrow_SG125HV_DS_thirdparty-europe-solarstore.pdf | https://www.europe-solarstore.com/download/Sungrow/Sungrow-SG125HV-V122-Q@Night-Datasheet.pdf | 2026-10-26 | Unstated. Third-party (reseller) copy. | Sungrow SG125HV. The spec table is an image and was not extracted. |
+| raw/datasheets/inverters/Huawei_SUN2000-330KTL-H1_DS.pdf | https://solar.huawei.com/admin/asset/v1/pro/view/41b49585206f445db6e62c800a9f76ee.pdf | 2026-10-26 | Unstated | Huawei SUN2000-330KTL-H1 |
+| raw/datasheets/inverters/Huawei_SUN2000-100KTL-M2_DS.pdf | https://solar.huawei.com/admin/asset/v1/pro/view/c5056ea20b95424fad3c62f0a5e64a84.pdf | 2026-10-26 | Unstated | Huawei SUN2000-100KTL-M2 |
+| raw/datasheets/inverters/SMA_SunnyCentral_4xxxUP_DS-en-33.pdf | https://files.sma.de/downloads/SC4xxxUP-DS-en-33.pdf | 2026-10-26 | Unstated | SMA Sunny Central 4000/4200/4400/4600 UP, datasheet v3.3 (05.12.2025) |
+| raw/datasheets/inverters/Solis_S5-GC100-110K_DS.pdf | https://www.solisinverters.com/dataFile/8ff8b4e543ea492b829f208fa49d0526 | 2026-10-26 | Unstated | Solis S5-GC100K/110K, India variant (lists IS 16169 / IS 16221) |
+| raw/datasheets/inverters/Growatt_MAX100KTL3-X-LV_DS_thirdparty-liriksolar.pdf | https://liriksolar.com/image/uploads/Growatt%20MAX%20100KTL3%20X%20LV%20Datasheet.pdf | 2026-10-26 | Unstated. Third-party (reseller) copy. | Growatt MAX 100-125KTL3-X LV |
+| raw/datasheets/bess/Sungrow_PowerTitan2_ST5015kWh_DS_V3.pdf | https://info-support.sungrowpower.com/application/pdf/2024/02/21/DS_20230925_ST5015kWh-2500kW-2h_1250kW-4h_V3_EN.pdf | 2026-10-26 | Unstated | Sungrow PowerTitan 2.0 ST5015kWh (2.5 MW 2 h / 1.25 MW 4 h), integrated PCS. Link taken from https://www.sungrowpower.com/en/products/utility-energy-storage-system/b-st5015ux-2h |
+| raw/datasheets/bess/Sungrow_SC5000UD-MV-US_PCS_DS.pdf | https://info-support.sungrowpower.com/datasheet-materials/2835ade7-29ce-426e-9ee5-5fb1a0cb43c9.pdf | 2026-10-26 | Unstated | Sungrow SC5000UD-MV-US PCS with MV transformer (US / 60 Hz). Link taken from https://www.sungrowpower.com/us/en/products/power-conversion-systems/b-sc5000ud-mv-us |
+| raw/datasheets/cables/Polycab_LT_Cable_Catalog_V9.pdf | https://cms.polycab.com/media/cxibmmjk/final_lt-cable-catalog_v9_ord-10054.pdf | 2026-10-26 | Unstated | Polycab LT XLPE cable catalogue V9 (IS 7098-1), 88 pages: construction, weights, ampacity (ratings per IS 3961-6:2016), R, X, C |
+| raw/datasheets/cables/Polycab_Solar_Catalogue.pdf | https://cms.polycab.com/media/mgwapcun/polycab-solar-catalogue.pdf | 2026-10-26 | Unstated | Polycab solar catalogue (DC cable, DC MCB, inverters). Not extracted. |
+| raw/datasheets/cables/Polycab_Solar_H1Z2Z2-K_EN50618_DS.pdf | https://cms.polycab.com/media/ocqeo55n/enre00417_ds_01.pdf | 2026-10-26 | Unstated | Polycab H1Z2Z2-K EN 50618 solar DC cable data sheet, 2.5-240 mm² |
+| raw/datasheets/cables/KEI_Technical_Handbook.pdf | https://www.kei-ind.com/wp-content/uploads/2020/01/ALL_Technical_Hand_Book.pdf | 2026-10-26 | Unstated | KEI technical handbook: HT and LT cables, PVC (IS 1554-1) and XLPE (IS 7098-1) tables with R, X, C and ratings |
+| raw/datasheets/cables/Havells_Industrial_Cables_Range_Catalogue.pdf | https://havells.com/media/wysiwyg/Brochure-and-pricelist/Industrial_Cables/Catalogue_Havells_Industrial_Cables.pdf | 2026-10-26 | Unstated | Havells industrial cables range catalogue, 68 pages. Not extracted. |
+| raw/datasheets/protection/LK_LT_DSine_MCCB_catalogue.pdf | https://corpwebstorage.blob.core.windows.net/media/37785/dsine-mccb-catalogue.pdf | 2026-10-26 | Unstated | Lauritz Knudsen (L&T) dsine MCCB catalogue: DN0-DN4 frames, Icu/Ics, DC ratings |
+| raw/datasheets/protection/Schneider_Acti9_Protection_Catalogue_thirdparty-fengsheng.pdf | https://www.fengshengelectric.com.sg/Catalogues/Schneider/Schneider%20Acti9%20Protection%20Catalogue.pdf | 2026-10-26 | Unstated. Third-party (distributor) copy of a Schneider catalogue. | Schneider Acti9 iC60 MCB/RCD catalogue |
+| raw/datasheets/protection/Schneider_MasterPact_MTZ_selection_0614CT1701_thirdparty.pdf | https://cdn6.f-cdn.com/files/download/232754021/0614CT1701.pdf | 2026-10-26 | Unstated. Third-party host (freelancer.com CDN) of a Schneider document. | Schneider MasterPacT MTZ catalogue 0614CT1701 with IEC 60947-2 and UL/ANSI ratings tables |
+| raw/datasheets/protection/Eaton_Bussmann_10x38_PV_fuse_DS_720110_2017_via_octopart.pdf | https://datasheet.octopart.com/PV-15A10F-Eaton-datasheet-150022419.pdf | 2026-10-26 | Unstated. Third-party mirror. The PDF says "the only controlled copy ... is on the Eaton network drive". | Eaton Bussmann PV-xA10F 10x38 mm 1000 V DC gPV fuse links, 1-20 A (Oct 2017 edition) |
+| raw/datasheets/protection/Finder_S7P_SPD_catalogue.pdf | https://cdn.findernet.com/app/uploads/S7PEN.pdf | 2026-10-26 | Unstated | Finder 7P series SPD catalogue, including Type 2 and Type 1+2 PV DC SPDs (UCPV 750/1020/1500 V) |
+| raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf | https://mjp.maharashtra.gov.in/wp-content/uploads/2022/12/IS-1180__Part_1_-2014__Latest_BIS_Ammendment_4_March_2021_.pdf | 2026-10-26 | BIS copyright. Hosted by Maharashtra Jeevan Pradhikaran (state agency). | Amendment No. 4 (March 2021) to IS 1180 (Part 1):2014: 3-phase 16-2500 kVA and 1-phase 5-100 kVA standard ratings, %Z, max total losses per energy-efficiency level |
+| raw/standards/ITMA_Presentation_IS1180-1_2014.pdf | https://www.itma.org.in/presentations/Presentation%20on%20IS%201180-1%20-%20Distribution%20Transformers%20(1).pdf | 2026-10-26 | Unstated (BIS presentation hosted by ITMA) | BIS presentation on IS 1180-1:2014: rating ladders and tapping ranges. Not extracted. |
+| raw/standards/is.1180.1.1989.pdf | https://law.resource.org/pub/in/bis/S05/is.1180.1.1989.pdf | 2026-10-26 | BIS copyright. Posted by Public.Resource.Org under a "Disclosure to Promote the Right To Information" cover page. | IS 1180-1:1989 (superseded): 3-phase 11 kV distribution transformers to 100 kVA. Scanned. |
+| raw/standards/is.2026.1.2011.pdf | https://law.resource.org/pub/in/bis/S05/is.2026.1.2011.pdf | 2026-10-26 | Same as above | IS 2026-1:2011 Power transformers, general. Scanned. |
+| raw/standards/is.10028.1.1985.pdf | https://law.resource.org/pub/in/bis/S05/is.10028.1.1985.pdf | 2026-10-26 | Same as above | IS 10028-1 Selection, installation and maintenance of transformers, part 1. Scanned. |
+| raw/standards/is.10028.2.1981.pdf | https://law.resource.org/pub/in/bis/S05/is.10028.2.1981.pdf | 2026-10-26 | Same as above | IS 10028-2. Scanned. |
+| raw/standards/is.11171.1985.pdf | https://law.resource.org/pub/in/bis/S05/is.11171.1985.pdf | 2026-10-26 | Same as above | IS 11171 Dry-type power transformers. Scanned. |
+| raw/standards/is.13703.1.1993.pdf | https://law.resource.org/pub/in/bis/S05/is.13703.1.1993.pdf | 2026-10-26 | Same as above | IS 13703-1 LV fuses, general. Scanned. |
+| raw/standards/is.13703.2.1.1993.pdf | https://law.resource.org/pub/in/bis/S05/is.13703.2.1.1993.pdf | 2026-10-26 | Same as above | IS 13703-2-1 LV fuses for authorized persons. Scanned. |
+| raw/standards/is.3961.2.1967.pdf | https://law.resource.org/pub/in/bis/S05/is.3961.2.1967.pdf | 2026-10-26 | Same as above | IS 3961-2:1967 Current ratings, PVC-insulated cables (the old base for IS 1554 ratings). Scanned. |
+| raw/standards/is.7098.1.1988.pdf | https://law.resource.org/pub/in/bis/S05/is.7098.1.1988.pdf | 2026-10-26 | Same as above | IS 7098-1:1988 XLPE cables up to 1.1 kV (construction; no ampacity tables). Scanned. |
+| raw/standards/is.1554.1.1988.pdf | https://law.resource.org/pub/in/bis/S05/is.1554.1.1988.pdf | 2026-10-26 | Same as above | IS 1554-1:1988 PVC cables up to 1.1 kV (construction). Scanned. |
+
+Also fetched as a pointer but not kept: https://cdnbbsr.s3waas.gov.in/s3716e1b8c6cd17b771da77391355749f3/uploads/2026/10/2026101216756819.pdf ("MNRE: Policy & Regulatory Updates, September 2026"). Its links gave the List-I and List-II URLs above.
+
+## Extracted files
+
+| File | Built from | Rows | Contents |
+|---|---|---|---|
+| extracted/cec_modules_core.csv | raw/CEC_Modules.csv (scripts/extract_cec.py) | 21,677 | ModuleSpec fields: Pmax STC, Voc, Isc, Vmp, Imp, alpha (A/K and %/K), beta (V/K and %/K), gamma %/K, NOCT, cells, L, W, area, bifacial |
+| extracted/cec_modules_india_mfrs.csv | same | 649 | Subset for 12 Indian makers in the CEC list (Waaree, Adani/Mundra, Vikram, Premier, Tata Power, Goldi, Rayzon, Saatvik, Emmvee, Gautam, Solex, Reliance) |
+| extracted/cec_inverters_core.csv | raw/CEC_Inverters.csv (scripts/extract_cec.py) | 2,343 | InverterSpec fields: Paco, Pdco, Vac, Vdcmax, Idcmax, Mppt_low/high, Sandia C0-C3. US grid voltages only (208/240/480/600/800 V). |
+| extracted/almm_list1_modules.csv | raw/ALMM_List-I_2026-09-16.pdf (scripts/extract_almm.py) | 17,148 | One row per enlisted model: revision date, manufacturer, listing note, plant location, BIS reg., enlisted MW, module type, applied model and its Wp, enlisted model, efficiency %, cells, system V, validity. `parse_suspect` flags 132 rows where a cell shifted (efficiency outside 10-30 % or blank manufacturer). |
+| extracted/almm_list2_cells.csv | raw/ALMM_List-II_Rev10_2026-09-28.pdf (scripts/extract_almm.py) | 38 | Cell manufacturers: type, capacity, avg/range efficiency and wattage, validity. Range-revision rows carry a `note`. |
+| extracted/module_datasheets.csv | 6 module PDFs (scripts/extract_module_datasheets.py) | 43 | Per-bin STC Pmax/Vmp/Imp/Voc/Isc/eff for Waaree (3 series), Adani, Vikram, Tata TP600LG10TB, plus per-sheet coefficients and dimensions |
+| extracted/inverter_datasheets.csv | 10 inverter PDFs (hand transcription) | 12 | AC kVA/kW, AC V, Imax AC, Vdc max, MPPT window, MPPT count, strings/MPPT, Idc and Isc per MPPT, start V, efficiencies |
+| extracted/bess_pcs_datasheets.csv | 2 BESS/PCS PDFs (hand transcription) | 3 | PowerTitan 2.0 (2 variants), SC5000UD-MV-US |
+| extracted/polycab_lt_ampacity.csv | Polycab LT catalogue (scripts/extract_polycab_lt.py) | 486 | IS 7098-1 XLPE Cu/Al, armoured and unarmoured, 1C (2x1c and 3x1c), 2/3/3.5/4C: ground, duct and air amps, R_dc20. Air 40 °C, ground 30 °C, conductor 90 °C. |
+| extracted/polycab_lt_conductor.csv | same, PDF p.11 | 21 | Max R_dc at 20 °C and R_ac at 90 °C, Cu and Al, 1.5-1000 mm² |
+| extracted/polycab_lt_reactance.csv | same, PDF p.10 | 21 | Approx. reactance at 50 Hz: 1C unarmoured, 1C armoured, multicore |
+| extracted/polycab_lt_pvc_vs_xlpe_al_3c.csv | same, PDF p.9 | 12 | 3/3.5/4C Al: PVC (IS 1554-1) vs XLPE (IS 7098-1) ground/air amps and mV/A/m |
+| extracted/kei_lt_cables.csv | KEI handbook (scripts/extract_kei_lt.py) | 546 | LT PVC (IS 1554-1, R_ac at 70 °C) and XLPE (IS 7098-1, R_ac at 90 °C), Cu/Al, 1-4C: R_dc20, R_ac, X, C, ground/duct/air amps |
+| extracted/polycab_solar_dc_en50618.csv | Polycab H1Z2Z2-K sheet (scripts/extract_polycab_solar.py) | 14 | EN 50618 DC cable 2.5-240 mm²: dims, R_dc20, amps (free air, on surface, 2 touching) at 60 °C ambient / 120 °C conductor |
+| extracted/polycab_solar_dc_en50618_derating.csv | same | 4 | Ambient derating factors 60/70/80/90 °C |
+| extracted/transformer_is1180_ratings_losses.csv | IS 1180-1 Amendment 4 (scripts/extract_is1180.py) | 24 | 3-phase 16-2500 kVA and 1-phase 5-100 kVA: %Z, max total loss at 50 % and 100 % load for energy-efficiency levels 1-5 |
+| extracted/protection_ladders.json | 5 protection PDFs (hand transcription) | n/a | MCB (iC60N), MCCB frames and Icu (LK dsine, AC and DC), ACB frames and Icu (MasterPacT MTZ), gPV 10x38 fuse ladder (Eaton), PV DC SPD Type 2 (Finder) |
+
+## Unreachable or not obtained
+
+| Target | What happened |
+|---|---|
+| https://mnre.gov.in/en/approved-list-of-models-and-manufacturers-almm/ and the notice pages | The site is client-rendered. curl gets a JS shell (4.4 KB) and webfetch gets a 404. The PDFs were found on the S3WaaS CDN through MNRE's September 2026 update PDF instead. I could not confirm that 16-09-2026 (List-I) and 28-09-2026 (List-II) are the latest; a later October revision may exist. |
+| https://law.resource.org/pub/in/bis/S05/is.1180.1.2014.pdf | 404. Only the 1989 edition and the MJP-hosted Amendment 4 were obtained. |
+| IS 8828 / IS 60898 / IS 13947-2 (MCB/MCCB standards) | Not on law.resource.org (searched S01-S13). The MCB/MCCB/ACB ladders come from manufacturer catalogues instead. |
+| Eaton Bussmann direct URLs (720110, 1172 14x65, PV catalogue section 6) | HTTP/2 stream reset, then timeout. The 2017 edition of 720110 came from an octopart mirror. |
+| Littelfuse SPXV 1500 V gPV datasheet (littelfuse.com assetdocs, mouser) | 403 / HTML. **There is no 1500 V gPV ladder.** |
+| https://www.a2t.ro/source/Fisa_tehnica_MAX-100KTL3-X-LV.pdf (Growatt) | 403. The liriksolar copy was used. |
+| Growatt official datasheet (en.growatt.com product page) | The page has no direct PDF link in its HTML. |
+| PVsyst .PAN / .OND files | No Indian manufacturer publishes them openly that I could find. Only Scribd copies (login wall) and Sandia's PV Lifetime set (US modules). None downloaded. |
+| Delta, Fronius inverters | Not attempted (time). |
+| Finolex cable catalogue | Not attempted. Polycab and KEI cover the cable tables; the Havells catalogue was downloaded but not extracted. |
+| Inverter-duty transformer %Z (IS 2026 / IEC 60076) | No free source has a standard %Z ladder. IS 2026-1:2011 was downloaded (scanned; it defines tolerances, not preferred %Z). Sungrow MV-skid datasheets give kVA, voltages and vector group (Dy11) but no %Z. |
+
+## Data gaps inside downloaded files
+
+- Premier (both), RenewSys (both), Tata TP540HG10TB and the Tata brochure have their electrical tables as images or image labels. They are not in `module_datasheets.csv` and would need OCR (tesseract is installed) or manual entry.
+- The Sungrow SG125HV spec table is an image, so it is not in `inverter_datasheets.csv`.
+- ALMM does not give per-model wattage. `applied_model_wp` is the "(xxx Wp)" of the applied model only. Enlisted model wattage would have to be parsed from model names, which is not done because naming is not uniform.
+- The CEC inverter list holds US variants (e.g. `SUN2000-100KTL-USH0 {800V}`, `SG350HX-US`). The 400/415 V India variants are missing, so use `inverter_datasheets.csv` for those.
+- KEI and Polycab ratings use the IS 3961 base conditions (ground 30 °C, air 40 °C, soil 1.5 K·m/W, 750 mm depth for Polycab). Derating-factor tables are in both PDFs and were not extracted.
+
+## Licence notes (read before shipping)
+
+1. **NREL SAM CEC libraries (BSD 3-Clause).** Redistribution in a commercial product is allowed if the copyright notice and licence text ship with it (keep `raw/SAM_LICENSE.txt`). The underlying data are the California Energy Commission's public lists. This is the only source here with a clear, permissive licence.
+2. **MNRE ALMM PDFs.** Government of India publications with no licence stated on the PDFs. The data are public regulatory facts. Shipping a derived table (manufacturer, model, validity) should be low-risk, but no terms were found that grant it. Attribute MNRE and record the revision date.
+3. **Manufacturer datasheets and catalogues (Waaree, Adani, Premier, Tata, Vikram, RenewSys, Sungrow, Huawei, SMA, Solis, Growatt, Polycab, KEI, Havells, Lauritz Knudsen, Schneider, Eaton, Finder).** All are copyrighted, none carries a licence, and several say "subject to change" or "uncontrolled copy" (Eaton). **Do not redistribute the PDFs in the product.** The numeric specifications in `extracted/` are facts copied from them. That is usually defensible, but it is not licensed, so cite the datasheet revision and tell users to verify against the current one. The catalogue ampacity tables (Polycab, KEI) are the manufacturers' compilations of IS 3961-based ratings. Treat them as vendor data, not as the standard.
+4. **Third-party-hosted copies** (Growatt via liriksolar, SG125HV via europe-solarstore, Acti9 via fengshengelectric, MasterPacT via f-cdn.com, Eaton via octopart): provenance is weaker. Replace them with manufacturer-hosted copies before relying on them.
+5. **BIS standards** (law.resource.org copies and the MJP-hosted IS 1180 amendment): BIS holds copyright and sells these standards. The Public.Resource.Org copies are posted under a right-to-information claim, and BIS has contested that posting. **Do not redistribute these PDFs or bulk-copy their text into a commercial product.** The IS 1180 rating, %Z and loss-limit table (`transformer_is1180_ratings_losses.csv`) is a short factual extract of a regulatory requirement. Keep it, but cite "IS 1180 (Part 1):2014, Amd 4" and have counsel confirm before shipping it.

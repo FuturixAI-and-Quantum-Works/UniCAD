@@ -1,0 +1,15 @@
+pdf_page,standard,conductor,size_mm2,insulation_mm,sheath_mm,overall_dia_mm,weight_kg_km,r_dc20_ohm_km,single_free_air_a,single_on_surface_a,two_touching_on_surface_a,max_conductor_c,ambient_c
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,2.5,0.7,0.8,5.2,49,8.21,41,39,33,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,4.0,0.7,0.8,5.8,64,5.09,55,52,44,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,6.0,0.7,0.8,6.4,85,3.39,70,67,57,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,10,0.7,0.8,7.3,126,1.95,98,93,79,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,16,0.7,0.9,8.6,190,1.24,132,125,107,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,25,0.9,1.0,10.4,285,0.795,176,167,142,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,35,0.9,1.1,11.8,389,0.565,218,207,176,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,50,1.0,1.1,13.8,547,0.393,276,262,221,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,70,1.1,1.2,15.6,749,0.277,347,330,278,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,95,1.1,1.3,17.7,969,0.210,416,395,333,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,120,1.2,1.3,19.5,1222,0.164,488,464,390,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,150,1.4,1.4,21.6,1520,0.132,566,538,453,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,185,1.6,1.6,24.2,1867,0.108,644,612,515,120,60
+2,EN 50618 (H1Z2Z2-K),tinned Cu class 5,240,1.7,1.7,27.1,2440,0.0817,775,736,620,120,60
