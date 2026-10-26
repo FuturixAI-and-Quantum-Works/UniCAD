@@ -1,11 +1,16 @@
 import json
+import re
 import string
+from collections.abc import Iterable, Mapping
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from unicad.rules.thresholds import Setting
 
 _ILLEGAL_LAYER_CHARS = set('<>/\\":;?*|=`')
 
@@ -96,9 +101,71 @@ class SignatoryRoles(_Frozen):
 
 
 DRAWING_NUMBER_FIELDS = frozenset({"company", "client", "project", "discipline", "seq"})
+PROFILE_VERSION = 2
+_V2_FIELDS = ("thresholds", "symbol_overrides", "layer_map", "title_block", "numbering", "revision_marks")
+
+
+class ThresholdSetting(_Frozen):
+    value: float
+    source: str = Field(min_length=1, description="Why the company uses this value; findings quote it instead of the generic assumption")
+
+
+class SymbolOverride(_Frozen):
+    dxf: Path = Field(description="Company symbol DXF")
+    block: str = Field(min_length=1, description="Block in that DXF that replaces the UniCAD symbol")
+    pins: Literal["named", "fit"] = Field(
+        default="named",
+        description="named: the block holds POINTs on layers PIN_<pin name>; the block is scaled and moved so they land on the "
+        "UniCAD pins. fit: the block's extents are fitted to the UniCAD symbol's box and every UniCAD pin must then touch its geometry",
+    )
+
+
+class TemplateRef(_Frozen):
+    dxf: Path
+    block: str | None = Field(default=None, description="Block holding the title block; omit to use modelspace")
+    layer: str | None = Field(default=None, description="With modelspace: only entities on this layer")
+
+
+class TitleBlockChoice(_Frozen):
+    kind: Literal["builtin", "imported"] = "builtin"
+    templates: dict[PaperSize, TemplateRef] = Field(default_factory=dict, description="Imported title block per paper size")
+
+    @model_validator(mode="after")
+    def _imported_has_templates(self) -> Self:
+        if self.kind == "imported" and not self.templates:
+            raise ValueError("kind 'imported' needs at least one paper size in templates")
+        return self
+
+
+class Numbering(_Frozen):
+    per_discipline: bool = Field(default=False, description="Each discipline counts its own sequence instead of one counter for the project")
+    start: dict[str, int] = Field(default_factory=dict, description="First sequence number per discipline name (default 1)")
+
+    @field_validator("start")
+    @classmethod
+    def _positive(cls, v: dict[str, int]) -> dict[str, int]:
+        bad = [k for k, n in v.items() if n < 1]
+        if bad:
+            raise ValueError(f"start numbers must be at least 1: {bad}")
+        return v
+
+
+class RevisionMarks(_Frozen):
+    style: Literal["triangle", "cloud"] = "triangle"
+    stamp_text: str | None = Field(default=None, description="Stamp the company puts on revised sheets, e.g. 'REVISED'")
+
+
+def pattern_regex(pattern: str) -> re.Pattern[str]:
+    out = []
+    for literal, name, _, _ in string.Formatter().parse(pattern):
+        out.append(re.escape(literal))
+        if name is not None:
+            out.append(r"(?P<seq>\d+)" if name == "seq" else rf"(?P<{name}>.+?)")
+    return re.compile("".join(out) + "$")
 
 
 class CompanyProfile(_Frozen):
+    version: int = Field(default=1, ge=1, le=PROFILE_VERSION, description="Profile format; 1 files have none of the version 2 blocks")
     name: str = Field(min_length=1)
     short_code: str = Field(pattern=r"^[A-Z0-9]{2,10}$")
     logo: Path | None = Field(default=None, description="DXF imported as a block into the title block")
@@ -112,6 +179,12 @@ class CompanyProfile(_Frozen):
     date_format: str = "%d.%m.%y"
     layers: dict[LayerRole, LayerSpec] = Field(default_factory=default_layers)
     roles: SignatoryRoles = SignatoryRoles()
+    thresholds: dict[str, ThresholdSetting] = Field(default_factory=dict, description="Rule thresholds by name (unicad.rules.thresholds)")
+    symbol_overrides: dict[str, SymbolOverride] = Field(default_factory=dict, description="UniCAD symbol key -> company block")
+    layer_map: dict[str, LayerSpec] = Field(default_factory=dict, description="UniCAD layer name -> the company layer that replaces it")
+    title_block: TitleBlockChoice = TitleBlockChoice()
+    numbering: Numbering = Numbering()
+    revision_marks: RevisionMarks = RevisionMarks()
 
     @field_validator("layers", mode="before")
     @classmethod
@@ -139,12 +212,29 @@ class CompanyProfile(_Frozen):
             raise ValueError(f"pattern cannot be formatted: {e}") from e
         return v
 
+    @field_validator("thresholds")
+    @classmethod
+    def _known_thresholds(cls, v: dict[str, ThresholdSetting]) -> dict[str, ThresholdSetting]:
+        from unicad.rules.thresholds import validate
+
+        validate({k: _setting(t) for k, t in v.items()})
+        return v
+
     @model_validator(mode="after")
     def _discipline_codes_nonempty(self) -> Self:
         empty = [k for k, c in self.discipline_codes.items() if not c]
         if empty:
             raise ValueError(f"empty discipline code for {empty}")
         return self
+
+    @model_validator(mode="after")
+    def _v1_has_no_v2_blocks(self) -> Self:
+        if self.version < 2 and (used := [f for f in _V2_FIELDS if f in self.model_fields_set]):
+            raise ValueError(f"{used} need profile version 2")
+        return self
+
+    def threshold_settings(self) -> "dict[str, Setting]":
+        return {k: _setting(t) for k, t in self.thresholds.items()}
 
     def layer(self, role: LayerRole) -> LayerSpec:
         return self.layers[role]
@@ -158,12 +248,49 @@ class CompanyProfile(_Frozen):
             seq=seq,
         )
 
+    def next_number(self, issued: Iterable[str], *, client: str, project: str, discipline: str) -> str:
+        """The next unused drawing number for `discipline`, after the numbers in `issued` that follow the pattern."""
+        rx = pattern_regex(self.drawing_number_pattern)
+        code = self.discipline_codes.get(discipline, discipline)
+        seqs = [
+            int(m.group("seq"))
+            for n in issued
+            if (m := rx.match(n)) and (not self.numbering.per_discipline or "discipline" not in m.groupdict() or m.group("discipline") == code)
+        ]
+        first = self.numbering.start.get(discipline, 1) if self.numbering.per_discipline else 1
+        seq = max(seqs) + 1 if seqs else first
+        return self.drawing_number(client=client, project=project, discipline=discipline, seq=max(seq, first))
+
+    @model_validator(mode="before")
+    @classmethod
+    def _default_version(cls, data: Any) -> Any:
+        if isinstance(data, Mapping) and "version" not in data:
+            return {**data, "version": 2 if any(f in data for f in _V2_FIELDS) else 1}
+        return data
+
+    def anchored(self, base: Path) -> Self:
+        """The profile with every relative file path resolved against `base`."""
+
+        def at(p: Path) -> Path:
+            return p if p.is_absolute() else (base / p).resolve()
+
+        return self.model_copy(
+            update={
+                "logo": None if self.logo is None else at(self.logo),
+                "symbol_overrides": {k: o.model_copy(update={"dxf": at(o.dxf)}) for k, o in self.symbol_overrides.items()},
+                "title_block": self.title_block.model_copy(update={"templates": {p: t.model_copy(update={"dxf": at(t.dxf)}) for p, t in self.title_block.templates.items()}}),
+            }
+        )
+
     @classmethod
     def load(cls, path: Path) -> Self:
-        profile = cls.model_validate(json.loads(path.read_text(encoding="utf-8")))
-        if profile.logo is not None and not profile.logo.is_absolute():
-            profile = profile.model_copy(update={"logo": (path.parent / profile.logo).resolve()})
-        return profile
+        return cls.model_validate(json.loads(path.read_text(encoding="utf-8"))).anchored(path.parent)
+
+
+def _setting(t: ThresholdSetting) -> "Setting":
+    from unicad.rules.thresholds import Setting
+
+    return Setting(t.value, t.source)
 
 
 Text = Annotated[str, Field(min_length=1)]
