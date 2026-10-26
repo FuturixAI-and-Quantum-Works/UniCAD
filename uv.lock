@@ -667,7 +667,9 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "ezdxf" },
+    { name = "pillow" },
     { name = "pydantic" },
+    { name = "pymupdf" },
 ]
 
 [package.optional-dependencies]
@@ -686,8 +688,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ezdxf", specifier = ">=1.4" },
+    { name = "pillow", specifier = ">=10" },
     { name = "pillow", marker = "extra == 'preview'", specifier = ">=10" },
     { name = "pydantic", specifier = ">=2.8" },
+    { name = "pymupdf", specifier = ">=1.24" },
     { name = "pymupdf", marker = "extra == 'preview'", specifier = ">=1.24" },
 ]
 provides-extras = ["preview"]
