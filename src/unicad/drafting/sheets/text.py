@@ -2,8 +2,8 @@ from dataclasses import dataclass
 
 from unicad.drafting.sheets.textmetrics import ADVANCE
 
-# LibreCAD's text boxes measured 1.07 to 1.12 wider than the summed .lff advances.
-WIDTH_SAFETY = 1.12
+# LibreCAD's text boxes measured 1.07 to 1.10 wider than the summed .lff advances.
+WIDTH_SAFETY = 1.10
 LINE_PITCH = 1.5
 DESCENDER = 0.3
 ELLIPSIS = "..."
