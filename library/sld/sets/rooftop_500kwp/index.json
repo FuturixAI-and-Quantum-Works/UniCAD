@@ -1,0 +1,48 @@
+{
+  "project_id": "rooftop-500kwp",
+  "set_pdf": "set.pdf",
+  "sheet_count": 1,
+  "sheets": [
+    {
+      "cross_refs": [],
+      "cut_edges": [],
+      "files": {
+        "dwg": null,
+        "dxf": "01-UDEMO-DIPL-RT500-EE-001.dxf",
+        "pdf": "01-UDEMO-DIPL-RT500-EE-001.pdf"
+      },
+      "id": "sld",
+      "kind": "sld",
+      "nodes": [
+        "ac_iso",
+        "ac_spd",
+        "acdb",
+        "acdb_acb",
+        "dcfb",
+        "dciso",
+        "dcspd",
+        "inv",
+        "inv_mccb",
+        "load",
+        "ltp",
+        "net_ct",
+        "net_meter",
+        "poi",
+        "solar_ct",
+        "solar_meter",
+        "str"
+      ],
+      "number": "UDEMO-DIPL-RT500-EE-001",
+      "paper": "A3",
+      "readable": true,
+      "scale": 0.772,
+      "scope": [],
+      "sheet_kind": "sld",
+      "sheet_no": 1,
+      "sheet_of": "1 of 1",
+      "title": "SINGLE LINE DIAGRAM 500 kWp",
+      "warnings": []
+    }
+  ],
+  "warnings": []
+}

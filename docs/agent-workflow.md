@@ -688,7 +688,51 @@ bom(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 18. `project_snapshot`
+### 18. `drawings_render`
+
+Render the drawing sheets.
+
+```python
+drawings_render(project_id="pune-midc-factory-roof")
+```
+
+```json
+{
+  "project_id": "pune-midc-factory-roof",
+  "revision": 9,
+  "out_dir": "<workspace>/pune-midc-factory-roof/drawings/rev-009",
+  "sheet_count": 1,
+  "set_pdf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/set.pdf",
+  "sheets": [
+    {
+      "id": "sld",
+      "kind": "sld",
+      "sheet_kind": "sld",
+      "number": "UDEMO-DI-PMFR-EE-001",
+      "title": "SINGLE LINE DIAGRAM",
+      "paper": "A1",
+      "sheet_no": 1,
+      "sheet_of": "1 of 1",
+      "scale": 1.372,
+      "scope": [],
+      "files": {
+        "dxf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.dxf",
+        "pdf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.pdf",
+        "dwg": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.dwg"
+      },
+      "warnings": [],
+      "nodes": ["ac_iso", "ac_spd", "acdb", "acdb_brk", "... 14 more"],
+      "cut_edges": [],
+      "cross_refs": [],
+      "readable": true,
+      "dwg_readback": {"ATTRIB": [58, 83]}
+    }
+  ],
+  "warnings": []
+}
+```
+
+### 19. `project_snapshot`
 
 Name the issued revision so it can be diffed later.
 
@@ -705,7 +749,7 @@ project_snapshot(project_id="pune-midc-factory-roof", label="issued-approval-r0"
 }
 ```
 
-### 19. `site_set_feature`
+### 20. `site_set_feature`
 
 Review comment: an air handling unit the survey missed. Change the site, then place the layout again.
 
@@ -727,7 +771,7 @@ site_set_feature(
 }
 ```
 
-### 20. `layout_place`
+### 21. `layout_place`
 
 Same layout intent as before; the new obstacle is picked up from the site.
 
@@ -769,7 +813,7 @@ layout_place(
 }
 ```
 
-### 21. `project_diff`
+### 22. `project_diff`
 
 Site changes are listed per feature (an outline is summarised as points and area) and layout changes per block.
 

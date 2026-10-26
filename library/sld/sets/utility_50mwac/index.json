@@ -1,0 +1,96 @@
+{
+  "project_id": "utility-50mwac",
+  "set_pdf": "set.pdf",
+  "sheet_count": 2,
+  "sheets": [
+    {
+      "cross_refs": [
+        {
+          "edge": "e_inv_idt",
+          "node": "idt",
+          "text": "FROM INV-01-1..INV-01-2",
+          "to_sheet": "UDEMO-DRL-U50-EE-002"
+        }
+      ],
+      "cut_edges": [
+        "e_inv_idt"
+      ],
+      "files": {
+        "dwg": null,
+        "dxf": "01-UDEMO-DRL-U50-EE-001.dxf",
+        "pdf": "01-UDEMO-DRL-U50-EE-001.pdf"
+      },
+      "id": "sld",
+      "kind": "sld",
+      "nodes": [
+        "abt_check",
+        "abt_main",
+        "aux_load",
+        "aux_tr",
+        "aux_vcb",
+        "blk_aux",
+        "blk_aux_load",
+        "icog_la",
+        "icog_vcb",
+        "idt",
+        "mv_bus",
+        "mv_pt",
+        "out_ct",
+        "out_la",
+        "out_relay",
+        "out_vcb",
+        "poi"
+      ],
+      "number": "UDEMO-DRL-U50-EE-001",
+      "paper": "A0",
+      "readable": true,
+      "scale": 1.6,
+      "scope": [],
+      "sheet_kind": "sld",
+      "sheet_no": 1,
+      "sheet_of": "1 of 2",
+      "title": "OVERALL SINGLE LINE DIAGRAM 50 MWac",
+      "warnings": []
+    },
+    {
+      "cross_refs": [
+        {
+          "edge": "e_inv_idt",
+          "node": "inv",
+          "text": "TO IDT-01",
+          "to_sheet": "UDEMO-DRL-U50-EE-001"
+        }
+      ],
+      "cut_edges": [
+        "e_inv_idt"
+      ],
+      "files": {
+        "dwg": null,
+        "dxf": "02-UDEMO-DRL-U50-EE-002.dxf",
+        "pdf": "02-UDEMO-DRL-U50-EE-002.pdf"
+      },
+      "id": "sld_block",
+      "kind": "sld",
+      "nodes": [
+        "inv",
+        "inv_acspd",
+        "inv_dcspd",
+        "scb",
+        "str"
+      ],
+      "number": "UDEMO-DRL-U50-EE-002",
+      "paper": "A1",
+      "readable": true,
+      "scale": 1.6,
+      "scope": [
+        "inv_sec"
+      ],
+      "sheet_kind": "sld_detail",
+      "sheet_no": 2,
+      "sheet_of": "2 of 2",
+      "title": "TYPICAL INVERTER BLOCK 8.8 MVA SLD (BLOCK-01..BLOCK-06)",
+      "warnings": []
+    }
+  ],
+  "warnings": []
+}

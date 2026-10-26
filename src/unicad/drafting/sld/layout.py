@@ -14,6 +14,7 @@ x positions come from a tidy-tree pass over per-level contours (levels: 2r for r
 import heapq
 import math
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
 from unicad.catalog.store import Catalog
@@ -219,6 +220,8 @@ class _Rec:
     child_dx: dict[str, float] = field(default_factory=dict)
     callout: tuple[str, ...] = ()
     spares: list[tuple[str, tuple[Point, Point], Label]] = field(default_factory=list)
+    up_branch: bool = False
+    """Fed from the same terminal as the parent's own feed (a transformer's HV side): drawn beside the parent, tapping its incoming conductor."""
     x: float = 0.0
     y: float = 0.0
 
@@ -245,13 +248,16 @@ class _FrameRec:
 
 
 class _Builder:
-    def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None):
+    def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
+                 xrefs: Mapping[str, str] | None = None):
         self.net, self.catalog, self.o = net, catalog, options
+        self.xrefs = dict(xrefs or {})
         self.warnings: list[str] = []
         keep = _expand_scope(net, scope) if scope is not None else frozenset(net.node_by_id)
         self.cut_edges = [e for e in net.edges if e.is_power and (e.src_node in keep) != (e.dst_node in keep)]
         markers, edges = _markers(net, keep, self.cut_edges)
         self.edges = edges
+        self.edge_of = {e.id: e for e in edges}
         self.order = {e.id: i for i, e in enumerate(edges)}
         self.recs: dict[str, _Rec] = {}
         self.earth_nodes: set[str] = set()
@@ -394,7 +400,10 @@ class _Builder:
             for e in sorted(self.power_edges, key=lambda e: self.order[e.id]):
                 if e.src_node in placed and e.dst_node not in placed and e.dst_node not in self.sat_of:
                     rec = self.recs[e.dst_node]
-                    rec.parent, rec.tree_edge, rec.rank = e.src_node, e, self.recs[e.src_node].rank + 1
+                    prec = self.recs[e.src_node]
+                    pe = prec.tree_edge
+                    rec.up_branch = (not prec.is_bus and pe is not None and nid_port(pe, e.src_node) == e.src_port)
+                    rec.parent, rec.tree_edge, rec.rank = e.src_node, e, prec.rank + (0 if rec.up_branch else 1)
                     self.recs[e.src_node].children.append(e.dst_node)
                     placed.add(e.dst_node)
                     changed = True
@@ -402,7 +411,8 @@ class _Builder:
     # ---------------------------------------------------------------- geometry
     def _values(self, node: Node, key: str) -> tuple[tuple[str, str], ...]:
         if node.id in self.markers:
-            texts = {"DESC": node.title or "", "SHEET": ""}
+            target = self.xrefs.get(node.id.removeprefix(MARKER_PREFIX))
+            texts = {"DESC": node.title or "", "SHEET": f"SH. {target}" if target else ""}
         else:
             texts = annotate.node_texts(self.net, node, self.catalog)
             if key.startswith("tx.idt_") and not node.title and not node.spec:
@@ -416,6 +426,8 @@ class _Builder:
         if e is not None:
             up.add(e.src_port if e.src_node == nid else e.dst_port)
         for c in rec.children:
+            if self.recs[c].up_branch:
+                continue
             ce = self.recs[c].tree_edge
             down.add(ce.dst_port if ce.dst_node == nid else ce.src_port)
         return up, down
@@ -524,15 +536,9 @@ class _Builder:
         o = self.o
         rec = self.recs[nid]
         contours: list[Contour] = []
-        for c in rec.children:
-            cc = dict(self._subtree(c))
-            crec = self.recs[c]
-            if crec.callout:
-                w = max(text_width(t, o.callout_height) for t in crec.callout)
-                lvl = 2 * crec.rank - 1
-                lo, hi = cc.get(lvl, (0.0, 0.0))
-                cc[lvl] = (min(lo, -w - STUB), max(hi, 0.0))
-            contours.append(cc)
+        normal = [c for c in rec.children if not self.recs[c].up_branch]
+        for c in normal:
+            contours.append(self._child_contour(c))
         offsets: list[float] = []
         merged: Contour = {}
         for cc in contours:
@@ -554,7 +560,7 @@ class _Builder:
             anchor -= self._down_pin_x(nid)
         anchor = _snap(anchor)
         contour: Contour = {lv: (lo - anchor, hi - anchor) for lv, (lo, hi) in merged.items()}
-        for c, off in zip(rec.children, offsets):
+        for c, off in zip(normal, offsets):
             rec.child_dx[c] = off - anchor
         lvl = 2 * rec.rank
         if rec.is_bus:
@@ -574,12 +580,35 @@ class _Builder:
         if taps:
             tlo, thi = contour.get(lvl - 1, (0.0, 0.0))
             contour[lvl - 1] = (min(tlo, 0.0), max(thi, rec.extent.x1))
+        for c in rec.children:
+            if not self.recs[c].up_branch:
+                continue
+            cc = self._child_contour(c)
+            off = _ceil_grid(max((contour[lv][1] + o.h_gap - lo for lv, (lo, _) in cc.items() if lv in contour), default=0.0))
+            rec.child_dx[c] = off
+            for lv, (lo, hi) in cc.items():
+                clo, chi = contour.get(lv, (math.inf, -math.inf))
+                contour[lv] = (min(clo, lo + off), max(chi, hi + off))
+            tlo, thi = contour[lvl - 1]
+            contour[lvl - 1] = (min(tlo, 0.0), max(thi, off))
         self._frames_at(nid, contour)
         return contour
+
+    def _child_contour(self, c: str) -> Contour:
+        cc = dict(self._subtree(c))
+        crec = self.recs[c]
+        if crec.callout:
+            w = max(text_width(t, self.o.callout_height) for t in crec.callout)
+            lvl = 2 * crec.rank - 1
+            lo, hi = cc.get(lvl, (0.0, 0.0))
+            cc[lvl] = (min(lo, -w - STUB), max(hi, 0.0))
+        return cc
 
     def _down_pin_x(self, nid: str) -> float:
         rec = self.recs[nid]
         for c in rec.children:
+            if self.recs[c].up_branch:
+                continue
             e = self.recs[c].tree_edge
             port = e.dst_port if e.dst_node == nid else e.src_port
             pin = rec.mapping.get(port)
@@ -624,10 +653,28 @@ class _Builder:
                 contour[lv] = (min(lo, x0), max(hi, x1))
             self.frames.append(_FrameRec(g, nid, x0, x1, top, bottom, lines, frozenset(sub), corner=corner))
 
+    def _within(self, g: _FrameRec, f: _FrameRec) -> bool:
+        """Frame `g` is drawn inside frame `f` (or is `f`): fewer members, or the same members and a sub-group of `f`'s group."""
+        if g is f or g.members < f.members:
+            return True
+        if g.members != f.members:
+            return False
+        gid = g.group.within
+        while gid is not None:
+            if gid == f.group.id:
+                return True
+            gid = self.net.group_by_id[gid].within
+        return False
+
     def _frame_lines(self, g: Group) -> tuple[str, ...]:
         rng = annotate.group_label(self.net, g)
         head = f"{rng}  (x {g.count})" if g.count > 1 else rng
-        return (annotate.prose(g.title), head) if g.title else (head,)
+        if not g.title:
+            return (head,)
+        title = annotate.prose(g.title)
+        if g.count <= 1 and _same_words(head, title):
+            return (title if len(title) >= len(head) else head,)
+        return (title, head)
 
     def place_x(self) -> None:
         o = self.o
@@ -660,6 +707,7 @@ class _Builder:
         callout: dict[int, float] = defaultdict(float)
         jog: dict[int, bool] = defaultdict(bool)
         tap: dict[int, bool] = defaultdict(bool)
+        uptap: dict[int, bool] = defaultdict(bool)
         for nid, rec in self.recs.items():
             if nid in self.sat_of:
                 continue
@@ -675,7 +723,9 @@ class _Builder:
                 callout[r] = max(callout[r], len(rec.callout) * pitch + 1.0)
             if any(s.kind == "tap" for s in rec.sats):
                 tap[r] = True
-            if rec.parent is not None and not self.recs[rec.parent].is_bus:
+            if rec.up_branch:
+                uptap[r] = True
+            elif rec.parent is not None and not self.recs[rec.parent].is_bus:
                 e = rec.tree_edge
                 pport = e.dst_port if e.src_node == nid else e.src_port
                 prec = self.recs[rec.parent]
@@ -684,8 +734,8 @@ class _Builder:
                 if abs(px - rec.x) > 1e-6:
                     jog[r] = True
         for f in self.frames:
-            f.i_top = sum(1 for g in self.frames if g.top == f.top and g.members <= f.members)
-            f.i_bottom = sum(1 for g in self.frames if g.bottom == f.bottom and g.members <= f.members)
+            f.i_top = sum(1 for g in self.frames if g.top == f.top and self._within(g, f))
+            f.i_bottom = sum(1 for g in self.frames if g.bottom == f.bottom and self._within(g, f))
         top_n: dict[int, int] = defaultdict(int)
         bot_n: dict[int, int] = defaultdict(int)
         for f in self.frames:
@@ -698,6 +748,7 @@ class _Builder:
         self.callout_top: dict[int, float] = {}
         self.tap_h: dict[int, float] = {}
         self.items_bottom: dict[int, float] = {}
+        self.uptap_y: dict[int, float] = {}
         y = 0.0
         for i, r in enumerate(ranks):
             if i:
@@ -705,6 +756,10 @@ class _Builder:
                 if jog[r]:
                     self.jog_y[r] = _floor_grid(y - o.jog_band / 2)
                     y = self.jog_y[r] - o.jog_band / 2
+            if uptap[r]:
+                self.uptap_y[r] = _floor_grid(y - o.tap_band / 2)
+                y = self.uptap_y[r] - o.tap_band / 2
+            if i or uptap[r]:
                 self.callout_top[r] = y
                 y -= callout[r]
             y -= top_n[r] * o.frame_pad
@@ -814,8 +869,12 @@ class _Builder:
                     self.warnings.append(f"edge {e.id!r}: port {parent_port!r} has no pin on {parent.key}")
                     continue
                 end = ppin
-                jy = self.jog_y.get(rec.rank, (cy + ppin.at[1]) / 2)
-                pts = [start.at, (cx, jy), (ppin.at[0], jy), ppin.at]
+                if rec.up_branch:
+                    uy = self.uptap_y[rec.rank]
+                    pts = [start.at, (cx, uy), (ppin.at[0], uy), ppin.at]
+                else:
+                    jy = self.jog_y.get(rec.rank, (cy + ppin.at[1]) / 2)
+                    pts = [start.at, (cx, jy), (ppin.at[0], jy), ppin.at]
             if e.src_node != nid:
                 pts.reverse()
                 start, end = end, start
@@ -890,7 +949,8 @@ class _Builder:
         boxes += [lb.box for st in stubs for lb in st.labels]
         extent = union_all(boxes) if boxes else Box(0, 0, 1, 1)
         offsheets = tuple(
-            OffSheet(e.id, e.dst_node if e.src_node.startswith(MARKER_PREFIX) else e.src_node, e.src_node if e.src_node.startswith(MARKER_PREFIX) else e.dst_node)
+            OffSheet(e.id, e.dst_node if e.src_node.startswith(MARKER_PREFIX) else e.src_node, e.src_node if e.src_node.startswith(MARKER_PREFIX) else e.dst_node,
+                     self.xrefs.get(e.id))
             for e in self.edges
             if e.src_node in self.markers or e.dst_node in self.markers
         )
@@ -991,56 +1051,63 @@ class _Builder:
             members = self._members(g)
             if not members:
                 continue
-            rows: dict[int, list[Box]] = defaultdict(list)
+            pad = o.frame_pad
+            mine: list[Box] = []
+            others: list[Box] = []
             for sym in symbols:
                 owner = sym.node_id or sym.id.split("~")[0]
                 if owner in members:
-                    rows[self.recs[self.sat_of.get(owner, owner)].rank].append(union_all([sym.body, *(lb.box for lb in sym.labels)]))
+                    mine.extend([sym.body, *(lb.box for lb in sym.labels)])
+                else:
+                    others.append(union_all([sym.body, *(lb.box for lb in sym.labels)]))
             for b in busbars:
                 if b.node_id in members:
-                    rows[self.recs[b.node_id].rank].append(union_all([Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5), *(lb.box for lb in b.labels)]))
-            pad = o.frame_pad
-            band = {r: union_all(bs) for r, bs in rows.items()}
-            others = [x.body for x in symbols if (x.node_id or x.id.split("~")[0]) not in members]
-            others += [lb.box for x in symbols if (x.node_id or x.id.split("~")[0]) not in members for lb in x.labels]
-            others += [lb.box for x in (*callouts, *frames) for lb in x.labels]
-            others += [lb.box for b in busbars if b.node_id not in members for lb in b.labels]
-            grown = [_grow_clear(b, pad, others) for b in band.values()]
-            ranks = sorted(band)
-            for r1, r2 in zip(ranks, ranks[1:]):
-                a, b = band[r1], band[r2]
-                x0, x1 = max(a.x0, b.x0), min(a.x1, b.x1)
-                if x0 < x1:
-                    grown.append(Box(_floor_grid(x0 - pad), b.y1, _ceil_grid(x1 + pad), a.y0))
-                    continue
-                for w in wires:
-                    ends = {w.start.owner if w.start else None, w.end.owner if w.end else None}
-                    if ends <= members:
-                        grown += [Box(min(p[0], q[0]) - pad, min(p[1], q[1]), max(p[0], q[0]) + pad, max(p[1], q[1]))
-                                  for p, q in zip(w.points, w.points[1:]) if b.y1 - 1e-6 <= min(p[1], q[1]) and max(p[1], q[1]) <= a.y0 + 1e-6]
-            loops = union_outline(_square_off(grown, 2 * pad, others))
+                    mine.extend([Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5), *(lb.box for lb in b.labels)])
+                elif b.labels:
+                    others.append(union_all([lb.box for lb in b.labels]))
+            for c in callouts:
+                e = self.edge_of[c.edge_id]
+                if {e.src_node, e.dst_node} <= members:
+                    mine.extend(lb.box for lb in c.labels)
+                else:
+                    others.append(union_all([lb.box for lb in c.labels]))
+            span = union_all(mine)
+            limit = None
+            for f in (*frames, *out):
+                if f.labels:
+                    others.append(union_all([lb.box for lb in f.labels]))
+                if not f.box.contains(span):
+                    others.append(f.box.grow(pad / 2))
+                else:
+                    inner = f.box.grow(-pad / 3)
+                    limit = inner if limit is None else _clip(limit, inner)
+            loops = _notched_outline(mine, others, pad, limit)
+            if loops is None:
+                self.warnings.append(f"group {g.id!r}: no clean outline clears the equipment around it; drawn without a frame")
+                continue
+            grown = [Box(min(p[0] for p in lp), min(p[1] for p in lp), max(p[0] for p in lp), max(p[1] for p in lp)) for lp in loops]
             outsiders = [s.body for s in symbols if s.node_id is not None and s.node_id not in members]
             if any(inside(loops, ((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2)) for b in outsiders):
                 self.warnings.append(f"group {g.id!r}: its outline would take in other equipment; drawn without a frame")
                 continue
             box = union_all(grown)
-            if any(b.overlaps(f.box) and not f.box.contains(b) for b in grown for f in frames):
-                self.warnings.append(f"group {g.id!r}: its outline would cross another frame; drawn without a frame")
-                continue
             lines = self._frame_lines(g)
             obstacles = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
             obstacles += [Box(b.x0, b.y - 0.5, b.x1, b.y + 0.5) for b in busbars] + [lb.box for b in busbars for lb in b.labels]
             obstacles += [lb.box for x in (*callouts, *frames, *out) for lb in x.labels]
             obstacles += [Box(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1])) for w in wires for a, b in zip(w.points, w.points[1:])]
             obstacles += [e for f in (*frames, *out, Frame(g.id, box, (), g.count, loops)) for e in _edges_of(f)]
-            labels = self._place_title(lines, loops, obstacles, h, pitch)
+            bands = [(f.box.y0, f.box.x0, f.box.x1) for f in (*frames, *out) if f.box.contains(span)]
+            labels = self._place_title(lines, loops, obstacles, h, pitch, bands)
             if labels is None:
                 self.warnings.append(f"group {g.id!r}: no free place for the frame title; outline drawn untitled")
                 labels = ()
             out.append(Frame(g.id, Box(round(box.x0, 6), round(box.y0, 6), round(box.x1, 6), round(box.y1, 6)), labels, g.count, loops))
         return out
 
-    def _place_title(self, lines, loops, obstacles, h, pitch):
+    def _place_title(self, lines, loops, obstacles, h, pitch, bands=()):
+        """Title labels beside one of the outline's horizontal edges, else just under an enclosing frame
+        (`bands`: its bottom y and x span), clear of every obstacle; None when nowhere fits."""
         tops = sorted(
             ((a[1], min(a[0], b[0]), max(a[0], b[0])) for loop in loops for a, b in zip(loop, loop[1:] + loop[:1]) if a[1] == b[1] and b[0] < a[0]),
             key=lambda t: (-t[0], t[1]),
@@ -1061,6 +1128,8 @@ class _Builder:
                     continue
                 for x in range(int(min(a[0], b[0]) + STUB), int(max(a[0], b[0]) - width - STUB) + 1, int(STUB)):
                     cands += [(float(x), a[1] - STUB / 2), (float(x), a[1] + 1.0 + len(lines) * pitch), (float(x), a[1] - 1.0)]
+        for y, x0, x1 in bands:
+            cands += [(float(x), y - 1.0) for x in range(int(x0 + STUB), int(x1 - width) + 1, int(STUB))]
         for x, top in cands:
             labels = tuple(label(t, (x, top - (i + 0.5) * pitch), h) for i, t in enumerate(lines))
             if not any(lb.box.overlaps(ob) for lb in labels for ob in obstacles):
@@ -1074,7 +1143,7 @@ class _Builder:
             root = self.recs[f.root]
             x0, x1 = root.x + f.x0, root.x + f.x1
             y1 = self.band_top[f.top] + self.tap_h[f.top] + f.i_top * o.frame_pad
-            below = sum(1 for g in self.frames if g is not f and g.bottom == f.bottom and g.members <= f.members and not g.inside)
+            below = sum(1 for g in self.frames if g is not f and g.bottom == f.bottom and self._within(g, f) and not g.inside)
             y0 = self.items_bottom[f.bottom] - f.i_bottom * o.frame_pad - below * (2 * self.tpitch + 1.0)
             h = o.frame_title_height
             top = y1 - STUB / 2 if f.inside else y0 - 1.0
@@ -1084,6 +1153,20 @@ class _Builder:
 
 
 MARKER_PREFIX = "off."
+
+
+def nid_port(e: Edge, node_id: str) -> str:
+    return e.src_port if e.src_node == node_id else e.dst_port
+
+
+def _words(text: str) -> set[str]:
+    return {w.rstrip("0123456789").rstrip("-") or w for w in text.upper().split()}
+
+
+def _same_words(a: str, b: str) -> bool:
+    """One text says nothing the other does not, numbering suffixes aside ('SWITCHBOARD-01' in 'SWITCHBOARD PANEL')."""
+    wa, wb = _words(a), _words(b)
+    return wa <= wb or wb <= wa
 
 
 def lv_windings(node: Node, catalog: Catalog | None, net: ElectricalNetwork) -> int:
@@ -1147,6 +1230,31 @@ def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[st
     return frozenset(keep)
 
 
+def xref_tag(net: ElectricalNetwork, other: Node, here: Node) -> str:
+    """Tag of `other` as seen from `here`: the range of its instances when it repeats inside a group `here` is not in."""
+    rep: list[tuple[str | None, int]] = []
+    gid = other.group
+    while gid is not None:
+        g = net.group_by_id[gid]
+        if g.count > 1:
+            rep.insert(0, (g.id, g.count))
+        gid = g.within
+    if other.count > 1:
+        rep.append((None, other.count))
+    depth = other.tag.count("{")
+    if not rep:
+        return other.tag.format(*([1] * depth))
+    inner, count = rep[-1]
+    shared: set[str] = set()
+    gid = here.group
+    while gid is not None:
+        shared.add(gid)
+        gid = net.group_by_id[gid].within
+    if inner is not None and inner in shared:
+        return other.tag.format(*([1] * depth))
+    return annotate.tag_range(other.tag, depth, count)
+
+
 def _reaches_poi(net: ElectricalNetwork, node_id: str) -> bool:
     try:
         net.path_to_poi(node_id)
@@ -1166,7 +1274,8 @@ def _markers(net: ElectricalNetwork, keep: frozenset[str], cut: list[Edge]) -> t
         mid = f"{MARKER_PREFIX}{e.id}"
         inside_src = e.src_node in keep
         other = net.node(e.dst_node if inside_src else e.src_node)
-        title = f"{'TO' if inside_src else 'FROM'} {other.tag.format(*([1] * other.tag.count('{')))}"
+        here = net.node(e.src_node if inside_src else e.dst_node)
+        title = f"{'TO' if inside_src else 'FROM'} {xref_tag(net, other, here)}"
         if inside_src and _reaches_poi(net, other.id):
             kind, port = NodeKind.POI_GRID, "in"
         elif inside_src:
@@ -1179,34 +1288,93 @@ def _markers(net: ElectricalNetwork, keep: frozenset[str], cut: list[Edge]) -> t
     return markers, [swap.get(e.id, e) for e in net.edges if e.id in swap or (e.src_node in keep and e.dst_node in keep)]
 
 
-def _square_off(boxes: list[Box], tol: float, obstacles: list[Box]) -> list[Box]:
-    """Line up box edges that nearly coincide, so the outline has no small notches."""
-    out = list(boxes)
-    for lo in (True, False):
-        edges = sorted({b.x0 if lo else b.x1 for b in out}, reverse=not lo)
-        for e in edges:
-            target = e
-            for i, b in enumerate(out):
-                v = b.x0 if lo else b.x1
-                if v != target and abs(v - target) < tol:
-                    wider = Box(target, b.y0, b.x1, b.y1) if lo else Box(b.x0, b.y0, target, b.y1)
-                    if not any(wider.overlaps(ob) for ob in obstacles):
-                        out[i] = wider
+def _notched_outline(mine: list[Box], others: list[Box], pad: float, limit: Box | None = None) -> tuple[tuple[Point, ...], ...] | None:
+    """One rectilinear loop around `mine`: their bounding box grown by `pad` (but inside `limit`), with a notch
+    cut in from the nearest side for every outsider box that falls inside, so the outline never runs through it."""
+    span = union_all(mine)
+    hull = span.grow(pad)
+    hull = Box(_floor_grid(hull.x0), _floor_grid(hull.y0), _ceil_grid(hull.x1), _ceil_grid(hull.y1))
+    if limit is not None:
+        hull = _clip(hull, Box(min(limit.x0, span.x0), min(limit.y0, span.y0), max(limit.x1, span.x1), max(limit.y1, span.y1)))
+    notches: list[Box] = []
+
+    def clear(n: Box) -> bool:
+        return not any(n.overlaps(m) for m in mine)
+
+    for ob in sorted(others, key=lambda b: (b.x0, b.y0, b.x1, b.y1)):
+        if not ob.overlaps(hull) or any(n.contains(ob) for n in notches):
+            continue
+        best = None
+        for grow in (pad / 2, 0.5):
+            g = ob.grow(grow)
+            snapped = Box(_floor_grid(g.x0), _floor_grid(g.y0), _ceil_grid(g.x1), _ceil_grid(g.y1))
+            for b in (snapped, g):
+                cands = (
+                    Box(hull.x0, b.y0, b.x1, b.y1),
+                    Box(b.x0, b.y0, hull.x1, b.y1),
+                    Box(b.x0, hull.y0, b.x1, b.y1),
+                    Box(b.x0, b.y0, b.x1, hull.y1),
+                )
+                ok = [_clip(c, hull) for c in cands if clear(_clip(c, hull))]
+                if ok:
+                    best = min(ok, key=lambda c: c.width * c.height)
+                    break
+            if best is not None:
+                break
+        if best is None:
+            return None
+        notches.append(best)
+    notches = _align_notches(notches, hull, clear, 2 * pad)
+    xs = sorted({hull.x0, hull.x1} | {v for n in notches for v in (n.x0, n.x1)})
+    ys = sorted({hull.y0, hull.y1} | {v for n in notches for v in (n.y0, n.y1)})
+    cells = [
+        Box(x0, y0, x1, y1)
+        for x0, x1 in zip(xs, xs[1:])
+        for y0, y1 in zip(ys, ys[1:])
+        if not any(n.contains_point(((x0 + x1) / 2, (y0 + y1) / 2), tol=-1e-6) for n in notches)
+    ]
+    if not cells:
+        return None
+    loops = union_outline(cells)
+    if len(loops) > 1:
+        homes = {i for m in mine for i, lp in enumerate(loops) if inside((lp,), ((m.x0 + m.x1) / 2, (m.y0 + m.y1) / 2))}
+        loops = (loops[homes.pop()],) if len(homes) == 1 else loops
+    return loops if len(loops) == 1 else None
+
+
+def _clip(b: Box, to: Box) -> Box:
+    return Box(max(b.x0, to.x0), max(b.y0, to.y0), min(b.x1, to.x1), min(b.y1, to.y1))
+
+
+def _align_notches(notches: list[Box], hull: Box, clear, tol: float) -> list[Box]:
+    """Deepen a notch to its neighbour's depth where the two nearly line up, so the outline has no small steps."""
+    out = list(notches)
+    for _ in range(2):
+        for i, a in enumerate(out):
+            for j, b in enumerate(out):
+                if i == j:
+                    continue
+                for grown in _deepened(a, b, hull, tol):
+                    if clear(grown):
+                        out[i] = a = grown
+                        break
     return out
 
 
-def _grow_clear(b: Box, pad: float, obstacles: list[Box]) -> Box:
-    """`b` grown by up to `pad` on each side, less where the margin would run into an obstacle."""
-    steps = (pad, pad * 2 / 3, pad / 2, pad / 3, 0.5)
-
-    def side(make) -> float:
-        return next((p for p in steps if not any(make(p).overlaps(ob) for ob in obstacles)), steps[-1])
-
-    left = side(lambda p: Box(b.x0 - p, b.y0, b.x0, b.y1))
-    right = side(lambda p: Box(b.x1, b.y0, b.x1 + p, b.y1))
-    down = side(lambda p: Box(b.x0 - left, b.y0 - p, b.x1 + right, b.y0))
-    up = side(lambda p: Box(b.x0 - left, b.y1, b.x1 + right, b.y1 + p))
-    return Box(b.x0 - left, b.y0 - down, b.x1 + right, b.y1 + up)
+def _deepened(a: Box, b: Box, hull: Box, tol: float) -> list[Box]:
+    """Candidate replacements for notch `a` that line it up with notch `b` cut from the same side."""
+    out = []
+    gap_x = max(a.x0, b.x0) - min(a.x1, b.x1)
+    gap_y = max(a.y0, b.y0) - min(a.y1, b.y1)
+    if a.y0 == hull.y0 == b.y0 and gap_x < tol and abs(a.y1 - b.y1) < tol:
+        out.append(Box(min(a.x0, b.x0) if gap_x > 0 else a.x0, a.y0, max(a.x1, b.x1) if gap_x > 0 else a.x1, max(a.y1, b.y1)))
+    if a.y1 == hull.y1 == b.y1 and gap_x < tol and abs(a.y0 - b.y0) < tol:
+        out.append(Box(min(a.x0, b.x0) if gap_x > 0 else a.x0, min(a.y0, b.y0), max(a.x1, b.x1) if gap_x > 0 else a.x1, a.y1))
+    if a.x0 == hull.x0 == b.x0 and gap_y < tol and abs(a.x1 - b.x1) < tol:
+        out.append(Box(a.x0, min(a.y0, b.y0) if gap_y > 0 else a.y0, max(a.x1, b.x1), max(a.y1, b.y1) if gap_y > 0 else a.y1))
+    if a.x1 == hull.x1 == b.x1 and gap_y < tol and abs(a.x0 - b.x0) < tol:
+        out.append(Box(min(a.x0, b.x0), min(a.y0, b.y0) if gap_y > 0 else a.y0, a.x1, max(a.y1, b.y1) if gap_y > 0 else a.y1))
+    return [n for n in out if n != a]
 
 
 def _edges_of(f: Frame) -> list[Box]:
@@ -1372,13 +1540,16 @@ def layout_sld(
     catalog: Catalog | None = None,
     options: SldOptions = SldOptions(),
     scope: frozenset[str] | None = None,
+    xrefs: Mapping[str, str] | None = None,
 ) -> SldLayout:
-    """Place `network` (template level: groups drawn once) as an SLD; `scope` limits it to some nodes."""
-    return _build(network, catalog, options, scope)[1]
+    """Place `network` (template level: groups drawn once) as an SLD; `scope` limits it to some nodes.
+    `xrefs` names, per cut edge id, the sheet number its off-sheet marker points to."""
+    return _build(network, catalog, options, scope, xrefs)[1]
 
 
-def _build(network: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None) -> tuple[_Builder, SldLayout]:
-    b = _Builder(network, catalog, options, scope)
+def _build(network: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
+           xrefs: Mapping[str, str] | None = None) -> tuple[_Builder, SldLayout]:
+    b = _Builder(network, catalog, options, scope, xrefs)
     b.topology()
     b.geometry()
     b.place_x()
@@ -1396,7 +1567,7 @@ def plan_pages(
 ) -> tuple[SldPage, ...]:
     """Split plan for a drawing area: one page when the SLD is readable there, else the first
     node with several feeders stays on a main page and its feeder subtrees are packed onto
-    further pages. Cross-reference markers on the cut edges are the pagination unit's job."""
+    further pages. `unicad.sets.sld` turns the pages into sheets and `sld.xref` names each marker's target sheet."""
     b, lay = _build(network, catalog, options, scope)
     nodes = frozenset(n for n in b.recs if n not in b.markers)
 

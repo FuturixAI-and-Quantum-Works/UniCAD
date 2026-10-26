@@ -1,8 +1,9 @@
 """Render a project's SLD sheet: company sheet, legend, parameters, notes and the diagram."""
 
 import io
-from collections import OrderedDict
 import re
+from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -69,14 +70,17 @@ def _in_group(project: Project, gid: str | None, target: str) -> bool:
     return False
 
 
-def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catalog | None) -> SheetSpec:
+def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catalog | None, sheets: Sequence[Sheet] | None = None) -> SheetSpec:
+    """Title block, legend and notes. `sheets` is the drawing set the sheet belongs to (default the project's), for 'sheet x of y'."""
     paper = PaperSize(sheet.paper)
     revs = sheet.revisions or project.revisions
     latest = revs[-1] if revs else None
     issued = IssuedFor[latest.issued_for.name] if latest and latest.issued_for else IssuedFor.INFORMATION
     site = project.site
     location = ", ".join(p for p in (site.name, site.address, site.state) if p)
-    index = [s.id for s in project.sheets].index(sheet.id) + 1 if sheet in project.sheets else 1
+    sheets = tuple(project.sheets if sheets is None else sheets)
+    ids = [s.id for s in sheets]
+    index = ids.index(sheet.id) + 1 if sheet.id in ids else 1
     tb = TitleBlockData(
         client=annotate.prose(project.client.name),
         project_title=annotate.prose(project.name),
@@ -86,7 +90,7 @@ def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catal
         revision=latest.rev if latest else "00",
         scale=sheet.scale,
         sheet_no=index,
-        sheet_count=max(index, len(project.sheets)),
+        sheet_count=max(index, len(sheets)),
         paper=paper,
         drawn_by=(latest.drawn or "") if latest else "",
         checked_by=(latest.checked or "") if latest else "",
@@ -110,6 +114,35 @@ def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catal
     )
 
 
+def fit_layout(
+    project: Project,
+    catalog: Catalog | None,
+    paper: str,
+    scope: frozenset[str] | None,
+    options: SldOptions = SldOptions(),
+    xrefs: Mapping[str, str] | None = None,
+) -> tuple[SldLayout, SldOptions, float]:
+    """The layout for `scope` on `paper`, compacted when that reads better, with the scale it fits at."""
+    area = metrics_for(PaperSize(paper)).drawing_area
+    layout = layout_sld(project.network, catalog, options, scope, xrefs)
+    scale = layout.fit_scale(area.width, area.height, options)
+    if scale < options.min_scale:
+        tight = options.compact()
+        compact = layout_sld(project.network, catalog, tight, scope, xrefs)
+        if compact.fit_scale(area.width, area.height, tight) > scale:
+            return compact, tight, compact.fit_scale(area.width, area.height, tight)
+    return layout, options, scale
+
+
+def furniture_overflow(
+    project: Project, sheet: Sheet, layout: SldLayout, catalog: Catalog | None, profile: CompanyProfile, sheets: Sequence[Sheet] | None = None
+) -> tuple[str, ...]:
+    """What of the legend, parameters and notes the sheet's paper has no room for, as render warnings."""
+    scratch = ezdxf.new("R2018", setup=["linetypes"])
+    spec = sheet_spec(project, sheet, layout, catalog, sheets)
+    return tuple(w for w in render_sheet(scratch, spec, profile, legend_drawer(scratch.modelspace())).warnings if " rows did not fit" in w)
+
+
 def render_sld(
     project: Project,
     sheet_id: str,
@@ -117,20 +150,20 @@ def render_sld(
     catalog: Catalog | None = None,
     doc: Drawing | None = None,
     options: SldOptions = SldOptions(),
+    *,
+    sheets: Sequence[Sheet] | None = None,
+    nodes: frozenset[str] | None = None,
+    xrefs: Mapping[str, str] | None = None,
 ) -> tuple[Drawing, SldSheet]:
-    sheet = next(s for s in project.sheets if s.id == sheet_id)
-    scope = _scope(project, sheet)
-    paper = PaperSize(sheet.paper)
-    area = metrics_for(paper).drawing_area
-    layout = layout_sld(project.network, catalog, options, scope)
-    if layout.fit_scale(area.width, area.height, options) < options.min_scale:
-        tight = options.compact()
-        compact = layout_sld(project.network, catalog, tight, scope)
-        if compact.fit_scale(area.width, area.height, tight) > layout.fit_scale(area.width, area.height, options):
-            layout, options = compact, tight
+    """Render one SLD sheet. `sheets` is the drawing set (default the project's sheets); `nodes`, when given,
+    is exactly what the sheet owns (see `sld.xref.partition`) instead of its scope plus what feeds it;
+    `xrefs` maps each cut edge id to the number of the sheet that continues it."""
+    sheet = next(s for s in (project.sheets if sheets is None else sheets) if s.id == sheet_id)
+    scope = nodes if nodes is not None else _scope(project, sheet)
+    layout, options, _ = fit_layout(project, catalog, sheet.paper, scope, options, xrefs)
     if doc is None:
         doc = ezdxf.new("R2018", setup=["linetypes"])
-    spec = sheet_spec(project, sheet, layout, catalog)
+    spec = sheet_spec(project, sheet, layout, catalog, sheets)
     n = len(project.design_basis.assumptions)
     fallbacks = (NOTES + (f"{n} DESIGN BASIS ASSUMPTIONS ARE LISTED IN THE PROJECT RECORD.",) if n else NOTES, NOTES[:1], ())
     for notes in fallbacks:
