@@ -180,6 +180,26 @@ class TransformerSpec(Spec):
     impedance_pct: float = Field(gt=0, lt=30)
     cooling: Literal["ONAN", "ONAF", "AN", "AF", "KNAN"] = "ONAN"
     standard: str = "IS 1180 / IS 2026"
+    winding_kva: tuple[KVA, ...] | None = Field(default=None, description="rating of each LV winding, in lv_kv order; omitted when the windings share rated_kva")
+    impedance_base_kva: KVA | None = Field(default=None, description="kVA base impedance_pct is stated on; rated_kva when omitted. HV to one LV winding for multi-winding units")
+    lv_lv_impedance_min_pct: float | None = Field(default=None, gt=0, description="minimum impedance between two LV windings, only when the source states it")
+    tap_changer: Literal["octc", "oltc"] | None = Field(default=None, description="tap changer on the HV winding")
+    tap_range_pct: tuple[float, float] | None = Field(default=None, description="(lowest, highest) HV tap in % of rated voltage, e.g. (-10, 10)")
+    tap_step_pct: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _windings(self) -> "TransformerSpec":
+        if self.winding_kva is not None:
+            if len(self.winding_kva) != len(self.lv_kv):
+                raise ValueError("winding_kva needs one rating per lv_kv winding")
+            if sum(self.winding_kva) > self.rated_kva * 1.0001:
+                raise ValueError("winding_kva sums to more than rated_kva")
+        if self.tap_range_pct is not None:
+            if self.tap_changer is None or self.tap_step_pct is None:
+                raise ValueError("tap_range_pct needs tap_changer and tap_step_pct")
+            if not self.tap_range_pct[0] <= 0 <= self.tap_range_pct[1] or self.tap_range_pct[0] == self.tap_range_pct[1]:
+                raise ValueError("tap_range_pct must be (lowest, highest) with the principal tap inside")
+        return self
 
 
 class Conductor(StrEnum):
@@ -275,6 +295,7 @@ class ProtectionSpec(Spec):
     nominal_discharge_current_ka: float | None = Field(default=None, gt=0)
     curve: str | None = None
     spd_type: Literal["1", "2", "1+2", "3"] | None = None
+    surge_counter: bool | None = Field(default=None, description="lightning arrester supplied with a discharge counter; None when the source is silent")
 
 
 class MeterSpec(Spec):

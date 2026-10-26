@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
-from unicad.domain.catalog import CableSpec
+from unicad.domain.catalog import CableSpec, TransformerSpec
 
 if TYPE_CHECKING:
     from unicad.catalog.store import Catalog
@@ -82,6 +82,7 @@ EARTH_PORT = "pe"
 SIGNAL_PORTS = frozenset({"sig", "sec"})
 SOURCE_KINDS = frozenset({NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK, NodeKind.BATTERY, NodeKind.DG, NodeKind.POI_GRID})
 CONVERTER_KINDS = frozenset({NodeKind.INVERTER, NodeKind.PCS, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER})
+INLINE_SPEC_KINDS = frozenset({NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER})
 
 _INLINE = ("in", "out")
 DEFAULT_PORTS: dict[NodeKind, tuple[str, ...]] = {
@@ -154,6 +155,13 @@ SPEC_KINDS: dict[NodeKind, frozenset[str]] = {
     NodeKind.AC_SPD: frozenset({"protection"}),
     NodeKind.FUSE: frozenset({"protection"}),
 }
+# Instrument transformers, arresters and RMUs may name a protection spec, but their absence is not flagged as missing.
+OPTIONAL_SPEC_KINDS: dict[NodeKind, frozenset[str]] = {
+    NodeKind.CT: frozenset({"protection"}),
+    NodeKind.PT: frozenset({"protection"}),
+    NodeKind.LIGHTNING_ARRESTER: frozenset({"protection"}),
+    NodeKind.RMU: frozenset({"protection"}),
+}
 PROTECTION_DEVICES: dict[NodeKind, frozenset[str]] = {
     NodeKind.BREAKER: frozenset({"mcb", "mccb", "acb", "rccb"}),
     NodeKind.VCB: frozenset({"vcb"}),
@@ -162,6 +170,10 @@ PROTECTION_DEVICES: dict[NodeKind, frozenset[str]] = {
     NodeKind.DC_SPD: frozenset({"spd_dc"}),
     NodeKind.AC_SPD: frozenset({"spd_ac"}),
     NodeKind.FUSE: frozenset({"fuse_gpv", "fuse_hrc"}),
+    NodeKind.CT: frozenset({"ct"}),
+    NodeKind.PT: frozenset({"pt"}),
+    NodeKind.LIGHTNING_ARRESTER: frozenset({"lightning_arrester"}),
+    NodeKind.RMU: frozenset({"rmu"}),
 }
 
 
@@ -187,7 +199,7 @@ class Node(_Frozen):
     id: Id
     tag: str
     kind: NodeKind
-    spec: str | None = None
+    spec: str | TransformerSpec | None = None
     symbol: str | None = None
     count: int = Field(default=1, gt=0)
     group: Id | None = None
@@ -203,6 +215,12 @@ class Node(_Frozen):
             raise ValueError(f"node {self.id!r}: modules_in_series is only valid on pv_string, not {self.kind}")
         return self
 
+    @model_validator(mode="after")
+    def _inline_spec_only_on_transformers(self) -> Self:
+        if isinstance(self.spec, TransformerSpec) and self.kind not in INLINE_SPEC_KINDS:
+            raise ValueError(f"node {self.id!r}: an inline spec is only valid on transformer nodes, not {self.kind}")
+        return self
+
     @property
     def port_names(self) -> tuple[str, ...]:
         return self.ports if self.ports is not None else DEFAULT_PORTS.get(self.kind, _INLINE)
@@ -214,6 +232,8 @@ class Node(_Frozen):
     def symbol_key(self, catalog: "Catalog | None" = None) -> str | None:
         if self.symbol:
             return self.symbol
+        if isinstance(self.spec, TransformerSpec):
+            return self.spec.symbol
         if self.spec and catalog is not None:
             return catalog.get(self.spec).symbol
         return KIND_SYMBOLS.get(self.kind)
@@ -396,12 +416,19 @@ class ElectricalNetwork(_Frozen):
         for n in self.nodes:
             if n.spec is None:
                 continue
+            if isinstance(n.spec, TransformerSpec):
+                try:
+                    catalog.get(n.spec.id)
+                except KeyError:
+                    continue
+                problems.append(f"node {n.id!r} inline spec id {n.spec.id!r} is also a catalog id; give the project-specific spec its own id")
+                continue
             try:
                 spec = catalog.get(n.spec)
             except KeyError:
                 problems.append(f"node {n.id!r} references unknown catalog id {n.spec!r}")
                 continue
-            allowed = SPEC_KINDS.get(n.kind, frozenset())
+            allowed = SPEC_KINDS.get(n.kind, OPTIONAL_SPEC_KINDS.get(n.kind, frozenset()))
             if spec.kind not in allowed:
                 problems.append(f"node {n.id!r} ({n.kind}) cannot use {spec.kind} spec {n.spec!r}")
             elif spec.kind == "protection" and spec.device not in PROTECTION_DEVICES[n.kind]:
