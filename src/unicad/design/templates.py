@@ -61,6 +61,7 @@ class Ctx:
     project: Project
     catalog: Catalog
     lengths: dict[str, float]
+    given: frozenset[str] = frozenset()
     b: NetBuilder = field(default_factory=NetBuilder)
     built: Built | None = None
 
@@ -79,8 +80,9 @@ class Ctx:
         return self.lengths[key]
 
     def lengths_assumption(self, keys: list[str]) -> None:
-        used = ", ".join(f"{k} {self.lengths[k]:g} m" for k in keys if k in self.lengths)
-        self.b.assume(f"Cable route lengths are design placeholders, not a routed design: {used}.")
+        used = ", ".join(f"{k} {self.lengths[k]:g} m" for k in keys if k in self.lengths and k not in self.given)
+        if used:
+            self.b.assume(f"Cable route lengths are design placeholders, not a routed design: {used}.")
 
 
 def lv_hint(phases: int) -> EdgeHint:

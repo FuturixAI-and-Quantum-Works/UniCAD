@@ -237,7 +237,9 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
     lay = _layout_of(layout)
     basis = project.design_basis
     lengths = {**T.default_lengths(template), **intent.lengths}
-    ctx = T.Ctx(project, catalog, lengths)
+    ctx = T.Ctx(project, catalog, lengths, frozenset(intent.lengths))
+    if lay is not None and (intent.ac_kw or intent.dc_kwp):
+        notes.append("A layout is given: the PV plan follows its blocks and strings; ac_kw and dc_kwp are not used to size the PV plant.")
     sd = None
     if template in PV_TEMPLATES:
         if not (intent.ac_kw or intent.dc_kwp or lay is not None):
