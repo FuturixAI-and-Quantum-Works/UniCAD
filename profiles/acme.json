@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "name": "Acme Solar EPC Pvt. Ltd.",
+  "short_code": "ACME",
+  "logo": "acme/logo.dxf",
+  "address": "4th Floor, Acme Towers, Baner Road, Pune - 411 045, Maharashtra. Tel: +91 20 5550 0188. www.acme-solar.example",
+  "confidentiality_note": "THIS DRAWING IS THE PROPERTY OF ACME SOLAR EPC PVT. LTD. IT SHALL NOT BE COPIED OR USED WITHOUT WRITTEN PERMISSION.",
+  "drawing_number_pattern": "{company}/{client}/{project}/{discipline}/{seq:03d}",
+  "discipline_codes": {
+    "electrical": "EL",
+    "civil": "CV",
+    "substation": "SS"
+  },
+  "date_format": "%d.%m.%Y",
+  "layers": {
+    "frame": {
+      "name": "ACME-FRAME",
+      "lineweight": 50
+    },
+    "title": {
+      "name": "ACME-TITLE"
+    },
+    "text": {
+      "name": "ACME-TEXT"
+    }
+  },
+  "roles": {
+    "drawn": "DRN",
+    "checked": "CHKD",
+    "approved": "APPD"
+  },
+  "thresholds": {
+    "dc_ac_band": {
+      "value": 0.15,
+      "source": "Acme design standard DS-04 clause 3.2 permits a DC/AC ratio within +/-15 % of the project target"
+    },
+    "isc_factor": {
+      "value": 1.25,
+      "source": "Acme design standard DS-04 clause 4.1: worst-case string current is 1.25 x Isc"
+    }
+  },
+  "symbol_overrides": {
+    "inst.kwh": {
+      "dxf": "acme/company.dxf",
+      "block": "ACME_KWH_METER",
+      "pins": "fit"
+    },
+    "pv.module": {
+      "dxf": "acme/company.dxf",
+      "block": "ACME_PV_MODULE"
+    }
+  },
+  "layer_map": {
+    "G-SYMBOL": {
+      "name": "ACME-SYM",
+      "colour": 3
+    },
+    "G-SYMBOL-TXT": {
+      "name": "ACME-SYM-TXT",
+      "lineweight": 18
+    }
+  },
+  "title_block": {
+    "kind": "imported",
+    "templates": {
+      "A1": {
+        "dxf": "acme/company.dxf",
+        "block": "ACME_TB_A1"
+      },
+      "A3": {
+        "dxf": "acme/company.dxf",
+        "block": "ACME_TB_A3"
+      }
+    }
+  },
+  "numbering": {
+    "per_discipline": true,
+    "start": {
+      "civil": 101
+    }
+  },
+  "revision_marks": {
+    "style": "cloud",
+    "stamp_text": "REVISED"
+  }
+}

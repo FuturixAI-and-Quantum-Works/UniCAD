@@ -1,12 +1,13 @@
 """Rule registry, runner, issue gate and explain."""
 
 import inspect
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import IssuedFor, Project, Segment
 from unicad.rules.model import Explanation, Finding, Gate, Quantity, Report, Severity
+from unicad.rules.thresholds import Setting, using
 
 Check = Callable[[Project, Catalog], Iterable[Finding]]
 ALL_SEGMENTS = frozenset(Segment)
@@ -44,21 +45,23 @@ def families() -> tuple[str, ...]:
     return tuple(dict.fromkeys(r.family for r in REGISTRY.values()))
 
 
-def run_rules(project: Project, catalog: Catalog, families: Iterable[str] | None = None) -> Report:
+def run_rules(project: Project, catalog: Catalog, families: Iterable[str] | None = None, thresholds: Mapping[str, Setting] | None = None) -> Report:
+    """Run the rules. `thresholds` are the company's own threshold values (`CompanyProfile.threshold_settings()`); omitted names keep the defaults."""
     wanted = set(families) if families is not None else None
     if wanted is not None and (unknown := wanted - {r.family for r in REGISTRY.values()}):
         raise ValueError(f"unknown rule families {sorted(unknown)}")
     if problems := project.catalog_problems(catalog):
         raise ValueError("project does not resolve against the catalog: " + "; ".join(problems))
     ran, findings = [], []
-    for r in REGISTRY.values():
-        if (wanted is not None and r.family not in wanted) or project.segment not in r.applies_to:
-            continue
-        ran.append(r.id)
-        for f in r.check(project, catalog):
-            if f.rule_id != r.id:
-                raise ValueError(f"rule {r.id!r} produced a finding for {f.rule_id!r}")
-            findings.append(f if f.clause or not r.clause else f.model_copy(update={"clause": r.clause}))
+    with using(thresholds):
+        for r in REGISTRY.values():
+            if (wanted is not None and r.family not in wanted) or project.segment not in r.applies_to:
+                continue
+            ran.append(r.id)
+            for f in r.check(project, catalog):
+                if f.rule_id != r.id:
+                    raise ValueError(f"rule {r.id!r} produced a finding for {f.rule_id!r}")
+                findings.append(f if f.clause or not r.clause else f.model_copy(update={"clause": r.clause}))
     return Report(project_id=project.id, rules=tuple(ran), findings=tuple(sorted(findings, key=Finding.sort_key)))
 
 

@@ -10,6 +10,7 @@ from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
 from unicad.rules import Finding, Severity, explain, issue_gate, run_rules
 from unicad.rules import families as rule_families
+from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 
@@ -38,10 +39,14 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Use explain_finding for the formula, inputs and sources behind one finding.
         Example: validate(project_id="rooftop-500kwp", families=["cables", "vdrop"])."""
         project, rev = ws.load(project_id, revision)
-        report = run_rules(project, ws.catalog, families)
+        company = thresholds_of(project.company_profile, ws.config.workspace)
+        report = run_rules(project, ws.catalog, families, company)
         shown = [compact(f) for f in report.findings if include_info or f.severity is not Severity.INFO]
         gates = {p.value: {"allowed": (g := issue_gate(report, p)).allowed, "watermark": g.watermark} for p in IssuedFor}
-        return {"project_id": project_id, "revision": rev, "rules": len(report.rules), "counts": report.counts, "blocking": report.blocking, "gates": gates, "findings": shown}
+        out = {"project_id": project_id, "revision": rev, "rules": len(report.rules), "counts": report.counts, "blocking": report.blocking, "gates": gates, "findings": shown}
+        if company:
+            out["company_thresholds"] = {"profile": project.company_profile, "values": {name: s.value for name, s in company.items()}}
+        return out
 
     @server.tool(annotations=READ_ONLY)
     @guarded
@@ -58,7 +63,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         family = rule_id.split(".", 1)[0]
         if family not in rule_families():
             raise KeyError(f"no rule family {family!r}; families: {list(rule_families())}")
-        report = run_rules(project, ws.catalog, [family])
+        report = run_rules(project, ws.catalog, [family], thresholds_of(project.company_profile, ws.config.workspace))
         if rule_id not in report.rules:
             raise KeyError(f"no rule {rule_id!r} ran for this project; rules: {[r for r in report.rules if r.startswith(family + '.')]}")
         found = [f for f in report.by_rule(rule_id) if subject in f.subjects]
