@@ -610,6 +610,81 @@ small text). Example: drawings_preview(project_id="utility-50mwac", sheet="sld",
 | `kinds` | list of string | no | Drawing kinds of the set, when it has to be rendered first Default: `['sld']`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
+## Company tools
+
+### `company_list`
+
+List the company profiles this workspace can use: its own (onboarded or edited) and the bundled ones. A workspace profile hides a bundled one of the same id.
+
+Example: company_list().
+
+Read-only.
+
+### `company_onboard`
+
+Create a company profile from the company's own DXF and a short questionnaire, and save it in this workspace.
+
+Reads the title block per paper size, the logo, the layer list and the symbol blocks, checks each (placeholders present, pins matching, threshold ranges) and reports what was found, what was defaulted and what failed.
+Nothing is saved while anything failed, unless accept_partial=true. Then assign it with company_assign and look at it with company_preview_sheet.
+Example: company_onboard(dxf_path="/data/acme/company.dxf", answers="/data/acme/answers.yaml").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `dxf_path` | string | yes | The company's DXF: title block (a block per paper size holding {PLACEHOLDER} texts such as {DRAWING_NO}, {TITLE}, {REV}, {SHEET}, {DRAWN}), logo block, layer list and optionally its symbols |
+| `answers` | object or string | yes | The questionnaire as an object, or the path of a YAML or JSON file. Needs id, name and short_code; optional: address, confidentiality_note, date_format, default_paper, roles, numbering {pattern, disciplines, per_discipline, start}, logo_block, title_blocks, layers {frame, title, text}, layer_map, symbols {key: {block, pins}}, thresholds {name: {value, source}}, revision_marks. See docs/onboarding.md. |
+| `accept_partial` | boolean | no | Save the profile even though some pieces failed validation; those pieces are left out Default: `False`. |
+
+### `company_get`
+
+Show a company profile: name, drawing numbering, title block per paper size, layers and layer map, symbol overrides, and every rule threshold with its value and where the value comes from (default or company).
+
+`problems` lists files that are missing or imported pieces that no longer validate.
+Example: company_get(profile_id="acme").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `profile_id` | string | no | Company profile id, e.g. 'acme'; company_list shows them. Omit to use the profile of project_id, or 'default'. |
+| `project_id` | string | no | Use this project's company profile when profile_id is omitted |
+
+### `company_update`
+
+Change a company profile and save it in this workspace (a bundled profile is copied there first). The result must validate and must not add problems with the imported files; nothing is saved otherwise.
+
+Relative file paths are relative to <workspace>/profiles. Example: company_update(profile_id="acme", fields={"thresholds": {"dc_ac_band": {"value": 0.2, "source": "Acme DS-04 rev C"}}}).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `fields` | object | yes | Changes as a JSON merge patch on the profile: objects merge key by key, null removes a key, anything else replaces. E.g. {'thresholds': {'dc_ac_band': {'value': 0.2, 'source': 'DS-04 rev C'}}} |
+| `profile_id` | string | no | Company profile id, e.g. 'acme'; company_list shows them. Omit to use the profile of project_id, or 'default'. |
+| `project_id` | string | no | Use this project's company profile when profile_id is omitted |
+
+### `company_assign`
+
+Make a project use a company profile: its title block, drawing numbers, layers, symbols and rule thresholds apply from the next drawing render or validate.
+
+Example: company_assign(project_id="rooftop-500kwp", profile_id="acme").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `profile_id` | string | yes | Profile id from company_list |
+
+### `company_preview_sheet`
+
+PNG of an empty sample sheet drawn with a company profile: its title block filled with sample data, drawing number, layers and company symbols in the legend. Use it to check an onboarded profile before drawing a project.
+
+Crop to the title block with region=[x0, y0, x1, y1] (the right-hand column) to read its text. Example: company_preview_sheet(paper="A3", profile_id="acme").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `paper` | `A0` \| `A1` \| `A2` \| `A3` \| `A4` | no | Paper size to draw Default: `A3`. |
+| `profile_id` | string | no | Company profile id, e.g. 'acme'; company_list shows them. Omit to use the profile of project_id, or 'default'. |
+| `project_id` | string | no | Use this project's company profile when profile_id is omitted |
+| `region` | list of number | no | Crop [x0, y0, x1, y1] in sheet mm from the lower-left corner; omit for the whole sheet |
+| `px` | integer | no | Pixels on the long side of the image Default: `1600`. |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.
