@@ -229,3 +229,84 @@ def test_models_are_frozen(rooftop):
         rooftop.name = "x"
     with pytest.raises(ValidationError, match="Extra inputs"):
         Project.model_validate({**raw("rooftop_500kwp"), "colour": "red"})
+
+
+# ---------------- inline transformer specs ----------------
+
+
+def inline_idt(data: dict) -> dict:
+    return next(n for n in data["network"]["nodes"] if n["id"] == "idt")["spec"]
+
+
+def test_committed_fixtures_are_what_the_generator_writes(tmp_path):
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    subprocess.run([sys.executable, str(root / "tools" / "build_project_fixtures.py"), str(tmp_path)], check=True, capture_output=True)
+    for name in ("rooftop_500kwp", "utility_50mwac"):
+        assert (tmp_path / f"{name}.json").read_bytes() == (FIXTURES / f"{name}.json").read_bytes(), f"{name} is stale: rerun tools/build_project_fixtures.py"
+
+
+def test_utility_idt_is_an_inline_spec_matched_to_its_inverter(utility, catalog):
+    spec = utility.network.node("idt").spec
+    inv = catalog.get(utility.network.node("inv").spec)
+    assert spec.kind == "transformer" and spec.id not in {e.id for e in catalog.entries}
+    assert spec.lv_kv == (inv.ac_voltage / 1000,) * 2
+    assert spec.winding_kva == (4400, 4400) and sum(spec.winding_kva) == spec.rated_kva
+    assert (spec.vector_group, spec.impedance_pct, spec.impedance_base_kva, spec.lv_lv_impedance_min_pct) == ("YNd11d11", 7.0, 4400, 11.0)
+    assert (spec.tap_changer, spec.tap_range_pct, spec.tap_step_pct) == ("octc", (-10.0, 10.0), 2.5)
+    assert spec.source.kind == "manual" and "PS 439-1304" in spec.source.ref
+    assert utility.network.node("idt").symbol_key(catalog) == "tx.power_3w"
+    assumptions = " ".join(utility.design_basis.assumptions)
+    assert spec.id in assumptions and "PS 439-1304" in assumptions and "%Z 7 %" in assumptions
+
+
+def test_inline_spec_survives_a_json_round_trip(utility, catalog):
+    from unicad.store import canonical_json, parse_project
+
+    again = parse_project(canonical_json(utility), catalog=catalog)
+    assert again.network.node("idt").spec == utility.network.node("idt").spec
+
+
+def test_inline_spec_is_only_valid_on_transformer_nodes(catalog):
+    data = raw("utility_50mwac")
+    spec = inline_idt(data)
+    next(x for x in data["network"]["nodes"] if x["id"] == "mv_bus")["spec"] = spec
+    with pytest.raises(ValidationError, match="inline spec is only valid on transformer nodes"):
+        Project.model_validate(data, context={"catalog": catalog})
+
+
+def test_inline_spec_id_must_not_shadow_a_catalog_id(catalog):
+    data = raw("utility_50mwac")
+    inline_idt(data)["id"] = "is1180-33kv-100kva-dyn11"
+    with pytest.raises(ValidationError, match="also a catalog id"):
+        Project.model_validate(data, context={"catalog": catalog})
+
+
+def test_inline_spec_is_validated_like_a_catalog_spec(catalog):
+    data = raw("utility_50mwac")
+    inline_idt(data)["winding_kva"] = [4400, 5000]
+    with pytest.raises(ValidationError, match="winding_kva sums to more than rated_kva"):
+        Project.model_validate(data, context={"catalog": catalog})
+    data = raw("utility_50mwac")
+    inline_idt(data)["lv_kv"] = [0.66]
+    with pytest.raises(ValidationError, match="one rating per lv_kv winding"):
+        Project.model_validate(data, context={"catalog": catalog})
+
+
+def test_rules_resolve_the_inline_spec(catalog):
+    from unicad.rules import explain, run_rules
+
+    clean = run_rules(Project.model_validate(raw("utility_50mwac"), context={"catalog": catalog}), catalog)
+    assert not [f for f in clean.by_rule("structure.transformer_voltage") if f.subjects == ("idt",)]
+    assert not clean.by_rule("structure.missing_spec") and clean.counts["error"] == 0
+
+    data = raw("utility_50mwac")
+    inline_idt(data)["lv_kv"] = [0.8, 0.8]
+    report = run_rules(Project.model_validate(data, context={"catalog": catalog}), catalog)
+    (f,) = [f for f in report.by_rule("structure.transformer_voltage") if f.subjects == ("idt",)]
+    spec_id = inline_idt(data)["id"]
+    assert f.severity.value == "error" and "LV winding" in f.message and "800" in f.message
+    assert any(q.source == spec_id for q in f.inputs)
+    assert explain(f, catalog).sources[spec_id] == spec_id

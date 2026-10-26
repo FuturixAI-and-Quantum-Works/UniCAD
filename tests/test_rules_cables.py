@@ -103,7 +103,8 @@ def test_cable_without_rating_for_its_laying_warns():
 
 
 def test_utility_lv_cable_uses_inverter_voltage_when_zone_is_undeclared():
-    (f,) = [f for f in findings(fixture("utility_50mwac"), "cables.ampacity") if f.subjects == ("e_inv_idt",)]
+    p = variant("utility_50mwac", lambda data: node(data, "inv_acspd").pop("voltage_v"))
+    (f,) = [f for f in findings(p, "cables.ampacity") if f.subjects == ("e_inv_idt",)]
     # SC 4400 UP: 4400 kVA / (sqrt(3) x 660 V) = 3849.0 A <= 8 runs x 589 A
     assert f.measured == pytest.approx(4400e3 / (math.sqrt(3) * 660), abs=0.01) and f.limit == 8 * 589
     assert any("rated AC voltage" in a for a in f.assumptions)
@@ -135,7 +136,9 @@ def test_missing_cable_or_length_names_the_edge():
     # taps to SPDs and busbar links inside panels are exempt; a link given a laying is a cable run
     fs = by_subject(fixture("rooftop_500kwp"), "cables.missing")
     assert set(fs) == {("e_ct_poi",), ("e_ltp_load",)}
-    assert ("e_icog_bus",) in by_subject(fixture("utility_50mwac"), "cables.missing")
+    assert set(by_subject(fixture("utility_50mwac"), "cables.missing")) == {("e_ct_poi",)}
+    p = variant("utility_50mwac", set_edge("e_icog_bus", cable=None, length_m=None))
+    assert ("e_icog_bus",) in by_subject(p, "cables.missing")
 
 
 # ---------------- vdrop ----------------
@@ -195,7 +198,7 @@ def test_long_cables_exceed_the_design_basis_limits():
 
 
 def test_utility_vdrop_skips_mv_segments_without_cables():
-    fs = by_subject(fixture("utility_50mwac"), "vdrop.ac")
+    fs = by_subject(variant("utility_50mwac", set_edge("e_idt_vcb", cable=None, length_m=None)), "vdrop.ac")
     total = fs[("inv", "poi")]
     assert total.limit == 1.0 and total.severity is Severity.INFO
     assert any("e_idt_vcb" in a for a in total.assumptions)

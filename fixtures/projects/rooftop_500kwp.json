@@ -70,6 +70,7 @@
         "id": "dciso",
         "tag": "DC-ISO-{0:02d}",
         "kind": "dc_isolator",
+        "spec": "abb-otdc250e11",
         "group": "inv_sec"
       },
       {
@@ -121,12 +122,14 @@
         "id": "ac_spd",
         "tag": "AC-SPD-01",
         "kind": "ac_spd",
+        "spec": "finder-7p.25.8.275.x020",
         "voltage_v": 415.0
       },
       {
         "id": "ac_iso",
         "tag": "AC-ISO-01",
         "kind": "isolator",
+        "spec": "abb-ot1000e04p",
         "voltage_v": 415.0
       },
       {

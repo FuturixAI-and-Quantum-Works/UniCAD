@@ -32,7 +32,11 @@
       "PVsyst thermal factors uc=29, uv=0 are the PVsyst free-standing default, used here as an assumption.",
       "vdrop_dc_max, vdrop_ac_max, power_factor and dc_ac_ratio_target are illustrative design targets, not cited limits.",
       "12 x SC 4400 UP give 52.8 MVA; export is assumed limited to 50 MWac at the POI by the plant controller.",
-      "IDT and block auxiliary transformer ratings are design assumptions; the catalog has no 33/0.66 kV unit."
+      "IDT-nn is a project-specific inline spec (idt-8800kva-33-0.66-0.66-ynd11d11-project), not a catalog entry: 8800 kVA as two 4400 kVA LV windings, one per SC 4400 UP; LV voltage 0.66 kV is the catalog ac_voltage of the SC 4400 UP.",
+      "Borrowed for the IDT from BHEL purchase specification PS 439-1304 (5.5 MVA, 33 kV inverter-duty transformer, p.5): %Z 7 % (stated on the 2.75 MVA winding base, applied here on the 4400 kVA winding base), vector group YNd11d11, LV1-LV2 impedance min 11 %, OCTC -10 to +10 % in 2.5 % steps, each LV winding 50 % of rated kVA. Nothing else about the IDT is sourced; the 8800 kVA rating and ONAN cooling are design choices.",
+      "BLK-AUX-TR-nn is the catalog is1180-33kv-63kva-dyn11, fed from the 33 kV side of the IDT; 63 kVA is a design assumption, not a calculated auxiliary load.",
+      "VCB ratings (630 A / 20 kA at the blocks and for the auxiliary feeder, 1250 A / 25 kA outgoing) are placeholders pending a fault study. CT-OG-01 has no spec: the only catalogued 33 kV CT is 200-100-50/1 A, below the export current of about 920 A.",
+      "MV and auxiliary cable sizes (Havells 33 kV 3C Al) and all cable lengths are fixture choices, not a routed design. The export line from CT-OG-01 to POI-01 is by others and carries no cable."
     ]
   },
   "company_profile": "default",
@@ -87,27 +91,64 @@
         "group": "inv_sec"
       },
       {
+        "id": "inv_dcspd",
+        "tag": "DC-SPD-{0:02d}-{1}",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.500.x015",
+        "group": "inv_sec"
+      },
+      {
+        "id": "inv_acspd",
+        "tag": "AC-SPD-{0:02d}-{1}",
+        "kind": "ac_spd",
+        "spec": "dehn-dg-se-ci-440-fm",
+        "group": "inv_sec",
+        "voltage_v": 660.0
+      },
+      {
         "id": "idt",
         "tag": "IDT-{0:02d}",
         "kind": "transformer",
-        "group": "block",
-        "attributes": {
-          "rated_kva": 8800,
+        "spec": {
+          "id": "idt-8800kva-33-0.66-0.66-ynd11d11-project",
+          "manufacturer": "Project-specific",
+          "model": "8800 kVA 33/0.66-0.66 kV inverter-duty transformer",
+          "symbol": "tx.power_3w",
+          "source": {
+            "kind": "manual",
+            "ref": "Project-specific. LV voltage = ac_voltage of catalog sma-sc-4400-up. %Z, vector group, LV1-LV2 impedance and OCTC range borrowed from BHEL purchase specification PS 439-1304 (5.5 MVA, 33 kV) references/catalog-sources/raw/datasheets/transformers/BHEL_PS439-1304_5.5MVA_33kV_IDT_spec_via_indembassysweden.pdf p.5; references/catalog-sources/extracted/idt_impedance_citations.csv. Not a vendor guarantee for this rating.",
+            "retrieved": "2026-10-26"
+          },
+          "rated_kva": 8800.0,
           "hv_kv": 33.0,
-          "lv_kv": "0.66-0.66",
-          "vector_group": "Dy11y11",
-          "windings": 3
-        }
+          "lv_kv": [
+            0.66,
+            0.66
+          ],
+          "vector_group": "YNd11d11",
+          "impedance_pct": 7.0,
+          "standard": "IS 2026",
+          "winding_kva": [
+            4400.0,
+            4400.0
+          ],
+          "impedance_base_kva": 4400.0,
+          "lv_lv_impedance_min_pct": 11.0,
+          "tap_changer": "octc",
+          "tap_range_pct": [
+            -10.0,
+            10.0
+          ],
+          "tap_step_pct": 2.5
+        },
+        "group": "block"
       },
       {
         "id": "blk_aux",
         "tag": "BLK-AUX-TR-{0:02d}",
         "kind": "aux_transformer",
-        "group": "block",
-        "attributes": {
-          "hv_kv": 0.66,
-          "lv_kv": 0.415
-        }
+        "spec": "is1180-33kv-63kva-dyn11",
+        "group": "block"
       },
       {
         "id": "blk_aux_load",
@@ -121,6 +162,7 @@
         "id": "icog_vcb",
         "tag": "ICOG-VCB-{0:02d}",
         "kind": "vcb",
+        "spec": "abb-vd4-36kv-630a-20ka",
         "group": "block",
         "voltage_v": 33000.0
       },
@@ -128,6 +170,7 @@
         "id": "icog_la",
         "tag": "ICOG-LA-{0:02d}",
         "kind": "lightning_arrester",
+        "spec": "abb-polim-d-24-ur30kv",
         "group": "block",
         "voltage_v": 33000.0
       },
@@ -143,6 +186,7 @@
         "id": "mv_pt",
         "tag": "MV-PT-01",
         "kind": "pt",
+        "spec": "generic-pt-33kv-wbsedcl-0.5-3p-100va",
         "group": "mvsb",
         "voltage_v": 33000.0
       },
@@ -150,6 +194,7 @@
         "id": "aux_vcb",
         "tag": "VCB-AUX-01",
         "kind": "vcb",
+        "spec": "abb-vd4-36kv-630a-20ka",
         "group": "mvsb",
         "voltage_v": 33000.0
       },
@@ -171,6 +216,7 @@
         "id": "out_vcb",
         "tag": "VCB-OG-01",
         "kind": "vcb",
+        "spec": "abb-vd4-36kv-1250a-25ka",
         "group": "mvsb",
         "voltage_v": 33000.0
       },
@@ -211,6 +257,7 @@
         "id": "out_la",
         "tag": "LA-OG-01",
         "kind": "lightning_arrester",
+        "spec": "generic-la-36kv-ur30-20ka-counter",
         "voltage_v": 33000.0
       },
       {
@@ -248,6 +295,12 @@
         "laying": "buried_direct"
       },
       {
+        "id": "e_scb_dcspd",
+        "src": "scb:out",
+        "dst": "inv_dcspd:line",
+        "service": "dc"
+      },
+      {
         "id": "e_inv_idt",
         "src": "inv:ac",
         "dst": "idt:lv",
@@ -258,22 +311,37 @@
         "laying": "trench"
       },
       {
-        "id": "e_idt_aux",
-        "src": "idt:lv",
-        "dst": "blk_aux:hv",
+        "id": "e_inv_acspd",
+        "src": "inv:ac",
+        "dst": "inv_acspd:line",
         "service": "lv_ac"
+      },
+      {
+        "id": "e_idt_aux",
+        "src": "idt:hv",
+        "dst": "blk_aux:hv",
+        "service": "mv_ac",
+        "cable": "havells-ht-xlpe-al-3c-50-33kv-arm",
+        "length_m": 10.0,
+        "laying": "buried_direct"
       },
       {
         "id": "e_aux_load",
         "src": "blk_aux:lv",
         "dst": "blk_aux_load:in",
-        "service": "lv_ac"
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-35-arm",
+        "length_m": 10.0,
+        "laying": "tray"
       },
       {
         "id": "e_idt_vcb",
         "src": "idt:hv",
         "dst": "icog_vcb:in",
-        "service": "mv_ac"
+        "service": "mv_ac",
+        "cable": "havells-ht-xlpe-al-3c-120-33kv-arm",
+        "length_m": 10.0,
+        "laying": "buried_direct"
       },
       {
         "id": "e_icog_la",
@@ -286,8 +354,10 @@
         "src": "icog_vcb:out",
         "dst": "mv_bus:bus",
         "service": "mv_ac",
+        "cable": "havells-ht-xlpe-al-3c-120-33kv-arm",
+        "length_m": 400.0,
         "laying": "buried_direct",
-        "remarks": "33 kV XLPE cable, size by cables_size"
+        "remarks": "Block to main HT switchboard; length is a fixture assumption"
       },
       {
         "id": "e_bus_pt",
@@ -305,13 +375,19 @@
         "id": "e_auxvcb_tr",
         "src": "aux_vcb:out",
         "dst": "aux_tr:hv",
-        "service": "mv_ac"
+        "service": "mv_ac",
+        "cable": "havells-ht-xlpe-al-3c-50-33kv-arm",
+        "length_m": 20.0,
+        "laying": "buried_direct"
       },
       {
         "id": "e_auxtr_load",
         "src": "aux_tr:lv",
         "dst": "aux_load:in",
-        "service": "lv_ac"
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-70-arm",
+        "length_m": 20.0,
+        "laying": "tray"
       },
       {
         "id": "e_bus_og",
@@ -377,6 +453,12 @@
       {
         "id": "pe_inv",
         "src": "inv:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "pe_scb",
+        "src": "scb:pe",
         "dst": "ep:pe",
         "service": "earth"
       }

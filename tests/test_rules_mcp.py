@@ -61,7 +61,7 @@ def test_validate_fixture_projects_over_stdio(tmp_path):
         assert "unknown rule families" in await c.fail("validate", project_id="rooftop-500kwp", families=["nope"])
 
         r = await c.call("validate", project_id="utility-50mwac")
-        assert r["counts"]["error"] == 2 and r["gates"]["approval"]["allowed"] is False
+        assert r["counts"]["error"] == 0 and r["gates"]["approval"] == {"allowed": True, "watermark": False}
 
     _run(tmp_path, check, _fixture("rooftop_500kwp"), _fixture("utility_50mwac"), _broken())
 
