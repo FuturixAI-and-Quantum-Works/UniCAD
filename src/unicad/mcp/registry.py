@@ -21,6 +21,7 @@ MODULES = (
     "unicad.mcp.tools_layout",
     "unicad.mcp.tools.design",
     "unicad.mcp.tools.schedules",
+    "unicad.mcp.tools.earthing",
     "unicad.mcp.resources",
     "unicad.mcp.prompts",
 )

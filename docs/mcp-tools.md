@@ -325,7 +325,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `families` | list of string | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop |
+| `families` | list of string | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps |
 | `include_info` | boolean | no | Also list info findings (segment voltage drops, unstated deratings); they are always counted. Default: `False`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
@@ -515,6 +515,68 @@ Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5).
 | `out_dir` | string | no | Directory to write into; default <workspace>/<project_id>/exports |
 | `wastage_pct` | number | no | Cable wastage added to the routed metres (default 5 %, reported as an assumption) Default: `5.0`. |
 | `lengths` | `auto` \| `network` \| `estimated` | no | auto: use the lengths the network states and estimate the edges that state none from the array layout; network: only stated lengths; estimated: replace stated lengths with layout estimates wherever the layout allows Default: `auto`. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Earthing tools
+
+### `earthing_design`
+
+Design the earthing system: store the inputs in the design basis, then size the GS flat conductor (IS 3043 adiabatic, IEEE 80
+cross-check), count pits for the target resistance and the fault current, check the MV switchyard grid's touch and step voltage
+(IEEE 80) and lay out pits and conductors bonding every table row, station, panel, switchyard item and lightning terminal.
+
+Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the design summary and quantities.
+Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `soil_resistivity` | number | yes | Soil resistivity in ohm m from the site's Wenner test |
+| `fault_ka` | number | no | Earth fault current in kA the conductors and electrodes must carry |
+| `clearing_s` | number | no | Fault clearing time in s (backup protection) |
+| `target_ohm` | number | no | Target earth resistance; default from practice (1 ohm utility, 2 ohm C&I), reported as an assumption |
+| `electrode_length_m` | number | no | Electrode (pipe) length Default: `3.0`. |
+| `electrode_diameter_mm` | number | no | Electrode (pipe) diameter Default: `40.0`. |
+| `burial_depth_m` | number | no | Burial depth of the earth conductor Default: `0.6`. |
+| `corrosion_allowance` | number | no | Extra cross-section for corrosion, e.g. 0.2 for 20 % Default: `0.0`. |
+| `tables_per_pit` | integer | no | At least one array pit per this many tables Default: `20`. |
+| `surface_resistivity` | number | no | Switchyard surface layer (crushed rock) resistivity, ohm m |
+| `surface_layer_m` | number | no | Switchyard surface layer thickness |
+
+## Lps tools
+
+### `lps_design`
+
+Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
+inverter station and roof corner inside a protection zone, and prove it. ESE follows NF C 17-102, a French standard used in Indian
+EPC practice; rods use the IS/IEC 62305 rolling sphere of the level.
+
+Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=60, mast_height_m=6).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `method` | `ese` \| `rod` | yes | ese (early streamer emission, NF C 17-102) or rod (conventional air terminal, rolling sphere) |
+| `level` | `I` \| `II` \| `III` \| `IV` | yes | Lightning protection level from the IS/IEC 62305-2 risk assessment |
+| `ese_radius_m` | number | no | ESE protection radius from the terminal datasheet for this level and height |
+| `ese_delta_t_us` | number | no | ESE efficiency dT from the test certificate (radius computed by NF C 17-102) |
+| `mast_height_m` | number | no | Terminal height above the protected plane (ESE) or rod height |
+| `protected_height_m` | number | no | Height to protect for rods (table top or roof plant) |
+
+## Earthing tools
+
+### `earthing_summary`
+
+The stored earthing and lightning design recomputed from the project: conductor sizes, pits by type, earth resistance against the
+target, switchyard touch/step check, bonding, terminals and coverage, quantities, calculation steps with sources, and assumptions.
+
+Example: earthing_summary(project_id="p1").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
 ## Resources

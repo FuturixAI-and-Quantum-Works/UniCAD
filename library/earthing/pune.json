@@ -1,0 +1,248 @@
+{
+ "rooftop": true,
+ "conductor": {
+  "main": "25x6",
+  "array": "25x6",
+  "equipment": "25x6",
+  "down": "25x3"
+ },
+ "pits": 18,
+ "pits_by_role": {
+  "EP": 12,
+  "LE": 6
+ },
+ "pits_needed_by_resistance": 0,
+ "pits_needed_by_current": 18,
+ "electrode_resistance_ohm": 15.13,
+ "resistance_ohm": 0.8467,
+ "target_ohm": 2.0,
+ "tables": 81,
+ "items": 17,
+ "unbonded": [],
+ "quantities": [
+  {
+   "item": "pit.EP",
+   "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
+   "quantity": 12.0,
+   "unit": "nos"
+  },
+  {
+   "item": "pit.LE",
+   "description": "EARTH PIT, 40 MM DIA 3 M LONG MS ROD (UNTREATED) - LE",
+   "quantity": 6.0,
+   "unit": "nos"
+  },
+  {
+   "item": "flat.25x6.main",
+   "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
+   "quantity": 98.0,
+   "unit": "m"
+  },
+  {
+   "item": "flat.25x6.array",
+   "description": "25x6 MM GS FLAT - MMS / TABLE ROW EARTHING",
+   "quantity": 1256.0,
+   "unit": "m"
+  },
+  {
+   "item": "flat.25x6.equipment",
+   "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
+   "quantity": 35.0,
+   "unit": "m"
+  },
+  {
+   "item": "flat.25x3.down",
+   "description": "25x3 MM GS FLAT - DOWN CONDUCTOR (ROOF TO PIT / LPS)",
+   "quantity": 128.0,
+   "unit": "m"
+  },
+  {
+   "item": "lps.terminal",
+   "description": "ESE LIGHTNING ARRESTER, PROTECTION RADIUS 54.54 M, WITH MAST",
+   "quantity": 3.0,
+   "unit": "nos"
+  }
+ ],
+ "steps": [
+  {
+   "name": "conductor_area",
+   "value": 88.4,
+   "unit": "mm2",
+   "formula": "A = I sqrt(t) / k x (1 + corrosion allowance)",
+   "inputs": [
+    {
+     "name": "I",
+     "value": 10000.0,
+     "unit": "A",
+     "source": "design_basis.earthing.fault_current_ka"
+    },
+    {
+     "name": "t",
+     "value": 0.5,
+     "unit": "s",
+     "source": "design_basis.earthing.fault_clearing_s"
+    },
+    {
+     "name": "k",
+     "value": 80.0,
+     "unit": "A s^0.5/mm2",
+     "source": "IS 3043 adiabatic sizing A = I sqrt(t) / k, k = 80 for GI, as quoted in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com"
+    },
+    {
+     "name": "corrosion allowance",
+     "value": 0.0,
+     "unit": "",
+     "source": "design_basis.earthing.corrosion_allowance"
+    }
+   ],
+   "source": "IS 3043 adiabatic sizing A = I sqrt(t) / k, k = 80 for GI, as quoted in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com",
+   "assumptions": []
+  },
+  {
+   "name": "ieee80_area",
+   "value": 103.7,
+   "unit": "mm2",
+   "formula": "A = I_kA Kf sqrt(tc) / 1.974",
+   "inputs": [
+    {
+     "name": "I",
+     "value": 10.0,
+     "unit": "kA",
+     "source": null
+    },
+    {
+     "name": "tc",
+     "value": 0.5,
+     "unit": "s",
+     "source": null
+    },
+    {
+     "name": "Kf",
+     "value": 28.96,
+     "unit": "",
+     "source": "IEEE Std 80 simplified sizing A_kcmil = I_kA Kf sqrt(tc), Kf = 28.96 for zinc-coated steel (Tm 419 C, Ta 40 C), A_kcmil = 1.974 A_mm2; IEEE 80 table as reproduced in 'Electrical Safety Practice and Standards', Table 8.3"
+    }
+   ],
+   "source": "IEEE Std 80 simplified sizing A_kcmil = I_kA Kf sqrt(tc), Kf = 28.96 for zinc-coated steel (Tm 419 C, Ta 40 C), A_kcmil = 1.974 A_mm2; IEEE 80 table as reproduced in 'Electrical Safety Practice and Standards', Table 8.3",
+   "assumptions": []
+  },
+  {
+   "name": "electrode_current",
+   "value": 570.8,
+   "unit": "A",
+   "formula": "I = 7.57 x 1000 / sqrt(rho t) x pi d L",
+   "inputs": [
+    {
+     "name": "rho",
+     "value": 50.0,
+     "unit": "ohm m",
+     "source": null
+    },
+    {
+     "name": "t",
+     "value": 0.5,
+     "unit": "s",
+     "source": null
+    },
+    {
+     "name": "d",
+     "value": 0.04,
+     "unit": "m",
+     "source": null
+    },
+    {
+     "name": "L",
+     "value": 3.0,
+     "unit": "m",
+     "source": null
+    }
+   ],
+   "source": "IS 3043 maximum current density at the electrode surface J = 7.57 x 1000 / sqrt(rho t) A/m2, as quoted in J. Parmar, part 1, electrical-engineering-portal.com",
+   "assumptions": []
+  },
+  {
+   "name": "pipe_resistance",
+   "value": 15.13,
+   "unit": "ohm",
+   "formula": "R = 100 rho / (2 pi L) ln(4 L / d), L and d in cm",
+   "inputs": [
+    {
+     "name": "rho",
+     "value": 50.0,
+     "unit": "ohm m",
+     "source": "design_basis.earthing.soil_resistivity_ohm_m"
+    },
+    {
+     "name": "L",
+     "value": 300.0,
+     "unit": "cm",
+     "source": null
+    },
+    {
+     "name": "d",
+     "value": 4.0,
+     "unit": "cm",
+     "source": null
+    }
+   ],
+   "source": "IS 3043 pipe or rod electrode R = 100 rho / (2 pi L) ln(4 L / d), L and d in cm, as quoted in J. Parmar, part 1, electrical-engineering-portal.com",
+   "assumptions": []
+  },
+  {
+   "name": "strip_resistance",
+   "value": 1.235,
+   "unit": "ohm",
+   "formula": "R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm",
+   "inputs": [
+    {
+     "name": "rho",
+     "value": 50.0,
+     "unit": "ohm m",
+     "source": null
+    },
+    {
+     "name": "L",
+     "value": 8943.800000000001,
+     "unit": "cm",
+     "source": null
+    },
+    {
+     "name": "w",
+     "value": 2.5,
+     "unit": "cm",
+     "source": null
+    },
+    {
+     "name": "t",
+     "value": 60.0,
+     "unit": "cm",
+     "source": null
+    }
+   ],
+   "source": "IS 3043 buried strip R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm, as quoted in J. Parmar, part 2, electrical-engineering-portal.com",
+   "assumptions": []
+  }
+ ],
+ "assumptions": [
+  "earth electrode 40 mm dia x 3 m long (as on the CIL/Refex earthing layout unless set)",
+  "pits spaced at least two electrode lengths apart are combined as parallel resistances, in parallel with the buried conductor",
+  "conductor sized to the larger of the IS 3043 (k = 80) and IEEE 80 (Kf = 28.96) cross-sections",
+  "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
+  "25x3 GS flat down conductors (practice; confirm against IS/IEC 62305-3 and NF C 17-102 minimum sections)",
+  "target earth resistance 2 ohm (commercial premises 2 ohm; earth resistance practice table in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com); not a cited limit, set target_resistance_ohm to override",
+  "earth resistance taken as the larger of the pits-and-strip value and the Sverak (IEEE 80) value for the buried network over its convex hull",
+  "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius"
+ ],
+ "warnings": [
+  "the buried network's area limits the earth resistance to about 2.03 ohm, above the 2 ohm target; more pits barely help"
+ ],
+ "lps": {
+  "method": "ese",
+  "level": "II",
+  "radius_m": 54.54,
+  "terminals": 3,
+  "tables_covered": 81,
+  "tables": 81,
+  "uncovered": 0
+ }
+}
