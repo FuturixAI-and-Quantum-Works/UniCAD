@@ -53,8 +53,12 @@ class TitleBlock:
         self.height = sum(r.height for r in self.rows)
 
     @property
+    def _lp(self) -> float:
+        return 0.6 * self.m.pad_y
+
+    @property
     def _label_strip(self) -> float:
-        return self.m.pad_y + 1.3 * self.m.lbl
+        return 1.3 * self.m.lbl + 2 * self._lp
 
     def _fmt_date(self, d) -> str:
         return d.strftime(self.profile.date_format) if d else ""
@@ -66,13 +70,13 @@ class TitleBlock:
                   align: str = "left") -> None:
         m, cv = self.m, self.cv
         cv.put(T, Region(cell.x0, cell.y1 - self._label_strip, cell.x1, cell.y1), label, m.lbl,
-               pad_x=m.pad_x, pad_y=m.pad_y / 2)
-        body = Region(cell.x0, cell.y0, cell.x1, cell.y1 - self._label_strip + m.pad_y / 2)
+               pad_x=m.pad_x, pad_y=self._lp)
+        body = Region(cell.x0, cell.y0, cell.x1, cell.y1 - self._label_strip + self._lp)
         cv.put(T, body, value, vh, max_lines=max_lines, pad_x=m.pad_x, pad_y=m.pad_y, align=align)
 
     def _labelled_height(self, width: float, value: str, vh: float, max_lines: int) -> float:
         f = self._value_block(value, width, vh, max_lines)
-        return self._label_strip + self.m.pad_y / 2 + f.block_height + 2 * self.m.pad_y
+        return self._label_strip - self._lp + f.block_height + 2 * self.m.pad_y
 
     def _plan(self) -> list[Row]:
         m, d, th = self.m, self.data, self.m.th
@@ -179,7 +183,7 @@ class TitleBlock:
             (roles.approved, d.approved_by, d.approved_date),
         ]
         date_h = 0.85 * th
-        height = self._label_strip + m.pad_y / 2 + (1.3 * th) + (1.3 * date_h) + 0.2 * th + 2 * m.pad_y
+        height = self._label_strip - self._lp + (1.3 * th) + (1.3 * date_h) + 0.2 * th + 2 * m.pad_y
 
         def draw(top: float) -> None:
             cv = self.cv
@@ -188,8 +192,8 @@ class TitleBlock:
                 if i:
                     cv.vline(T, x0, cell.y0, cell.y1)
                 cv.put(T, Region(x0, top - self._label_strip, x1, top), role, m.lbl,
-                       pad_x=m.pad_x, pad_y=m.pad_y / 2)
-                body_top = top - self._label_strip + m.pad_y / 2
+                       pad_x=m.pad_x, pad_y=self._lp)
+                body_top = top - self._label_strip + self._lp
                 name_cell = Region(x0, body_top - 1.3 * th - m.pad_y, x1, body_top)
                 cv.put(T, name_cell, name, th, pad_x=m.pad_x, pad_y=m.pad_y / 2)
                 date_cell = Region(x0, cell.y0, x1, name_cell.y0)
@@ -206,7 +210,7 @@ class TitleBlock:
             ("PAPER SIZE", d.paper.value),
             ("REV", d.revision),
         ]
-        height = self._label_strip + m.pad_y / 2 + 1.3 * th + 2 * m.pad_y
+        height = self._label_strip - self._lp + 1.3 * th + 2 * m.pad_y
 
         def draw(top: float) -> None:
             for i, ((x0, x1), (label, value)) in enumerate(zip(cols, cells, strict=True)):
@@ -225,22 +229,23 @@ class TitleBlock:
         def draw(top: float) -> None:
             cv = self.cv
             cv.put(T, Region(self.x0, top - self._label_strip, self.x1, top), "DRAWING ISSUED FOR",
-                   m.lbl, pad_x=m.pad_x, pad_y=m.pad_y / 2)
+                   m.lbl, pad_x=m.pad_x, pad_y=self._lp)
             cols = self._columns([1] * len(options))
             y1 = top - self._label_strip
             for (x0, x1), opt in zip(cols, options, strict=True):
                 cell = Region(x0, top - height, x1, y1)
                 bx0 = x0 + m.pad_x
-                by0 = cell.y0 + m.pad_y + (cell.height - 2 * m.pad_y - box) / 2 - m.pad_y / 2
-                b = Region(bx0, by0, bx0 + box, by0 + box)
+                cy = (cell.y0 + y1) / 2
+                b = Region(bx0, cy - box / 2, bx0 + box, cy + box / 2)
                 cv.rect(T, b)
                 if opt == d.issued_for:
                     cv.line(T, (b.x0 + 0.2 * box, b.y0 + 0.5 * box), (b.x0 + 0.42 * box, b.y0 + 0.2 * box),
                             heavy=True)
                     cv.line(T, (b.x0 + 0.42 * box, b.y0 + 0.2 * box), (b.x0 + 0.85 * box, b.y0 + 0.85 * box),
                             heavy=True)
-                label_cell = Region(b.x1 + 0.3 * th, cell.y0, x1 - 0.2 * th, y1)
-                cv.put(T, label_cell, opt.value, m.lbl, valign="middle", pad_y=0.05 * th)
+                label_cell = Region(b.x1 + 0.5 * th, cell.y0, x1 - 0.2 * th, y1)
+                f = fit(opt.value, label_cell.width, m.lbl, max_lines=1)
+                cv.text(T, opt.value, label_cell.x0, cy - f.height / 2, f.height, f.width_factor, label_cell)
 
         return Row(height, draw)
 

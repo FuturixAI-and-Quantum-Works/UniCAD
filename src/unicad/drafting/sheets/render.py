@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from ezdxf.document import Drawing
 from ezdxf.enums import InsertUnits
 
-from unicad.drafting.sheets.canvas import Canvas, LayoutOverflow, Region, TextCell
+from unicad.drafting.sheets.canvas import EPS, Canvas, LayoutOverflow, Region, TextCell
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
 from unicad.drafting.sheets.tables import LegendSlot, Section, Tables
@@ -12,7 +12,7 @@ from unicad.drafting.sheets.titleblock import TitleBlock
 __all__ = ["LayoutOverflow", "LegendSlot", "Region", "RenderedSheet", "TextCell", "render_sheet"]
 
 F = LayerRole.FRAME
-_SCALE_STEPS = (1.0, 0.95, 0.9, 0.85, 0.8, 0.75)
+_SCALE_STEPS = (1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6)
 _MIN_REV_ROWS = 3
 _MAX_REV_SHARE = 0.3
 
@@ -72,6 +72,18 @@ def _draw_frame(cv: Canvas, m: SheetMetrics) -> None:
                        pad_x=0.2 * m.th, pad_y=0.2 * m.th)
 
 
+def _water_fill(natural: dict[str, float], room: float) -> dict[str, float]:
+    """Give every section its natural height if the equal share covers it, else the share."""
+    budgets: dict[str, float] = {}
+    left = room
+    pending = sorted(natural, key=natural.__getitem__)
+    for i, name in enumerate(pending):
+        share = left / (len(pending) - i)
+        budgets[name] = min(natural[name], share)
+        left -= budgets[name]
+    return budgets
+
+
 def _plan_top_sections(t: Tables, spec: SheetSpec, room: float) -> list[Section]:
     def build(f: float, budgets: dict[str, float] | None) -> list[Section]:
         def b(name: str) -> float | None:
@@ -92,8 +104,16 @@ def _plan_top_sections(t: Tables, spec: SheetSpec, room: float) -> list[Section]
             return sections
     f = _SCALE_STEPS[-1]
     natural = build(f, None)
-    total = sum(s.height for s in natural)
-    return build(f, {s.name: room * s.height / total for s in natural})
+    budgets = _water_fill({s.name: s.height for s in natural}, room)
+    for _ in range(5):
+        sections = build(f, budgets)
+        spare = room - sum(s.height for s in sections)
+        short = [s for s in sections if s.omitted]
+        if spare <= EPS or not short:
+            break
+        for s in short:
+            budgets[s.name] = s.height + spare / len(short)
+    return sections
 
 
 def render_sheet(doc: Drawing, spec: SheetSpec, profile: CompanyProfile) -> RenderedSheet:
@@ -115,7 +135,7 @@ def render_sheet(doc: Drawing, spec: SheetSpec, profile: CompanyProfile) -> Rend
 
     rev_top = col.y0 + tb.height
     rev_rows = max(_MIN_REV_ROWS, len(spec.revisions))
-    row_h = 2.8 * m.th
+    row_h = 3.0 * m.th
     cap = max(1, int((col.height - tb.height) * _MAX_REV_SHARE // row_h))
     rev_rows = min(rev_rows, cap)
     revisions = tables.revisions(spec.revisions, rev_rows, profile.date_format)

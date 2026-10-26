@@ -45,7 +45,7 @@ class SheetMetrics:
 
     @property
     def pad_y(self) -> float:
-        return 0.4 * self.th
+        return 0.5 * self.th
 
 
 def metrics_for(paper: PaperSize) -> SheetMetrics:
