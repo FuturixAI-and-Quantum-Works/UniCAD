@@ -80,7 +80,7 @@ class Report(_Frozen):
         c = self.counts
         lines = [f"{self.project_id}: {c['error']} error, {c['warning']} warning, {c['info']} info ({len(self.rules)} rules)"]
         for f in self.findings:
-            extra = f" [{f.measured:g} vs {f.limit:g} {f.unit or ''}]".rstrip() if f.measured is not None and f.limit is not None else ""
+            extra = f" [{f.measured:g} vs {f.limit:g}{' ' + f.unit if f.unit else ''}]" if f.measured is not None and f.limit is not None else ""
             lines.append(f"  {f.severity.value.upper():7} {f.rule_id}: {f.message}{extra}")
         return "\n".join(lines)
 
