@@ -3,7 +3,7 @@
     "id": "sungrow-st5015kwh",
     "manufacturer": "Sungrow",
     "model": "ST5015kWh",
-    "symbol": "bess.container",
+    "symbol": "bat.bess",
     "source": {
       "kind": "datasheet",
       "ref": "raw/datasheets/bess/Sungrow_PowerTitan2_ST5015kWh_DS_V3.pdf p.2; references/catalog-sources/extracted/bess_pcs_datasheets.csv row 2; nominal voltage = series cells x cell voltage; datasheet gives no DC current",

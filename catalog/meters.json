@@ -3,7 +3,7 @@
     "id": "generic-meter-abt-ct_pt-0.2s",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "ABT meter CT_PT class 0.2S",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.abt",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -18,7 +18,7 @@
     "id": "generic-meter-check-ct_pt-0.2s",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Check meter CT_PT class 0.2S",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.kwh",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -33,7 +33,7 @@
     "id": "generic-meter-generation-ct-0.5s",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Generation meter CT class 0.5S",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.kwh",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -48,7 +48,7 @@
     "id": "generic-meter-generation-ct_pt-0.5s",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Generation meter CT_PT class 0.5S",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.kwh",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -63,7 +63,7 @@
     "id": "generic-meter-generation-direct-1.0",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Generation meter DIRECT class 1.0",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.kwh",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -78,7 +78,7 @@
     "id": "generic-meter-net-ct-0.5s",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Net meter CT class 0.5S",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.net_meter",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -93,7 +93,7 @@
     "id": "generic-meter-net-ct_pt-0.5s",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Net meter CT_PT class 0.5S",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.net_meter",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",
@@ -108,7 +108,7 @@
     "id": "generic-meter-net-direct-1.0",
     "manufacturer": "Generic (CEA metering regulations)",
     "model": "Net meter DIRECT class 1.0",
-    "symbol": "inst.energy_meter",
+    "symbol": "inst.net_meter",
     "source": {
       "kind": "standard",
       "ref": "CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. Interface meters 0.2S; consumer meters up to 650 V 1.0 (direct) or 0.5S (CT-operated), above 650 V to 33 kV 0.5S, above 33 kV 0.2S",

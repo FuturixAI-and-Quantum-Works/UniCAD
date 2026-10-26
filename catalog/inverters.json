@@ -81,7 +81,7 @@
     "id": "sma-sc-4000-up",
     "manufacturer": "SMA",
     "model": "SC 4000 UP",
-    "symbol": "inv.string",
+    "symbol": "inv.central",
     "source": {
       "kind": "datasheet",
       "ref": "raw/datasheets/inverters/SMA_SunnyCentral_4xxxUP_DS-en-33.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 13",
@@ -107,7 +107,7 @@
     "id": "sma-sc-4400-up",
     "manufacturer": "SMA",
     "model": "SC 4400 UP",
-    "symbol": "inv.string",
+    "symbol": "inv.central",
     "source": {
       "kind": "datasheet",
       "ref": "raw/datasheets/inverters/SMA_SunnyCentral_4xxxUP_DS-en-33.pdf p.3; references/catalog-sources/extracted/inverter_datasheets.csv row 11",
@@ -133,7 +133,7 @@
     "id": "sma-sc-4600-up",
     "manufacturer": "SMA",
     "model": "SC 4600 UP",
-    "symbol": "inv.string",
+    "symbol": "inv.central",
     "source": {
       "kind": "datasheet",
       "ref": "raw/datasheets/inverters/SMA_SunnyCentral_4xxxUP_DS-en-33.pdf p.3; references/catalog-sources/extracted/inverter_datasheets.csv row 12",

@@ -27,6 +27,17 @@ class Spec(BaseModel):
     symbol: str
     source: Source
 
+    @model_validator(mode="before")
+    @classmethod
+    def _default_symbol(cls, data: object) -> object:
+        if isinstance(data, dict) and not data.get("symbol"):
+            return {**data, "symbol": cls.symbol_for(data)}
+        return data
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        raise NotImplementedError
+
 
 class CellTech(StrEnum):
     MONO_PERC = "mono_perc"
@@ -39,7 +50,11 @@ class CellTech(StrEnum):
 
 class ModuleSpec(Spec):
     kind: Literal["module"] = "module"
-    symbol: str = "pv.module"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "pv.module"
+
     pmax: Watts
     voc: Volts
     isc: Amps
@@ -71,7 +86,11 @@ class ModuleSpec(Spec):
 
 class InverterSpec(Spec):
     kind: Literal["inverter"] = "inverter"
-    symbol: str = "inv.string"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return {"string": "inv.string", "central": "inv.central", "micro": "inv.micro", "hybrid": "inv.pcs"}[data["topology"]]
+
     topology: Literal["string", "central", "micro", "hybrid"]
     ac_rated_kva: KVA
     ac_max_kva: KVA
@@ -98,7 +117,11 @@ class InverterSpec(Spec):
 
 class BatterySpec(Spec):
     kind: Literal["battery"] = "battery"
-    symbol: str = "bess.container"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "bat.bess"
+
     chemistry: Literal["lfp", "nmc", "lead_acid"]
     energy_kwh: float = Field(gt=0)
     nominal_voltage: Volts
@@ -109,7 +132,11 @@ class BatterySpec(Spec):
 
 class PCSSpec(Spec):
     kind: Literal["pcs"] = "pcs"
-    symbol: str = "inv.pcs"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "inv.pcs"
+
     rated_kva: KVA
     ac_voltage: Volts
     dc_voltage_min: Volts
@@ -118,7 +145,11 @@ class PCSSpec(Spec):
 
 class TransformerSpec(Spec):
     kind: Literal["transformer"] = "transformer"
-    symbol: str = "tx.two_winding"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "tx.power_3w" if len(data.get("lv_kv", ())) > 1 else "tx.power_2w"
+
     rated_kva: KVA
     hv_kv: float = Field(gt=0)
     lv_kv: tuple[float, ...] = Field(min_length=1)
@@ -135,7 +166,11 @@ class Conductor(StrEnum):
 
 class CableSpec(Spec):
     kind: Literal["cable"] = "cable"
-    symbol: str = "ann.cable_tag"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "ann.cable_tag"
+
     service: Literal["dc_solar", "lv_ac", "mv_ac", "earthing", "control"]
     conductor: Conductor
     cores: int = Field(gt=0)
@@ -152,9 +187,29 @@ class CableSpec(Spec):
         return f"{self.cores}C x {self.size_mm2:g} sq.mm {self.conductor.value.capitalize()} {self.insulation.upper()}{' ARM' if self.armoured else ''}"
 
 
+PROTECTION_SYMBOLS = {
+    "mcb": "sw.mcb",
+    "mccb": "sw.mccb",
+    "acb": "sw.acb",
+    "vcb": "sw.vcb",
+    "rccb": "sw.rccb",
+    "fuse_gpv": "dc.fuse",
+    "fuse_hrc": "sw.hrc_fuse",
+    "dc_isolator": "dc.isolator",
+    "ac_isolator": "sw.isolator",
+    "spd_dc": "dc.spd",
+    "spd_ac": "prot.spd_ac",
+    "sfu": "sw.switch_fuse",
+}
+
+
 class ProtectionSpec(Spec):
     kind: Literal["protection"] = "protection"
-    symbol: str | None = None
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return PROTECTION_SYMBOLS[data["device"]]
+
     device: Literal["mcb", "mccb", "acb", "vcb", "rccb", "fuse_gpv", "fuse_hrc", "dc_isolator", "ac_isolator", "spd_dc", "spd_ac", "sfu"]
     rated_current: Amps | None = None
     rated_voltage: Volts
@@ -166,7 +221,11 @@ class ProtectionSpec(Spec):
 
 class MeterSpec(Spec):
     kind: Literal["meter"] = "meter"
-    symbol: str = "inst.energy_meter"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return {"net": "inst.net_meter", "generation": "inst.kwh", "abt": "inst.abt", "check": "inst.kwh"}[data["function"]]
+
     function: Literal["net", "generation", "abt", "check"]
     accuracy_class: str
     connection: Literal["direct", "ct", "ct_pt"]
