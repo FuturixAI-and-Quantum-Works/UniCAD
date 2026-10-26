@@ -1,0 +1,136 @@
+{
+ "project_id": "rooftop-500kwp-acme",
+ "revision": 6,
+ "sheet_count": 11,
+ "warnings": [],
+ "previews": {
+  "register": "preview/01-ACME_DIPL_R500A_EL_000-full-2400.png",
+  "sld": "preview/02-ACME_DIPL_R500A_EL_001-full-2400.png",
+  "layout": "preview/03-ACME_DIPL_R500A_EL_101-full-2400.png",
+  "earthing": "preview/04-ACME_DIPL_R500A_EL_301-full-2400.png",
+  "lps": "preview/05-ACME_DIPL_R500A_EL_302-full-2400.png",
+  "strings": "preview/06-ACME_DIPL_R500A_EL_401-full-2400.png",
+  "cable_schedule": "preview/08-ACME_DIPL_R500A_EL_501-full-2400.png",
+  "bom": "preview/11-ACME_DIPL_R500A_EL_601-full-2400.png"
+ },
+ "sheets": [
+  {
+   "number": "ACME/DIPL/R500A/EL/000",
+   "kind": "register",
+   "title": "DRAWING REGISTER",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "1 of 11",
+   "kind_sheet_of": "1 of 1",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/001",
+   "kind": "sld",
+   "title": "SINGLE LINE DIAGRAM",
+   "paper": "A1",
+   "drawing_scale": "NTS",
+   "sheet_of": "2 of 11",
+   "kind_sheet_of": "1 of 1",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/101",
+   "kind": "layout",
+   "title": "ROOFTOP SOLAR PV MODULE LAYOUT",
+   "paper": "A3",
+   "drawing_scale": "1:1000",
+   "sheet_of": "3 of 11",
+   "kind_sheet_of": "1 of 1",
+   "warnings": [
+    "label rooftop-ahu-2 found no room on the plan"
+   ]
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/301",
+   "kind": "earthing",
+   "title": "EARTHING LAYOUT",
+   "paper": "A2",
+   "drawing_scale": "1:750",
+   "sheet_of": "4 of 11",
+   "kind_sheet_of": "1 of 1",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/302",
+   "kind": "lps",
+   "title": "LIGHTNING ARRESTER (LA) LAYOUT",
+   "paper": "A3",
+   "drawing_scale": "1:1000",
+   "sheet_of": "5 of 11",
+   "kind_sheet_of": "1 of 1",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/401",
+   "kind": "strings",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (1/2)",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "6 of 11",
+   "kind_sheet_of": "1 of 2",
+   "warnings": [
+    "text 'plan key' leaves the drawing area",
+    "text 'plan key 2' leaves the drawing area"
+   ]
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/402",
+   "kind": "strings",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (2/2)",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "7 of 11",
+   "kind_sheet_of": "2 of 2",
+   "warnings": [
+    "text 'plan key' leaves the drawing area",
+    "text 'plan key 2' leaves the drawing area"
+   ]
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/501",
+   "kind": "cable_schedule",
+   "title": "DC CABLE SCHEDULE (PART 1 OF 2)",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "8 of 11",
+   "kind_sheet_of": "1 of 3",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/502",
+   "kind": "cable_schedule",
+   "title": "DC CABLE SCHEDULE (PART 2 OF 2)",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "9 of 11",
+   "kind_sheet_of": "2 of 3",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/503",
+   "kind": "cable_schedule",
+   "title": "AC CABLE SCHEDULE",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "10 of 11",
+   "kind_sheet_of": "3 of 3",
+   "warnings": []
+  },
+  {
+   "number": "ACME/DIPL/R500A/EL/601",
+   "kind": "bom",
+   "title": "BILL OF MATERIALS",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "11 of 11",
+   "kind_sheet_of": "1 of 1",
+   "warnings": []
+  }
+ ]
+}

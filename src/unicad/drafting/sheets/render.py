@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 from ezdxf.document import Drawing
@@ -7,6 +8,8 @@ from unicad.drafting.sheets.canvas import EPS, Canvas, LayoutOverflow, Region, T
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
 from unicad.drafting.sheets.tables import LegendSlot, Section, SymbolDrawer, Tables
+from unicad.drafting.sheets.symbol_override import apply_symbol_overrides
+from unicad.drafting.sheets.template import ImportedTitleBlock, load_template
 from unicad.drafting.sheets.titleblock import TitleBlock
 
 __all__ = ["LayoutOverflow", "LegendSlot", "Region", "RenderedSheet", "TextCell", "render_sheet"]
@@ -28,7 +31,7 @@ class RenderedSheet:
     text_cells: tuple[TextCell, ...]
 
 
-def _prepare(doc: Drawing, profile: CompanyProfile) -> None:
+def _prepare(doc: Drawing, profile: CompanyProfile) -> list[str]:
     dxfrules.prepare(doc)
     font = profile.text_font if "." in profile.text_font else f"{profile.text_font}.shx"
     if profile.text_style in doc.styles:
@@ -42,6 +45,18 @@ def _prepare(doc: Drawing, profile: CompanyProfile) -> None:
         if spec.name in doc.layers:
             continue
         doc.layers.add(spec.name, color=spec.colour, linetype=spec.linetype, lineweight=spec.lineweight)
+    return apply_symbol_overrides(doc, profile) if profile.symbol_overrides else []
+
+
+def _title_block(cv: Canvas, m: SheetMetrics, doc: Drawing, spec: SheetSpec, profile: CompanyProfile, x0: float, x1: float) -> TitleBlock | ImportedTitleBlock:
+    choice = profile.title_block
+    if choice.kind == "imported":
+        nearest = min(choice.templates, key=lambda p: abs(math.log(p.width * p.height / (spec.paper.width * spec.paper.height))))
+        try:
+            return ImportedTitleBlock(cv, m, doc, spec.title_block, profile, x0, x1, load_template(choice.templates[nearest]))
+        except (ValueError, OSError) as exc:
+            cv.warnings.append(f"imported title block not used, built-in one drawn: {exc}")
+    return TitleBlock(cv, m, doc, spec.title_block, profile, x0, x1)
 
 
 def _draw_frame(cv: Canvas, m: SheetMetrics) -> None:
@@ -135,13 +150,14 @@ def render_sheet(
     coordinates (docs/compat.md), so nothing goes into paperspace and every generator works
     in paper millimetres (symbols included).
     """
-    _prepare(doc, profile)
+    notes = _prepare(doc, profile)
     m = metrics_for(spec.paper)
     cv = Canvas(doc, profile)
+    cv.warnings.extend(notes)
     _draw_frame(cv, m)
 
     col = m.column
-    tb = TitleBlock(cv, m, doc, spec.title_block, profile, col.x0, col.x1)
+    tb = _title_block(cv, m, doc, spec, profile, col.x0, col.x1)
     tb.draw(col.y0)
     tables = Tables(cv, m, col.x0, col.x1, draw_symbol)
 

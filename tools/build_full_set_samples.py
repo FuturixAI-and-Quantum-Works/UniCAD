@@ -2,6 +2,8 @@
 
   rooftop_500kwp   the 500 kWp rooftop fixture + the Pune roof site + layout_place + earthing and lightning inputs
   utility_string   project_create + the Rajasthan site + layout_place + network_autobuild (string inverters) + earthing and lightning inputs
+  rooftop_acme     the rooftop fixture without its issued sheets, as a new project of the bundled Acme Solar EPC profile (company_assign:
+                   its title block, numbers, layers, symbols), then the same flow as rooftop_500kwp
 
 then drawings_render(kinds=["all"]). Per sample, library/sets/<name>/ holds every sheet as DXF and PDF, set.pdf, index.json and a PNG of
 the register and of the first sheet of each kind (preview/). Earthing, lightning and fault-level inputs are illustrative sample values,
@@ -55,11 +57,11 @@ def server_params(workspace: Path) -> StdioServerParameters:
     return StdioServerParameters(command=sys.executable, args=["-m", "unicad"], env=env)
 
 
-def store_fixture(workspace: Path, name: str) -> str:
+def store_fixture(workspace: Path, name: str, **update) -> str:
     from unicad.catalog.store import load_catalog
     from unicad.store import ProjectStore, parse_project
 
-    p = parse_project((ROOT / "fixtures" / "projects" / f"{name}.json").read_text(encoding="utf-8"), load_catalog())
+    p = parse_project((ROOT / "fixtures" / "projects" / f"{name}.json").read_text(encoding="utf-8"), load_catalog()).model_copy(update=update)
     ProjectStore(workspace).save(p)
     return p.id
 
@@ -88,6 +90,11 @@ async def utility(c: Client) -> str:
     return pid
 
 
+async def rooftop_acme(c: Client, pid: str) -> str:
+    await c.call("company_assign", project_id=pid, profile_id="acme")
+    return await rooftop(c, pid)
+
+
 async def render_all(c: Client, pid: str, formats=("dxf", "pdf")) -> dict:
     return await c.call("drawings_render", project_id=pid, kinds=["all"], formats=list(formats))
 
@@ -112,7 +119,8 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="unicad-sets-") as tmp:
         ws = Path(tmp)
         roof_id = store_fixture(ws, "rooftop_500kwp")
-        samples = {"rooftop_500kwp": lambda c: rooftop(c, roof_id), "utility_string": utility}
+        acme_id = store_fixture(ws, "rooftop_500kwp", id="rooftop-500kwp-acme", sheets=())
+        samples = {"rooftop_500kwp": lambda c: rooftop(c, roof_id), "utility_string": utility, "rooftop_acme": lambda c: rooftop_acme(c, acme_id)}
         for name, flow in samples.items():
             r = asyncio.run(build(ws, name, flow))
             dest = OUT / name

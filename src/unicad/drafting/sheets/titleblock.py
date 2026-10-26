@@ -36,6 +36,23 @@ def import_logo(doc: Drawing, profile: CompanyProfile) -> tuple[str, Region] | N
     return name, Region(box.extmin.x, box.extmin.y, box.extmax.x, box.extmax.y)
 
 
+def place_logo(cv: Canvas, doc: Drawing, profile: CompanyProfile, cell: Region) -> bool:
+    """Draw the profile's logo block centred in `cell`, as large as fits; False when the profile has no usable logo."""
+    logo = import_logo(doc, profile)
+    if logo is None:
+        return False
+    name, box = logo
+    scale = min(cell.width / box.width, cell.height / box.height)
+    cx, cy = cell.centre
+    bx, by = box.centre
+    cv.msp.add_blockref(
+        name,
+        (cx - bx * scale, cy - by * scale),
+        dxfattribs={"layer": profile.layer(T).name, "xscale": scale, "yscale": scale, "zscale": scale},
+    )
+    return True
+
+
 class TitleBlock:
     def __init__(
         self,
@@ -122,22 +139,10 @@ class TitleBlock:
     def _draw_logo(self, cell: Region) -> None:
         m, cv = self.m, self.cv
         inner = cell.inset(0.8 * m.th)
-        logo = import_logo(self.doc, self.profile)
-        if logo is None:
+        if not place_logo(cv, self.doc, self.profile, inner):
             cv.rect(T, inner)
             cv.put(T, inner, self.profile.short_code, 1.4 * m.th, align="center", valign="middle",
                    pad_x=0.3 * m.th, pad_y=0.3 * m.th)
-            return
-        name, box = logo
-        scale = min(inner.width / box.width, inner.height / box.height)
-        cx, cy = inner.centre
-        bx, by = box.centre
-        cv.msp.add_blockref(
-            name,
-            (cx - bx * scale, cy - by * scale),
-            dxfattribs={"layer": self.profile.layer(T).name, "xscale": scale, "yscale": scale,
-                        "zscale": scale},
-        )
 
     def _kv_row(self, label: str, value: str, max_lines: int, kv_w: float) -> Row:
         m = self.m

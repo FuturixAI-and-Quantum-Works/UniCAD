@@ -15,7 +15,8 @@ from unicad.render import LibreCadRenderer, RenderError, Sheet
 from unicad.routing import RouteAssumptions
 from unicad.schedules import LengthMode, Schedule, build_bom, build_schedule, write_bom_xlsx, write_schedule_xlsx
 from unicad.schedules.bom import DEFAULT_WASTAGE_PCT
-from unicad.schedules.dxf import load_profile, render_bom, render_schedule
+from unicad.schedules.dxf import render_bom, render_schedule
+from unicad.tenants.store import load_profile
 
 Format = Annotated[Literal["xlsx", "dxf", "pdf"], Field(description="xlsx: one row per cable or item; dxf: company-sheet pages, one DXF each; pdf: those pages printed through LibreCAD into one PDF")]
 OutDir = Annotated[str | None, Field(description="Directory to write into; default <workspace>/<project_id>/exports")]
@@ -97,7 +98,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         if format == "xlsx":
             files = [write_schedule_xlsx(schedule, out / f"{stem}.xlsx")]
         else:
-            render, titles = render_schedule(project, schedule, load_profile(project.company_profile), detail)
+            render, titles = render_schedule(project, schedule, load_profile(project.company_profile, ws.config.workspace), detail)
             files = _write_pages(render, out, stem, titles, format)
             result |= {"pages": render.pages, "layout_warnings": list(render.warnings)}
         return result | {"files": [str(f) for f in files]} | _summary(project, schedule)
@@ -126,7 +127,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         if format == "xlsx":
             files = [write_bom_xlsx(bill, out / f"{stem}.xlsx")]
         else:
-            render = render_bom(project, bill, load_profile(project.company_profile))
+            render = render_bom(project, bill, load_profile(project.company_profile, ws.config.workspace))
             files = _write_pages(render, out, stem, ["BILL OF MATERIALS"], format)
             result |= {"pages": render.pages, "layout_warnings": list(render.warnings)}
         return result | {"files": [str(f) for f in files], "summary": bill.summary(), "warnings": list(bill.warnings), "assumptions": list(bill.assumptions)}

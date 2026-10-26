@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from unicad.catalog.store import Catalog, load_catalog
 from unicad.domain.project import Project, Sheet
+from unicad.drafting.sheets.layermap import apply_layer_map
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.sld.sheet import save_deterministic
 from unicad.render import DwgConverter, LibreCadRenderer, RenderError, Renderer
@@ -133,6 +134,7 @@ def render_set(
     for i, (kind, b) in enumerate(built, start=1):
         seen[kind] = seen.get(kind, 0) + 1
         stem = _file_stem(i, b.sheet)
+        warnings += apply_layer_map(b.doc, profile)
         dxf = out_dir / f"{stem}.dxf"
         save_deterministic(b.doc, dxf)
         entries.append({

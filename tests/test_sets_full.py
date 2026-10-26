@@ -1,5 +1,6 @@
 """Complete drawing sets: drawing-number blocks, the register against the set it lists, kinds a project cannot draw yet."""
 
+import re
 from pathlib import Path
 
 import ezdxf
@@ -8,10 +9,12 @@ import pytest
 from test_design import CATALOG
 from test_sets import PROFILE, fixture
 from unicad.domain.project import SheetKind
+from unicad.drafting.sheets.model import Numbering
 from unicad.drafting.sld import SldOptions
 from unicad.earthing.samples import pune
 from unicad.sets import ALL_KINDS, SldBuilder, plan_set, render_set
 from unicad.sets.numbering import Numberer
+from unicad.sets.render import load_profile
 
 
 @pytest.fixture(scope="module")
@@ -42,7 +45,7 @@ def test_fresh_numbers_come_from_one_block_per_kind_and_lps_follows_earthing(roo
 
 def test_fresh_numbers_skip_the_project_numbers_and_use_a_kind_discipline_code(roof):
     used = Numberer.for_project(roof, PROFILE)
-    assert {s.number for s in roof.sheets} <= used.used and used.fresh("sld") not in {s.number for s in roof.sheets}
+    assert {s.number for s in roof.sheets} <= set(used.issued) and used.fresh("sld") not in {s.number for s in roof.sheets}
     civil = PROFILE.model_copy(update={"discipline_codes": {**PROFILE.discipline_codes, "layout": "CE"}})
     n = Numberer.for_project(roof.model_copy(update={"sheets": ()}), civil)
     assert n.fresh("layout").endswith("-CE-101") and n.fresh("sld").endswith("-EE-001")
@@ -107,3 +110,45 @@ def test_split_sld_pieces_are_numbered_right_after_the_sheet_they_come_from():
     sheets = SldBuilder(SldOptions(min_scale=2.0, max_scale=3.0)).plan(p, PROFILE, CATALOG, Numberer.for_project(p, PROFILE))
     seqs = [int(s.number.rsplit("-", 1)[1]) for s in sheets]
     assert len(sheets) > 2 and seqs == list(range(1, len(sheets) + 1))
+
+
+ACME = load_profile("acme")
+
+
+def test_a_discipline_start_moves_every_kind_block_with_it(roof):
+    p = PROFILE.model_copy(update={"numbering": Numbering(per_discipline=True, start={"electrical": 1001, "civil": 101}), "discipline_codes": {**PROFILE.discipline_codes, "civil": "CE"}})
+    n = Numberer.for_project(roof.model_copy(update={"sheets": ()}), p)
+    got = {k: n.fresh(k).rsplit("-", 1)[1] for k in ("register", "sld", "layout", "earthing", "lps", "strings", "cable_schedule", "bom", "civil")}
+    assert got == {
+        "register": "1000", "sld": "1001", "layout": "1101", "earthing": "1301", "lps": "1302", "strings": "1401", "cable_schedule": "1501", "bom": "1601", "civil": "101",
+    }  # fmt: skip
+    without = PROFILE.model_copy(update={"numbering": Numbering(per_discipline=False, start={"electrical": 1001})})
+    assert Numberer.for_project(roof.model_copy(update={"sheets": ()}), without).fresh("layout").endswith("-101")
+
+
+@pytest.fixture(scope="module")
+def acme_set(roof, tmp_path_factory):
+    out = tmp_path_factory.mktemp("acme")
+    return out, render_set(roof.model_copy(update={"sheets": (), "company_profile": "acme"}), out, kinds=ALL_KINDS, formats=("dxf",), profile=ACME, catalog=CATALOG)
+
+
+def test_the_acme_set_numbers_every_kind_from_the_same_blocks_under_its_pattern(acme_set):
+    _, index = acme_set
+    numbers = [s["number"] for s in index.sheets]
+    assert all(re.fullmatch(r"ACME/[^/]+/[^/]+/EL/\d{3}", n) for n in numbers), numbers
+    first = {}
+    for s in index.sheets:
+        first.setdefault(s["kind"], s["number"].rsplit("/", 1)[1])
+    assert first == {"register": "000", "sld": "001", "layout": "101", "earthing": "301", "lps": "302", "strings": "401", "cable_schedule": "501", "bom": "601"}
+
+
+def test_the_company_layer_map_applies_to_every_sheet_kind(acme_set):
+    out, index = acme_set
+    moved = set()
+    for s in index.sheets:
+        doc = ezdxf.readfile(out / s["files"]["dxf"])
+        layers = {e.dxf.layer for space in (doc.modelspace(), *doc.blocks) for e in space}
+        assert not layers & set(ACME.layer_map), (s["kind"], layers & set(ACME.layer_map))
+        if layers & {spec.name for spec in ACME.layer_map.values()}:
+            moved.add(s["kind"])
+    assert moved - {"sld"}, moved

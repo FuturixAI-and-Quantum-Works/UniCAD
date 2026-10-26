@@ -10,13 +10,14 @@ The server hands the same workflow to every MCP client in two places: the instru
 UniCAD builds Indian (IS/CEA) solar EPC drawing sets from a typed project model. You state engineering intent through tools; drawings are deterministic renders of the model. Never give drawing coordinates. Site and layout coordinates are local metres produced by the site and layout tools.
 
 Workflow, in order. Every edit returns the new revision and a `problems` list; read it before the next step.
-1. project_create(name, client, segment, site, grid_voltage_v). Read the `assumptions` it returns: they are placeholders, replace them with site data when the user has it. project_list / project_get show what exists.
+0. Company: company_list shows the profiles (title block, drawing numbering, layers, symbols, rule thresholds). For a new company run company_onboard(dxf_path, answers) with its DXF and questionnaire, fix what it reports as failed, and check the result with company_preview_sheet.
+1. project_create(name, client, segment, site, grid_voltage_v). Read the `assumptions` it returns: they are placeholders, replace them with site data when the user has it. company_assign(project_id, profile_id) puts the project on the company's profile. project_list / project_get show what exists.
 2. site_import(project_id, file_path) from KML, KMZ, GeoJSON, DXF or a coordinate list; site_set_feature / site_remove_feature fix what the survey missed; site_set_setbacks takes clearances from the design basis (none are assumed); site_summary shows the buildable area.
 3. layout_place(project_id, module, ...) puts tables on the buildable area, splits them into inverter blocks and assigns strings. layout_summary and layout_blocks read the result. design_strings sizes a string for a module and inverter before you commit to one.
 4. network_autobuild(project_id, template, ac_kw or dc_kwp, module, inverter) builds the complete electrical network from intent and links layout strings. Use catalog_search / catalog_get for equipment ids. For hand edits use network_add_group, network_add_node, network_connect, network_update and network_remove; model identical equipment once with a count.
 5. validate(project_id) runs the engineering rules and says which issue purposes (approval, construction, as_built) are blocked. explain_finding(project_id, rule_id, subject) gives the formula, inputs and sources. Fix errors with network_update / layout_place / site tools, then validate again until no errors remain. Never edit a value just to silence a rule: change the design.
-6. earthing_design(project_id, soil_resistivity, ...) and lps_design(project_id, method, level, ...) design the earth grid and lightning protection (run layout_place first). earthing_summary reads them back.
-7. Deliverables: drawings_render for the drawing sheets (SLD, layout, earthing, LPS) as DXF, PDF or DWG; cable_schedule and bom for the schedules (xlsx, dxf or pdf).
+6. project_design_basis(project_id, fault_levels, earthing, lps) stores the fault levels, earthing inputs (soil resistivity from the Wenner test) and lightning protection inputs (level from the risk assessment) the rules and drawings use. earthing_design(project_id, soil_resistivity, ...) and lps_design(project_id, method, level, ...) design the earth grid and lightning protection (run layout_place first). earthing_summary reads them back.
+7. Deliverables: drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers; drawings_preview shows a sheet as PNG. cable_schedule and bom also export the schedules alone (xlsx, dxf or pdf).
 8. project_snapshot(project_id, label) names the issued revision; project_diff compares revisions (per-feature site changes, per-block layout changes, sheet changes). Use revision= on read tools to inspect an older state.
 
 Rules: mark every assumption you make and tell the user; take equipment values only from the catalog; if a tool reports a blocker or an error finding, fix the model rather than working around it. Prompts new_rooftop_project, new_utility_project, new_bess_project and revise_after_comments give step plans for the common jobs.
@@ -93,7 +94,40 @@ Comments to address:
 
 A rooftop plant on the survey `fixtures/sites/rooftop_midc_pune.kml`, from an empty workspace to a diffed revision. Results are abbreviated: lists keep their first four items, long text is cut and keys that do not matter to the step are left out. Equipment ids come from the catalog; values the example's user supplies are named as such.
 
-### 1. `project_create`
+### 1. `company_onboard`
+
+Onboard the EPC company once per workspace: its DXF gives the title block, logo, layers and symbols, the questionnaire the numbering and rule thresholds. Read `failed` before using the profile.
+
+```python
+company_onboard(
+    dxf_path="profiles/samples/acme/acme-company.dxf",
+    answers="profiles/samples/acme/answers.yaml",
+)
+```
+
+```json
+{
+  "profile_id": "acme",
+  "ok": true,
+  "saved": true,
+  "found": [
+    "acme-company.dxf: 13 layers, 5 blocks",
+    "company: Acme Solar EPC Pvt. Ltd. (ACME)",
+    "confidentiality_note: from the answers",
+    "date_format: from the answers",
+    "... 19 more"
+  ],
+  "defaulted": [
+    "text_style: UniCAD default",
+    "text_font: UniCAD default",
+    "thresholds: UniCAD defaults for continuous_factor, fault_clearing_default, k_xlpe_al, k_xlpe_cu, stc_irradi..."
+  ],
+  "failed": [],
+  "warnings": []
+}
+```
+
+### 2. `project_create`
 
 Start from minimal intent. The design-basis values the user did not give come back as placeholders under `assumptions`; replace them before issue.
 
@@ -122,7 +156,19 @@ project_create(
 }
 ```
 
-### 2. `site_import`
+### 3. `company_assign`
+
+Put the project on the company's profile: drawing numbers, title block, layers, symbols and rule thresholds follow it from here on.
+
+```python
+company_assign(project_id="pune-midc-factory-roof", profile_id="acme")
+```
+
+```json
+{"revision": 2, "profile_id": "acme", "problems": []}
+```
+
+### 4. `site_import`
 
 Import the survey. Shapes are classified by name; check `imported_by_kind` and `problems`.
 
@@ -135,7 +181,7 @@ site_import(
 
 ```json
 {
-  "revision": 2,
+  "revision": 3,
   "crs": "EPSG:32643",
   "imported": [
     {
@@ -162,7 +208,7 @@ site_import(
 }
 ```
 
-### 3. `site_set_setbacks`
+### 5. `site_set_setbacks`
 
 Clearances come from the design basis; this 1.0 m roof-edge clearance is an input of the example, not a default.
 
@@ -172,7 +218,7 @@ site_set_setbacks(project_id="pune-midc-factory-roof", roof_edge_m=1.0)
 
 ```json
 {
-  "revision": 3,
+  "revision": 4,
   "setbacks_m": {"boundary_m": 0, "roof_edge_m": 1.0, "exclusion_m": 0, "obstacle_m": 0},
   "buildable": {
     "ground": {"m2": 18146.0, "acres": 4.484},
@@ -190,7 +236,7 @@ site_set_setbacks(project_id="pune-midc-factory-roof", roof_edge_m=1.0)
 }
 ```
 
-### 4. `design_strings`
+### 6. `design_strings`
 
 Size the string before placing tables so the layout and the network agree.
 
@@ -218,7 +264,7 @@ design_strings(
 }
 ```
 
-### 5. `layout_place`
+### 7. `layout_place`
 
 Fill the buildable roof to the target capacity with 20-module strings.
 
@@ -238,7 +284,7 @@ layout_place(
 
 ```json
 {
-  "revision": 4,
+  "revision": 5,
   "metrics": {
     "tables_full": 22,
     "tables_half": 0,
@@ -272,7 +318,7 @@ layout_place(
 }
 ```
 
-### 6. `network_autobuild`
+### 8. `network_autobuild`
 
 Build the whole electrical network. It follows the layout and links each layout string to a pv_string instance.
 
@@ -288,7 +334,7 @@ network_autobuild(
 
 ```json
 {
-  "revision": 5,
+  "revision": 6,
   "design": {
     "templates": {"groups": 1, "nodes": 19, "edges": 20},
     "instances": {
@@ -346,7 +392,7 @@ network_autobuild(
 }
 ```
 
-### 7. `validate`
+### 9. `validate`
 
 Two warnings: the two connections marked 'by others' have no cable. The example's user states a cable and length for the DISCOM service connection.
 
@@ -356,7 +402,7 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 5,
+  "revision": 6,
   "counts": {"error": 0, "warning": 2, "info": 17},
   "blocking": false,
   "findings": [
@@ -376,7 +422,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 8. `network_update`
+### 10. `network_update`
 
 Fix the model, not the drawing. Cable, length and laying method are example inputs.
 
@@ -389,10 +435,10 @@ network_update(
 ```
 
 ```json
-{"revision": 6, "changed": true, "problems": []}
+{"revision": 7, "changed": true, "problems": []}
 ```
 
-### 9. `validate`
+### 11. `validate`
 
 Costing the cable exposes a real problem: AC voltage drop to the point of interconnection is over the design-basis limit.
 
@@ -402,7 +448,7 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 6,
+  "revision": 7,
   "counts": {"error": 1, "warning": 1, "info": 18},
   "blocking": true,
   "findings": [
@@ -425,7 +471,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 10. `explain_finding`
+### 12. `explain_finding`
 
 The formula, every input with its source, and the measured value against the limit.
 
@@ -485,7 +531,7 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
 }
 ```
 
-### 11. `network_update`
+### 13. `network_update`
 
 Upsize the longest, most loaded AC run (the example's choice).
 
@@ -498,10 +544,10 @@ network_update(
 ```
 
 ```json
-{"revision": 7, "changed": true, "problems": []}
+{"revision": 8, "changed": true, "problems": []}
 ```
 
-### 12. `validate`
+### 14. `validate`
 
 No errors left, so approval is allowed. The warning that remains is the load connection 'by others'; it stays visible rather than being hidden.
 
@@ -511,7 +557,7 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 7,
+  "revision": 8,
   "counts": {"error": 0, "warning": 1, "info": 19},
   "blocking": false,
   "findings": [
@@ -525,7 +571,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 13. `earthing_design`
+### 15. `earthing_design`
 
 Soil resistivity, fault level and clearing time are inputs of the example, from a site test and the protection study.
 
@@ -535,7 +581,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
 
 ```json
 {
-  "revision": 8,
+  "revision": 9,
   "earthing": {
     "conductor": {"main": "25x6", "array": "25x6", "equipment": "25x6", "down": "25x3"},
     "pits": 36,
@@ -586,7 +632,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
 }
 ```
 
-### 14. `lps_design`
+### 16. `lps_design`
 
 Level III and the terminal's efficiency are inputs of the example.
 
@@ -602,7 +648,7 @@ lps_design(
 
 ```json
 {
-  "revision": 9,
+  "revision": 10,
   "lps": {
     "method": "ese",
     "level": "III",
@@ -622,7 +668,7 @@ lps_design(
 }
 ```
 
-### 15. `validate`
+### 17. `validate`
 
 Re-run after every design step; approval and construction stay blocked while any error remains.
 
@@ -632,7 +678,7 @@ validate(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 9,
+  "revision": 10,
   "counts": {"error": 0, "warning": 4, "info": 25},
   "blocking": false,
   "gates": {
@@ -645,7 +691,7 @@ validate(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 16. `cable_schedule`
+### 18. `cable_schedule`
 
 Cable schedule as xlsx in the project's exports folder. Voltage drops come from the same rules as validate.
 
@@ -655,7 +701,7 @@ cable_schedule(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 9,
+  "revision": 10,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-cable-schedule.xlsx"],
   "rows": 31,
   "totals": {"rows": 31.0, "cable_m": 3936.2, "loss_w": 7621.09, "cable_m_dc": 3621.2, "cable_m_lv_ac": 315.0},
@@ -664,7 +710,7 @@ cable_schedule(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 17. `bom`
+### 19. `bom`
 
 Bill of materials, using the same lengths as the cable schedule.
 
@@ -674,7 +720,7 @@ bom(project_id="pune-midc-factory-roof")
 
 ```json
 {
-  "revision": 9,
+  "revision": 10,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-bom.xlsx"],
   "summary": {
     "lines": 31,
@@ -688,53 +734,76 @@ bom(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 18. `drawings_render`
+### 20. `project_design_basis`
 
-Render the drawing sheets.
+Record the fault level the earthing used as a design-basis input; earthing and LPS inputs were stored by earthing_design and lps_design. The values are inputs of the example.
 
 ```python
-drawings_render(project_id="pune-midc-factory-roof")
+project_design_basis(
+    project_id="pune-midc-factory-roof",
+    fault_levels=[{"voltage_v": 415, "fault_ka": 10, "clearing_s": 1, "source": "example input: protection study"}],
+)
 ```
 
 ```json
 {
-  "project_id": "pune-midc-factory-roof",
-  "revision": 9,
-  "out_dir": "<workspace>/pune-midc-factory-roof/drawings/rev-009",
-  "sheet_count": 1,
-  "set_pdf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/set.pdf",
-  "sheets": [
-    {
-      "id": "sld",
-      "kind": "sld",
-      "sheet_kind": "sld",
-      "number": "UDEMO-DI-PMFR-EE-001",
-      "title": "SINGLE LINE DIAGRAM",
-      "paper": "A1",
-      "sheet_no": 1,
-      "sheet_of": "1 of 1",
-      "kind_sheet_of": "1 of 1",
-      "scale": 1.372,
-      "drawing_scale": "NTS",
-      "scope": [],
-      "files": {
-        "dxf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.dxf",
-        "pdf": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.pdf",
-        "dwg": "<workspace>/pune-midc-factory-roof/drawings/rev-009/01-UDEMO-DI-PMFR-EE-001.dwg"
-      },
-      "warnings": [],
-      "nodes": ["ac_iso", "ac_spd", "acdb", "acdb_brk", "... 14 more"],
-      "cut_edges": [],
-      "cross_refs": [],
-      "readable": true,
-      "dwg_readback": {"ATTRIB": [58, 83]}
-    }
-  ],
+  "revision": 11,
+  "changed": true,
+  "design_basis": {
+    "fault_levels": [
+      {
+        "voltage_v": 415.0,
+        "fault_ka": 10.0,
+        "clearing_s": 1.0,
+        "source": "example input: protection study"
+      }
+    ],
+    "earthing": {
+      "soil_resistivity_ohm_m": 100.0,
+      "fault_current_ka": 10.0,
+      "fault_clearing_s": 1.0,
+      "electrode_length_m": 3.0,
+      "electrode_diameter_mm": 40.0,
+      "burial_depth_m": 0.6,
+      "corrosion_allowance": 0.0,
+      "tables_per_pit": 20
+    },
+    "lps": {"level": "III", "method": "ese", "ese_delta_t_us": 60.0, "mast_height_m": 6.0}
+  },
+  "problems": []
+}
+```
+
+### 21. `drawings_render`
+
+Render the complete drawing set. Numbers follow the company pattern, one block per sheet kind; a kind the project cannot draw yet is skipped with a warning.
+
+```python
+drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dxf"])
+```
+
+```json
+{
+  "revision": 11,
+  "sheet_count": 11,
+  "sheets": {
+    "ACME/DI/PMFR/EL/000": "register, A3: DRAWING REGISTER",
+    "ACME/DI/PMFR/EL/001": "sld, A1: SINGLE LINE DIAGRAM",
+    "ACME/DI/PMFR/EL/101": "layout, A3: ROOFTOP SOLAR PV MODULE LAYOUT",
+    "ACME/DI/PMFR/EL/301": "earthing, A2: EARTHING LAYOUT",
+    "ACME/DI/PMFR/EL/302": "lps, A3: LIGHTNING ARRESTER (LA) LAYOUT",
+    "ACME/DI/PMFR/EL/401": "strings, A3: STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-02 (1/2)",
+    "ACME/DI/PMFR/EL/402": "strings, A3: STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-02 (2/2)",
+    "ACME/DI/PMFR/EL/501": "cable_schedule, A3: DC CABLE SCHEDULE",
+    "ACME/DI/PMFR/EL/502": "cable_schedule, A3: AC CABLE SCHEDULE",
+    "ACME/DI/PMFR/EL/601": "bom, A3: BILL OF MATERIALS (PART 1 OF 2)",
+    "ACME/DI/PMFR/EL/602": "bom, A3: BILL OF MATERIALS (PART 2 OF 2)"
+  },
   "warnings": []
 }
 ```
 
-### 19. `project_snapshot`
+### 22. `project_snapshot`
 
 Name the issued revision so it can be diffed later.
 
@@ -746,12 +815,12 @@ project_snapshot(project_id="pune-midc-factory-roof", label="issued-approval-r0"
 {
   "project_id": "pune-midc-factory-roof",
   "label": "issued-approval-r0",
-  "revision": 9,
-  "snapshots": {"issued-approval-r0": 9}
+  "revision": 11,
+  "snapshots": {"issued-approval-r0": 11}
 }
 ```
 
-### 20. `site_set_feature`
+### 23. `site_set_feature`
 
 Review comment: an air handling unit the survey missed. Change the site, then place the layout again.
 
@@ -767,13 +836,13 @@ site_set_feature(
 
 ```json
 {
-  "revision": 10,
+  "revision": 12,
   "imported": [{"id": "rooftop-ahu-3", "kind": "obstacle", "area_m2": 16.0, "height_m": 1.8}],
   "problems": []
 }
 ```
 
-### 21. `layout_place`
+### 24. `layout_place`
 
 Same layout intent as before; the new obstacle is picked up from the site.
 
@@ -793,7 +862,7 @@ layout_place(
 
 ```json
 {
-  "revision": 11,
+  "revision": 13,
   "metrics": {
     "tables_full": 22,
     "tables_half": 0,
@@ -815,7 +884,7 @@ layout_place(
 }
 ```
 
-### 22. `project_diff`
+### 25. `project_diff`
 
 Site changes are listed per feature (an outline is summarised as points and area) and layout changes per block.
 
@@ -826,8 +895,8 @@ project_diff(project_id="pune-midc-factory-roof", from_revision="issued-approval
 ```json
 {
   "project_id": "pune-midc-factory-roof",
-  "from_revision": 9,
-  "to_revision": 11,
+  "from_revision": 11,
+  "to_revision": 13,
   "empty": false,
   "site": {"added": ["rooftop-ahu-3"]},
   "layout": {

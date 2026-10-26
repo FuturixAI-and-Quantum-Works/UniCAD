@@ -22,6 +22,7 @@ LIST_LIMIT = 4
 TEXT_LIMIT = 110
 CALL_WIDTH = 90
 INLINE_WIDTH = 100
+PATH_ARGS = ("file_path", "dxf_path", "answers")
 
 HEADER = """# Agent workflow
 
@@ -48,15 +49,31 @@ def _without_steps(key: str) -> Callable[[dict[str, Any]], dict[str, Any]]:
     return lambda data: {k: ({n: w for n, w in v.items() if n != "steps"} if k == key else v) for k, v in data.items()}
 
 
+def _sheets(data: dict[str, Any]) -> dict[str, Any]:
+    return data | {"sheets": {s["number"]: f"{s['kind']}, {s['paper']}: {s['title']}" for s in data["sheets"]}}
+
+
 def steps() -> list[Step]:
     p = {"project_id": PROJECT}
     layout = p | {"module": MODULE, "mounting": "rooftop_flush", "table_cols": 10, "pitch_method": "gap", "row_gap_m": 0.6, "half_tables": False, "target_dc_kwp": 244.2, "modules_per_string": 20}
     return [
         Step(
+            "company_onboard",
+            {"dxf_path": "profiles/samples/acme/acme-company.dxf", "answers": "profiles/samples/acme/answers.yaml"},
+            "Onboard the EPC company once per workspace: its DXF gives the title block, logo, layers and symbols, the questionnaire the numbering and rule thresholds. Read `failed` before using the profile.",
+            keep=("profile_id", "ok", "saved", "found", "defaulted", "failed", "warnings"),
+        ),
+        Step(
             "project_create",
             dict(name="Pune MIDC factory roof", client="Demo Industries", segment="ci_rooftop", site="Plot B-12, MIDC Pune", grid_voltage_v=415, state="Maharashtra"),
             "Start from minimal intent. The design-basis values the user did not give come back as placeholders under `assumptions`; replace them before issue.",
             keep=("project_id", "revision", "assumptions"),
+        ),
+        Step(
+            "company_assign",
+            p | {"profile_id": "acme"},
+            "Put the project on the company's profile: drawing numbers, title block, layers, symbols and rule thresholds follow it from here on.",
+            keep=("revision", "profile_id", "problems"),
         ),
         Step(
             "site_import",
@@ -156,6 +173,19 @@ def steps() -> list[Step]:
             "Bill of materials, using the same lengths as the cable schedule.",
             keep=("revision", "files", "summary", "warnings"),
         ),
+        Step(
+            "project_design_basis",
+            p | {"fault_levels": [{"voltage_v": 415, "fault_ka": 10, "clearing_s": 1, "source": "example input: protection study"}]},
+            "Record the fault level the earthing used as a design-basis input; earthing and LPS inputs were stored by earthing_design and lps_design. The values are inputs of the example.",
+            keep=("revision", "changed", "design_basis", "problems"),
+        ),
+        Step(
+            "drawings_render",
+            p | {"kinds": ["all"], "formats": ["dxf"]},
+            "Render the complete drawing set. Numbers follow the company pattern, one block per sheet kind; a kind the project cannot draw yet is skipped with a warning.",
+            keep=("revision", "sheet_count", "sheets", "warnings"),
+            edit=_sheets,
+        ),
         Step("project_snapshot", p | {"label": "issued-approval-r0"}, "Name the issued revision so it can be diffed later."),
         Step(
             "site_set_feature",
@@ -224,12 +254,8 @@ async def _transcript(workspace: Path) -> list[str]:
     server = build_server(Config(workspace=workspace))
     out: list[str] = []
     async with Client(server) as client:
-        plan = steps()
-        if "drawings_render" in {t.name for t in (await client.list_tools()).tools}:
-            at = next(i for i, s in enumerate(plan) if s.tool == "project_snapshot")
-            plan.insert(at, Step("drawings_render", {"project_id": PROJECT}, "Render the drawing sheets."))
-        for n, step in enumerate(plan, 1):
-            args = {k: (str(REPO / v) if k == "file_path" else v) for k, v in step.args.items()}
+        for n, step in enumerate(steps(), 1):
+            args = {k: (str(REPO / v) if k in PATH_ARGS else v) for k, v in step.args.items()}
             result = await client.call_tool(step.tool, args)
             if result.is_error:
                 raise RuntimeError(f"workflow step {n} ({step.tool}) failed: {result.content[0].text}")
