@@ -2,9 +2,10 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 import ezdxf
-from ezdxf import units
 from ezdxf.document import Drawing
 from ezdxf.enums import TextEntityAlignment
+
+from unicad.drafting import dxfrules
 
 from . import library  # noqa: F401
 from .install import insert, install
@@ -193,13 +194,13 @@ def _pin_marker(msp, sym: SymbolDef, ox: float, oy: float) -> None:
         msp.add_circle((x, y), 0.8, dxfattribs={"layer": "G-PIN"})
         gap = 1.4
         if p.side is Side.N:
-            _label(msp, p.name, x, y + gap + 0.6, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_CENTER)
+            _label(msp, dxfrules.plain(p.name), x, y + gap + 0.6, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_CENTER)
         elif p.side is Side.S:
-            _label(msp, p.name, x, y - gap - 0.6, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_CENTER)
+            _label(msp, dxfrules.plain(p.name), x, y - gap - 0.6, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_CENTER)
         elif p.side is Side.E:
-            _label(msp, p.name, x + gap, y + 1.2, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_LEFT)
+            _label(msp, dxfrules.plain(p.name), x + gap, y + 1.2, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_LEFT)
         else:
-            _label(msp, p.name, x - gap, y + 1.2, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_RIGHT)
+            _label(msp, dxfrules.plain(p.name), x - gap, y + 1.2, 1.2, "G-PIN", TextEntityAlignment.MIDDLE_RIGHT)
 
 
 def _bands(categories: Iterable[Category] | None, keys: Iterable[str] | None, columns: int):
@@ -246,10 +247,10 @@ def build_catalogue(
     Category bands are laid out top to bottom in `groups` side-by-side stacks of `columns` cells.
     """
     doc = ezdxf.new("R2018", setup=False)
-    doc.units = units.MM
+    dxfrules.prepare(doc)
     install(doc)
-    for name, colour in (("G-PIN", 1), ("G-CATALOG", 8), ("G-BBOX", 9)):
-        doc.layers.add(name, color=colour)
+    for name, colour, lw in (("G-PIN", 1, 18), ("G-CATALOG", 8, 18), ("G-BBOX", 9, 13)):
+        doc.layers.add(name, color=colour, lineweight=lw)
     msp = doc.modelspace()
 
     bands = _bands(categories, keys, columns)
@@ -285,7 +286,7 @@ def build_catalogue(
                 )
                 insert(msp, sym.key, (ox, oy), values=sample_values(sym))
                 _pin_marker(msp, sym, ox, oy)
-                _label(msp, sym.key, x0 + 2.0, y0 + 9.0, 2.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
+                _label(msp, dxfrules.plain(sym.key), x0 + 2.0, y0 + 9.0, 2.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
                 _label(msp, sym.title, x0 + 2.0, y0 + 5.5, 2.0, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
                 _label(msp, sym.standard, x0 + 2.0, y0 + 2.5, 1.5, "G-CATALOG", TextEntityAlignment.MIDDLE_LEFT)
             y_cursor -= band_h

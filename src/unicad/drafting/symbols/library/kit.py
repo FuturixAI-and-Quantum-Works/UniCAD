@@ -7,7 +7,7 @@ from ezdxf.layouts import BlockLayout
 from ..model import Attr, Pin, PinKind, Side
 
 LAYER = "G-SYMBOL"
-TEXT_STYLE = "UC_TEXT"
+TEXT_STYLE = "standard"
 
 TAG_H = 2.5
 ATTR_H = 2.0

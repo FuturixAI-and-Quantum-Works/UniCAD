@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from ezdxf.document import Drawing
-from ezdxf.enums import InsertUnits
 
+from unicad.drafting import dxfrules
 from unicad.drafting.sheets.canvas import EPS, Canvas, LayoutOverflow, Region, TextCell
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
@@ -28,7 +28,7 @@ class RenderedSheet:
 
 
 def _prepare(doc: Drawing, profile: CompanyProfile) -> None:
-    doc.units = InsertUnits.Millimeters
+    dxfrules.prepare(doc)
     font = profile.text_font if "." in profile.text_font else f"{profile.text_font}.shx"
     if profile.text_style in doc.styles:
         doc.styles.get(profile.text_style).dxf.font = font
@@ -121,9 +121,10 @@ def render_sheet(
 ) -> RenderedSheet:
     """Draw the border, zone grid, right-hand column and title block into modelspace.
 
-    Modelspace at 1:1 paper millimetres, origin at the sheet's lower-left corner: LibreCAD
-    prints only modelspace and ignores paperspace layouts, so there is no viewport to scale
-    through, and every generator already works in paper millimetres (symbols included).
+    Modelspace at 1:1 paper millimetres, origin at the sheet's lower-left corner. LibreCAD
+    draws no viewports and prints paperspace entities on top of modelspace in the same
+    coordinates (docs/compat.md), so nothing goes into paperspace and every generator works
+    in paper millimetres (symbols included).
     """
     _prepare(doc, profile)
     m = metrics_for(spec.paper)

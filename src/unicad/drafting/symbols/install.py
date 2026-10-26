@@ -69,6 +69,12 @@ def _clean(v: float) -> float:
     return round(v, 6) + 0.0
 
 
+def upright_attr(sym: SymbolDef, x: float, y: float) -> tuple[float, float]:
+    """Where attribute (x, y) goes, relative to the insertion point, on a symbol turned 180 degrees
+    with its labels kept upright: the same offset from the turned body's lower-left corner."""
+    return _clean(x - sym.width), _clean(y - sym.height)
+
+
 def pin_at(key: str, pin_name: str, at: tuple[float, float], rotation: float = 0) -> tuple[float, float]:
     """World position of a pin for a symbol inserted at `at` with `rotation` degrees CCW."""
     sym = _symbol(key)
@@ -87,6 +93,7 @@ def insert(
     values: Mapping[str, str] | None = None,
     *,
     visible_text: bool = True,
+    upright: bool = False,
 ) -> Insert:
     """Place a symbol with one ATTRIB per ATTDEF.
 
@@ -96,6 +103,9 @@ def insert(
     get classic visible ATTRIBs instead. Text stays horizontal; it is right-aligned
     when the symbol is rotated so that its local +x points west. Centred attributes
     (text inside a circle) stay centred.
+
+    With `upright`, a symbol turned over (180 degrees) keeps its label stack as drawn
+    unrotated: same order, same side, left-aligned, relative to the turned body.
     """
     sym = _symbol(key)
     values = dict(values or {})
@@ -105,9 +115,12 @@ def insert(
     install(layout.doc, [key])
     ref = layout.add_blockref(sym.block_name, at, dxfattribs={"layer": LAYER, "rotation": rotation})
     flow = TextEntityAlignment.MIDDLE_LEFT if math.cos(math.radians(rotation)) > -1e-9 else TextEntityAlignment.MIDDLE_RIGHT
+    turned = upright and round(rotation) % 360 == 180
+    if turned:
+        flow = TextEntityAlignment.MIDDLE_LEFT
     for a in sym.attrs:
         align = TextEntityAlignment.MIDDLE_CENTER if a.centred else flow
-        dx, dy = _rotate(a.x, a.y, rotation)
+        dx, dy = upright_attr(sym, a.x, a.y) if turned and not a.centred else _rotate(a.x, a.y, rotation)
         pos = (_clean(at[0] + dx), _clean(at[1] + dy))
         value = values.get(a.tag, a.default)
         attrib = ref.add_attrib(a.tag, value, pos, dxfattribs={"layer": LAYER, "style": TEXT_STYLE, "height": a.height})

@@ -69,8 +69,8 @@ def write_body(doc: Drawing, layout: SldLayout, block_name: str, text_style: str
     block = doc.blocks.new(block_name, base_point=(0, 0))
     for f in layout.frames:
         b = f.box
-        block.add_lwpolyline([(b.x0, b.y0), (b.x1, b.y0), (b.x1, b.y1), (b.x0, b.y1)], close=True,
-                             dxfattribs={"layer": "E-SLD-FRAME", "ltscale": 0.25})
+        for loop in f.outline or (((b.x0, b.y0), (b.x1, b.y0), (b.x1, b.y1), (b.x0, b.y1)),):
+            block.add_lwpolyline(list(loop), close=True, dxfattribs={"layer": "E-SLD-FRAME"})
         for lb in f.labels:
             _text(block, lb, text_style)
     for w in layout.wires:
@@ -83,10 +83,14 @@ def write_body(doc: Drawing, layout: SldLayout, block_name: str, text_style: str
         for lb in bus.labels:
             _text(block, lb, text_style)
     for s in layout.symbols:
-        insert(block, s.key, s.at, s.rotation, dict(s.values))
+        insert(block, s.key, s.at, s.rotation, dict(s.values), upright=True)
     for c in layout.callouts:
         block.add_ellipse(c.tick, major_axis=(1.6, 0), ratio=0.5, dxfattribs={"layer": "E-SLD-TEXT"})
         for lb in c.labels:
+            _text(block, lb, text_style)
+    for st in layout.stubs:
+        block.add_lwpolyline(list(st.points), dxfattribs={"layer": "E-SLD-AC"})
+        for lb in st.labels:
             _text(block, lb, text_style)
     for j in layout.junctions:
         _dot(block, j, JUNCTION_R, "E-SLD-AC")

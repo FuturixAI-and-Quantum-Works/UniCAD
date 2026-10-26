@@ -3,7 +3,8 @@
 Every value comes from the project or the catalog; when the model has no value the field stays empty.
 """
 
-from collections.abc import Mapping
+import re
+from collections.abc import Callable, Mapping
 
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import (
@@ -17,7 +18,7 @@ from unicad.domain.catalog import (
     TransformerSpec,
 )
 from unicad.domain.network import Edge, ElectricalNetwork, Group, Node, NodeKind
-from unicad.domain.project import Project
+from unicad.domain.project import DesignBasis, Project
 
 _KIND_LABEL = {
     NodeKind.SCB: "STRING COMBINER BOX",
@@ -165,24 +166,80 @@ def bus_texts(net: ElectricalNetwork, node: Node) -> tuple[str, ...]:
     return (head, f"{volts(node.voltage_v)} BUS") if node.voltage_v else (head,)
 
 
-def cable_callout(edge: Edge, catalog: Catalog | None) -> tuple[str, ...]:
+REMARK_INLINE_CHARS = 42
+
+
+def remark(edge: Edge) -> str:
+    return prose(edge.remarks) if edge.remarks else ""
+
+
+def is_long_remark(text: str) -> bool:
+    return len(text) > REMARK_INLINE_CHARS
+
+
+def cable_callout(edge: Edge, catalog: Catalog | None, note_of: Mapping[str, int] | None = None) -> tuple[str, ...]:
+    """Cable callout lines; a remark too long to sit beside the wire is referred to its note number in `note_of`."""
     cable = edge.cable
     if isinstance(cable, str) and catalog is not None:
         cable = catalog.get(cable)
     lines: list[str] = []
+    tail: list[str] = []
     if isinstance(cable, CableSpec):
         lines.append(f"{edge.runs}R x {cable.callout()}")
-        tail = [cable.voltage_grade]
+        tail.append(cable.voltage_grade)
         if edge.laying:
             tail.append(_LAYING[edge.laying.value])
         if edge.length_m:
             tail.append(f"L = {edge.length_m:g} m")
-        lines.append(", ".join(tail))
     elif edge.runs > 1:
         lines.append(f"{edge.runs}R")
-    if edge.remarks:
-        lines.append(edge.remarks.upper())
+    text = remark(edge)
+    if text and note_of and text in note_of:
+        tail.append(f"SEE NOTE {note_of[text]}")
+    elif text:
+        if tail:
+            lines.append(", ".join(tail))
+            tail = []
+        lines.append(text)
+    if tail:
+        lines.append(", ".join(tail))
     return tuple(lines)
+
+
+_DEG = "\x00"
+_BASIS_TERMS: dict[str, tuple[str, Callable[[DesignBasis], str]]] = {
+    "ambient_min_c": ("minimum ambient temperature", lambda b: f"{b.ambient_min_c:g} {_DEG}C"),
+    "ambient_max_c": ("maximum ambient temperature", lambda b: f"{b.ambient_max_c:g} {_DEG}C"),
+    "altitude_m": ("site altitude", lambda b: f"{b.altitude_m:g} m"),
+    "vdrop_dc_max": ("DC voltage drop limit", lambda b: f"{b.vdrop_dc_max * 100:g} %"),
+    "vdrop_ac_max": ("AC voltage drop limit", lambda b: f"{b.vdrop_ac_max * 100:g} %"),
+    "power_factor": ("power factor", lambda b: f"{b.power_factor:g}"),
+    "dc_ac_ratio_target": ("DC/AC ratio target", lambda b: f"{b.dc_ac_ratio_target:g}"),
+}
+_IDENT = re.compile(r"\b(" + "|".join(_BASIS_TERMS) + r")\b")
+
+
+def prose(text: str, basis: DesignBasis | None = None) -> str:
+    """Drawing text in engineer wording: design-basis field names become their name and value,
+    other identifiers lose their underscores, and the result is upper case."""
+    if basis is not None:
+
+        def term(m: re.Match[str]) -> str:
+            name, value = _BASIS_TERMS[m.group(1)]
+            return f"{name} {value(basis)}"
+
+        text = _IDENT.sub(term, text)
+    text = _UNIT.sub(lambda m: m.group(1) + _UNITS[m.group(2)], text.replace("_", " ").upper())
+    return re.sub(r"(\d) C\b", rf"\1 {_DEG}C", text).replace(_DEG, "%%d")
+
+
+_UNITS = {u.upper(): u for u in ("kV", "kVA", "MVA", "kW", "MW", "kWp", "MWp", "MWac", "MWdc", "kWh", "MWh", "Wp", "Hz", "mm", "sq.mm", "kA")}
+_UNIT = re.compile(r"(\d\s?)(" + "|".join(re.escape(u) for u in sorted(_UNITS, key=len, reverse=True)) + r")\b")
+
+
+def assumption_notes(project: Project) -> tuple[str, ...]:
+    basis = project.design_basis
+    return tuple(f"ASSUMPTION: {prose(a, basis)}" for a in basis.assumptions)
 
 
 def _fmt_power(kw: float, unit: str) -> str:
@@ -211,7 +268,7 @@ def system_parameters(project: Project, catalog: Catalog | None) -> tuple[tuple[
         if isinstance(spec, InverterSpec | PCSSpec):
             kva = spec.ac_rated_kva if isinstance(spec, InverterSpec) else spec.rated_kva
             ac_kva += k * kva
-            label = f"{_kva(kva)} ({spec.manufacturer} {spec.model})".upper()
+            label = prose(f"{_kva(kva)} ({spec.manufacturer} {spec.model})")
             inverters[label] = inverters.get(label, 0) + k
     if dc_kwp:
         rows.append(("DC CAPACITY", _fmt_power(dc_kwp, "Wp")))
