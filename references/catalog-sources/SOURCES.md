@@ -18,7 +18,7 @@ python3 scripts/extract_module_datasheets.py
 
 The datasheet helper `unicad.ingest.datasheet` (`extract_text_and_tables`, `draft_spec`) reads further PDFs on demand; its output is not committed here.
 
-`extracted/inverter_datasheets.csv`, `extracted/bess_pcs_datasheets.csv`, `extracted/protection_ladders.json`, `extracted/protection_phase2.json` and `extracted/idt_impedance_citations.csv` were transcribed by hand from `pdftotext -layout` output of the cited pages. They have no script.
+`extracted/inverter_datasheets.csv`, `extracted/inverter_residential_datasheets.csv`, `extracted/bess_pcs_datasheets.csv`, `extracted/protection_ladders.json`, `extracted/protection_phase2.json`, `extracted/protection_p5.json` and `extracted/idt_impedance_citations.csv` were transcribed by hand from `pdftotext -layout` output of the cited pages. They have no script.
 
 Licence column: what the source itself states. "Unstated" means the file and its landing page carry no licence or terms we could read. Read the licence notes at the end before shipping any of this.
 
@@ -95,6 +95,21 @@ Two phase-2 downloads exceed 20 MB: `raw/datasheets/protection/DEHN_Surge_Protec
 | raw/standards/is.3961.2.1967.pdf | https://law.resource.org/pub/in/bis/S05/is.3961.2.1967.pdf | 2026-10-26 | Same as above | IS 3961-2:1967 Current ratings, PVC-insulated cables (the old base for IS 1554 ratings). Scanned. |
 | raw/standards/is.7098.1.1988.pdf | https://law.resource.org/pub/in/bis/S05/is.7098.1.1988.pdf | 2026-10-26 | Same as above | IS 7098-1:1988 XLPE cables up to 1.1 kV (construction; no ampacity tables). Scanned. |
 | raw/standards/is.1554.1.1988.pdf | https://law.resource.org/pub/in/bis/S05/is.1554.1.1988.pdf | 2026-10-26 | Same as above | IS 1554-1:1988 PVC cables up to 1.1 kV (construction). Scanned. |
+| raw/datasheets/inverters/Growatt_MIN2500-6000TL-X_DS_au-growatt.pdf | https://au.growatt.com/upload/file/MIN_2500_6000_TL_X.pdf | 2026-10-27 | Unstated | Growatt MIN 2500-6000TL-X single-phase datasheet (Growatt Australia site, 2022-10-13): 3000, 5000 and 6000 W models used. |
+| raw/datasheets/inverters/Growatt_MOD3000-9000TL3-X_DS_thirdparty-growatt-tech.pdf | https://growatt.tech/wp-content/uploads/shared-files/MOD-3000-9000TL3-X.pdf | 2026-10-27 | Unstated | Growatt MOD 3000-9000TL3-X three-phase datasheet (2021-11-02), hosted by the Growatt European distributor: weaker provenance. 3000, 6000 and 9000 W models used. |
+| raw/datasheets/inverters/Solis_S6-GR1P2.5-6K_DS.pdf | https://www.solisinverters.com/dataFile/40289f9e8abbfdab018abc02b642191e | 2026-10-27 | Unstated | Solis S6-GR1P(2.5-6)K single-phase datasheet (manufacturer site): 3, 5 and 6 kW models used. |
+| raw/datasheets/inverters/Solis_S6-GR1P0.7-3.6K-M_DS.pdf | https://www.solisinverters.com/dataFile/38390 | 2026-10-27 | Unstated | Solis S6-GR1P(0.7-3.6)K-M mini series datasheet (manufacturer site): 1 and 3 kW models used. |
+| raw/datasheets/inverters/Sungrow_SG3.0-6.0RS_DS_V12_vietnam-sungrow.pdf | https://vietnam.sungrowpower.com/upload/file/20210909/Datasheet_SG3.0_3.6_4.0_5.0_6.0RS.pdf | 2026-10-27 | Unstated | Sungrow SG3.0-6.0RS single-phase datasheet V1.2 (Sungrow regional site): 3, 5 and 6 kW models used. |
+| raw/datasheets/inverters/Sungrow_SG5.0-12RT_DS_V17.pdf | https://info-support.sungrowpower.com/application/pdf/2022/05/16/DS_20220516_SG5.0_6.0_7.0_8.0_10_12RT_Datasheet_V17_EN.pdf | 2026-10-27 | Unstated | Sungrow SG5.0-12RT three-phase datasheet V17 (manufacturer site): 5, 8 and 10 kW models used. |
+| raw/datasheets/inverters/Polycab_PSIS_1ph_1-4kW_1MPPT_DS_v4.pdf | https://cms.polycab.com/media/y5ea3ogh/polycab_inverter_1ph_1kw-4kw_v4.pdf | 2026-10-27 | Unstated | Polycab PSIS single-phase single-MPPT datasheet (manufacturer site, 2026): PSIS-3K0 used. |
+| raw/datasheets/inverters/Polycab_PSIS_1ph_2-6kW_DS.pdf | https://cms.polycab.com/media/rfjavmqe/solar-grid-tie-inverter-2kw-6kw.pdf | 2026-10-27 | Unstated | Polycab PSIS single-phase 2-6 kW brochure (2023-06-20): PSIS-5K-SM2 used. |
+| raw/datasheets/inverters/Polycab_PSIT_3ph_5-10kW_1MPPT_DS_v3.pdf | https://cms.polycab.com/media/2sbpacsk/polycab_inverter_3ph_5kw-10kw_1mppt_v3.pdf | 2026-10-27 | Unstated | Polycab PSIT three-phase single-MPPT datasheet: PSIT10KSM1R2 used. |
+| raw/datasheets/inverters/Polycab_PSIT_3ph_5-10kW_2MPPT_DS_v3.pdf | https://cms.polycab.com/media/exqddovi/polycab_inverter_3ph_5kw-10kw_2mppt_v3.pdf | 2026-10-27 | Unstated | Polycab PSIT three-phase dual-MPPT datasheet: PSIT-5K-SM2 and PSIT-10K-SM2 used. |
+| raw/datasheets/inverters/Havells_Residential_Solar_GTi_1-10kW_DS.pdf | https://havells.com/media/wysiwyg/Manuals/Residential_Solar.pdf | 2026-10-27 | Unstated | Havells Enviro GTi residential grid-tie inverter brochure, 1-10 kW: GTi 3000 NG, 5000 D, 6600TX and 11000TX used. |
+| raw/datasheets/protection/ABB_Tmax_T_Generation_1SDC210015D0208.pdf | https://library.e.abb.com/public/66d794a3c839491d8d95b1aed96e1a71/1SDC210015D0208.pdf | 2026-10-27 | Unstated | ABB SACE Tmax T Generation catalogue (332 pages, 13 MB). Pages 69-70: T4/T5 up to 1150 V AC, T6 up to 1000 V AC. |
+| raw/datasheets/protection/APDCL_11-33kV_outdoor_CT_spec_2020.pdf | https://www.apdcl.org/website/docs/tech_spec/9.pdf | 2026-10-27 | Utility technical specification, public tender document | APDCL specification APDCL/PP&D/T&C/STS/HT OD CT/2020/1, 11 and 33 kV outdoor current transformer. |
+| raw/datasheets/protection/APDCL_11-33kV_outdoor_PT_spec_2020.pdf | https://www.apdcl.org/website/docs/tech_spec/10.pdf | 2026-10-27 | Utility technical specification, public tender document | APDCL specification APDCL/PP&D/T&C/STS/HT OD PT/2020/1, 11 and 33 kV outdoor potential transformer. |
+| raw/datasheets/protection/APDCL_11kV_10kA_LA_spec_2020.pdf | https://www.apdcl.org/website/docs/tech_spec/13.pdf | 2026-10-27 | Utility technical specification, public tender document | APDCL specification APDCL/PP&D/T&C/STS/LA/2020/1, 11 kV 10 kA station-class surge arrester. |
 
 Also fetched as a pointer but not kept: https://cdnbbsr.s3waas.gov.in/s3716e1b8c6cd17b771da77391355749f3/uploads/2026/10/2026101216756819.pdf ("MNRE: Policy & Regulatory Updates, September 2026"). Its links gave the List-I and List-II URLs above.
 
@@ -124,6 +139,8 @@ Also fetched as a pointer but not kept: https://cdnbbsr.s3waas.gov.in/s3716e1b8c
 | extracted/abb_ot_switch_disconnectors.csv | ABB OT catalogue (scripts/extract_abb_switches.py) | 22 | OT200E...OT2500E 3- and 4-pole: AC-22A current from the ordering table, Icw 1 s where the technical-data table is unambiguous. |
 | extracted/abb_otdc_switch_disconnectors.csv | ABB OTDC catalogue (scripts/extract_abb_switches.py) | 16 | OTDC S1.0 (1000 V) and S2.0 (1500 V) front-operated 2- and 4-pole types, DC-21B current, DC-PV2 current, Icw. |
 | extracted/protection_phase2.json | 4 PDFs (hand transcription) | n/a | Finder Type 2 AC SPDs (7P.23/7P.25), DEHN DG SE CI 440 FM, WBSEDCL 33 kV PT particulars, 36 kV class arrester with discharge counter (buyer specification). |
+| extracted/inverter_residential_datasheets.csv | 11 inverter PDFs (hand transcription) | 26 | 1-10 kW single- and three-phase string inverters (Growatt MIN/MOD, Solis S6, Sungrow SG-RS/SG-RT, Polycab PSIS/PSIT, Havells Enviro GTi): AC kW and max kVA, AC V, Vdc max, MPPT window, start V, MPPT count, strings and Idc/Isc per MPPT (totals only where trackers differ), efficiency where stated per model. |
+| extracted/protection_p5.json | 5 PDFs (hand transcription) | n/a | MasterPacT MTZ2 H10 (1150 V AC), ABB Tmax T4/T5/T6 for 1000-1150 V AC, APDCL 11 kV CT, PT and 10 kA arrester particulars. |
 
 ## Unreachable or not obtained
 
@@ -144,6 +161,9 @@ Also fetched as a pointer but not kept: https://cdnbbsr.s3waas.gov.in/s3716e1b8c
 | REC RDSS 33 kV station-class arrester specification (recindia.nic.in) | No response. |
 | Polycab HT cable catalogue (cms.polycab.com/media/2bgh00kf/ht-cable-catalogue.pdf) and IS 7098-2 datasheet ISMV00211 | Downloaded and not used: the catalogue's types are BS 6622/7835 and IEC 60502-2, and the datasheet's electrical table lists one core for a multicore cable, so it was not clear which cable the ratings describe. No 18/30 kV (IEC 60502-2) table was found in the Havells or KEI sources; the 19/33 kV IS 7098-2 grade is catalogued. |
 | Inverter-duty transformer %Z (IS 2026 / IEC 60076) | Still no standard %Z ladder. Two BHEL purchase specifications give 6.25 % (2.7 MVA) and 7 % (5.5 MVA), see `idt_impedance_citations.csv`; not imported. Original note: no free source has a standard %Z ladder. IS 2026-1:2011 was downloaded (scanned; it defines tolerances, not preferred %Z). Sungrow MV-skid datasheets give kVA, voltages and vector group (Dy11) but no %Z. |
+| Luminous NXI T / NXi grid-tie inverter datasheets (3, 5, 10 kW; https://www.luminousindia.com/solar-inverters/nxi-t130 and siblings) | Only product pages with capacity and efficiency were found; no datasheet PDF with DC window, MPPT count or currents was downloadable. Not catalogued. |
+| 33 kV inverter-duty transformer with an 800 V LV winding (searches 2026-10-27) | Only manufacturer product pages (for example JDS Transformers, "33/0.800 kV, up to 25 MVA") with no %Z, and the two BHEL purchase specifications whose LV windings are 340-410 V and 500-700 V. TransformerSpec needs %Z, so no catalog entry; string-inverter blocks at 800 V use the project-specific inline spec borrowed from BHEL PS 439-1304. |
+| Siemens 3WL / 3VA and Schneider ComPacT NSX/NS breakers rated 800 V or above | No text-extractable source with Icu at 800-1000 V was found in the time available. ABB Tmax (1150 V) and MasterPacT MTZ2 H10 (1150 V) cover the class. |
 
 ## Data gaps inside downloaded files
 

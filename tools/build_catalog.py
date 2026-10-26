@@ -271,11 +271,39 @@ def import_inverters(b: Build) -> None:
             topology="central" if "central" in r["note"] or "skid" in r["note"] else "string", phases=3,
             start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, **fields,
         )
+    import_residential_inverters(b)
     cec = read_csv("cec_inverters_core.csv")
     india_v = sum(1 for _, r in cec if 380 <= float(r["vac_v"]) <= 440)
     b.notes.append(
         f"CEC inverters: none imported. The CEC list has no MPPT count, inputs per MPPT or short-circuit current, "
         f"all required by InverterSpec. {len(cec)} rows examined; {india_v} are at 380-440 V and still lack those fields."
+    )
+
+
+def import_residential_inverters(b: Build) -> None:
+    for line, r in read_csv("inverter_residential_datasheets.csv"):
+        ref = f"inverter_residential_datasheets.csv row {line} ({r['manufacturer']} {r['model']})"
+        strings = [int(s) for s in re.findall(r"\d+", r["strings_per_mppt"])]
+        eff = num(r["max_efficiency_pct"])
+        extra = r["note"]
+        if len(set(strings)) > 1:
+            extra = "inputs per MPPT differ between trackers; smallest used; " + extra
+        b.add(
+            "inverter", ref, InverterSpec,
+            id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
+            source=source("datasheet", r["source_file"], "inverter_residential_datasheets.csv", line, r["pdf_page"], extra),
+            topology="string", phases=int(r["phases"]), ac_rated_kva=num(r["ac_rated_kw"]), ac_max_kva=num(r["ac_max_kva"]),
+            ac_voltage=num(r["ac_voltage_v"]), dc_max_voltage=num(r["vdc_max_v"]), mppt_min=num(r["mppt_low_v"]), mppt_max=num(r["mppt_high_v"]),
+            start_voltage=num(r["start_voltage_v"]), mppt_count=int(r["mppt_count"]), inputs_per_mppt=min(strings),
+            max_input_current_per_mppt=num(r["idc_max_per_mppt_a"]), max_short_circuit_current_per_mppt=num(r["isc_max_per_mppt_a"]),
+            dc_input_count=int(r["dc_input_count"]) if r["dc_input_count"] else None,
+            max_dc_input_current=num(r["idc_max_total_a"]), max_dc_short_circuit_current=num(r["isc_max_total_a"]),
+            max_efficiency=eff / 100 if eff else None,
+        )
+    b.notes.append(
+        "Residential inverters (1-10 kW, 1- and 3-phase): Growatt MIN TL-X / MOD TL3-X, Solis S6-GR1P, Sungrow SG-RS / SG-RT, Polycab PSIS / PSIT and Havells Enviro GTi are catalogued "
+        "from their datasheets. Luminous NXI: no datasheet could be downloaded (the product pages give capacity and efficiency only), so none is catalogued. "
+        "Where a datasheet states efficiency per group of models rather than per model it is left empty."
     )
 
 
@@ -562,7 +590,10 @@ def import_protection(b: Build) -> None:
                 device="vcb", rated_current=variant["in_a"], rated_voltage=vcb["rated_voltage_kv"] * 1000, poles=3,
                 breaking_capacity_ka=isc, short_time_withstand_ka=isc, short_time_duration_s=3,
             )
-    b.notes.append("VCB 36 kV: ABB VD4 offers 630 A at 16 and 20 kA only; 25 kA starts at 1250 A, so there is no 630 A / 25 kA entry.")
+    b.notes.append(
+        "VCB 36 kV: ABB VD4 offers 630 A at 16 and 20 kA only; 25 kA starts at 1250 A, so there is no 630 A / 25 kA entry. 1600, 2000 and 2500 A are catalogued at 25, 31.5 and 40 kA "
+        "(2500 A rated at ambient below 40 C); 3150 A (assembled poles) is not."
+    )
 
     rmu = ladders["rmu_36kv"]
     b.add(
@@ -680,6 +711,71 @@ def import_switchgear(b: Build) -> None:
     b.notes.append("33 kV PT and the 36 kV class arrester with discharge counter come from purchaser specifications (WBSEDCL; a buyer's switchgear surge-arrester specification whose issuer the document does not name), not manufacturer datasheets.")
 
 
+def import_p5_protection(b: Build) -> None:
+    p5 = json.loads((EXTRACTED / "protection_p5.json").read_text())
+    ref_base = f"{EXTRACTED_REL}/protection_p5.json"
+
+    def src(block: dict[str, Any], extra: str = "", page: object = None) -> Source:
+        ref = f"{block['source']} p.{page or block['pdf_page']}; {ref_base}" + (f"; {extra}" if extra else "")
+        return Source(kind="catalog", ref=ref, retrieved=RETRIEVED)
+
+    h10 = p5["acb_mtz2_h10"]
+    for in_a in h10["frames_a"]:
+        b.add(
+            "protection", "protection_p5.json acb_mtz2_h10", ProtectionSpec,
+            id=slug("schneider-mtz2", "h10", f"{in_a}a", "3p"), manufacturer="Schneider Electric", model=f"MasterPacT MTZ2 H10 {in_a}A 3P",
+            source=src(h10, f"Icu {h10['icu_ka_1150vac']} kA at {h10['ue_vac']} V AC; {h10['note']}"),
+            device="acb", rated_current=in_a, rated_voltage=h10["ue_vac"], poles=3, breaking_capacity_ka=h10["icu_ka_1150vac"],
+            short_time_withstand_ka=h10["icw_ka_1s"], short_time_duration_s=1,
+        )
+    tmax = p5["mccb_tmax_1150v"]
+    for v in tmax["variants"]:
+        for in_a in v["in_a"]:
+            for poles in tmax["poles"]:
+                b.add(
+                    "protection", f"protection_p5.json mccb_tmax_1150v {v['frame']}", ProtectionSpec,
+                    id=slug("abb-tmax", v["frame"].split()[0], v["version"], f"{in_a}a", f"{poles}p"), manufacturer="ABB",
+                    model=f"SACE Tmax {v['frame']} {v['version']} {in_a}A {poles}P ({v['ue_vac']} V AC)",
+                    source=src(tmax, f"Icu {v['icu_ka_at_ue']} kA at Ue {v['ue_vac']} V AC; rated current from the electronic trip-unit sensor table on p.{tmax['sensor_pdf_page']}; {tmax['note']}"),
+                    device="mccb", rated_current=in_a, rated_voltage=v["ue_vac"], poles=poles, breaking_capacity_ka=v["icu_ka_at_ue"],
+                )
+    ct = p5["ct_11kv"]
+    b.add(
+        "protection", "protection_p5.json ct_11kv", ProtectionSpec,
+        id="generic-ct-11kv-apdcl-0.5-5p10", manufacturer="Generic (APDCL specification)", model="11 kV outdoor CT, 0.5 + 5P10, 25 kA 3 s",
+        source=src(ct, ct["note"]), device="ct", rated_voltage=ct["highest_system_voltage_kv"] * 1000, poles=1,
+        accuracy_class=" + ".join(f"{c['class']} ({c['burden_va']} VA, {c['use']})" for c in ct["cores"]),
+        short_time_withstand_ka=ct["short_time_ka"], short_time_duration_s=ct["short_time_s"],
+    )
+    pt = p5["pt_11kv"]
+    b.add(
+        "protection", "protection_p5.json pt_11kv", ProtectionSpec,
+        id="generic-pt-11kv-apdcl-0.5-100va", manufacturer="Generic (APDCL specification)", model="11 kV outdoor single-phase PT 11/0.11 kV, 0.5, 100 VA",
+        source=src(pt, f"{pt['note']} Voltage factor {pt['voltage_factor']}"), device="pt", rated_voltage=pt["highest_system_voltage_kv"] * 1000, poles=1,
+        ratio=pt["ratio"], accuracy_class=" + ".join(f"{c['class']} ({c['burden_va']} VA, {c['use']})" for c in pt["cores"]), burden_va=pt["cores"][0]["burden_va"],
+    )
+    la = p5["la_11kv"]
+    b.add(
+        "protection", "protection_p5.json la_11kv", ProtectionSpec,
+        id="generic-la-11kv-apdcl-ur9-10ka", manufacturer="Generic (APDCL specification)",
+        model="11 kV station class gapless metal-oxide surge arrester Ur 9 kV Uc 7.65 kV 10 kA",
+        source=src(la, f"line discharge class {la['line_discharge_class']}; {la['note']}"), device="lightning_arrester",
+        rated_voltage=la["ur_kv"] * 1000, poles=1, nominal_discharge_current_ka=la["nominal_discharge_current_ka"],
+    )
+    b.notes.append(
+        "800 V-class LT breakers: Schneider MasterPacT MTZ2 H10 (1150 V AC, 800-4000 A, 3P, Icu 50 kA) and ABB Tmax T4/T5 V and T6 L (1000-1150 V AC, 100-800 A, 3P/4P, Icu 12 kA) are catalogued. "
+        "Siemens 3WL / 3VA and Schneider ComPacT NSX/NS at 800 V and above were not found in a text-extractable source."
+    )
+    b.notes.append(
+        "33 kV inverter-duty transformers with an 800 V LV winding: gap. The only public sources found are manufacturer product pages (for example JDS Transformers, '33/0.800 kV, up to 25 MVA') that state "
+        "no %Z, and the two BHEL purchase specifications, whose LV windings are 340-410 V and 500-700 V. TransformerSpec needs %Z, so none is catalogued; string-inverter blocks at 800 V "
+        "use the same project-specific inline spec as central inverters (BHEL PS 439-1304 values, reported as an assumption)."
+    )
+    b.notes.append(
+        "11 kV CT, PT and arrester: purchaser (APDCL) specifications, not manufacturer datasheets. The CT carries no ratio because the specification leaves the primary current to the project."
+    )
+
+
 METER_SOURCE = Source(
     kind="standard",
     ref="CEA (Installation and Operation of Meters) Regulations, 2006 as amended (2019): accuracy class table, Regulation 5/Schedule. "
@@ -766,6 +862,7 @@ def build(out: Path) -> Build:
     import_ht_cables(b)
     import_protection(b)
     import_switchgear(b)
+    import_p5_protection(b)
     import_meters(b)
 
     ids = Counter(s.id for specs in b.entries.values() for s in specs)

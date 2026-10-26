@@ -292,7 +292,8 @@ def test_1500v_gpv_fuse_ladder_matches_mersen_json(catalog):
 def test_mv_switchgear_entries(catalog):
     vcbs = [p for p in catalog.filter(kind="protection") if p.device == "vcb"]
     assert {(v.rated_current, v.breaking_capacity_ka) for v in vcbs} == {
-        (630, 16), (630, 20), (1250, 16), (1250, 20), (1250, 25), (1250, 31.5), (1250, 40)
+        (630, 16), (630, 20), (1250, 16), (1250, 20), (1250, 25), (1250, 31.5), (1250, 40),
+        (1600, 25), (1600, 31.5), (1600, 40), (2000, 25), (2000, 31.5), (2000, 40), (2500, 25), (2500, 31.5), (2500, 40),
     }
     assert all(v.rated_voltage == 36000 and v.poles == 3 and v.short_time_duration_s == 3 for v in vcbs)
     rmu = catalog.get("generic-rmu-36kv-630a-25ka")

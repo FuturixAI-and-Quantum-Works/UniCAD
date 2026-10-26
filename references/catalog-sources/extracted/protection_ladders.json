@@ -465,11 +465,36 @@
           31.5,
           40
         ]
+      },
+      {
+        "in_a": 1600,
+        "isc_ka": [
+          25,
+          31.5,
+          40
+        ]
+      },
+      {
+        "in_a": 2000,
+        "isc_ka": [
+          25,
+          31.5,
+          40
+        ]
+      },
+      {
+        "in_a": 2500,
+        "isc_ka": [
+          25,
+          31.5,
+          40
+        ],
+        "note": "rated normal current at ambient below 40 C (p.18 note 2)"
       }
     ],
     "order_code": "VD4 36.{06|12}.{isc} p360",
     "short_time_withstand_ka_3s": "equal to rated Isc (p.18)",
-    "note": "Ordering table p.19 lists 25 kA only from 1250 A; 630 A is offered at 16 and 20 kA. Page 18 holds the general characteristics table."
+    "note": "Ordering table p.19 lists 25 kA only from 1250 A; 630 A is offered at 16 and 20 kA. 1600, 2000 and 2500 A are offered at 25, 31.5 and 40 kA; 3150 A (assembled poles, 25 and 31.5 kA only) is not catalogued. Page 18 holds the general characteristics table."
   },
   "rmu_36kv": {
     "source": "raw/datasheets/protection/GeM_33kV_outdoor_RMU_spec_2025-12.pdf",

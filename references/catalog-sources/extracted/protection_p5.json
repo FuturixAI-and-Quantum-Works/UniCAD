@@ -1,0 +1,69 @@
+{
+  "_about": "Hand-transcribed from the cited pages; one block per product family. Added for the p5-gaps unit: 800 V-class LT breakers and 11 kV instrument transformers and arresters.",
+  "acb_mtz2_h10": {
+    "source": "raw/datasheets/protection/Schneider_MasterPact_MTZ_selection_0614CT1701_thirdparty.pdf",
+    "pdf_page": 12,
+    "product": "Schneider Electric MasterPacT MTZ2 H10, IEC 60947-2 rated, 1150 V AC",
+    "frames_a": [800, 1000, 1250, 1600, 2000, 2500, 3200, 4000],
+    "ue_vac": 1150,
+    "icu_ka_1150vac": 50,
+    "icw_ka_1s": 50,
+    "icw_ka_3s": 50,
+    "note": "Interrupting rating code H10 is the only MTZ2 code rated at 1150 V AC; the IEC ratings table on p.12 does not state the pole count of the H10 columns, so only the 3-pole version is catalogued."
+  },
+  "mccb_tmax_1150v": {
+    "source": "raw/datasheets/protection/ABB_Tmax_T_Generation_1SDC210015D0208.pdf",
+    "pdf_page": 69,
+    "sensor_pdf_page": 70,
+    "product": "ABB SACE Tmax T4, T5 and T6 circuit-breakers for use up to 1150 V AC (T6 up to 1000 V AC)",
+    "poles": [3, 4],
+    "variants": [
+      {"frame": "T4", "version": "V", "ue_vac": 1150, "icu_ka_at_ue": 12, "in_a": [100, 250]},
+      {"frame": "T5 400", "version": "V", "ue_vac": 1150, "icu_ka_at_ue": 12, "in_a": [320, 400]},
+      {"frame": "T5 630", "version": "V", "ue_vac": 1150, "icu_ka_at_ue": 12, "in_a": [630]},
+      {"frame": "T6", "version": "L", "ue_vac": 1000, "icu_ka_at_ue": 12, "in_a": [630, 800]}
+    ],
+    "note": "Icu at the rated service voltage Ue: 12 kA at 1150 V for the V versions (20 kA at 1000 V), 12 kA at 1000 V for T6 L. Rated currents are the PR221DS/PR222DS electronic trip-unit current sensors listed on p.70 (T4 250: 100 and 250 A; T5 400: 320 and 400 A; T5 630: 630 A; T6: 630 and 800 A). Thermomagnetic releases are also available but their In ladder is not transcribed."
+  },
+  "ct_11kv": {
+    "source": "raw/datasheets/protection/APDCL_11-33kV_outdoor_CT_spec_2020.pdf",
+    "pdf_page": 2,
+    "product": "11 kV single-phase outdoor dead-tank oil-filled CT (APDCL specification APDCL/PP&D/T&C/STS/HT OD CT/2020/1, section 5)",
+    "standards": ["IS 2705"],
+    "rated_system_voltage_kv": 11,
+    "highest_system_voltage_kv": 12,
+    "ratio": null,
+    "cores": [
+      {"use": "metering", "class": "0.5", "burden_va": 15, "isf": "<=5"},
+      {"use": "protection", "class": "5P10", "burden_va": 15, "alf": 10}
+    ],
+    "short_time_ka": 25,
+    "short_time_s": 3,
+    "note": "A utility's procurement specification, not a manufacturer datasheet. The rated primary current is 'as per BPS' (bill of project specification), so no ratio is catalogued; the short-time duration is 3 s for primary currents of 150 A and above, 1 s below. Ratings are stated as tentative and may be changed to suit the project."
+  },
+  "pt_11kv": {
+    "source": "raw/datasheets/protection/APDCL_11-33kV_outdoor_PT_spec_2020.pdf",
+    "pdf_page": 2,
+    "product": "11 kV single-phase outdoor oil-filled PT (APDCL specification APDCL/PP&D/T&C/STS/HT OD PT/2020/1, section 5)",
+    "standards": ["IS 3156"],
+    "rated_system_voltage_kv": 11,
+    "highest_system_voltage_kv": 12,
+    "ratio": "11/0.11 kV",
+    "voltage_factor": "1.2 continuous, 1.5 for 30 s",
+    "cores": [
+      {"use": "metering", "class": "0.5", "burden_va": 100}
+    ],
+    "note": "A utility's procurement specification, not a manufacturer datasheet. Ratings are stated as tentative and may be changed to suit the project."
+  },
+  "la_11kv": {
+    "source": "raw/datasheets/protection/APDCL_11kV_10kA_LA_spec_2020.pdf",
+    "pdf_page": 4,
+    "product": "11 kV station-class gapless metal-oxide surge arrester, Ur 9 kV, Uc 7.65 kV (APDCL specification APDCL/PP&D/T&C/STS/LA/2020/1, section 4.2)",
+    "standards": ["IS 3070 Part 3", "IEC 60099-4"],
+    "ur_kv": 9,
+    "uc_kv": 7.65,
+    "nominal_discharge_current_ka": 10,
+    "line_discharge_class": 2,
+    "note": "A utility's procurement specification, not a manufacturer datasheet. A surge monitor is required only if the bill of project specification asks for one, so the discharge-counter flag is left unset."
+  }
+}
