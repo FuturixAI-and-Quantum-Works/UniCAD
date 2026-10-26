@@ -4,10 +4,13 @@ from mcp.server.mcpserver import MCPServer
 
 HEADER = """# UniCAD MCP tools
 
-Generated from the registered tools by `uv run unicad-mcp --write-docs docs/mcp-tools.md`; `tests/test_mcp.py` fails when this file is out of date. Do not edit by hand.
+Generated from the registered tools by `uv run unicad-mcp --write-docs docs/mcp-tools.md`; `tests/test_mcp.py` fails when this file is out of date. Do not edit by hand. The tool sequence for a whole project is in [agent-workflow.md](agent-workflow.md).
 
 Mutating tools return `{project_id, revision, changed, summary, problems}`. `changed` is false and `revision` stays put when the edit leaves the model identical. Failures come back as tool errors carrying the domain's message.
 """
+
+
+GROUP_ORDER = ("project", "catalog", "site", "layout", "design", "network", "validate", "explain", "earthing", "lps", "cable", "bom", "drawings")
 
 
 def _type(prop: dict[str, Any], defs: dict[str, Any]) -> str:
@@ -49,13 +52,14 @@ def _tool_section(tool: Any) -> list[str]:
 async def render_tools_markdown(server: MCPServer) -> str:
     tools = await server.list_tools()
     lines = [HEADER]
-    group = None
+    groups: dict[str, list[Any]] = {}
     for tool in tools:
-        prefix = tool.name.split("_", 1)[0]
-        if prefix != group:
-            group = prefix
-            lines += [f"## {prefix.capitalize()} tools", ""]
-        lines += _tool_section(tool)
+        groups.setdefault(tool.name.split("_", 1)[0], []).append(tool)
+    rank = {g: i for i, g in enumerate(GROUP_ORDER)}
+    for prefix, members in sorted(groups.items(), key=lambda kv: rank.get(kv[0], len(rank))):
+        lines += [f"## {prefix.capitalize()} tools", ""]
+        for tool in members:
+            lines += _tool_section(tool)
     resources = [(r.uri_template, r.description) for r in await server.list_resource_templates()]
     resources += [(r.uri, r.description) for r in await server.list_resources()]
     if resources:

@@ -1,41 +1,41 @@
-"""Tool modules, in registration order. A module exposes `register(server, workspace)`.
+"""Server assembly.
 
-Add a line here to plug in a new group of tools, resources or prompts (rules engine, drawing, ingest).
+Every module in `unicad.mcp.tools` that defines `register(server, workspace)` is loaded in sorted name order; dropping a file there
+is all a new tool group needs. `MODULES` lists the modules outside that package (resources, prompts) and may repeat a tools module.
 """
 
 import importlib
+import pkgutil
 from collections.abc import Callable
 from typing import cast
 
 from mcp.server.mcpserver import MCPServer
 
+import unicad.mcp.tools
 from unicad.mcp.config import Config
+from unicad.mcp.instructions import INSTRUCTIONS
 from unicad.mcp.workspace import Workspace
 
 MODULES = (
-    "unicad.mcp.tools.project",
-    "unicad.mcp.tools.catalog",
-    "unicad.mcp.tools.network",
-    "unicad.mcp.tools_site",
-    "unicad.mcp.tools.rules",
-    "unicad.mcp.tools_layout",
-    "unicad.mcp.tools.design",
-    "unicad.mcp.tools.schedules",
-    "unicad.mcp.tools.earthing",
     "unicad.mcp.resources",
     "unicad.mcp.prompts",
 )
 
-INSTRUCTIONS = (
-    "UniCAD builds Indian solar EPC drawing sets from a typed project model. "
-    "State intent through the tools (project_create, then network_* to build the electrical network); never give coordinates. "
-    "Use catalog_search for equipment ids. Each edit returns the new revision and any problems."
-)
+Register = Callable[[MCPServer, Workspace], None]
+
+
+def tool_modules() -> tuple[str, ...]:
+    names = sorted(m.name for m in pkgutil.iter_modules(unicad.mcp.tools.__path__, "unicad.mcp.tools."))
+    return tuple(n for n in names if hasattr(importlib.import_module(n), "register"))
+
+
+def module_names() -> tuple[str, ...]:
+    return tuple(dict.fromkeys(tool_modules() + MODULES))
 
 
 def build_server(config: Config | None = None) -> MCPServer:
     ws = Workspace(config or Config.from_env())
     server = MCPServer("unicad", instructions=INSTRUCTIONS)
-    for name in MODULES:
-        cast(Callable[[MCPServer, Workspace], None], importlib.import_module(name).register)(server, ws)
+    for name in module_names():
+        cast(Register, importlib.import_module(name).register)(server, ws)
     return server

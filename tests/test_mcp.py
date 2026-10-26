@@ -78,9 +78,9 @@ async def test_lists_tools_resources_prompts(c):
     docs = await c.session.read_resource("unicad://docs/tools")
     assert "### `network_connect`" in docs.contents[0].text
     prompts = {p.name for p in (await c.session.list_prompts()).prompts}
-    assert prompts == {"new_rooftop_project", "new_utility_project"}
+    assert prompts == {"new_rooftop_project", "new_utility_project", "new_bess_project", "revise_after_comments"}
     plan = await c.session.get_prompt("new_rooftop_project", {"name": "Acme roof"})
-    assert "Acme roof" in plan.messages[0].content.text and "network_connect" in plan.messages[0].content.text
+    assert "Acme roof" in plan.messages[0].content.text and "network_autobuild" in plan.messages[0].content.text
 
 
 @session_test
