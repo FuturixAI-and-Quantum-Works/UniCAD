@@ -8,9 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from unicad.arrays import PlacementResult
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import InverterSpec, ModuleSpec, ProtectionSpec, TransformerSpec
+from unicad.domain.catalog import InverterSpec, ModuleSpec
 from unicad.domain.layout import ArrayLayout, StringAssignment
-from unicad.domain.network import ElectricalNetwork
+from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.plan import PvPlan, from_layout, uniform
@@ -165,7 +165,8 @@ def _layout_of(layout: PlacementResult | ArrayLayout | None) -> ArrayLayout | No
     return layout
 
 
-def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpec, module: ModuleSpec, catalog: Catalog, layout: ArrayLayout | None, target: float, kv: float) -> PvPlan:
+def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpec, module: ModuleSpec, catalog: Catalog, layout: ArrayLayout | None, basis: DesignBasis) -> PvPlan:
+    target, kv = basis.dc_ac_ratio_target, basis.grid.voltage_v / 1000
     mps = sd.modules_per_string
     string_kwp = mps * module.pmax / 1000
     spi_cap = sd.strings_per_inverter_max
@@ -174,13 +175,19 @@ def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpe
         raise DesignError(f"strings_per_inverter {intent.strings_per_inverter} exceeds the limit {spi_cap} ({sd.binding['strings_per_inverter_max']})")
     per_block_cap = None
     if template in ("utility_string", "hybrid") and inverter.topology != "central":
-        per_block_cap = intent.inverters_per_block or _string_block_cap(catalog, inverter, kv)
+        cap, windings, why = T.string_block_limits(catalog, basis, inverter, kv)
+        if intent.inverters_per_block and intent.inverters_per_block > cap * windings:
+            raise DesignError(
+                f"inverters_per_block {intent.inverters_per_block} is above the {cap * windings} one block takes with catalog breakers "
+                f"({windings} LV bus(es) of {cap} x {inverter.id}; beyond that {why})"
+            )
+        per_block_cap = intent.inverters_per_block or cap * windings
     elif inverter.topology == "central":
         per_block_cap = intent.inverters_per_block or 2
     if layout is not None:
         if template == "residential":
             raise DesignError("the residential template does not take a layout")
-        return from_layout(layout, mps, spi, spi_cap, per_block_cap)
+        return from_layout(layout, mps, spi, spi_cap, per_block_cap, mps * module.pmax / 1000)
     if template == "residential":
         dc = intent.dc_kwp or (intent.ac_kw or 0) * target
         strings = max(1, round(dc / string_kwp))
@@ -205,13 +212,6 @@ def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpe
     return uniform(blocks, math.ceil(n_inv / blocks), spi, mps)
 
 
-def _string_block_cap(catalog: Catalog, inverter: InverterSpec, kv: float) -> int:
-    tr_max = max((s.rated_kva for s in catalog.filter("transformer") if isinstance(s, TransformerSpec) and s.hv_kv == kv), default=0.0)
-    acb = max((p.rated_current for p in catalog.filter("protection") if isinstance(p, ProtectionSpec) and p.device == "acb" and p.rated_current), default=0.0)
-    by_acb = acb / 1.25 * math.sqrt(3) * 415.0 / 1000
-    return max(1, int(min(tr_max, by_acb) // inverter.ac_max_kva))
-
-
 def _link_strings(net: ElectricalNetwork, links) -> tuple[StringAssignment, ...]:
     out = []
     for node_ids, count, slots in links:
@@ -226,6 +226,25 @@ def _link_strings(net: ElectricalNetwork, links) -> tuple[StringAssignment, ...]
                 raise DesignError(f"internal: inverter {j + 1} of {node_ids} has {len(mine)} network strings for {len(slots[j])} layout strings")
             out += [StringAssignment(string=sid, spans=a.spans) for sid, a in zip(mine, slots[j], strict=True)]
     return tuple(out)
+
+
+BREAKER_PREFIX = {"acb": "ACB", "mccb": "MCCB", "mcb": "MCB"}
+
+
+def _breaker_tags(project: Project, catalog: Catalog) -> Project:
+    """Breaker tags name the device the sizer picked: an inverter breaker that had to be an ACB (no MCCB breaks the bus fault) is tagged ACB."""
+    net = project.network
+    used = {n.tag for n in net.nodes}
+    nodes = []
+    for n in net.nodes:
+        head, sep, rest = n.tag.partition("-")
+        want = BREAKER_PREFIX.get(getattr(catalog.get(n.spec), "device", "")) if n.kind is NodeKind.BREAKER and n.spec is not None else None
+        tag = f"{want}{sep}{rest}"
+        if want and head in BREAKER_PREFIX.values() and head != want and tag not in used:
+            used.add(tag)
+            n = n.model_copy(update={"tag": tag})
+        nodes.append(n)
+    return project.model_copy(update={"network": net.model_copy(update={"nodes": tuple(nodes)})})
 
 
 def summarize(project: Project, catalog: Catalog) -> dict[str, Any]:
@@ -265,7 +284,7 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
         module = _module(catalog, intent.module, notes)
         inverter = _inverter(catalog, intent.inverter, template, project, module, (intent.ac_kw or (intent.dc_kwp or 0.0) / basis.dc_ac_ratio_target), notes)
         sd = size_strings(module, inverter, basis, intent.modules_per_string)
-        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis.dc_ac_ratio_target, basis.grid.voltage_v / 1000)
+        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis)
         if plan.unstrung_modules:
             notes.append(f"{plan.unstrung_modules} layout modules do not make up a whole string of {plan.modules_per_string} and are left unstrung.")
     if template == "residential":
@@ -326,7 +345,7 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
             edges = tuple(e.model_copy(update={"length_m": routed.lengths[e.id]}) if e.id in routed.lengths else e for e in draft.network.edges)
             draft = draft.model_copy(update={"network": draft.network.model_copy(update={"edges": edges})})
             sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
-    sized = Project.model_validate(sizing.project.model_dump(mode="json"), context={"catalog": catalog})
+    sized = Project.model_validate(_breaker_tags(sizing.project, catalog).model_dump(mode="json"), context={"catalog": catalog})
     report = run_rules(sized, catalog)
     findings = tuple(f for f in report.findings if f.severity is not Severity.INFO)
     summary = summarize(sized, catalog) | {"strings_linked": len(linked), "segment_hint": TEMPLATE_SEGMENT[template].value}

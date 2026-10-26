@@ -61,7 +61,7 @@ def uniform(n_blocks: int, inv_per_block: int, strings_per_inverter: int, mps: i
     return PvPlan([BlockClass("", n_blocks, [InvClass("", inv_per_block, strings_per_inverter)])], mps)
 
 
-def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, max_inv_per_block: int | None = None) -> PvPlan:
+def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, max_inv_per_block: int | None = None, string_kwp: float | None = None) -> PvPlan:
     """Re-string each layout block with `mps` modules per string, split it into the fewest inverters of at most `target_spi` strings
     (balanced, so only the last inverter may carry fewer), and keep every string's slots so the network can link them 1:1."""
     blocks, unstrung = [], 0
@@ -76,7 +76,11 @@ def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, ma
             n_inv = max_inv_per_block
         spi = math.ceil(n / n_inv)
         if spi > max_spi:
-            raise DesignError(f"layout block {b.id} has {n} strings: {n_inv} inverters would need {spi} strings each, above the inverter limit {max_spi}")
+            fix = ""
+            if max_inv_per_block is not None and string_kwp:
+                fix = (f"; a block takes at most {max_inv_per_block} inverters ({max_inv_per_block * target_spi} strings, "
+                       f"{max_inv_per_block * target_spi * string_kwp:.1f} kWp): re-run layout_place with block_dc_kwp <= {max_inv_per_block * target_spi * string_kwp:.1f} and strings_per_inverter={target_spi}")
+            raise DesignError(f"layout block {b.id} has {n} strings: {n_inv} inverters would need {spi} strings each, above the inverter limit {max_spi}{fix}")
         assigned, left = assign_strings([b], mps, spi)
         unstrung += left
         per_inv: dict[int, list[StringAssignment]] = {}
@@ -98,18 +102,39 @@ def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, ma
     return PvPlan(blocks, mps, from_layout=True, unstrung_modules=unstrung)
 
 
+def _inverters(blk: BlockClass) -> list[tuple[int, list[StringAssignment]]]:
+    return [(ic.strings, sl) for _ in range(blk.count) for ic in blk.invs for sl in (ic.slots or [[]] * ic.count)]
+
+
+def _regroup(items: list[tuple[int, list[StringAssignment]]], with_slots: bool) -> list[InvClass]:
+    """Inverters as classes numbered 01.. in order: those with the most common string count first as one class, the others one by one."""
+    common = Counter(n for n, _ in items).most_common(1)[0][0]
+    full = [sl for n, sl in items if n == common]
+    invs = [InvClass("a", len(full), common, None if len(full) > 1 else "01", full if with_slots else [])]
+    for k, (n, sl) in enumerate((x for x in items if x[0] != common), start=len(full) + 1):
+        invs.append(InvClass(f"x{k:02d}", 1, n, f"{k:02d}", [sl] if with_slots else []))
+    return invs
+
+
 def merged(plan: PvPlan) -> PvPlan:
-    """All blocks of a layout plan as one block whose inverters are numbered once across the plant, in block order: the inverters with
-    the most common string count first as one class, the others one by one."""
+    """All blocks of a plan as one block whose inverters are numbered once across the plant, in block order."""
     if len(plan.blocks) <= 1:
         return plan
-    slots = [(ic.strings, s) for b in plan.blocks for ic in b.invs for s in (ic.slots or [[]] * ic.count) for _ in range(b.count)]
-    common = Counter(n for n, _ in slots).most_common(1)[0][0]
-    full = [s for n, s in slots if n == common]
-    invs = [InvClass("a", len(full), common, None if len(full) > 1 else "01", full if plan.from_layout else [])]
-    for k, (n, s) in enumerate((x for x in slots if x[0] != common), start=len(full) + 1):
-        invs.append(InvClass(f"x{k:02d}", 1, n, f"{k:02d}", [s] if plan.from_layout else []))
-    return PvPlan([BlockClass("", 1, invs)], plan.modules_per_string, plan.from_layout, plan.unstrung_modules)
+    items = [x for b in plan.blocks for x in _inverters(b)]
+    return PvPlan([BlockClass("", 1, _regroup(items, plan.from_layout))], plan.modules_per_string, plan.from_layout, plan.unstrung_modules)
+
+
+def sections(blk: BlockClass, most: int, with_slots: bool) -> list[BlockClass]:
+    """One block's inverters split into the fewest LV sections of at most `most` inverters (sizes differing by at most one), in order;
+    each section numbers its inverters from 01."""
+    items = [x for ic in blk.invs for sl in (ic.slots or [[]] * ic.count) for x in [(ic.strings, sl)]]
+    out, at = [], 0
+    for count, size in split_even(len(items), most):
+        for _ in range(count):
+            letter = chr(ord("a") + len(out))
+            out.append(BlockClass(f"{blk.sfx}{letter}", 1, _regroup(items[at : at + size], with_slots), letter.upper()))
+            at += size
+    return out
 
 
 def split_even(total: int, most: int) -> list[tuple[int, int]]:

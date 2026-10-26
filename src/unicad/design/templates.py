@@ -9,7 +9,7 @@ from unicad.domain.layout import StringAssignment
 from unicad.domain.network import Laying, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NetBuilder, NodeHint
-from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, split_even
+from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, sections, split_even
 from unicad.design.select import (
     DC_FAMILY,
     DC_STRING_FAMILY,
@@ -19,13 +19,15 @@ from unicad.design.select import (
     LV_MIN,
     NoFit,
     mv_family,
+    pick_lv_breaker,
     pick_meter,
     pick_mv,
     pick_rated,
     pick_transformer,
 )
 from unicad.design.strings import DesignError
-from unicad.rules.thresholds import ISC_FACTOR
+from unicad.rules.faults import transformer_fault_ka
+from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR
 
 V = Service
 BHEL_IDT = "references/catalog-sources/raw/datasheets/transformers/BHEL_PS439-1304_5.5MVA_33kV_IDT_spec_via_indembassysweden.pdf"
@@ -34,6 +36,8 @@ SCB_ASSUMPTION = f"String combiner boxes take up to {SCB_STRINGS} strings each (
 BLOCK_AUX_KVA = 63.0
 PLANT_AUX_KVA = 100.0
 DC_ISOLATOR_MAX_A = 250.0
+IDT_Z_PCT = 7.0
+MAX_LV_WINDINGS = 2
 
 ROOF_LENGTHS = {"string": 25.0, "dcfb_iso": 5.0, "iso_inv": 3.0, "inv_acdb": 30.0, "acdb_meter": 60.0, "iso_ltp": 5.0, "acb_tr": 15.0, "idt_vcb": 20.0, "vcb_bus": 50.0}
 UTILITY_LENGTHS = {
@@ -114,7 +118,7 @@ def inline_transformer(id_: str, title: str, lv_v: float, windings: int, winding
         hv_kv=hv_kv,
         lv_kv=tuple([lv_kv] * windings),
         vector_group="YN" + "d11" * windings,
-        impedance_pct=7.0,
+        impedance_pct=IDT_Z_PCT,
         cooling="ONAN",
         standard="IS 2026",
         winding_kva=tuple([winding_kva] * windings) if windings > 1 else None,
@@ -405,29 +409,89 @@ def ci_rooftop(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     return c.built
 
 
+def lv_bus_cap(catalog: Catalog, basis, inverter: InverterSpec, v: float, kv: float, inline: bool) -> tuple[int, str]:
+    """The most inverters one LV bus (one transformer LV winding) can take so that every breaker on it has a catalog spec: the bus
+    breaker rated >= 1.25 x the inverters' current and each breaker's breaking capacity >= the fault the winding passes to the bus.
+    Returns the count and what stops the next inverter."""
+    i_inv = inverter.ac_max_kva * 1000 / (math.sqrt(3) * v)
+    best, why = 0, "the search limit"
+    for n in range(1, 101):
+        kva = n * inverter.ac_max_kva
+        if inline:
+            base, z = kva, IDT_Z_PCT
+        else:
+            try:
+                tr = pick_transformer(catalog, kva, kv)
+            except NoFit:
+                why = f"no catalog {kv:g} kV transformer is rated >= {kva:g} kVA"
+                break
+            base, z = tr.impedance_base_kva or tr.rated_kva, tr.impedance_pct
+        ka, _, _ = transformer_fault_ka(base, z, v, kv * 1000, basis)
+        try:
+            pick_lv_breaker(catalog, CONTINUOUS_FACTOR.value * n * i_inv, v, (4, 3), ka)
+        except NoFit:
+            why = f"no catalog bus breaker is rated >= {CONTINUOUS_FACTOR.value * n * i_inv:.0f} A at {v:g} V with a breaking capacity >= the {ka:.1f} kA bus fault"
+            break
+        try:
+            pick_lv_breaker(catalog, CONTINUOUS_FACTOR.value * i_inv, v, (4, 3), ka)
+        except NoFit:
+            why = f"no catalog inverter breaker rated >= {CONTINUOUS_FACTOR.value * i_inv:.0f} A at {v:g} V has a breaking capacity >= the {ka:.1f} kA bus fault of {n} inverters"
+            break
+        best = n
+    return best, why
+
+
+def string_block_limits(catalog: Catalog, basis, inverter: InverterSpec, kv: float) -> tuple[int, int, str]:
+    """(inverters per LV bus, LV buses per block, why the bus stops there) for string inverters on a block transformer."""
+    v = inverter.ac_voltage if inverter.ac_voltage > 440 else 415.0
+    inline = v != 415.0
+    cap, why = lv_bus_cap(catalog, basis, inverter, v, kv, inline)
+    if cap == 0:
+        raise DesignError(f"{inverter.id} cannot be connected to a {v:g} V block bus with catalog breakers: {why}")
+    return cap, MAX_LV_WINDINGS if inline else 1, why
+
+
 def string_blocks(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, kv: float, switch: str, aux: bool) -> None:
     """Per block: string inverters -> LT ACCB -> block transformer -> VCB/RMU feeder. Inverters up to 440 V use a catalog IS 1180 transformer;
-    800 V-class inverters get a project-specific inline transformer, as central inverters do."""
+    800 V-class inverters get a project-specific inline transformer, as central inverters do, with up to two LV windings, one ACCB on each,
+    when one LV bus cannot carry the block with catalog breakers."""
     b = c.b
     v = inverter.ac_voltage if inverter.ac_voltage > 440 else 415.0
     inline = v != 415.0
+    cap, windings, why = string_block_limits(c.catalog, c.project.design_basis, inverter, kv)
     for blk in plan.blocks:
-        g = b.group(f"block{blk.sfx}", "BLOCK", count=blk.count, part=blk.part, title=f"STRING INVERTER BLOCK ({blk.inverters} x {inverter.ac_rated_kva:g} kVA)")
-        invs = inverter_groups(c, g, blk, inverter, module, plan.modules_per_string, False, Laying.AIR, True)
-        out = lv_board(c, g, blk.sfx, invs, v, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")
+        n = blk.inverters
+        secs = sections(blk, cap, plan.from_layout) if n > cap else [blk]
+        if len(secs) > windings:
+            raise DesignError(
+                f"block {blk.part or blk.sfx or ''} has {n} inverters; a block takes at most {cap * windings} ({windings} LV bus(es) of {cap}: beyond that {why}). "
+                "Use smaller blocks (layout_place block_dc_kwp or n_blocks, or inverters_per_block)"
+            )
+        g = b.group(f"block{blk.sfx}", "BLOCK", count=blk.count, part=blk.part, title=f"STRING INVERTER BLOCK ({n} x {inverter.ac_rated_kva:g} kVA)")
+        outs = []
+        for sec in secs:
+            within = g if len(secs) == 1 else b.group(f"lv_sec{sec.sfx}", "LV", within=g, part=sec.part, title=f"LV SECTION {sec.part} ({sec.inverters} x {inverter.ac_rated_kva:g} kVA)")
+            invs = inverter_groups(c, within, sec, inverter, module, plan.modules_per_string, False, Laying.AIR, True)
+            outs.append((sec, lv_board(c, within, sec.sfx, invs, v, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")))
+        if len(secs) > 1:
+            b.assume(f"Blocks above {cap} inverters split into LV sections on separate IDT LV windings, {cap} inverters at most per bus: beyond that {why}.")
         if inline:
-            kva = blk.inverters * inverter.ac_max_kva
+            w_kva = max(sec.inverters for sec in secs) * inverter.ac_max_kva
+            k = len(secs)
+            lv = "-".join([f"{v / 1000:g}"] * k)
             spec = inline_transformer(
-                f"idt-{kva:g}kva-{kv:g}-{v / 1000:g}-ynd11-project", f"{kva:g} kVA {kv:g}/{v / 1000:g} kV inverter-duty transformer", v, 1, kva, kv, f"ac_voltage of catalog {inverter.id}"
+                f"idt-{k * w_kva:g}kva-{kv:g}-{lv}-yn{'d11' * k}-project", f"{k * w_kva:g} kVA {kv:g}/{lv} kV inverter-duty transformer", v, k, w_kva, kv, f"ac_voltage of catalog {inverter.id}"
             )  # fmt: skip
-            b.assume(inline_assumption("IDT-nn", spec, 1))
+            b.assume(inline_assumption("IDT-nn", spec, k))
         else:
             try:
-                spec = pick_transformer(c.catalog, blk.inverters * inverter.ac_max_kva, kv).id
+                spec = pick_transformer(c.catalog, n * inverter.ac_max_kva, kv).id
             except NoFit as e:
-                raise DesignError(f"block of {blk.inverters} inverters: {e}") from None
+                raise DesignError(f"block of {n} inverters: {e}") from None
         idt = b.node(f"idt{blk.sfx}", "IDT", NodeKind.TRANSFORMER, group=g, spec=spec)
-        b.edge(f"e_accb_idt{blk.sfx}", f"{out}:out", f"{idt}:lv", V.LV_AC, lv_hint(3), c.L("accb_idt"), Laying.TRENCH)
+        for sec, out in outs:
+            x = sec.sfx
+            b.edge(f"e_accb_idt{x}", f"{out}:out", f"{idt}:lv", V.LV_AC, lv_hint(3), c.L("accb_idt"), Laying.TRENCH)
         block_feeder(c, g, blk.sfx, idt, kv, switch, block_aux=aux)
     if not inline:
         b.assume("Block transformers are catalog IS 1180 distribution transformers (0.433 kV LV) used as inverter-duty step-up transformers; confirm inverter-duty suitability with the vendor.")

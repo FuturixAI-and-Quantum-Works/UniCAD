@@ -51,7 +51,7 @@ Each transformer's HV winding is compared with the zone on its 'hv' port and its
 
 Standard: none (design practice). Segments: all.
 
-Strings, inverters, PCS, batteries and transformers need a catalog spec (and strings a module count) for the engineering rules to run: missing ones are errors. Protection devices and meters without a spec cannot be rating-checked: warnings.
+Strings, inverters, PCS, batteries and transformers need a catalog spec (and strings a module count) for the engineering rules to run, and breakers, vacuum breakers and fuses one so their current and breaking capacity can be checked against the design current and the prospective fault: missing ones are errors. Isolators, SPDs and meters without a spec cannot be rating-checked: warnings.
 
 
 ## pv_strings
@@ -150,11 +150,15 @@ Breakers and fuses must carry a breaking capacity (kA) so it can be shown on the
 
 Standard: none (design practice). Segments: all.
 
-A breaker or fuse must have a breaking capacity (Icu; for vacuum breakers also the short-time withstand current Icw) at or above the three-phase fault level declared in
-design_basis.fault_levels for the system voltage of its zone. An error when it is below. Where no fault level is declared for a device's voltage, a single info finding lists the voltages
-and the devices are not checked; autobuild then picks the lowest breaking capacity at or above a placeholder minimum and reports that as an assumption.
+A breaker or fuse must have a breaking capacity (Icu; for vacuum breakers also the short-time withstand current Icw) at or above the prospective three-phase fault current at
+its zone. That is the larger of the level declared in design_basis.fault_levels for the zone's system voltage and, where a transformer LV winding feeds the zone, the current the
+transformer passes: I = S / (sqrt(3) V (Z% / 100 + S / S_sc)), with S the kVA base of the winding's impedance, Z% its catalog (or inline) impedance and S_sc = sqrt(3) V_hv I_hv
+the declared fault level on the HV side (an infinite bus when none is declared, which is conservative). Inverter and PCS contributions are not added. An error when the breaking
+capacity is below. Where neither applies, a single info finding lists the voltages and the devices are not checked; autobuild then picks the lowest breaking capacity at or above a
+placeholder minimum and reports that as an assumption. A breaker without a catalog spec is an error of structure.missing_spec.
 
-Worked example: a 20 kA VD4 vacuum breaker on a 33 kV bus with a 25 kA fault level is an error (20 kA < 25 kA); the 25 kA VD4 passes.
+Worked examples: a 20 kA VD4 vacuum breaker on a 33 kV bus with a 25 kA fault level is an error (20 kA < 25 kA); the 25 kA VD4 passes. A 7040 kVA, 7 % IDT winding at 800 V
+on an infinite bus passes 7040 / (sqrt(3) x 0.8 x 0.07) = 72.6 kA to its LV bus, so a 12 kA MCCB there is an error.
 
 ### `protection.rated_voltage`: Device rated voltage covers the system voltage
 

@@ -100,6 +100,8 @@ class PlacementSpec(_Frozen):
     block_dc_kwp: float | None = Field(default=None, gt=0)
     modules_per_string: int | None = Field(default=None, gt=0)
     strings_per_inverter: int | None = Field(default=None, gt=0)
+    whole_inverters: bool = Field(default=True, description="with strings_per_inverter: size every block to whole inverters, leaving out the remainder tables")
+    station: Point | None = Field(default=None, description="inverter station of every block, local metres; default on the block (on a roof for rooftop arrays)")
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:

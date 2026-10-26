@@ -12,11 +12,10 @@ from unicad.rules.thresholds import VOLTAGE_TOLERANCE
 from unicad.rules.topology import label, zone_at
 
 SPEC_REQUIRED = frozenset(
-    {NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK, NodeKind.INVERTER, NodeKind.PCS, NodeKind.BATTERY, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER}
-)
-SPEC_EXPECTED = frozenset(
-    {NodeKind.BREAKER, NodeKind.VCB, NodeKind.FUSE, NodeKind.ISOLATOR, NodeKind.DC_ISOLATOR, NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.METER}
-)
+    {NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK, NodeKind.INVERTER, NodeKind.PCS, NodeKind.BATTERY, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER,
+     NodeKind.BREAKER, NodeKind.VCB, NodeKind.FUSE}
+)  # fmt: skip
+SPEC_EXPECTED = frozenset({NodeKind.ISOLATOR, NodeKind.DC_ISOLATOR, NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.METER})
 
 
 @rule("structure.unconnected_port", "Every power port is connected")
@@ -119,7 +118,7 @@ def transformer_voltage(project: Project, catalog: Catalog) -> Iterator[Finding]
 
 @rule("structure.missing_spec", "Rated equipment names a catalog spec")
 def missing_spec(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Strings, inverters, PCS, batteries and transformers need a catalog spec (and strings a module count) for the engineering rules to run: missing ones are errors. Protection devices and meters without a spec cannot be rating-checked: warnings."""
+    """Strings, inverters, PCS, batteries and transformers need a catalog spec (and strings a module count) for the engineering rules to run, and breakers, vacuum breakers and fuses one so their current and breaking capacity can be checked against the design current and the prospective fault: missing ones are errors. Isolators, SPDs and meters without a spec cannot be rating-checked: warnings."""
     net = project.network
     for n in net.nodes:
         if n.spec is None and n.kind in SPEC_REQUIRED:

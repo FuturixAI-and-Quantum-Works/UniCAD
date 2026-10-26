@@ -7,7 +7,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import ProtectionSpec
 from unicad.domain.network import Node, NodeKind, Service
 from unicad.domain.project import Project
-from unicad.rules.faults import fault_at
+from unicad.rules.faults import prospective_fault
 from unicad.rules.model import Finding, Quantity, Severity
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.registry import rule
@@ -79,19 +79,23 @@ def covers_fault(spec: ProtectionSpec, fault_ka: float) -> bool:
 
 @rule("protection.fault_level", "Interrupting devices break the prospective fault current")
 def fault_level(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """A breaker or fuse must have a breaking capacity (Icu; for vacuum breakers also the short-time withstand current Icw) at or above the three-phase fault level declared in
-    design_basis.fault_levels for the system voltage of its zone. An error when it is below. Where no fault level is declared for a device's voltage, a single info finding lists the voltages
-    and the devices are not checked; autobuild then picks the lowest breaking capacity at or above a placeholder minimum and reports that as an assumption.
+    """A breaker or fuse must have a breaking capacity (Icu; for vacuum breakers also the short-time withstand current Icw) at or above the prospective three-phase fault current at
+    its zone. That is the larger of the level declared in design_basis.fault_levels for the zone's system voltage and, where a transformer LV winding feeds the zone, the current the
+    transformer passes: I = S / (sqrt(3) V (Z% / 100 + S / S_sc)), with S the kVA base of the winding's impedance, Z% its catalog (or inline) impedance and S_sc = sqrt(3) V_hv I_hv
+    the declared fault level on the HV side (an infinite bus when none is declared, which is conservative). Inverter and PCS contributions are not added. An error when the breaking
+    capacity is below. Where neither applies, a single info finding lists the voltages and the devices are not checked; autobuild then picks the lowest breaking capacity at or above a
+    placeholder minimum and reports that as an assumption. A breaker without a catalog spec is an error of structure.missing_spec.
 
-    Worked example: a 20 kA VD4 vacuum breaker on a 33 kV bus with a 25 kA fault level is an error (20 kA < 25 kA); the 25 kA VD4 passes."""
-    net, basis = project.network, project.design_basis
+    Worked examples: a 20 kA VD4 vacuum breaker on a 33 kV bus with a 25 kA fault level is an error (20 kA < 25 kA); the 25 kA VD4 passes. A 7040 kVA, 7 % IDT winding at 800 V
+    on an infinite bus passes 7040 / (sqrt(3) x 0.8 x 0.07) = 72.6 kA to its LV bus, so a 12 kA MCCB there is an error."""
+    net = project.network
     unchecked: dict[str, int] = {}
     for n in net.nodes:
         spec = _protection(catalog, n)
         if spec is None or spec.device not in INTERRUPTING or spec.breaking_capacity_ka is None:
             continue
         zone = zone_at(net, n.id)
-        fault = fault_at(basis, zone.voltage_v if zone else None)
+        fault = prospective_fault(project, catalog, n.id)
         if fault is None:
             key = f"{zone.voltage_v:g} V" if zone and zone.voltage_v else "undeclared voltage"
             unchecked[key] = unchecked.get(key, 0) + net.instance_count(n.id)
@@ -100,9 +104,9 @@ def fault_level(project: Project, catalog: Catalog) -> Iterator[Finding]:
         icw = f", Icw {spec.short_time_withstand_ka:g} kA" if spec.device == "vcb" and spec.short_time_withstand_ka is not None else ""
         yield Finding(
             rule_id="protection.fault_level", severity=Severity.INFO if ok else Severity.ERROR, subjects=(n.id,),
-            message=f"{label(net, n.id)} {spec.model}: Icu {spec.breaking_capacity_ka:g} kA{icw} {'covers' if ok else 'is below'} the {fault.ka:g} kA fault level at {fault.voltage_v:g} V",
-            measured=spec.breaking_capacity_ka, limit=fault.ka, unit="kA", formula="Icu >= I_fault" + ("; Icw >= I_fault" if spec.device == "vcb" else ""),
-            inputs=(*fault.inputs(), Quantity(name="Icu", value=spec.breaking_capacity_ka, unit="kA", source=spec.id)), assumptions=fault.assumptions,
+            message=f"{label(net, n.id)} {spec.model}: Icu {spec.breaking_capacity_ka:g} kA{icw} {'covers' if ok else 'is below'} the {fault.ka:g} kA {'transformer-fed ' if fault.where == 'transformer-fed' else ''}fault level at {fault.voltage_v:g} V",
+            measured=spec.breaking_capacity_ka, limit=fault.ka, unit="kA", formula="Icu >= I_fault" + ("; Icw >= I_fault" if spec.device == "vcb" else "") + (f"; {fault.formula}" if fault.formula else ""),
+            inputs=(*fault.inputs, Quantity(name="Icu", value=spec.breaking_capacity_ka, unit="kA", source=spec.id)), assumptions=fault.assumptions,
         )  # fmt: skip
     if unchecked:
         listed = ", ".join(f"{v} ({n} devices)" for v, n in sorted(unchecked.items()))

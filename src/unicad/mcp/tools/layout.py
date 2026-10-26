@@ -101,6 +101,25 @@ def _full_cols(layout: ArrayLayout) -> int:
     return max(t.cols for t in layout.table_by_id.values())
 
 
+def half_table_for_strings(rows: int, cols: int, mps: int) -> int | None:
+    """The longest table shorter than `cols` whose rows x length modules make whole strings of `mps`."""
+    return next((k for k in range(cols - 1, 0, -1) if rows * k >= mps and rows * k % mps == 0), None)
+
+
+def string_problems(spec: PlacementSpec) -> list[Problem]:
+    """Say when the table sizes cannot make whole strings: strings never cross tables, so the remainder modules stay unstrung."""
+    mps = spec.modules_per_string or spec.table_cols
+    out = []
+    sizes = [("table", spec.table_cols)] + ([("half table", spec.half_table_cols)] if spec.half_tables else [])
+    for what, cols in sizes:
+        n = spec.table_rows * cols
+        if n < mps:
+            out.append(_problem("error", "layout", f"a {what} of {spec.table_rows} x {cols} = {n} modules cannot hold a string of {mps} (strings never cross tables): its modules stay unstrung; use tables of at least {mps} modules or turn half tables off"))
+        elif n % mps:
+            out.append(_problem("warning", "layout", f"a {what} of {spec.table_rows} x {cols} = {n} modules holds {n // mps} string(s) of {mps} and leaves {n % mps} modules unstrung; use a length that is a multiple of the string"))
+    return out
+
+
 def register(server: MCPServer, ws: Workspace) -> None:
     @server.tool()
     @guarded
@@ -109,7 +128,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         module: Annotated[str, Field(description="Catalog id of the PV module, e.g. 'waaree-bi-55-540'")],
         mounting: Annotated[str, Field(description="fixed_tilt, tracker_1p, rooftop_flush, rooftop_tilted or carport")] = "fixed_tilt",
         table_rows: Annotated[int, Field(gt=0, description="Modules across a table (2 for 2P, 1 for a 1P tracker)")] = 2,
-        table_cols: Annotated[int, Field(gt=0, description="Modules along a table or tracker")] = 28,
+        table_cols: Annotated[int | None, Field(gt=0, description="Modules along a table or tracker; default the string length (modules_per_string), else 28")] = None,
         orientation: Annotated[Orientation, Field(description="portrait or landscape")] = Orientation.PORTRAIT,
         tilt_deg: Annotated[float, Field(ge=0, le=60, description="Fixed tilt; 0 for trackers and flat roofs")] = 0.0,
         azimuth_deg: Annotated[float, Field(ge=0, lt=360, description="Direction the modules face, clockwise from grid north; 180 = south")] = 180.0,
@@ -118,8 +137,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         pitch_m: Annotated[Metres, Field(description="Row-to-row pitch for pitch_method='explicit'")] = None,
         gcr: Annotated[float | None, Field(gt=0, lt=1, description="Ground coverage ratio for pitch_method='gcr'")] = None,
         row_gap_m: Annotated[float | None, Field(ge=0, description="Clear gap between rows for pitch_method='gap'")] = None,
-        half_tables: Annotated[bool, Field(description="Fill edges with half tables")] = True,
-        half_cols: Annotated[int | None, Field(gt=0, description="Modules along a half table; default table_cols // 2")] = None,
+        half_tables: Annotated[bool, Field(description="Fill edges with half tables (only where a half table holds whole strings, unless half_cols is given)")] = True,
+        half_cols: Annotated[int | None, Field(gt=0, description="Modules along a half table; default the longest shorter table that holds whole strings")] = None,
         table_gap_m: Annotated[float | None, Field(ge=0, description="Gap between tables along a row (default 1.5 m, reported as an assumption)")] = None,
         module_gap_m: Annotated[float | None, Field(ge=0, description="Gap between modules on a table (default 0.02 m, reported as an assumption)")] = None,
         road_every_rows: Annotated[int | None, Field(gt=0, description="Leave an internal road after every N rows")] = None,
@@ -135,6 +154,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         modules_per_string: Annotated[int | None, Field(gt=0, description="Modules in series; default the network pv_string modules_in_series, else table_cols")] = None,
         strings_per_inverter: Annotated[int | None, Field(gt=0, description="Strings per inverter within a block (string inverters); default one inverter per block")] = None,
         regions: Annotated[str, Field(description="auto (roofs for rooftop mountings, else ground), ground or roofs")] = "auto",
+        whole_inverters: Annotated[bool, Field(description="With strings_per_inverter: size every block to whole inverters and leave out the few remainder tables instead of adding a part-loaded inverter")] = True,
+        station_x: Annotated[float | None, Field(description="Local x (m) of the inverter station for every block, e.g. a ground-level inverter room; default on the block (on a roof for rooftop arrays)")] = None,
+        station_y: Annotated[float | None, Field(description="Local y (m) of the inverter station")] = None,
     ) -> dict[str, Any]:
         """Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
         site an inverter station per block and assign strings to module slots. Replaces any existing array layout.
@@ -156,14 +178,29 @@ def register(server: MCPServer, ws: Workspace) -> None:
             }  # fmt: skip
             if (fill_from_x is None) != (fill_from_y is None):
                 raise ValueError("pass fill_from_x and fill_from_y together")
+            if (station_x is None) != (station_y is None):
+                raise ValueError("pass station_x and station_y together")
+            cols = table_cols or mps or 28
+            notes: list[str] = []
+            if table_cols is None:
+                notes.append(f"table length {cols} modules: {'one string per table row (modules_per_string)' if mps else 'default, not from a cited source'}")
+            halves, half = half_tables, half_cols
+            if half_tables and half_cols is None and mps:
+                half = half_table_for_strings(table_rows, cols, mps)
+                if half is None:
+                    halves = False
+                    notes.append(f"half tables off: no shorter table of {table_rows} x n modules holds whole strings of {mps}")
+                elif half != max(1, cols // 2):
+                    notes.append(f"half tables of {table_rows} x {half} modules, the longest shorter table that holds whole strings of {mps}")
             spec = PlacementSpec(
-                module=mod.id, mounting=mounting, table_rows=table_rows, table_cols=table_cols, orientation=orientation, tilt_deg=tilt_deg,
-                azimuth_deg=azimuth_deg, axis_azimuth_deg=axis_azimuth_deg, pitch_method=pitch_method, half_tables=half_tables, fill=fill,
-                fill_from=None if fill_from_x is None else {"x": fill_from_x, "y": fill_from_y}, regions=regions,
-                **{k: v for k, v in given.items() if v is not None},
+                module=mod.id, mounting=mounting, table_rows=table_rows, table_cols=cols, orientation=orientation, tilt_deg=tilt_deg,
+                azimuth_deg=azimuth_deg, axis_azimuth_deg=axis_azimuth_deg, pitch_method=pitch_method, half_tables=halves, fill=fill,
+                fill_from=None if fill_from_x is None else {"x": fill_from_x, "y": fill_from_y}, regions=regions, whole_inverters=whole_inverters,
+                station=None if station_x is None else {"x": station_x, "y": station_y},
+                **{k: v for k, v in (given | {"half_cols": half}).items() if v is not None},
             )  # fmt: skip
             result = place_array(site, spec, mod)
-            problems = [_problem("warning", "layout", w) for w in result.warnings]
+            problems = [_problem("warning", "layout", w) for w in result.warnings] + string_problems(spec)
             planned = result.layout.strings
             linked: tuple[StringAssignment, ...] = ()
             if network_ids:
@@ -177,7 +214,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
             data = p.model_dump(mode="json")
             data["array_layout"] = layout.model_dump(mode="json")
             updated = Project.model_validate(data, context={"catalog": ws.catalog})
-            extra = _result_json(result) | {
+            extra = _result_json(result)
+            extra["assumptions"] = notes + extra["assumptions"]
+            extra |= {
                 "strings_planned": len(planned),
                 "strings_linked": len(linked),
                 "string_id_example": planned[0].string if planned else None,

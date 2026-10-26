@@ -184,10 +184,23 @@ def test_800v_string_inverters_build_with_a_project_idt_and_1150v_breakers():
     assert r.errors == ()
     net = r.project.network
     idt = net.node("idt").spec
-    assert isinstance(idt, TransformerSpec) and idt.lv_kv == (0.8,) and idt.hv_kv == 33 and idt.manufacturer == "Project-specific"
-    assert CATALOG.get(net.node("inv_brk").spec).rated_voltage >= 800 and CATALOG.get(net.node("acdb_brk").spec).rated_voltage >= 800
-    assert any("project-specific inline spec (idt-2112kva-33-0.8-ynd11-project)" in a and "BHEL PS 439-1304" in a for a in r.assumptions)
+    assert isinstance(idt, TransformerSpec) and idt.lv_kv == (0.8, 0.8) and idt.hv_kv == 33 and idt.manufacturer == "Project-specific"
+    for brk in ("inv_brkaa", "inv_brkba", "acdb_brka", "acdb_brkb"):
+        assert CATALOG.get(net.node(brk).spec).rated_voltage >= 800
+    assert any("project-specific inline spec (idt-7040kva-33-0.8-0.8-ynd11d11-project)" in a and "BHEL PS 439-1304" in a for a in r.assumptions)
     assert any("ACCB-SPD" in b and "no catalog spd_ac" in b for b in r.blockers)
+
+
+def test_block_lv_buses_are_capped_so_every_breaker_has_a_catalog_spec():
+    """B3: 19 x SG350HX (800 V) on one bus need a ~6 kA ACB beyond the 4000 A catalog maximum; the block splits into two LV windings of at most 12."""
+    r = autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_string", "ac_kw": 20000, "module": UTIL_MOD, "inverter": "sungrow-sg350hx"})
+    net = r.project.network
+    assert [n.id for n in net.by_kind(NodeKind.BREAKER) if n.spec is None] == []
+    secs = [g for g in net.groups if g.id.startswith("inv_sec")]
+    assert sorted(g.count for g in secs) == [9, 10]
+    assert any("12 inverters at most per bus" in a and "4000" not in a for a in r.assumptions)
+    with pytest.raises(DesignError, match="inverters_per_block 30 is above the 24 one block takes"):
+        autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_string", "ac_kw": 20000, "module": UTIL_MOD, "inverter": "sungrow-sg350hx", "inverters_per_block": 30})
 
 
 def test_unsupported_intents_say_what_blocks():

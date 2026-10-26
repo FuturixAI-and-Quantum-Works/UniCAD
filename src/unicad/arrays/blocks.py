@@ -36,13 +36,19 @@ def _median(values: list[float]) -> float:
     return v[len(v) // 2] if v else 0.0
 
 
-def partition(tables: Sequence[Table], weights: Sequence[float], n: int, azimuth_deg: float, cap: float | None = None) -> list[list[int]]:
+def partition(
+    tables: Sequence[Table], weights: Sequence[float], n: int, azimuth_deg: float, cap: float | None = None,
+    units: Sequence[int] | None = None, quantum: int | None = None,
+) -> list[list[int]]:  # fmt: skip
     """Recursive capacity-weighted bisection of table centres in the array frame.
 
     Each cut may move off the exact capacity share by up to CUT_SLACK of one block, and within that window takes the widest
     gap between tables, so blocks split along corridors, ponds and roads rather than through rows. The cut runs across the
     group's longer side unless the other axis offers a gap much wider than its usual table spacing. With `cap`, the slack
     never takes either side's mean block capacity above it.
+
+    With `units` (strings per table) and `quantum` (strings per inverter) every cut leaves a whole number of inverters on its
+    first side, as near the even share of inverters as the tables allow, so only the last block of a group can hold a remainder.
     """
     (ux, uy), (vx, vy) = frame(azimuth_deg)
     pts = []
@@ -61,15 +67,32 @@ def partition(tables: Sequence[Table], weights: Sequence[float], n: int, azimuth
         typical = _median(steps)
         acc, best = 0.0, (-1.0, math.inf, 1)
         lo, hi = k_lo, len(ordered) - (k - k_lo)
+        whole = units is not None and quantum
+        if whole:
+            total_u = sum(units[i] for i in ordered)
+            want_u = quantum * round(total_u // quantum * k_lo / k)
+            acc_u, near = 0, None
         for pos in range(1, len(ordered)):
             acc += weights[ordered[pos - 1]]
+            if whole:
+                acc_u += units[ordered[pos - 1]]
             if not lo <= pos <= hi:
                 continue
             miss = abs(acc - want)
             within_cap = cap is None or (acc <= cap * k_lo + 1e-9 and total - acc <= cap * (k - k_lo) + 1e-9)
-            gap = coords[pos] - coords[pos - 1] if miss <= slack and within_cap else -1.0
+            if whole:
+                if acc_u % quantum:
+                    continue
+                key = (abs(acc_u - want_u), -(coords[pos] - coords[pos - 1]))
+                if near is None or key < near[0]:
+                    near = (key, miss, pos)
+                if acc_u != want_u:
+                    continue
+            gap = coords[pos] - coords[pos - 1] if (miss <= slack or whole) and within_cap else -1.0
             if (gap, -miss) > (best[0], -best[1]):
                 best = (gap, miss, pos)
+        if whole and best[0] < 0 and near is not None:
+            best = (0.0, near[1], near[2])
         ratio = best[0] / typical if typical > 0 and best[0] > 0 else 0.0
         return ratio, best[1], best[2], ordered
 
@@ -87,6 +110,31 @@ def partition(tables: Sequence[Table], weights: Sequence[float], n: int, azimuth
         return split(ordered[:cut], k_lo) + split(ordered[cut:], k - k_lo)
 
     return [g for g in split(list(range(len(tables))), n) if g]
+
+
+def _trim(group: list[int], tables: Sequence[Table], kwp: Sequence[float], units: Sequence[int], quantum: int, notes: list[str], bi: int) -> list[int]:
+    """Drop the tables farthest from the block's capacity centre until its strings make whole inverters of `quantum` strings."""
+    have = sum(units[i] for i in group)
+    r = have % quantum
+    if not r:
+        return group
+    total = sum(kwp[i] for i in group) or 1.0
+    cx = sum(table_centre(tables[i])[0] * kwp[i] for i in group) / total
+    cy = sum(table_centre(tables[i])[1] * kwp[i] for i in group) / total
+    far = sorted(group, key=lambda i: (-math.hypot(table_centre(tables[i])[0] - cx, table_centre(tables[i])[1] - cy), tables[i].id))
+    for drop in range(r, have + 1, quantum):
+        left, out = drop, set()
+        for i in far:
+            if 0 < units[i] <= left:
+                out.add(i)
+                left -= units[i]
+            if not left:
+                break
+        if not left:
+            kw = sum(kwp[i] for i in out)
+            notes.append(f"BLOCK-{bi:02d}: {drop} strings on {len(out)} tables ({kw:.1f} kWp) left out so the block holds whole inverters of {quantum} strings; pass whole_inverters=false to keep them")
+            return [i for i in group if i not in out]
+    return group
 
 
 def outline(tables: Sequence[Table], closing_m: float) -> Polygon:
@@ -135,6 +183,34 @@ def station_point(tables: Sequence[Table], weights: Sequence[float], hull: Polyg
         best = (0.0, q)
     x, y = best[1].x, best[1].y
     return Point(x=round(x, 3), y=round(y, 3))
+
+
+ROOF_STATION_INSET_M = 0.5
+
+
+def roof_station(tables: Sequence[Table], weights: Sequence[float], site: SiteGeometry) -> Point | None:
+    """On the roof that carries most of the block's capacity: the point of its edge nearest the capacity-weighted centre of the block's
+    tables on that roof, ROOF_STATION_INSET_M inside the edge so the station stands on the roof, not between roofs."""
+    roofs = [(f.id, shape_of(f)) for f in site.of_kind(FeatureKind.ROOF) if f.polygon]
+    if not roofs:
+        return None
+    load: dict[str, list[tuple[Table, float]]] = {}
+    for t, w in zip(tables, weights):
+        c = ShapelyPoint(*table_centre(t))
+        rid = next((rid for rid, g in roofs if g.covers(c)), None)
+        if rid is not None:
+            load.setdefault(rid, []).append((t, w))
+    if not load:
+        return None
+    rid = max(load, key=lambda k: (sum(w for _, w in load[k]), k))
+    roof = dict(roofs)[rid]
+    total = sum(w for _, w in load[rid])
+    cx = sum(table_centre(t)[0] * w for t, w in load[rid]) / total
+    cy = sum(table_centre(t)[1] * w for t, w in load[rid]) / total
+    inner = roof.buffer(-ROOF_STATION_INSET_M)
+    ring = (inner if not inner.is_empty and isinstance(inner, Polygon) else roof).exterior
+    _, q = nearest_points(ShapelyPoint(cx, cy), ring)
+    return Point(x=round(q.x, 3), y=round(q.y, 3))
 
 
 def corridors(site: SiteGeometry) -> list[tuple[str, BaseGeometry]]:
@@ -216,7 +292,8 @@ def _spread(caps: Sequence[float], k: Sequence[int]) -> float:
 
 def build_blocks(
     tables: Sequence[Table], kwp: Sequence[float], n: int, azimuth_deg: float, site: SiteGeometry, internal: Sequence[RoadLine], closing_m: float,
-    cap: float | None = None, warnings: list[str] | None = None, flexible: bool = False,
+    cap: float | None = None, warnings: list[str] | None = None, flexible: bool = False, on_roofs: bool = False, station: Point | None = None,
+    units: Sequence[int] | None = None, quantum: int | None = None, trim: bool = False,
 ) -> list[LayoutBlock]:  # fmt: skip
     """Blocks that keep to one side of every corridor. Each region between corridors gets its share of the blocks; when that leaves
     region means more than REGION_BALANCE apart, a `flexible` count (from block_dc_kwp) may grow until they agree, else the
@@ -244,8 +321,11 @@ def build_blocks(
         notes.append(f"some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than {REGION_BALANCE:.0%}")
     groups: list[list[int]] = []
     for g, kk in zip(parts, k):
-        sub = partition([tables[i] for i in g], [kwp[i] for i in g], kk, azimuth_deg, cap)
+        sub = partition([tables[i] for i in g], [kwp[i] for i in g], kk, azimuth_deg, cap, [units[i] for i in g] if units else None, quantum)
         groups += [[g[i] for i in s] for s in sub]
+    if units and quantum and trim:
+        groups = [_trim(g, tables, kwp, units, quantum, notes, bi) for bi, g in enumerate(groups, start=1)]
+        groups = [g for g in groups if g]
     roads = site_roads(site) + [LineString([(p.x, p.y) for p in r.points]) for r in internal]
     blocks = []
     for bi, idx in enumerate(groups, start=1):
@@ -254,7 +334,8 @@ def build_blocks(
         renamed = [tables[i].model_copy(update={"id": f"{bid}-T{k:03d}"}) for k, i in enumerate(members, start=1)]
         w = [kwp[i] for i in members]
         hull = outline(renamed, closing_m)
-        station = station_point(renamed, w, hull, roads)
+        at = station or (roof_station(renamed, w, site) if on_roofs else None)
+        at = at or station_point(renamed, w, hull, roads)
         ring = tuple(Point(x=round(x, 3), y=round(y, 3)) for x, y in list(hull.exterior.coords)[:-1])
-        blocks.append(LayoutBlock(id=bid, name=f"BLOCK-{bi:02d}", boundary=ring, tables=tuple(renamed), station=station))
+        blocks.append(LayoutBlock(id=bid, name=f"BLOCK-{bi:02d}", boundary=ring, tables=tuple(renamed), station=at))
     return blocks

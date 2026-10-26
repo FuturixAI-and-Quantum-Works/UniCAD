@@ -49,9 +49,16 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     n = block_count(total, spec.n_blocks, spec.block_dc_kwp, len(placed.tables))
     closing = 1.0 + max(placed.pitch.pitch_m, spec.road_width_m if spec.road_every_rows else 0, spec.walkway_width_m if spec.walkway_every_tables else 0, spec.table_gap_m)
     block_notes: list[str] = []
-    blocks = tuple(build_blocks(placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp, block_notes,
-                               flexible=spec.n_blocks is None and spec.block_dc_kwp is not None))  # fmt: skip
     mps = spec.modules_per_string or spec.table_cols
+    spi = spec.strings_per_inverter
+    on_roofs = spec.regions == "roofs" or (spec.regions == "auto" and spec.mounting.on_roof)
+    blocks = tuple(build_blocks(
+        placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp, block_notes,
+        flexible=spec.n_blocks is None and spec.block_dc_kwp is not None, on_roofs=on_roofs, station=spec.station,
+        units=[t.slot_count // mps for t in placed.tables] if spi else None, quantum=spi, trim=spec.whole_inverters,
+    ))  # fmt: skip
+    if not blocks:
+        raise PlacementError(f"the placed tables hold fewer strings than one inverter of {spi} strings; lower strings_per_inverter or pass whole_inverters=false")
     strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter)
     layout = ArrayLayout(blocks=blocks, strings=tuple(strings))
     summaries = block_summaries(blocks, spec.table_cols, module.pmax)

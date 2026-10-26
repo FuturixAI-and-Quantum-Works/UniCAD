@@ -20,7 +20,7 @@ from unicad.design.select import (
     pick_rated,
 )
 from unicad.rules.cables import K_BY_CABLE, OVERLOAD_DEVICES, needs_cable, phases
-from unicad.rules.faults import fault_at
+from unicad.rules.faults import fault_at, prospective_fault
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import CONTINUOUS_FACTOR
 from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, edge_zone, string_feeds, zone_at
@@ -81,9 +81,12 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
         return pick_rated(catalog, ["dc_isolator"], amps, voc, hint.poles).id
     need = k * amps
     if role in ("lv_breaker", "vcb"):
-        fault = fault_at(project.design_basis, v)
+        fault = prospective_fault(project, catalog, node_id)
         if fault is None:
             s.assumptions.append(BREAKING_ASSUMPTION)
+        elif fault.where == "transformer-fed":
+            s.assumptions.append(f"Breaking capacity at {fault.voltage_v:g} V is chosen at or above the {fault.ka:g} kA prospective fault the transformer passes to the bus ({fault.formula}).")
+            s.assumptions.extend(fault.assumptions)
         else:
             s.assumptions.append(f"Breaking capacity at {fault.voltage_v:g} V is chosen at or above the {fault.ka:g} kA fault level from {fault.where}.")
         if role == "lv_breaker":
