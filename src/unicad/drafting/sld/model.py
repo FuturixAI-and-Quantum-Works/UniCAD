@@ -143,7 +143,7 @@ class Stub:
 
 @dataclass(frozen=True)
 class OffSheet:
-    """Where an edge leaves this page. `target` is filled in by pagination (later unit)."""
+    """Where an edge leaves this page; `target` is the number of the sheet that continues it, when known."""
 
     edge_id: str
     node_id: str

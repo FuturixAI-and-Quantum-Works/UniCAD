@@ -475,6 +475,41 @@ network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="ada
 | `use_layout` | boolean | no | Build the PV plan from the project's array layout (layout_place) and link every layout string to one pv_string instance Default: `True`. |
 | `lengths` | object | no | Cable route length overrides in m by role, e.g. {"vcb_bus": 650} |
 
+## Drawings tools
+
+### `drawings_render`
+
+Plan and render the project's drawing set and return where every file is. The model is not changed.
+
+SLD: one overall SLD with each identical block drawn once (x N), a detail sheet per distinct block type (inverters, SCBs, strings),
+and more sheets wherever a sheet would not be readable even on A0. Every conductor that leaves a sheet ends in an off-sheet marker
+naming the sheet number and the equipment on the other side. Numbers follow the company profile pattern (the project's existing SLD
+numbers are reused). Returns per sheet: number, title, paper, 'sheet x of y', drawing scale, files (absolute paths), cross-references
+and warnings; plus the merged set PDF. A missing DWG converter is a warning, not an error.
+Example: drawings_render(project_id="utility-50mwac", formats=["dxf", "pdf"]).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `kinds` | list of string | no | Drawing kinds to include, in set order. Available: ['sld'] Default: `['sld']`. |
+| `formats` | list of `dxf` \| `pdf` \| `dwg` | no | Files per sheet: dxf (always written), pdf (LibreCAD, plus one merged set PDF), dwg Default: `['dxf', 'pdf', 'dwg']`. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+### `drawings_preview`
+
+PNG of one sheet (or a region of it) rasterised from the same PDF that goes into the issued set; renders the set first
+when needed. Returns the PNG path, the region shown in sheet mm, pixels per mm and legibility warnings (crop smaller to read
+small text). Example: drawings_preview(project_id="utility-50mwac", sheet="sld", region=[0, 0, 400, 300]).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `sheet` | string | yes | Sheet id or drawing number from drawings_render, e.g. 'sld' or 'UDEMO-DRL-U50-EE-001' |
+| `region` | list of number | no | Crop [x0, y0, x1, y1] in sheet mm from the lower-left corner; omit for the whole sheet |
+| `px` | integer | no | Pixels on the long side of the image Default: `1600`. |
+| `kinds` | list of string | no | Drawing kinds of the set, when it has to be rendered first Default: `['sld']`. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.

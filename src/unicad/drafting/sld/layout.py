@@ -14,6 +14,7 @@ x positions come from a tidy-tree pass over per-level contours (levels: 2r for r
 import heapq
 import math
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
 from unicad.catalog.store import Catalog
@@ -247,8 +248,10 @@ class _FrameRec:
 
 
 class _Builder:
-    def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None):
+    def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
+                 xrefs: Mapping[str, str] | None = None):
         self.net, self.catalog, self.o = net, catalog, options
+        self.xrefs = dict(xrefs or {})
         self.warnings: list[str] = []
         keep = _expand_scope(net, scope) if scope is not None else frozenset(net.node_by_id)
         self.cut_edges = [e for e in net.edges if e.is_power and (e.src_node in keep) != (e.dst_node in keep)]
@@ -408,7 +411,8 @@ class _Builder:
     # ---------------------------------------------------------------- geometry
     def _values(self, node: Node, key: str) -> tuple[tuple[str, str], ...]:
         if node.id in self.markers:
-            texts = {"DESC": node.title or "", "SHEET": ""}
+            target = self.xrefs.get(node.id.removeprefix(MARKER_PREFIX))
+            texts = {"DESC": node.title or "", "SHEET": f"SH. {target}" if target else ""}
         else:
             texts = annotate.node_texts(self.net, node, self.catalog)
             if key.startswith("tx.idt_") and not node.title and not node.spec:
@@ -649,6 +653,19 @@ class _Builder:
                 contour[lv] = (min(lo, x0), max(hi, x1))
             self.frames.append(_FrameRec(g, nid, x0, x1, top, bottom, lines, frozenset(sub), corner=corner))
 
+    def _within(self, g: _FrameRec, f: _FrameRec) -> bool:
+        """Frame `g` is drawn inside frame `f` (or is `f`): fewer members, or the same members and a sub-group of `f`'s group."""
+        if g is f or g.members < f.members:
+            return True
+        if g.members != f.members:
+            return False
+        gid = g.group.within
+        while gid is not None:
+            if gid == f.group.id:
+                return True
+            gid = self.net.group_by_id[gid].within
+        return False
+
     def _frame_lines(self, g: Group) -> tuple[str, ...]:
         rng = annotate.group_label(self.net, g)
         head = f"{rng}  (x {g.count})" if g.count > 1 else rng
@@ -717,8 +734,8 @@ class _Builder:
                 if abs(px - rec.x) > 1e-6:
                     jog[r] = True
         for f in self.frames:
-            f.i_top = sum(1 for g in self.frames if g.top == f.top and g.members <= f.members)
-            f.i_bottom = sum(1 for g in self.frames if g.bottom == f.bottom and g.members <= f.members)
+            f.i_top = sum(1 for g in self.frames if g.top == f.top and self._within(g, f))
+            f.i_bottom = sum(1 for g in self.frames if g.bottom == f.bottom and self._within(g, f))
         top_n: dict[int, int] = defaultdict(int)
         bot_n: dict[int, int] = defaultdict(int)
         for f in self.frames:
@@ -932,7 +949,8 @@ class _Builder:
         boxes += [lb.box for st in stubs for lb in st.labels]
         extent = union_all(boxes) if boxes else Box(0, 0, 1, 1)
         offsheets = tuple(
-            OffSheet(e.id, e.dst_node if e.src_node.startswith(MARKER_PREFIX) else e.src_node, e.src_node if e.src_node.startswith(MARKER_PREFIX) else e.dst_node)
+            OffSheet(e.id, e.dst_node if e.src_node.startswith(MARKER_PREFIX) else e.src_node, e.src_node if e.src_node.startswith(MARKER_PREFIX) else e.dst_node,
+                     self.xrefs.get(e.id))
             for e in self.edges
             if e.src_node in self.markers or e.dst_node in self.markers
         )
@@ -1059,7 +1077,7 @@ class _Builder:
                 if f.labels:
                     others.append(union_all([lb.box for lb in f.labels]))
                 if not f.box.contains(span):
-                    others.append(f.box)
+                    others.append(f.box.grow(pad / 2))
                 else:
                     inner = f.box.grow(-pad / 3)
                     limit = inner if limit is None else _clip(limit, inner)
@@ -1079,14 +1097,17 @@ class _Builder:
             obstacles += [lb.box for x in (*callouts, *frames, *out) for lb in x.labels]
             obstacles += [Box(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1])) for w in wires for a, b in zip(w.points, w.points[1:])]
             obstacles += [e for f in (*frames, *out, Frame(g.id, box, (), g.count, loops)) for e in _edges_of(f)]
-            labels = self._place_title(lines, loops, obstacles, h, pitch)
+            bands = [(f.box.y0, f.box.x0, f.box.x1) for f in (*frames, *out) if f.box.contains(span)]
+            labels = self._place_title(lines, loops, obstacles, h, pitch, bands)
             if labels is None:
                 self.warnings.append(f"group {g.id!r}: no free place for the frame title; outline drawn untitled")
                 labels = ()
             out.append(Frame(g.id, Box(round(box.x0, 6), round(box.y0, 6), round(box.x1, 6), round(box.y1, 6)), labels, g.count, loops))
         return out
 
-    def _place_title(self, lines, loops, obstacles, h, pitch):
+    def _place_title(self, lines, loops, obstacles, h, pitch, bands=()):
+        """Title labels beside one of the outline's horizontal edges, else just under an enclosing frame
+        (`bands`: its bottom y and x span), clear of every obstacle; None when nowhere fits."""
         tops = sorted(
             ((a[1], min(a[0], b[0]), max(a[0], b[0])) for loop in loops for a, b in zip(loop, loop[1:] + loop[:1]) if a[1] == b[1] and b[0] < a[0]),
             key=lambda t: (-t[0], t[1]),
@@ -1107,6 +1128,8 @@ class _Builder:
                     continue
                 for x in range(int(min(a[0], b[0]) + STUB), int(max(a[0], b[0]) - width - STUB) + 1, int(STUB)):
                     cands += [(float(x), a[1] - STUB / 2), (float(x), a[1] + 1.0 + len(lines) * pitch), (float(x), a[1] - 1.0)]
+        for y, x0, x1 in bands:
+            cands += [(float(x), y - 1.0) for x in range(int(x0 + STUB), int(x1 - width) + 1, int(STUB))]
         for x, top in cands:
             labels = tuple(label(t, (x, top - (i + 0.5) * pitch), h) for i, t in enumerate(lines))
             if not any(lb.box.overlaps(ob) for lb in labels for ob in obstacles):
@@ -1120,7 +1143,7 @@ class _Builder:
             root = self.recs[f.root]
             x0, x1 = root.x + f.x0, root.x + f.x1
             y1 = self.band_top[f.top] + self.tap_h[f.top] + f.i_top * o.frame_pad
-            below = sum(1 for g in self.frames if g is not f and g.bottom == f.bottom and g.members <= f.members and not g.inside)
+            below = sum(1 for g in self.frames if g is not f and g.bottom == f.bottom and self._within(g, f) and not g.inside)
             y0 = self.items_bottom[f.bottom] - f.i_bottom * o.frame_pad - below * (2 * self.tpitch + 1.0)
             h = o.frame_title_height
             top = y1 - STUB / 2 if f.inside else y0 - 1.0
@@ -1207,6 +1230,31 @@ def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[st
     return frozenset(keep)
 
 
+def xref_tag(net: ElectricalNetwork, other: Node, here: Node) -> str:
+    """Tag of `other` as seen from `here`: the range of its instances when it repeats inside a group `here` is not in."""
+    rep: list[tuple[str | None, int]] = []
+    gid = other.group
+    while gid is not None:
+        g = net.group_by_id[gid]
+        if g.count > 1:
+            rep.insert(0, (g.id, g.count))
+        gid = g.within
+    if other.count > 1:
+        rep.append((None, other.count))
+    depth = other.tag.count("{")
+    if not rep:
+        return other.tag.format(*([1] * depth))
+    inner, count = rep[-1]
+    shared: set[str] = set()
+    gid = here.group
+    while gid is not None:
+        shared.add(gid)
+        gid = net.group_by_id[gid].within
+    if inner is not None and inner in shared:
+        return other.tag.format(*([1] * depth))
+    return annotate.tag_range(other.tag, depth, count)
+
+
 def _reaches_poi(net: ElectricalNetwork, node_id: str) -> bool:
     try:
         net.path_to_poi(node_id)
@@ -1226,7 +1274,8 @@ def _markers(net: ElectricalNetwork, keep: frozenset[str], cut: list[Edge]) -> t
         mid = f"{MARKER_PREFIX}{e.id}"
         inside_src = e.src_node in keep
         other = net.node(e.dst_node if inside_src else e.src_node)
-        title = f"{'TO' if inside_src else 'FROM'} {other.tag.format(*([1] * other.tag.count('{')))}"
+        here = net.node(e.src_node if inside_src else e.dst_node)
+        title = f"{'TO' if inside_src else 'FROM'} {xref_tag(net, other, here)}"
         if inside_src and _reaches_poi(net, other.id):
             kind, port = NodeKind.POI_GRID, "in"
         elif inside_src:
@@ -1491,13 +1540,16 @@ def layout_sld(
     catalog: Catalog | None = None,
     options: SldOptions = SldOptions(),
     scope: frozenset[str] | None = None,
+    xrefs: Mapping[str, str] | None = None,
 ) -> SldLayout:
-    """Place `network` (template level: groups drawn once) as an SLD; `scope` limits it to some nodes."""
-    return _build(network, catalog, options, scope)[1]
+    """Place `network` (template level: groups drawn once) as an SLD; `scope` limits it to some nodes.
+    `xrefs` names, per cut edge id, the sheet number its off-sheet marker points to."""
+    return _build(network, catalog, options, scope, xrefs)[1]
 
 
-def _build(network: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None) -> tuple[_Builder, SldLayout]:
-    b = _Builder(network, catalog, options, scope)
+def _build(network: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
+           xrefs: Mapping[str, str] | None = None) -> tuple[_Builder, SldLayout]:
+    b = _Builder(network, catalog, options, scope, xrefs)
     b.topology()
     b.geometry()
     b.place_x()
@@ -1515,7 +1567,7 @@ def plan_pages(
 ) -> tuple[SldPage, ...]:
     """Split plan for a drawing area: one page when the SLD is readable there, else the first
     node with several feeders stays on a main page and its feeder subtrees are packed onto
-    further pages. Cross-reference markers on the cut edges are the pagination unit's job."""
+    further pages. `unicad.sets.sld` turns the pages into sheets and `sld.xref` names each marker's target sheet."""
     b, lay = _build(network, catalog, options, scope)
     nodes = frozenset(n for n in b.recs if n not in b.markers)
 
