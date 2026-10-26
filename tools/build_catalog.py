@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from unicad.domain.catalog import (  # noqa: E402
+    Ampacity,
     BatterySpec,
     CableSpec,
     CellTech,
@@ -253,16 +254,21 @@ def import_inverters(b: Build) -> None:
             mppt_count=int(r["mppt_count"]), inputs_per_mppt=min(strings) if strings else None,
             max_input_current_per_mppt=num(r["idc_max_per_mppt_a"]),
             max_short_circuit_current_per_mppt=num(r["isc_max_per_mppt_a"]),
+            dc_input_count=int(r["dc_input_count"]) if r["dc_input_count"] else None,
+            max_dc_input_current=num(r["idc_max_total_a"]), max_dc_short_circuit_current=num(r["isc_max_total_a"]),
         )
-        if gaps := missing(**fields):
-            b.skip("inverter", ref, f"missing {', '.join(gaps)} (datasheet gives DC input totals only)")
+        required = {k: v for k, v in fields.items() if k in ("ac_rated_kva", "ac_max_kva", "ac_voltage", "dc_max_voltage", "mppt_min", "mppt_max")}
+        if gaps := missing(**required):
+            b.skip("inverter", ref, f"missing {', '.join(gaps)}")
             continue
         extra = "inputs per MPPT differ between trackers; smallest used" if len(set(strings)) > 1 else ""
+        if int(r["mppt_count"]) > 1 and not r["idc_max_per_mppt_a"]:
+            extra = "datasheet gives DC input totals only; per-MPPT currents left empty"
         b.add(
             "inverter", ref, InverterSpec,
             id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
             source=source("datasheet", r["source_file"], "inverter_datasheets.csv", line, r["pdf_page"], extra),
-            topology="central" if "central" in r["note"] else "string", phases=3,
+            topology="central" if "central" in r["note"] or "skid" in r["note"] else "string", phases=3,
             start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, **fields,
         )
     cec = read_csv("cec_inverters_core.csv")
@@ -301,6 +307,11 @@ def import_bess(b: Build) -> None:
 
 
 def import_transformers(b: Build) -> None:
+    b.notes.append(
+        "Inverter-duty transformers: not catalogued. The only citable %Z are two BHEL purchase specifications "
+        "(2.7 MVA 33 kV 6.25 %, 5.5 MVA 33 kV 7 %, see idt_impedance_citations.csv). Both give the LV voltage as a range set per inverter "
+        "(340-410 V, 500-700 V), and TransformerSpec needs a single lv_kv. No standard %Z ladder for 1.6-12.5 MVA was found."
+    )
     ratings_33kv_min = 100
     for line, r in read_csv("transformer_is1180_ratings_losses.csv"):
         if r["phase"] != "3":
@@ -337,17 +348,12 @@ def import_cables(b: Build) -> None:
     r90 = {r["size_mm2"]: r for _, r in read_csv("polycab_lt_conductor.csv")}
     reactance = {r["size_mm2"]: r for _, r in read_csv("polycab_lt_reactance.csv")}
     seen: dict[tuple, tuple[str, str, str]] = {}
+    pending_2x1c: dict[tuple, tuple[int, dict[str, str]]] = {}
     for line, r in read_csv("polycab_lt_ampacity.csv"):
         ref = f"polycab_lt_ampacity.csv row {line} ({r['type_code']} {r['cores_in_weight_table']}C {r['size_mm2']} mm2)"
         cores = r["cores_in_weight_table"]
-        if cores == "3.5":
-            b.skip("cable", ref, "3.5-core: CableSpec.cores is an integer and has no reduced-neutral field")
-            continue
-        if r["arrangement"] == "2x1c":
-            b.skip("cable", ref, "2x1c arrangement ampacity: CableSpec holds one ampacity per cable, 3x1c used for single-core")
-            continue
         armoured = r["armoured"] == "True"
-        key = (r["material"], armoured, cores, r["size_mm2"])
+        key = (r["material"], armoured, cores, r["size_mm2"], r["arrangement"])
         amps = (r["ground_a"], r["duct_a"], r["air_a"])
         if key in seen:
             if seen[key] != amps:
@@ -355,32 +361,42 @@ def import_cables(b: Build) -> None:
             b.skip("cable", ref, "duplicate of a strip/wire-armour variant with identical ampacity")
             continue
         seen[key] = amps
+        if r["arrangement"] == "2x1c":
+            pending_2x1c[key[:4]] = (line, r)
+            continue
+        two = pending_2x1c.pop(key[:4], None)
         material = r["material"].lower()
+        reduced = cores == "3.5"
+        n_cores = 3 if reduced else int(cores)
         reactance_col = ("x_1c_armoured_ohm_km" if armoured else "x_1c_unarmoured_ohm_km") if cores == "1" else "x_multicore_ohm_km"
         rr = r90.get(r["size_mm2"])
+        extra = "R at 90 C from polycab_lt_conductor.csv, X from polycab_lt_reactance.csv"
+        if two:
+            extra += f"; ampacity_2x1c from row {two[0]}, ampacity_air/ground/duct are the 3 single-core cable circuit"
+        if reduced:
+            extra += "; 3.5C reduced neutral, neutral size not stated in catalogue"
         b.add(
             "cable", ref, CableSpec,
             id=slug("polycab-lt-xlpe", material, f"{cores}c", r["size_mm2"], "arm" if armoured else "unarm"),
             manufacturer="Polycab", model=f"{r['type_code']} {cores}C {r['size_mm2']} sq.mm",
-            source=source("catalog", "raw/datasheets/cables/Polycab_LT_Cable_Catalog_V9.pdf", "polycab_lt_ampacity.csv", line, r["pdf_page"],
-                          "R at 90 C from polycab_lt_conductor.csv, X from polycab_lt_reactance.csv"),
-            service="lv_ac", conductor=material, cores=int(cores), size_mm2=float(r["size_mm2"]), insulation="xlpe",
+            source=source("catalog", "raw/datasheets/cables/Polycab_LT_Cable_Catalog_V9.pdf", "polycab_lt_ampacity.csv", line, r["pdf_page"], extra),
+            service="lv_ac", conductor=material, cores=n_cores, reduced_neutral=reduced, size_mm2=float(r["size_mm2"]), insulation="xlpe",
             armoured=armoured, voltage_grade="1.1 kV", ampacity_air=num(r["air_a"]), ampacity_ground=num(r["ground_a"]),
+            ampacity_duct=num(r["duct_a"]),
+            ampacity_2x1c=Ampacity(air=num(two[1]["air_a"]), ground=num(two[1]["ground_a"]), duct=num(two[1]["duct_a"])) if two else None,
             r_ohm_per_km_90c=num(rr[f"r_ac90_{material}_ohm_km"]) if rr else None,
             x_ohm_per_km=num(reactance[r["size_mm2"]][reactance_col]) if r["size_mm2"] in reactance else None,
         )
+    for (_, _, cores, size), (line, r) in pending_2x1c.items():
+        b.skip("cable", f"polycab_lt_ampacity.csv row {line} ({r['type_code']} {cores}C {size} mm2)", "2x1c row without a matching 3x1c row")
 
     r20_ref = {(mat, size): float(row[f"r_dc20_{mat.lower()}_ohm_km"]) for size, row in r90.items() for mat in ("Cu", "Al")}
     kei_seen: dict[tuple, tuple] = {}
+    kei_pending: dict[tuple, tuple[int, dict[str, str]]] = {}
     for line, r in read_csv("kei_lt_cables.csv"):
         ref = f"kei_lt_cables.csv row {line} ({r['standard']} {r['cores']}C {r['size_mm2']} mm2)"
-        if r["cores"] == "3.5":
-            b.skip("cable", ref, "3.5-core: CableSpec.cores is an integer and has no reduced-neutral field")
-            continue
-        if r["arrangement"] == "2x1c":
-            b.skip("cable", ref, "2x1c arrangement ampacity: CableSpec holds one ampacity per cable, 3x1c used for single-core")
-            continue
-        if reason := kei_row_problem(r, r20_ref):
+        size, _, neutral = r["size_mm2"].partition("/")
+        if reason := kei_row_problem({**r, "size_mm2": size}, r20_ref):
             b.skip("cable", ref, reason)
             continue
         dedupe_key = (r["material"], r["insulation"], r["cores"], r["arrangement"], r["armour_scope"], r["size_mm2"])
@@ -391,24 +407,36 @@ def import_cables(b: Build) -> None:
             b.skip("cable", ref, "duplicate of a solid/stranded conductor row with identical values")
             continue
         kei_seen[dedupe_key] = values
+        if r["arrangement"] == "2x1c":
+            kei_pending[dedupe_key[:3] + dedupe_key[4:]] = (line, r)
+            continue
+        two = kei_pending.pop(dedupe_key[:3] + dedupe_key[4:], None)
         scope = r["armour_scope"]
         variants = {"armoured & unarmoured": (True, False), "armoured only": (True,), "unarmoured only": (False,)}[scope]
         insulation, material = r["insulation"].lower(), r["material"].lower()
+        reduced = r["cores"] == "3.5"
         hot_r = num(r["r_ac_ohm_km"]) if num(r["rac_temp_c"]) == 90 else None
         for armoured in variants:
             x = num(r["x_armoured_ohm_km"] if armoured else r["x_unarmoured_ohm_km"])
             if x is None and r["arrangement"] == "multicore":
                 x = num(r["x_armoured_ohm_km"]) or num(r["x_unarmoured_ohm_km"])
+            extra = "" if hot_r else f"R given at {r['rac_temp_c']} C only, so r_ohm_per_km_90c left empty"
+            if two:
+                extra += ("; " if extra else "") + f"ampacity_2x1c from row {two[0]}, ampacity_air/ground/duct are the 3 single-core cable circuit"
             b.add(
                 "cable", ref, CableSpec,
-                id=slug("kei-lt", insulation, material, f"{r['cores']}c", r["size_mm2"], "arm" if armoured else "unarm"),
-                manufacturer="KEI", model=f"{r['standard']} {r['cores']}C {r['size_mm2']} sq.mm",
-                source=source("catalog", "raw/datasheets/cables/KEI_Technical_Handbook.pdf", "kei_lt_cables.csv", line, r["pdf_page"],
-                              "" if hot_r else f"R given at {r['rac_temp_c']} C only, so r_ohm_per_km_90c left empty"),
-                service="lv_ac", conductor=material, cores=int(r["cores"]), size_mm2=float(r["size_mm2"]), insulation=insulation,
+                id=slug("kei-lt", insulation, material, f"{r['cores']}c", size, "arm" if armoured else "unarm"),
+                manufacturer="KEI", model=f"{r['standard']} {r['cores']}C {size} sq.mm" + (f" (neutral {neutral})" if neutral else ""),
+                source=source("catalog", "raw/datasheets/cables/KEI_Technical_Handbook.pdf", "kei_lt_cables.csv", line, r["pdf_page"], extra),
+                service="lv_ac", conductor=material, cores=3 if reduced else int(r["cores"]), reduced_neutral=reduced,
+                neutral_size_mm2=float(neutral) if neutral else None, size_mm2=float(size), insulation=insulation,
                 armoured=armoured, voltage_grade="1.1 kV", ampacity_air=num(r["air_a"]), ampacity_ground=num(r["ground_a"]),
+                ampacity_duct=num(r["duct_a"]),
+                ampacity_2x1c=Ampacity(air=num(two[1]["air_a"]), ground=num(two[1]["ground_a"]), duct=num(two[1]["duct_a"])) if two else None,
                 r_ohm_per_km_90c=hot_r, x_ohm_per_km=x,
             )
+    for (line, r) in kei_pending.values():
+        b.skip("cable", f"kei_lt_cables.csv row {line}", "2x1c row without a matching 3x1c row")
 
     for line, r in read_csv("polycab_solar_dc_en50618.csv"):
         size = r["size_mm2"]
@@ -485,7 +513,59 @@ def import_protection(b: Build) -> None:
             device="fuse_gpv", rated_current=in_a, rated_voltage=fuse["rated_voltage_vdc"], poles=1,
             breaking_capacity_ka=fuse["breaking_capacity_ka"],
         )
-    b.notes.append("gPV fuses: only the 1000 V DC 10x38 ladder is catalogued; no 1500 V ladder was obtainable.")
+    fuse15 = ladders["gpv_fuse_1500v"]
+    for in_a in fuse15["rated_current_a"]:
+        code = fuse15["catalog_number"].format(amps=in_a)
+        b.add(
+            "protection", "protection_ladders.json gpv_fuse_1500v", ProtectionSpec,
+            id=slug("mersen", code), manufacturer="Mersen", model=code,
+            source=src(fuse15, extra="10x85 mm, IEC 60269-6 gPV, manufacturer-hosted datasheet"),
+            device="fuse_gpv", rated_current=in_a, rated_voltage=fuse15["rated_voltage_vdc"], poles=1,
+            breaking_capacity_ka=fuse15["breaking_capacity_ka"],
+        )
+    b.notes.append("gPV fuses: 1000 V DC 10x38 (Eaton, third-party mirror) and 1500 V DC 10x85 (Mersen HP15M, manufacturer-hosted) ladders are catalogued.")
+
+    vcb = ladders["vcb_36kv"]
+    for variant in vcb["variants"]:
+        for isc in variant["isc_ka"]:
+            code = f"VD4 36.{variant['in_a'] // 100:02d}.{int(isc)}"
+            b.add(
+                "protection", "protection_ladders.json vcb_36kv", ProtectionSpec,
+                id=slug("abb-vd4", "36kv", f"{variant['in_a']}a", f"{isc:g}ka"), manufacturer="ABB", model=code,
+                source=src(vcb, extra="fixed version, IEC 62271-100; short-time withstand (3 s) equals rated Isc per p.18"),
+                device="vcb", rated_current=variant["in_a"], rated_voltage=vcb["rated_voltage_kv"] * 1000, poles=3,
+                breaking_capacity_ka=isc, short_time_withstand_ka=isc, short_time_duration_s=3,
+            )
+    b.notes.append("VCB 36 kV: ABB VD4 offers 630 A at 16 and 20 kA only; 25 kA starts at 1250 A, so there is no 630 A / 25 kA entry.")
+
+    rmu = ladders["rmu_36kv"]
+    b.add(
+        "protection", "protection_ladders.json rmu_36kv", ProtectionSpec,
+        id="generic-rmu-36kv-630a-25ka", manufacturer="Generic (GeM buyer specification)", model="33 kV SF6 outdoor RMU 2 LBS + 1 VCB 630 A",
+        source=src(rmu, extra="purchaser's technical specification, not a manufacturer datasheet; verify against the chosen supplier"),
+        device="rmu", rated_current=rmu["rated_current_a"], rated_voltage=rmu["rated_voltage_kv"] * 1000, poles=3,
+        breaking_capacity_ka=rmu["vcb_breaking_ka"], short_time_withstand_ka=rmu["short_time_ka_3s"], short_time_duration_s=3,
+    )
+
+    ct = ladders["ct_33kv"]
+    b.add(
+        "protection", "protection_ladders.json ct_33kv", ProtectionSpec,
+        id="generic-ct-33kv-200-100-50-1-1a", manufacturer="Generic (WBSEDCL specification)", model="33 kV outdoor CT 200-100-50/1-1 A",
+        source=src(ct, extra="a utility's procurement specification, not a manufacturer datasheet"),
+        device="ct", rated_voltage=ct["highest_system_voltage_kv"] * 1000, poles=1, ratio=ct["ratio"],
+        accuracy_class=" + ".join(f"{c['class']} ({c['burden_va']} VA, {c['use']})" for c in ct["cores"]),
+        short_time_withstand_ka=ct["short_time_ka_3s"], short_time_duration_s=3,
+    )
+    b.notes.append("33 kV PT, LV-side CT/PT and a 36 kV manufacturer RMU: no citable text-extractable source was found, so none are catalogued.")
+
+    la = ladders["la_30kv"]
+    b.add(
+        "protection", "protection_ladders.json la_30kv", ProtectionSpec,
+        id="abb-polim-d-24-ur30kv", manufacturer="ABB", model="POLIM-D 24-xx (Uc 24 kV, Ur 30 kV)",
+        source=src(la, extra="third-party-hosted copy of the ABB data sheet; line discharge class 1, IEC 60099-4"),
+        device="lightning_arrester", rated_voltage=la["ur_kv"] * 1000, poles=1,
+        nominal_discharge_current_ka=la["nominal_discharge_current_ka"],
+    )
 
     spd = ladders["spd_pv_dc"]
     for v in spd["variants"]:

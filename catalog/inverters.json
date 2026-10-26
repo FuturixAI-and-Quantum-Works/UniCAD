@@ -23,6 +23,9 @@
     "inputs_per_mppt": 2,
     "max_input_current_per_mppt": 32.0,
     "max_short_circuit_current_per_mppt": 40.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": null
   },
   {
@@ -49,6 +52,9 @@
     "inputs_per_mppt": 2,
     "max_input_current_per_mppt": 30.0,
     "max_short_circuit_current_per_mppt": 40.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": 0.986
   },
   {
@@ -75,6 +81,9 @@
     "inputs_per_mppt": 4,
     "max_input_current_per_mppt": 65.0,
     "max_short_circuit_current_per_mppt": 115.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9903
   },
   {
@@ -101,6 +110,9 @@
     "inputs_per_mppt": 24,
     "max_input_current_per_mppt": 4750.0,
     "max_short_circuit_current_per_mppt": 8400.0,
+    "dc_input_count": 24,
+    "max_dc_input_current": 4750.0,
+    "max_dc_short_circuit_current": 8400.0,
     "max_efficiency": 0.988
   },
   {
@@ -127,6 +139,9 @@
     "inputs_per_mppt": 24,
     "max_input_current_per_mppt": 4750.0,
     "max_short_circuit_current_per_mppt": 8400.0,
+    "dc_input_count": 24,
+    "max_dc_input_current": 4750.0,
+    "max_dc_short_circuit_current": 8400.0,
     "max_efficiency": 0.988
   },
   {
@@ -153,6 +168,9 @@
     "inputs_per_mppt": 24,
     "max_input_current_per_mppt": 4750.0,
     "max_short_circuit_current_per_mppt": 8400.0,
+    "dc_input_count": 24,
+    "max_dc_input_current": 4750.0,
+    "max_dc_short_circuit_current": 8400.0,
     "max_efficiency": 0.9890000000000001
   },
   {
@@ -179,6 +197,9 @@
     "inputs_per_mppt": 2,
     "max_input_current_per_mppt": 32.0,
     "max_short_circuit_current_per_mppt": 40.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": 0.987
   },
   {
@@ -205,6 +226,9 @@
     "inputs_per_mppt": 2,
     "max_input_current_per_mppt": 26.0,
     "max_short_circuit_current_per_mppt": 40.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": 0.987
   },
   {
@@ -231,7 +255,68 @@
     "inputs_per_mppt": 2,
     "max_input_current_per_mppt": 30.0,
     "max_short_circuit_current_per_mppt": 40.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": 0.985
+  },
+  {
+    "id": "sungrow-sg3125hv-30",
+    "manufacturer": "Sungrow",
+    "model": "SG3125HV-30",
+    "symbol": "inv.central",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/inverters/Sungrow_SG3125HV-30_SG3400HV-30_DS.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 5; datasheet gives DC input totals only; per-MPPT currents left empty",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "inverter",
+    "topology": "central",
+    "ac_rated_kva": 3437.0,
+    "ac_max_kva": 3437.0,
+    "ac_voltage": 600.0,
+    "phases": 3,
+    "dc_max_voltage": 1500.0,
+    "mppt_min": 875.0,
+    "mppt_max": 1300.0,
+    "start_voltage": null,
+    "mppt_count": 2,
+    "inputs_per_mppt": null,
+    "max_input_current_per_mppt": null,
+    "max_short_circuit_current_per_mppt": null,
+    "dc_input_count": 18,
+    "max_dc_input_current": 3997.0,
+    "max_dc_short_circuit_current": 10000.0,
+    "max_efficiency": 0.99
+  },
+  {
+    "id": "sungrow-sg3125hv-mv-20",
+    "manufacturer": "Sungrow",
+    "model": "SG3125HV-MV-20",
+    "symbol": "inv.central",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/inverters/Sungrow_SG3400-3125-2500HV-MV-20_DS.pdf p.1; references/catalog-sources/extracted/inverter_datasheets.csv row 6",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "inverter",
+    "topology": "central",
+    "ac_rated_kva": 3437.0,
+    "ac_max_kva": 3437.0,
+    "ac_voltage": 600.0,
+    "phases": 3,
+    "dc_max_voltage": 1500.0,
+    "mppt_min": 875.0,
+    "mppt_max": 1300.0,
+    "start_voltage": 915.0,
+    "mppt_count": 1,
+    "inputs_per_mppt": 21,
+    "max_input_current_per_mppt": 4178.0,
+    "max_short_circuit_current_per_mppt": null,
+    "dc_input_count": 21,
+    "max_dc_input_current": 4178.0,
+    "max_dc_short_circuit_current": null,
+    "max_efficiency": 0.99
   },
   {
     "id": "sungrow-sg350hx",
@@ -257,6 +342,9 @@
     "inputs_per_mppt": 2,
     "max_input_current_per_mppt": 40.0,
     "max_short_circuit_current_per_mppt": 60.0,
+    "dc_input_count": null,
+    "max_dc_input_current": null,
+    "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9902
   }
 ]
