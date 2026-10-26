@@ -310,3 +310,30 @@ def test_rules_resolve_the_inline_spec(catalog):
     assert f.severity.value == "error" and "LV winding" in f.message and "800" in f.message
     assert any(q.source == spec_id for q in f.inputs)
     assert explain(f, catalog).sources[spec_id] == spec_id
+
+
+def test_dc_dc_converter_is_a_converter_that_separates_two_dc_zones():
+    network = net(
+        [n("bat", "battery"), n("dcdc", "dc_dc_converter"), n("inv", "inverter"), n("poi", "poi_grid")],
+        [e("e1", "bat:out", "dcdc:in", "dc"), e("e2", "dcdc:out", "inv:dc", "dc"), e("e3", "inv:ac", "poi:in")],
+    )
+    assert network.node("dcdc").port_names == ("in", "out")
+    assert network.node("dcdc").symbol_key() == "inv.optimiser" == KIND_SYMBOLS[NodeKind.DC_DC_CONVERTER]
+    by_edge = [z for z in network.voltage_zones() if "e1" in z.edge_ids or "e2" in z.edge_ids]
+    assert len(by_edge) == 2 and {tuple(z.edge_ids) for z in by_edge} == {("e1",), ("e2",)}
+    assert network.unconnected_ports() == ()
+
+
+def test_fault_levels_round_trip_and_reject_a_repeated_voltage(rooftop, catalog):
+    data = rooftop.model_dump(mode="json")
+    assert data["design_basis"]["fault_levels"] == []
+    data["design_basis"]["fault_levels"] = [{"voltage_v": 415, "fault_ka": 36, "clearing_s": 0.3, "source": "DISCOM letter"}, {"voltage_v": 11000, "fault_ka": 25}]
+    again = Project.model_validate(data, context={"catalog": catalog})
+    assert [(f.voltage_v, f.fault_ka, f.clearing_s) for f in again.design_basis.fault_levels] == [(415, 36, 0.3), (11000, 25, None)]
+    assert Project.model_validate(again.model_dump(mode="json"), context={"catalog": catalog}) == again
+    data["design_basis"]["fault_levels"].append({"voltage_v": 415, "fault_ka": 50})
+    with pytest.raises(ValidationError, match="twice"):
+        Project.model_validate(data, context={"catalog": catalog})
+    data["design_basis"]["fault_levels"] = [{"voltage_v": 415, "fault_ka": 0}]
+    with pytest.raises(ValidationError):
+        Project.model_validate(data, context={"catalog": catalog})
