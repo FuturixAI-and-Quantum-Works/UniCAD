@@ -187,16 +187,16 @@ def register(server: MCPServer, ws: Workspace) -> None:
         from_revision: Annotated[int | str, Field(description="Older revision number or snapshot label")],
         to_revision: RevisionArg = None,
     ) -> dict[str, Any]:
-        """What changed between two revisions: added, removed and changed nodes, edges, groups and sheets, plus changed project fields.
+        """What changed between two revisions: added, removed and changed nodes, edges, groups, sheets (register rows), site features (outline summarised as point count and area) and layout blocks (table, module, string counts), plus changed project fields.
 
         Example: project_diff(project_id="rooftop-500kwp", from_revision=1)."""
         a, b = ws.resolve(project_id, from_revision), ws.resolve(project_id, to_revision)
         d = ws.store.diff(project_id, a, b)
         out: dict[str, Any] = {"project_id": project_id, "from_revision": a, "to_revision": b, "empty": d.empty}
-        for part in ("nodes", "edges", "groups", "sheets"):
+        for part, key in (("nodes", "nodes"), ("edges", "edges"), ("groups", "groups"), ("sheets", "sheets"), ("site_features", "site"), ("layout_blocks", "layout")):
             c = getattr(d, part)
             if not c.empty:
-                out[part] = c.model_dump(mode="json", exclude_defaults=True)
+                out[key] = c.model_dump(mode="json", exclude_defaults=True)
         if d.fields:
             out["fields"] = [f.model_dump(mode="json") for f in d.fields]
         return out

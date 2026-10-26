@@ -1,6 +1,6 @@
 # UniCAD MCP tools
 
-Generated from the registered tools by `uv run unicad-mcp --write-docs docs/mcp-tools.md`; `tests/test_mcp.py` fails when this file is out of date. Do not edit by hand.
+Generated from the registered tools by `uv run unicad-mcp --write-docs docs/mcp-tools.md`; `tests/test_mcp.py` fails when this file is out of date. Do not edit by hand. The tool sequence for a whole project is in [agent-workflow.md](agent-workflow.md).
 
 Mutating tools return `{project_id, revision, changed, summary, problems}`. `changed` is false and `revision` stays put when the edit leaves the model identical. Failures come back as tool errors carrying the domain's message.
 
@@ -77,7 +77,7 @@ Example: project_snapshot(project_id="rooftop-500kwp", label="issued-r0").
 
 ### `project_diff`
 
-What changed between two revisions: added, removed and changed nodes, edges, groups and sheets, plus changed project fields.
+What changed between two revisions: added, removed and changed nodes, edges, groups, sheets (register rows), site features (outline summarised as point count and area) and layout blocks (table, module, string counts), plus changed project fields.
 
 Example: project_diff(project_id="rooftop-500kwp", from_revision=1).
 
@@ -119,105 +119,6 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `id` | string | yes | Catalog id from catalog_search |
-
-## Network tools
-
-### `network_add_group`
-
-Add a repeated block of equipment (e.g. 5 identical inverter sections). Model identical equipment once and give the group a count.
-
-Example: network_add_group(project_id="p1", id="inv_sec", count=5, title="100 kW INVERTER SECTION").
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `id` | string | yes | Unique id (letters, digits, '_', '-', '.'), e.g. 'inv_sec' |
-| `count` | integer | no | How many identical copies of everything in this group Default: `1`. |
-| `tag` | string | no | Drawing tag; needs one {0:02d}-style placeholder per repeating group around it, including this one when count > 1. Default is derived from id. |
-| `within` | string | no | Id of the enclosing group |
-| `title` | string | no | Box title on the SLD, e.g. '100 kW STRING INVERTER SECTION' |
-
-### `network_add_node`
-
-Add an equipment node. Ports are named per kind: pv_string out; inverter dc, ac; transformer lv, hv; most others in, out.
-
-Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="growatt-max-100ktl3-x-lv", group="inv_sec").
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `id` | string | yes | Unique id for this equipment template, e.g. 'inv' |
-| `kind` | `pv_string` \| `pv_array_block` \| `scb` \| `dc_fuse_box` \| `dc_isolator` \| `dc_spd` \| `dc_dc_converter` \| `inverter` \| `pcs` \| `battery` \| `acdb` \| `lt_panel` \| `breaker` \| `isolator` \| `fuse` \| `ac_spd` \| `ct` \| `pt` \| `meter` \| `relay` \| `transformer` \| `aux_transformer` \| `ht_panel` \| `rmu` \| `vcb` \| `busbar` \| `lightning_arrester` \| `earth_electrode` \| `poi_grid` \| `dg` \| `load` | yes | Equipment kind |
-| `spec` | string | no | Catalog id from catalog_search (module, inverter, breaker, ...) |
-| `count` | integer | no | Instances per instance of its group, e.g. 10 strings per inverter Default: `1`. |
-| `group` | string | no | Id of the group it repeats with |
-| `tag` | string | no | Drawing tag with {0:02d}-style placeholders (see network_add_group); default derived from id |
-| `voltage_v` | number | no | Nominal voltage in volts of the circuit it sits on, e.g. 415 |
-| `modules_in_series` | integer | no | Modules per string; pv_string only |
-| `ports` | list of string | no | Override port names; defaults depend on kind (inverter: dc, ac) |
-| `attributes` | object | no | Free label/value pairs shown on drawings, e.g. {"rating_a": 250} |
-| `title` | string | no |  |
-| `symbol` | string | no | Override the drawing symbol key |
-
-### `network_connect`
-
-Connect two nodes. Instances pair up by group: equal counts connect one to one, a count of 1 fans in or out.
-
-Example: network_connect(project_id="p1", src="inv:ac", dst="acdb:in", cable="polycab-...", length_m=25).
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `src` | string | yes | Source terminal 'node_id:port'; power flows from src to dst (generation towards grid) |
-| `dst` | string | yes | Destination terminal 'node_id:port' |
-| `service` | `dc` \| `lv_ac` \| `mv_ac` \| `hv_ac` \| `earth` \| `control` | no | Circuit type; inferred from the ports and nodes when unambiguous, else required |
-| `cable` | string | no | Cable catalog id from catalog_search(kind='cable') |
-| `length_m` | number | no | Route length in metres, per instance |
-| `runs` | integer | no | Parallel cables per connection Default: `1`. |
-| `laying` | `air` \| `tray` \| `conduit` \| `trench` \| `buried_direct` \| `buried_duct` \| `overhead` | no |  |
-| `derating` | number | no | Installation derating factor, e.g. 0.8 |
-| `remarks` | string | no |  |
-| `edge_id` | string | no | Id for the connection; default 'e_<src>_<dst>' |
-
-### `network_update`
-
-Change fields of an existing node, connection or group. The id itself cannot change.
-
-Node fields: tag, kind, spec, symbol, count, group, voltage_v, modules_in_series, ports, attributes, title.
-Edge fields: src, dst, service, cable, runs, length_m, laying, derating, remarks. Group fields: tag, count, within, title.
-Example: network_update(project_id="p1", id="e_inv_acdb", fields={"length_m": 30}).
-Changing a group count can invalidate member tags; update those tags in the same session.
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `id` | string | yes | Id of an existing node, connection (edge) or group |
-| `fields` | object | yes | Fields to change; null clears a field. For `attributes` the given keys are merged (null removes a key). |
-
-### `network_remove`
-
-Remove nodes, connections or groups. Removing a node also removes its connections; the reply lists everything removed.
-
-Example: network_remove(project_id="p1", ids=["scb"]).
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `ids` | list of string | yes | Ids of nodes, connections (edges) or groups to remove |
-| `include_members` | boolean | no | When removing a group, also remove the nodes and groups inside it Default: `False`. |
-
-### `network_summary`
-
-Counts by node kind (templates and real instances), connections by service, voltage zones, unconnected ports and nodes missing a catalog spec.
-
-Example: network_summary(project_id="p1").
-
-Read-only.
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
 ## Site tools
 
@@ -308,43 +209,6 @@ Read-only.
 | `roof_edge_setback_m` | number | no | Trial roof edge clearance; not stored |
 | `exclusion_setback_m` | number | no | Trial exclusion clearance; not stored |
 | `obstacle_setback_m` | number | no | Trial obstacle clearance; not stored |
-
-## Validate tools
-
-### `validate`
-
-Run the engineering rules on a project and say whether its sheets may be issued for each purpose.
-
-Returns finding counts, the findings (errors and warnings first; info only with include_info=true), and a gate per issued_for:
-approval, construction and as_built are blocked by any error; proposal and information are allowed with a NOT FOR CONSTRUCTION watermark.
-Use explain_finding for the formula, inputs and sources behind one finding.
-Example: validate(project_id="rooftop-500kwp", families=["cables", "vdrop"]).
-
-Read-only.
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `families` | list of string | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps |
-| `include_info` | boolean | no | Also list info findings (segment voltage drops, unstated deratings); they are always counted. Default: `False`. |
-| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
-
-## Explain tools
-
-### `explain_finding`
-
-Explain the findings of one rule about one subject: what the rule checks, the formula, every input with its source (catalog datasheet, design basis, network), the assumptions, and the measured value against the limit.
-
-Example: explain_finding(project_id="rooftop-500kwp", rule_id="vdrop.ac", subject="inv").
-
-Read-only.
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `rule_id` | string | yes | Rule id from validate, e.g. 'cables.ampacity' |
-| `subject` | string | yes | One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb' |
-| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
 ## Layout tools
 
@@ -475,6 +339,200 @@ network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="ada
 | `use_layout` | boolean | no | Build the PV plan from the project's array layout (layout_place) and link every layout string to one pv_string instance Default: `True`. |
 | `lengths` | object | no | Cable route length overrides in m by role, e.g. {"vcb_bus": 650} |
 
+### `network_add_group`
+
+Add a repeated block of equipment (e.g. 5 identical inverter sections). Model identical equipment once and give the group a count.
+
+Example: network_add_group(project_id="p1", id="inv_sec", count=5, title="100 kW INVERTER SECTION").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `id` | string | yes | Unique id (letters, digits, '_', '-', '.'), e.g. 'inv_sec' |
+| `count` | integer | no | How many identical copies of everything in this group Default: `1`. |
+| `tag` | string | no | Drawing tag; needs one {0:02d}-style placeholder per repeating group around it, including this one when count > 1. Default is derived from id. |
+| `within` | string | no | Id of the enclosing group |
+| `title` | string | no | Box title on the SLD, e.g. '100 kW STRING INVERTER SECTION' |
+
+### `network_add_node`
+
+Add an equipment node. Ports are named per kind: pv_string out; inverter dc, ac; transformer lv, hv; most others in, out.
+
+Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="growatt-max-100ktl3-x-lv", group="inv_sec").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `id` | string | yes | Unique id for this equipment template, e.g. 'inv' |
+| `kind` | `pv_string` \| `pv_array_block` \| `scb` \| `dc_fuse_box` \| `dc_isolator` \| `dc_spd` \| `dc_dc_converter` \| `inverter` \| `pcs` \| `battery` \| `acdb` \| `lt_panel` \| `breaker` \| `isolator` \| `fuse` \| `ac_spd` \| `ct` \| `pt` \| `meter` \| `relay` \| `transformer` \| `aux_transformer` \| `ht_panel` \| `rmu` \| `vcb` \| `busbar` \| `lightning_arrester` \| `earth_electrode` \| `poi_grid` \| `dg` \| `load` | yes | Equipment kind |
+| `spec` | string | no | Catalog id from catalog_search (module, inverter, breaker, ...) |
+| `count` | integer | no | Instances per instance of its group, e.g. 10 strings per inverter Default: `1`. |
+| `group` | string | no | Id of the group it repeats with |
+| `tag` | string | no | Drawing tag with {0:02d}-style placeholders (see network_add_group); default derived from id |
+| `voltage_v` | number | no | Nominal voltage in volts of the circuit it sits on, e.g. 415 |
+| `modules_in_series` | integer | no | Modules per string; pv_string only |
+| `ports` | list of string | no | Override port names; defaults depend on kind (inverter: dc, ac) |
+| `attributes` | object | no | Free label/value pairs shown on drawings, e.g. {"rating_a": 250} |
+| `title` | string | no |  |
+| `symbol` | string | no | Override the drawing symbol key |
+
+### `network_connect`
+
+Connect two nodes. Instances pair up by group: equal counts connect one to one, a count of 1 fans in or out.
+
+Example: network_connect(project_id="p1", src="inv:ac", dst="acdb:in", cable="polycab-...", length_m=25).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `src` | string | yes | Source terminal 'node_id:port'; power flows from src to dst (generation towards grid) |
+| `dst` | string | yes | Destination terminal 'node_id:port' |
+| `service` | `dc` \| `lv_ac` \| `mv_ac` \| `hv_ac` \| `earth` \| `control` | no | Circuit type; inferred from the ports and nodes when unambiguous, else required |
+| `cable` | string | no | Cable catalog id from catalog_search(kind='cable') |
+| `length_m` | number | no | Route length in metres, per instance |
+| `runs` | integer | no | Parallel cables per connection Default: `1`. |
+| `laying` | `air` \| `tray` \| `conduit` \| `trench` \| `buried_direct` \| `buried_duct` \| `overhead` | no |  |
+| `derating` | number | no | Installation derating factor, e.g. 0.8 |
+| `remarks` | string | no |  |
+| `edge_id` | string | no | Id for the connection; default 'e_<src>_<dst>' |
+
+### `network_update`
+
+Change fields of an existing node, connection or group. The id itself cannot change.
+
+Node fields: tag, kind, spec, symbol, count, group, voltage_v, modules_in_series, ports, attributes, title.
+Edge fields: src, dst, service, cable, runs, length_m, laying, derating, remarks. Group fields: tag, count, within, title.
+Example: network_update(project_id="p1", id="e_inv_acdb", fields={"length_m": 30}).
+Changing a group count can invalidate member tags; update those tags in the same session.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `id` | string | yes | Id of an existing node, connection (edge) or group |
+| `fields` | object | yes | Fields to change; null clears a field. For `attributes` the given keys are merged (null removes a key). |
+
+### `network_remove`
+
+Remove nodes, connections or groups. Removing a node also removes its connections; the reply lists everything removed.
+
+Example: network_remove(project_id="p1", ids=["scb"]).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `ids` | list of string | yes | Ids of nodes, connections (edges) or groups to remove |
+| `include_members` | boolean | no | When removing a group, also remove the nodes and groups inside it Default: `False`. |
+
+### `network_summary`
+
+Counts by node kind (templates and real instances), connections by service, voltage zones, unconnected ports and nodes missing a catalog spec.
+
+Example: network_summary(project_id="p1").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Validate tools
+
+### `validate`
+
+Run the engineering rules on a project and say whether its sheets may be issued for each purpose.
+
+Returns finding counts, the findings (errors and warnings first; info only with include_info=true), and a gate per issued_for:
+approval, construction and as_built are blocked by any error; proposal and information are allowed with a NOT FOR CONSTRUCTION watermark.
+Use explain_finding for the formula, inputs and sources behind one finding.
+Example: validate(project_id="rooftop-500kwp", families=["cables", "vdrop"]).
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `families` | list of string | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps |
+| `include_info` | boolean | no | Also list info findings (segment voltage drops, unstated deratings); they are always counted. Default: `False`. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Explain tools
+
+### `explain_finding`
+
+Explain the findings of one rule about one subject: what the rule checks, the formula, every input with its source (catalog datasheet, design basis, network), the assumptions, and the measured value against the limit.
+
+Example: explain_finding(project_id="rooftop-500kwp", rule_id="vdrop.ac", subject="inv").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `rule_id` | string | yes | Rule id from validate, e.g. 'cables.ampacity' |
+| `subject` | string | yes | One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb' |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Earthing tools
+
+### `earthing_design`
+
+Design the earthing system: store the inputs in the design basis, then size the GS flat conductor (IS 3043 adiabatic, IEEE 80
+cross-check), count pits for the target resistance and the fault current, check the MV switchyard grid's touch and step voltage
+(IEEE 80) and lay out pits and conductors bonding every table row, station, panel, switchyard item and lightning terminal.
+
+Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the design summary and quantities.
+Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `soil_resistivity` | number | yes | Soil resistivity in ohm m from the site's Wenner test |
+| `fault_ka` | number | no | Earth fault current in kA the conductors and electrodes must carry |
+| `clearing_s` | number | no | Fault clearing time in s (backup protection) |
+| `target_ohm` | number | no | Target earth resistance; default from practice (1 ohm utility, 2 ohm C&I), reported as an assumption |
+| `electrode_length_m` | number | no | Electrode (pipe) length Default: `3.0`. |
+| `electrode_diameter_mm` | number | no | Electrode (pipe) diameter Default: `40.0`. |
+| `burial_depth_m` | number | no | Burial depth of the earth conductor Default: `0.6`. |
+| `corrosion_allowance` | number | no | Extra cross-section for corrosion, e.g. 0.2 for 20 % Default: `0.0`. |
+| `tables_per_pit` | integer | no | At least one array pit per this many tables Default: `20`. |
+| `surface_resistivity` | number | no | Switchyard surface layer (crushed rock) resistivity, ohm m |
+| `surface_layer_m` | number | no | Switchyard surface layer thickness |
+
+### `earthing_summary`
+
+The stored earthing and lightning design recomputed from the project: conductor sizes, pits by type, earth resistance against the
+target, switchyard touch/step check, bonding, terminals and coverage, quantities, calculation steps with sources, and assumptions.
+
+Example: earthing_summary(project_id="p1").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
+
+## Lps tools
+
+### `lps_design`
+
+Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
+inverter station and roof corner inside a protection zone, and prove it. ESE follows NF C 17-102, a French standard used in Indian
+EPC practice; rods use the IS/IEC 62305 rolling sphere of the level.
+
+Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=60, mast_height_m=6).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `method` | `ese` \| `rod` | yes | ese (early streamer emission, NF C 17-102) or rod (conventional air terminal, rolling sphere) |
+| `level` | `I` \| `II` \| `III` \| `IV` | yes | Lightning protection level from the IS/IEC 62305-2 risk assessment |
+| `ese_radius_m` | number | no | ESE protection radius from the terminal datasheet for this level and height |
+| `ese_delta_t_us` | number | no | ESE efficiency dT from the test certificate (radius computed by NF C 17-102) |
+| `mast_height_m` | number | no | Terminal height above the protected plane (ESE) or rod height |
+| `protected_height_m` | number | no | Height to protect for rods (table top or roof plant) |
+
 ## Cable tools
 
 ### `cable_schedule`
@@ -517,68 +575,6 @@ Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5).
 | `lengths` | `auto` \| `network` \| `estimated` | no | auto: use the lengths the network states and estimate the edges that state none from the array layout; network: only stated lengths; estimated: replace stated lengths with layout estimates wherever the layout allows Default: `auto`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
-## Earthing tools
-
-### `earthing_design`
-
-Design the earthing system: store the inputs in the design basis, then size the GS flat conductor (IS 3043 adiabatic, IEEE 80
-cross-check), count pits for the target resistance and the fault current, check the MV switchyard grid's touch and step voltage
-(IEEE 80) and lay out pits and conductors bonding every table row, station, panel, switchyard item and lightning terminal.
-
-Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the design summary and quantities.
-Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1).
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `soil_resistivity` | number | yes | Soil resistivity in ohm m from the site's Wenner test |
-| `fault_ka` | number | no | Earth fault current in kA the conductors and electrodes must carry |
-| `clearing_s` | number | no | Fault clearing time in s (backup protection) |
-| `target_ohm` | number | no | Target earth resistance; default from practice (1 ohm utility, 2 ohm C&I), reported as an assumption |
-| `electrode_length_m` | number | no | Electrode (pipe) length Default: `3.0`. |
-| `electrode_diameter_mm` | number | no | Electrode (pipe) diameter Default: `40.0`. |
-| `burial_depth_m` | number | no | Burial depth of the earth conductor Default: `0.6`. |
-| `corrosion_allowance` | number | no | Extra cross-section for corrosion, e.g. 0.2 for 20 % Default: `0.0`. |
-| `tables_per_pit` | integer | no | At least one array pit per this many tables Default: `20`. |
-| `surface_resistivity` | number | no | Switchyard surface layer (crushed rock) resistivity, ohm m |
-| `surface_layer_m` | number | no | Switchyard surface layer thickness |
-
-## Lps tools
-
-### `lps_design`
-
-Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
-inverter station and roof corner inside a protection zone, and prove it. ESE follows NF C 17-102, a French standard used in Indian
-EPC practice; rods use the IS/IEC 62305 rolling sphere of the level.
-
-Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=60, mast_height_m=6).
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `method` | `ese` \| `rod` | yes | ese (early streamer emission, NF C 17-102) or rod (conventional air terminal, rolling sphere) |
-| `level` | `I` \| `II` \| `III` \| `IV` | yes | Lightning protection level from the IS/IEC 62305-2 risk assessment |
-| `ese_radius_m` | number | no | ESE protection radius from the terminal datasheet for this level and height |
-| `ese_delta_t_us` | number | no | ESE efficiency dT from the test certificate (radius computed by NF C 17-102) |
-| `mast_height_m` | number | no | Terminal height above the protected plane (ESE) or rod height |
-| `protected_height_m` | number | no | Height to protect for rods (table top or roof plant) |
-
-## Earthing tools
-
-### `earthing_summary`
-
-The stored earthing and lightning design recomputed from the project: conductor sizes, pits by type, earth resistance against the
-target, switchyard touch/step check, bonding, terminals and coverage, quantities, calculation steps with sources, and assumptions.
-
-Example: earthing_summary(project_id="p1").
-
-Read-only.
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
-
 ## Resources
 
 - `unicad://catalog/{kind}`: Every catalog entry of one kind as compact rows.
@@ -587,5 +583,7 @@ Read-only.
 
 ## Prompts
 
-- `new_rooftop_project`: Step plan for modelling a commercial or industrial rooftop plant.
-- `new_utility_project`: Step plan for modelling a ground-mount plant with MV collection.
+- `new_rooftop_project`: Step plan for a commercial or industrial rooftop plant, from site survey to issued drawing set.
+- `new_utility_project`: Step plan for a ground-mount plant with MV collection, from site boundary to issued drawing set.
+- `new_bess_project`: Step plan for a standalone or hybrid battery storage plant.
+- `revise_after_comments`: Step plan for changing an issued project after reviewer or client comments, keeping a diffable baseline.
