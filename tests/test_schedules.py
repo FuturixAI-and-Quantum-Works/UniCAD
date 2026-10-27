@@ -11,6 +11,7 @@ from test_routing import CATALOG, fixture, ground_project
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
 from unicad.routing import RouteAssumptions, estimate_routes
+from unicad.routing.locate import manhattan, slot_centre
 from unicad.rules import run_rules
 from unicad.rules.vdrop import segment_drop
 from unicad.schedules import LengthMode, build_bom, build_schedule, write_bom_xlsx, write_schedule_xlsx
@@ -123,6 +124,74 @@ def test_auto_mode_estimates_only_what_the_network_leaves_out():
     assert {r.length_source for r in network_only.rows if r.edge == "e_scb_inv"} == {"none"}
     assert any("e_scb_inv" in g and "no length" in g for g in network_only.gaps)
     assert all(r.vd_pct is None and r.loss_w is None for r in network_only.rows if r.edge == "e_scb_inv")
+
+
+def sized_on_worst_case(p: Project) -> Project:
+    """The project as network_autobuild stores it: every estimable edge carries the worst-case routed length of its template, rounded to 0.1 m."""
+    templates = estimate_routes(p, CATALOG).templates()
+    data = p.model_dump(mode="json")
+    for e in data["network"]["edges"]:
+        if e["id"] in templates:
+            e["length_m"] = round(templates[e["id"]].maximum_m, 1)
+    return Project.model_validate(data, context={"catalog": CATALOG})
+
+
+@pytest.mark.parametrize("project", [lambda: fixture("rooftop_500kwp"), ground_project], ids=["rooftop", "ground"])
+def test_worst_case_sizing_lengths_do_not_become_every_instances_length(project):
+    p = sized_on_worst_case(project())
+    est = estimate_routes(p, CATALOG)
+    schedule = build_schedule(p, CATALOG)
+    strings = [r for r in schedule.rows if r.is_string]
+    assert len(strings) > 10
+    assert {r.length_source for r in strings} == {"estimated"}
+    assert len({round(r.length_pos_m, 3) for r in strings}) > 3
+    for r in strings:
+        i = est.instances[r.instance]
+        assert (r.length_pos_m, r.length_neg_m) == (i.positive_m, i.negative_m)
+    hand = sum(est.instances[r.instance].positive_m + est.instances[r.instance].negative_m for r in strings)
+    worst = p.network.edge_by_id[strings[0].edge].length_m * 2 * len(strings)
+    assert sum(r.cable_metres for r in strings) == pytest.approx(hand)
+    assert hand < 0.9 * worst
+
+
+def test_a_routed_string_row_is_the_hand_computed_manhattan_run_plus_the_allowances():
+    p = sized_on_worst_case(fixture("rooftop_500kwp"))
+    layout = p.array_layout
+
+    def centre(sid: str) -> tuple[float, float]:
+        xy = [slot_centre(layout.table_by_id[t], r, c) for t, r, c in layout.string_slots(sid)]
+        return sum(x for x, _ in xy) / len(xy), sum(y for _, y in xy) / len(xy)
+
+    centres = [centre(f"str@1.{k}") for k in range(1, 11)]
+    dcfb = (sum(x for x, _ in centres) / 10, sum(y for _, y in centres) / 10)
+    (t_id, row, first), *_, (_, _, last) = layout.string_slots("str@1.1")
+    t = layout.table_by_id[t_id]
+    r = next(r for r in build_schedule(p, CATALOG).rows if r.instance == "e_str@1.1")
+    allowance = 2 * (1.5 + 1.0)
+    assert r.length_pos_m == pytest.approx(manhattan(slot_centre(t, row, first), dcfb, t.azimuth_deg) + allowance)
+    assert r.length_neg_m == pytest.approx(manhattan(slot_centre(t, row, last), dcfb, t.azimuth_deg) + allowance)
+    assert (r.length_pos_m + r.length_neg_m) / 2 <= p.network.edge_by_id["e_str"].length_m + 0.05
+
+
+def test_a_length_the_agent_states_is_kept_for_every_instance():
+    p = ground_project()
+    stated = p.network.edge_by_id["e_str"].length_m
+    est = estimate_routes(p, CATALOG)
+    assert stated is not None and abs(stated - est.templates()["e_str"].maximum_m) > 0.1
+    rows = [r for r in build_schedule(p, CATALOG).rows if r.edge == "e_str"]
+    assert {(r.length_source, r.length_pos_m) for r in rows} == {("network", stated)}
+
+
+def test_the_bom_orders_the_routed_metres_not_the_worst_case_times_the_strings():
+    p = sized_on_worst_case(ground_project())
+    schedule = build_schedule(p, CATALOG)
+    cable = p.network.edge_by_id["e_str"].cable
+    bom = build_bom(p, CATALOG, schedule)
+    strings = [r for r in schedule.rows if r.is_string]
+    hand = sum(r.length_pos_m + r.length_neg_m for r in strings)
+    worst = p.network.edge_by_id["e_str"].length_m * 2 * len(strings)
+    ordered = bom.qty(CABLES, cable if isinstance(cable, str) else cable.id)
+    assert ordered >= math.ceil(hand * 1.05) and ordered < worst
 
 
 def test_cable_metres_count_every_run_and_loaded_conductor():

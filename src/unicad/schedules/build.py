@@ -7,7 +7,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import CableSpec
 from unicad.domain.network import Edge, ElectricalNetwork, NetworkError, NodeKind, Service
 from unicad.domain.project import Project
-from unicad.routing import RouteAssumptions, RouteEstimate, estimable_edges, estimate_routes, template_of
+from unicad.routing import RouteAssumptions, RouteEstimate, TemplateLength, estimable_edges, estimate_routes, template_of
 from unicad.rules.cables import cable_of, edge_ampacity, edge_label, needs_cable, phases
 from unicad.rules.topology import edge_current, instance_tag, module_of, per_instance
 from unicad.rules.vdrop import segment_drop
@@ -19,6 +19,8 @@ LOSS_BASIS = "Power loss is I^2 x R x L of every loaded conductor (two for DC, t
 POLARITY_BASIS = "Where the network states one length for a DC cable, +ve and -ve lengths are taken equal."
 UNITS_BASIS = "Design current Ib and derated ampacity Iz are for all parallel runs of a row together; length is per run."
 
+
+SIZING_LENGTH_TOLERANCE_M = 0.05 + 1e-9
 
 SHORT_LABEL = {NodeKind.PV_STRING: "STRING", NodeKind.PV_ARRAY_BLOCK: "ARRAY BLOCK"}
 
@@ -103,8 +105,7 @@ def build_schedule(
         if mode is LengthMode.NETWORK:
             estimate = RouteEstimate()
         else:
-            want = [e.id for e in cabled if mode is LengthMode.ESTIMATED or e.length_m is None]
-            estimate = estimate_routes(project, catalog, assumptions, want) if want else RouteEstimate()
+            estimate = _estimate_where_routed(project, catalog, assumptions, cabled, mode)
     ids = Ids(project, expanded)
     elec = _Electrical(project, catalog)
     instances: dict[str, list[Edge]] = defaultdict(list)
@@ -128,6 +129,8 @@ def build_schedule(
             est = estimate.instances.get(ie.id)
             if est is not None:
                 pos, neg, source, basis = est.positive_m, est.negative_m, "estimated", est.basis
+                if e.length_m is not None and mode is not LengthMode.ESTIMATED:
+                    basis += f"; the network's {e.length_m:g} m is the worst-case route the cable is sized for"
             elif e.length_m is not None:
                 pos, neg, source, basis = e.length_m, None, "network", "length stated by the network"
             else:
@@ -172,6 +175,22 @@ def build_schedule(
         project_id=project.id, project_name=project.name, sections=tuple(sections), basis=basis, vd_summary=summary,
         assumptions=tuple(dict.fromkeys(notes)), warnings=estimate.warnings, gaps=tuple(gaps), template_lengths=estimate.templates(),
     )  # fmt: skip
+
+
+def _estimate_where_routed(project: Project, catalog: Catalog, assumptions: RouteAssumptions, cabled: list[Edge], mode: LengthMode) -> RouteEstimate:
+    """Estimate the edges whose rows are routed one by one: those with no stated length, all of them in `estimated` mode, and those whose stated
+    length is the worst case network_autobuild stored for sizing. A length an agent stated for any other reason stays as stated."""
+    if mode is LengthMode.ESTIMATED:
+        return estimate_routes(project, catalog, assumptions, [e.id for e in cabled])
+    templates = estimate_routes(project, catalog, assumptions, [e.id for e in cabled if e.length_m is not None]).templates()
+    want = [e.id for e in cabled if e.length_m is None or _is_sizing_length(e, templates.get(e.id))]
+    return estimate_routes(project, catalog, assumptions, want) if want else RouteEstimate()
+
+
+def _is_sizing_length(e: Edge, template: TemplateLength | None) -> bool:
+    """The length stored on the edge is the template's worst-case routed length to the 0.1 m that network_autobuild stores it at, so the rows are
+    routed one by one and the stored value stays what the cable was sized for."""
+    return template is not None and e.length_m is not None and abs(e.length_m - template.maximum_m) <= SIZING_LENGTH_TOLERANCE_M
 
 
 def _flags(e: Edge, iz: float | None, length: float | None, vd: float | None) -> tuple[str, ...]:
