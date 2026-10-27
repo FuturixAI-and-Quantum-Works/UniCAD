@@ -321,6 +321,11 @@ def bus_texts(net: ElectricalNetwork, node: Node) -> tuple[str, ...]:
 
 
 REMARK_INLINE_CHARS = 42
+GENERAL_NOTES = (
+    "REPEATED GROUPS ARE DRAWN ONCE IN A DASHED FRAME; (x N) IS THE NUMBER OF IDENTICAL INSTANCES.",
+    "CABLE CALLOUTS: RUNS x CORES x SIZE, CONDUCTOR, INSULATION, ARMOUR, VOLTAGE GRADE, LAYING, LENGTH.",
+)
+"""The sheet's first notes; cable remarks too long for a callout follow them, then the design-basis assumptions."""
 
 
 def remark(edge: Edge) -> str:

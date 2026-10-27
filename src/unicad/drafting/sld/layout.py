@@ -498,7 +498,7 @@ class _Builder:
         for rec in sorted((r for r in self.recs.values() if r.tree_edge), key=lambda r: self.order[r.tree_edge.id]):
             text = annotate.remark(rec.tree_edge)
             if text and annotate.is_long_remark(text):
-                notes.setdefault(text, len(notes) + 1)
+                notes.setdefault(text, len(annotate.GENERAL_NOTES) + len(notes) + 1)
         self.notes = tuple(notes)
         for rec in self.recs.values():
             lines = annotate.cable_callout(rec.tree_edge, self.catalog, notes) if rec.tree_edge else ()
@@ -1627,6 +1627,9 @@ def plan_pages(
     wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
     subtrees = [s for s in subtrees if s not in wired]
     main = main.union(*wired)
+    # The main page also takes the first feeders while it stays readable, so it is not a strip across an empty sheet.
+    while subtrees and layout_sld(network, catalog, options, main | subtrees[0]).fit_scale(width, height, options) >= options.min_scale:
+        main |= subtrees.pop(0)
     pages = [page(main, layout_sld(network, catalog, options, main))]
     current: frozenset[str] = frozenset()
     for sub in subtrees:

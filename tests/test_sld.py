@@ -335,7 +335,7 @@ def test_notes_are_engineer_worded(projects, catalog, profile):
     assert "DC VOLTAGE DROP LIMIT 2 %" in joined
     roof = layout_sld(projects["rooftop_500kwp"].network, catalog)
     callouts = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in roof.callouts}
-    assert "SEE NOTE 1" in callouts["e_str"] and roof.notes[0].startswith("DERATING 1.0")
+    assert "SEE NOTE 3" in callouts["e_str"] and roof.notes[0].startswith("DERATING 1.0")
 
 
 def _utility_with(catalog, edit) -> object:
@@ -501,3 +501,38 @@ def test_a_node_left_without_a_catalog_spec_is_drawn_with_its_default_symbol_and
         assert any(w.startswith(f"node {nid!r}") and "has no catalog spec" in w for w in lay.warnings), lay.warnings
     bare = net.model_copy(update={"nodes": tuple(n.model_copy(update={"tag": "Q-01"}) if n.id == "acdb_brk" else n for n in net.nodes)})
     assert next(s for s in layout_sld(bare, catalog).symbols if s.node_id == "acdb_brk").key == "sw.mccb"
+
+
+def test_a_split_main_page_also_carries_the_first_feeders_it_has_room_for(catalog):
+    """close-e2e-1 m23: the main page of a split overall SLD held only the MV switchboard, a strip across ~30 % of an A0."""
+    from test_design import blank
+    from test_design_p5 import GROUND_MODULE
+    from unicad.arrays import PlacementSpec, place_array
+    from unicad.design import autobuild
+    from unicad.ingest.site_import import import_site
+
+    site = import_site(ROOT / "fixtures" / "sites" / "ground_mount_rajasthan.kml", None).geometry
+    spec = PlacementSpec(module=GROUND_MODULE, table_rows=2, table_cols=27, tilt_deg=25, n_blocks=4, modules_per_string=27, road_every_rows=12, target_dc_kwp=4 * 144 * 27 * 0.58 * 1.1)
+    base = blank("utility_50mwac")
+    base = base.model_copy(update={"site": base.site.model_copy(update={"geometry": site})})
+    intent = {"template": "utility_string", "module": GROUND_MODULE, "inverter": "sungrow-sg350hx", "modules_per_string": 27, "inverters_per_block": 7}
+    net = autobuild(base, catalog, intent, layout=place_array(site, spec, catalog.get(GROUND_MODULE))).project.network
+    area = metrics_for(PaperSize("A0")).drawing_area
+    pages = plan_pages(net, catalog, area.width, area.height, SldOptions())
+    assert len(pages) > 1 and all(p.scale >= SldOptions().min_scale for p in pages)
+    main = set(pages[0].node_ids)
+    assert {"mv_bus", "idt_b01", "acdb_b01"} <= main, sorted(main)
+    owned = [n for p in pages for n in p.node_ids]
+    assert len(owned) == len(set(owned))
+
+
+def test_general_notes_come_first_and_cable_notes_keep_their_numbers(projects, catalog):
+    """close-e2e-1 m20: general note 1 on the rooftop SLD was a cable remark."""
+    from unicad.drafting.sld.sheet import NOTES, sheet_spec
+
+    p = projects["rooftop_500kwp"]
+    lay = layout_sld(p.network, catalog)
+    notes = sheet_spec(p, p.sheets[0], lay, catalog).notes
+    assert notes[: len(NOTES)] == NOTES and notes[len(NOTES)] == lay.notes[0]
+    callouts = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in lay.callouts}
+    assert f"SEE NOTE {len(NOTES) + 1}" in callouts["e_str"]
