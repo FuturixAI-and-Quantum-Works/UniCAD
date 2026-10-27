@@ -198,6 +198,10 @@ class Group(_Frozen):
     title: str | None = None
 
 
+HOUSED_IN = "housed_in"
+"""Node attribute naming the group whose panel houses a node that repeats with another group: a block's feeder panel at the main switchboard."""
+
+
 class Node(_Frozen):
     id: Id
     tag: str
@@ -223,6 +227,11 @@ class Node(_Frozen):
         if isinstance(self.spec, TransformerSpec) and self.kind not in INLINE_SPEC_KINDS:
             raise ValueError(f"node {self.id!r}: an inline spec is only valid on transformer nodes, not {self.kind}")
         return self
+
+    @property
+    def housed_in(self) -> str | None:
+        v = self.attributes.get(HOUSED_IN)
+        return v if isinstance(v, str) else None
 
     @property
     def port_names(self) -> tuple[str, ...]:
@@ -360,6 +369,8 @@ class ElectricalNetwork(_Frozen):
             if n.group is not None and n.group not in self.group_by_id:
                 problems.append(f"node {n.id!r} is in unknown group {n.group!r}")
                 continue
+            if n.group is not None and n.housed_in is not None and n.housed_in not in self.group_by_id:
+                problems.append(f"node {n.id!r} is housed in unknown group {n.housed_in!r}")
             depth = len(self._levels(n)) + (n.count > 1)
             problems += self._tag_problems(f"node {n.id!r}", n.tag, depth)
         return problems

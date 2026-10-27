@@ -96,14 +96,11 @@ def test_utility_fixture_report():
     report = run_rules(fixture("utility_50mwac"), CATALOG)
     print("\n" + report.render())
     assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
-        ("protection.mv_cable", "error", ("e_icog_bus", "mv_bus")),
-        ("protection.transformer_feed", "error", ("blk_aux", "e_idt_aux")),
-        ("protection.spd_ac_poles", "error", ("inv_acspd",)),
         ("pv_strings.operating_current", "warning", ("str", "inv")),
         ("cables.ampacity", "warning", ("e_scb_inv",)),
         ("cables.missing", "warning", ("e_ct_poi",)),
     }
-    assert report.counts["error"] == 3 and report.blocking
+    assert report.counts["error"] == 0 and not report.blocking
     assert ("pv_strings.string_fuses", "info", ("str", "inv", "scb")) in summary(report)
 
 

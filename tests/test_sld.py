@@ -155,7 +155,8 @@ def test_frames_enclose_their_members_and_nothing_else(layouts, projects):
             for s in lay.symbols:
                 if s.node_id is None:
                     continue
-                member = inside(net.node(s.node_id).group)
+                node = net.node(s.node_id)
+                member = inside(node.housed_in or node.group)
                 b = s.body
                 if fr.outline:
                     within = all(in_outline(fr.outline, p) for p in ((b.x0, b.y0), (b.x1, b.y0), (b.x1, b.y1), (b.x0, b.y1)))
@@ -263,11 +264,11 @@ def test_scoped_sheet_marks_every_cut_edge_with_an_off_sheet_marker(projects, ca
     lay = res.layout
     drawn = {n for n, _ in lay.represented}
     assert {"idt", "inv", "scb", "str", "icog_la"} <= drawn
-    assert not drawn & {"mv_bus", "poi", "icog_vcb", "blk_aux"}
+    assert not drawn & {"mv_bus", "poi", "icog_vcb", "blk_aux_vcb", "blk_aux"}
     marked = {o.edge_id for o in lay.offsheets}
-    assert marked == {"e_idt_vcb", "e_idt_aux"}
+    assert marked == {"e_idt_vcb", "e_idt_auxvcb"}
     markers = {s.id: s for s in lay.symbols if s.role == "offsheet"}
-    assert {dict(s.values)["DESC"] for s in markers.values()} == {"TO ICOG-VCB-01", "TO BLK-AUX-TR-01"}
+    assert {dict(s.values)["DESC"] for s in markers.values()} == {"TO ICOG-VCB-01", "TO ICOG-AUX-VCB-01"}
     ends = {w.edge_id: (w.start.owner, w.end.owner) for w in lay.wires if w.kind is not WireKind.EARTH}
     assert ends["e_idt_vcb"] == ("idt", "off.e_idt_vcb")
     assert "sw.vcb" not in lay.legend_keys() and "ann.offsheet" not in lay.legend_keys()
@@ -412,11 +413,11 @@ def test_hv_side_branch_taps_the_conductor_above_the_transformer(layouts):
     for name in ("utility_50mwac", "utility_50mwac:compact"):
         lay = layouts[name]
         sym = {s.node_id: s for s in lay.symbols if s.node_id}
-        idt, aux, inv = sym["idt"], sym["blk_aux"], sym["inv"]
+        idt, aux, inv = sym["idt"], sym["blk_aux_vcb"], sym["inv"]
         assert idt.body.y0 < aux.body.y1 and aux.body.y0 < idt.body.y1, name
         assert aux.body.y0 > inv.body.y1, name
         hv = _pin(lay, "idt", "hv")
-        wire = next(w for w in lay.wires if w.edge_id == "e_idt_aux")
+        wire = next(w for w in lay.wires if w.edge_id == "e_idt_auxvcb")
         tap = [p for p in wire.points if abs(p[0] - hv[0]) < EPS and p[1] > hv[1] + EPS]
         assert tap and tap[0] in lay.junctions, (name, wire.points)
         feed = next(w for w in lay.wires if w.edge_id == "e_idt_vcb")
@@ -451,7 +452,7 @@ def test_group_outlines_are_one_clean_loop_clear_of_text_and_other_frames(layout
                 hits = [t.text for t in texts if _crosses(t.box, a, b)]
                 assert not hits, (name, f.group_id, hits)
             if loops:
-                assert len(loops[0]) <= 12, (name, f.group_id, loops[0])
+                assert len(loops[0]) <= 14, (name, f.group_id, loops[0])  # the switchboard frame steps round the feeder cable callouts below its feeder panels
         for f, g in combinations(lay.frames, 2):
             for e in _segments(f):
                 for d in _segments(g):
@@ -632,3 +633,23 @@ def test_sld_sheets_define_every_nested_symbol_before_its_diagram_block(projects
     for name, p in projects.items():
         doc, _ = render_sld(p, "sld", profile, catalog)
         assert _block_order_problems(doc) == [], name
+
+
+def test_block_feeder_panels_are_drawn_in_the_main_switchboard_frame_with_their_tag_range(layouts, projects):
+    """k1 follow-up: VCB-BF-nn, CT-BF-nn and REL-BF-nn repeat with the block but are housed in the main HT switchboard (node attribute
+    housed_in), so they sit in its frame, not the block frame, and are tagged with the range of their instances."""
+    net = projects["utility_50mwac"].network
+    for name in ("utility_50mwac", "utility_50mwac:compact"):
+        lay = layouts[name]
+        frames = {f.group_id: f for f in lay.frames}
+        sym = {s.node_id: s for s in lay.symbols if s.node_id}
+        for nid in ("bf_vcb", "bf_ct", "bf_relay"):
+            assert net.node(nid).group == "block" and net.node(nid).housed_in == "mvsb"
+            b = sym[nid].body
+            corners = ((b.x0, b.y0), (b.x1, b.y0), (b.x1, b.y1), (b.x0, b.y1))
+            assert all(in_outline(frames["mvsb"].outline, p) for p in corners), (name, nid)
+            blk = frames["block"].box
+            assert not (blk.x0 <= b.x0 and b.x1 <= blk.x1 and blk.y0 <= b.y0 and b.y1 <= blk.y1), (name, nid)
+        assert dict(sym["bf_vcb"].values)["TAG"] == "VCB-BF-01..VCB-BF-06"
+    with pytest.raises(ValueError, match="housed in unknown group 'nope'"):
+        ElectricalNetwork.model_validate({**net.model_dump(), "nodes": [n.model_dump() | ({"attributes": {"housed_in": "nope"}} if n.id == "bf_ct" else {}) for n in net.nodes]})

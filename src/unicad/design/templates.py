@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import BatterySpec, InverterSpec, ModuleSpec, PCSSpec, TransformerSpec
 from unicad.domain.layout import StringAssignment
-from unicad.domain.network import Laying, NodeKind, Service
+from unicad.domain.network import HOUSED_IN, Laying, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NetBuilder, NodeHint
 from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, sections, split_even
@@ -336,9 +336,10 @@ def block_feeder(c: Ctx, group: str, sfx: str, tr_id: str, kv: float, switch: st
     b.edge(f"e_tr_icog{sfx}", f"{tr_id}:hv", f"icog{sfx}:in", V.MV_AC, EdgeHint(fam), c.L("idt_vcb"), Laying.BURIED_DIRECT)
     b.edge(f"e_icog_la{sfx}", f"{tr_id}:hv", f"icog_la{sfx}:line", V.MV_AC)
     bf = "BF" if tag == "ICOG" else f"{tag}-BF"
-    b.node(f"bf_ct{sfx}", f"CT-{bf}", NodeKind.CT, group=group, voltage_v=vv, title="FEEDER PANEL CT AT MAIN HT SWITCHBOARD")
-    b.node(f"bf_vcb{sfx}", f"VCB-{bf}", NodeKind.VCB, group=group, voltage_v=vv, hint=NodeHint("vcb"), title="FEEDER PANEL VCB AT MAIN HT SWITCHBOARD")
-    b.node(f"bf_relay{sfx}", f"REL-{bf}", NodeKind.RELAY, group=group, title="FEEDER O/C + E/F RELAY")
+    panel = {HOUSED_IN: "mvsb"}
+    b.node(f"bf_ct{sfx}", f"CT-{bf}", NodeKind.CT, group=group, voltage_v=vv, title="FEEDER PANEL CT AT MAIN HT SWITCHBOARD", attributes=panel)
+    b.node(f"bf_vcb{sfx}", f"VCB-{bf}", NodeKind.VCB, group=group, voltage_v=vv, hint=NodeHint("vcb"), title="FEEDER PANEL VCB AT MAIN HT SWITCHBOARD", attributes=panel)
+    b.node(f"bf_relay{sfx}", f"REL-{bf}", NodeKind.RELAY, group=group, title="FEEDER O/C + E/F RELAY", attributes=panel)
     b.edge(f"e_icog_bus{sfx}", f"icog{sfx}:out", f"bf_ct{sfx}:in", V.MV_AC, EdgeHint(fam), c.L("vcb_bus"), Laying.BURIED_DIRECT)
     b.edge(f"e_bfct_vcb{sfx}", f"bf_ct{sfx}:out", f"bf_vcb{sfx}:in", V.MV_AC)
     b.edge(f"e_bf_bus{sfx}", f"bf_vcb{sfx}:out", "mv_bus:bus", V.MV_AC)

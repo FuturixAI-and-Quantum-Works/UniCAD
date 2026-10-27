@@ -267,6 +267,28 @@ def test_c3_a_bess_unit_standing_inside_the_mat_is_flagged():
     assert len([w for w in d.warnings if "inside the switchyard earth mat" in w]) == len(inside)
 
 
+def test_c3_the_switchyard_mat_is_placed_clear_of_bess_units_standing_where_it_would_go():
+    """k1 follow-up: the earthing mat is placed in free ground at least the BESS fire separation away from every placed BESS unit, so a
+    BESS area next to the switchyard point does not end up under the mat (structure.bess_separation)."""
+    from unicad.rules.structure import BESS_SEPARATION_M
+
+    p, _ = scenario("kutch-hybrid")
+    sy = design_earthing(p, catalog=CATALOG).layout.switchyard
+    cx, cy = (sy.x0 + sy.x1) / 2, (sy.y0 + sy.y1) / 2
+    moved, k = [], 0
+    for e in p.array_layout.equipment:
+        if e.kind != "inverter":
+            e = e.model_copy(update={"at": e.at.model_copy(update={"x": cx - 20 + 10 * (k % 5), "y": cy - 5 + 10 * (k // 5)})})
+            k += 1
+        moved.append(e)
+    q = p.model_copy(update={"array_layout": p.array_layout.model_copy(update={"equipment": tuple(moved)})})
+    d = design_earthing(q, catalog=CATALOG)
+    mat = box(d.layout.switchyard.x0, d.layout.switchyard.y0, d.layout.switchyard.x1, d.layout.switchyard.y1)
+    bess = [e for e in q.array_layout.equipment if e.kind != "inverter"]
+    assert k and min(mat.distance(Point(e.at.x, e.at.y)) for e in bess) >= BESS_SEPARATION_M
+    assert not [w for w in d.warnings if "inside the switchyard earth mat" in w]
+
+
 # --- A3: placed inverters carry their tags on the earthing sheet -------------------------------
 
 

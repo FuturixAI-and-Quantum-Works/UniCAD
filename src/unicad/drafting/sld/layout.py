@@ -534,7 +534,7 @@ class _Builder:
     def _members(self, g: Group) -> frozenset[str]:
         out = set()
         for nid, rec in self.recs.items():
-            gid = rec.node.group
+            gid = _framed_in(self.net, rec.node)
             while gid is not None:
                 if gid == g.id:
                     out.add(nid)
@@ -641,13 +641,13 @@ class _Builder:
         o = self.o
         rec = self.recs[nid]
         chain: list[Group] = []
-        gid = rec.node.group
+        gid = _framed_in(self.net, rec.node)
         while gid is not None:
             chain.append(self.net.group_by_id[gid])
             gid = self.net.group_by_id[gid].within
         parent_groups: set[str] = set()
         if rec.parent is not None:
-            gid = self.recs[rec.parent].node.group
+            gid = _framed_in(self.net, self.recs[rec.parent].node)
             while gid is not None:
                 parent_groups.add(gid)
                 gid = self.net.group_by_id[gid].within
@@ -1088,7 +1088,7 @@ class _Builder:
             members = self._members(g)
             if not members:
                 continue
-            members |= {m for m, other in self.stands_for.items() if self._in_group(self.net.node(other).group, g.id)}
+            members |= {m for m, other in self.stands_for.items() if self._in_group(_framed_in(self.net, self.net.node(other)), g.id)}
             pad = o.frame_pad
             mine: list[Box] = []
             others: list[Box] = []
@@ -1196,6 +1196,11 @@ class _Builder:
 
 
 MARKER_PREFIX = "off."
+
+
+def _framed_in(net: ElectricalNetwork, node: Node) -> str | None:
+    """The group whose frame a node is drawn in: the panel that houses it, else the group it repeats with."""
+    return node.housed_in if node.housed_in in net.group_by_id else node.group
 
 
 def nid_port(e: Edge, node_id: str) -> str:
@@ -1379,6 +1384,7 @@ def _notched_outline(mine: list[Box], others: list[Box], pad: float, limit: Box 
             return None
         notches.append(best)
     notches = _align_notches(notches, hull, clear, 2 * pad)
+    hull, notches = _shaved(hull, notches, clear, 2 * pad)
     xs = sorted({hull.x0, hull.x1} | {v for n in notches for v in (n.x0, n.x1)})
     ys = sorted({hull.y0, hull.y1} | {v for n in notches for v in (n.y0, n.y1)})
     cells = [
@@ -1413,6 +1419,25 @@ def _align_notches(notches: list[Box], hull: Box, clear, tol: float) -> list[Box
                         out[i] = a = grown
                         break
     return out
+
+
+def _shaved(hull: Box, notches: list[Box], clear, depth: float) -> tuple[Box, list[Box]]:
+    """Move a side of the hull in past its notches when every notch cut from that side is shallower than `depth` and the strip
+    holds none of the members, so the outline runs straight instead of stepping a few mm around each outsider."""
+    sides = (
+        ("y0", lambda n: n.y0 == hull.y0, lambda n: n.y1 - hull.y0, lambda d: Box(hull.x0, hull.y0, hull.x1, hull.y0 + d), lambda d: replace(hull, y0=hull.y0 + d)),
+        ("y1", lambda n: n.y1 == hull.y1, lambda n: hull.y1 - n.y0, lambda d: Box(hull.x0, hull.y1 - d, hull.x1, hull.y1), lambda d: replace(hull, y1=hull.y1 - d)),
+        ("x0", lambda n: n.x0 == hull.x0, lambda n: n.x1 - hull.x0, lambda d: Box(hull.x0, hull.y0, hull.x0 + d, hull.y1), lambda d: replace(hull, x0=hull.x0 + d)),
+        ("x1", lambda n: n.x1 == hull.x1, lambda n: hull.x1 - n.x0, lambda d: Box(hull.x1 - d, hull.y0, hull.x1, hull.y1), lambda d: replace(hull, x1=hull.x1 - d)),
+    )
+    for _, on_side, cut, strip, moved in sides:
+        cuts = [cut(n) for n in notches if on_side(n)]
+        if not cuts or max(cuts) >= depth or not clear(strip(max(cuts))):
+            continue
+        new = moved(max(cuts))
+        notches = [c for n in notches if (c := _clip(n, new)).width > 1e-9 and c.height > 1e-9]
+        return new, notches
+    return hull, notches
 
 
 def _deepened(a: Box, b: Box, hull: Box, tol: float) -> list[Box]:

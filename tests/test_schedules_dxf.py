@@ -92,7 +92,7 @@ def test_schedule_tables_summarise_strings_per_combiner_for_big_projects_and_lis
     assert string_rows(dc_big) == 180 and string_rows(dc_small) == 50
     assert sum(len(s.rows) for s in schedule_tables(big, "full")[0][1].sections if "STRING" in (s.title or "")) == 4320
     assert string_rows(schedule_tables(small, "summary")[0][1]) == 5
-    assert ac_big.row_count == 38
+    assert ac_big.row_count == 44
     with pytest.raises(ValueError):
         schedule_tables(small, "everything")
 

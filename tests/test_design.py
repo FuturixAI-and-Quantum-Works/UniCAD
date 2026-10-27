@@ -232,14 +232,9 @@ def test_rooftop_500kw_matches_the_hand_fixture_chain_and_counts(built):
 
 def test_utility_50mwac_matches_the_hand_fixture_chain_and_counts(built):
     hand, auto = fixture("utility_50mwac").network, built["utility_central"].project.network
-    # autobuild adds the feeder panel (CT + VCB) at the main HT switchboard and a T-off VCB per block aux transformer, which the hand fixture lacks (close-e2e-3 B2, B3)
-    want = chain(hand, "str")
-    at = want.index("busbar")
-    assert chain(auto, "str") == [*want[:at], "ct", "vcb", *want[at:]]
-    blocks = instances(hand, NodeKind.TRANSFORMER)
-    for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER):
+    assert chain(auto, "str") == chain(hand, "str")
+    for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER, NodeKind.VCB, NodeKind.CT, NodeKind.RELAY):
         assert instances(auto, kind) == instances(hand, kind), kind
-    assert instances(auto, NodeKind.VCB) == instances(hand, NodeKind.VCB) + 2 * blocks
     assert abs(instances(auto, NodeKind.SCB) - instances(hand, NodeKind.SCB)) <= 0.2 * instances(hand, NodeKind.SCB)
     idt = auto.node("idt").spec
     assert (idt.rated_kva, idt.lv_kv, idt.vector_group) == (8800, (0.66, 0.66), "YNd11d11")

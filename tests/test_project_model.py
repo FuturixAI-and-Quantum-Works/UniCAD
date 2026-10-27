@@ -174,8 +174,8 @@ def test_group_rules_name_the_offender():
 
 def test_queries(utility):
     g = utility.network
-    assert {n.id for n in g.by_kind(NodeKind.VCB)} == {"icog_vcb", "aux_vcb", "out_vcb"}
-    assert g.path_to_poi("scb") == ("scb", "inv", "idt", "icog_vcb", "mv_bus", "out_vcb", "out_ct", "poi")
+    assert {n.id for n in g.by_kind(NodeKind.VCB)} == {"icog_vcb", "blk_aux_vcb", "bf_vcb", "aux_vcb", "out_vcb"}
+    assert g.path_to_poi("scb") == ("scb", "inv", "idt", "icog_vcb", "bf_ct", "bf_vcb", "mv_bus", "out_vcb", "out_ct", "poi")
     with pytest.raises(NetworkError, match="'aux_load' has no downstream path to a poi_grid"):
         g.path_to_poi("aux_load")
     assert g.upstream("scb") == ("str",)
@@ -300,8 +300,7 @@ def test_rules_resolve_the_inline_spec(catalog):
 
     clean = run_rules(Project.model_validate(raw("utility_50mwac"), context={"catalog": catalog}), catalog)
     assert not [f for f in clean.by_rule("structure.transformer_voltage") if f.subjects == ("idt",)]
-    new_rules = {"protection.mv_cable", "protection.transformer_feed", "protection.spd_ac_poles"}  # the fixture predates them (close-e2e-3 B2, B3, n23)
-    assert not clean.by_rule("structure.missing_spec") and not [f for f in clean.findings if f.severity.value == "error" and f.rule_id not in new_rules]
+    assert not clean.by_rule("structure.missing_spec") and clean.counts["error"] == 0
 
     data = raw("utility_50mwac")
     inline_idt(data)["lv_kv"] = [0.8, 0.8]

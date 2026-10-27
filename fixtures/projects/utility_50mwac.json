@@ -34,8 +34,9 @@
       "12 x SC 4400 UP give 52.8 MVA; export is assumed limited to 50 MWac at the POI by the plant controller.",
       "IDT-nn is a project-specific inline spec (idt-8800kva-33-0.66-0.66-ynd11d11-project), not a catalog entry: 8800 kVA as two 4400 kVA LV windings, one per SC 4400 UP; LV voltage 0.66 kV is the catalog ac_voltage of the SC 4400 UP.",
       "Borrowed for the IDT from BHEL purchase specification PS 439-1304 (5.5 MVA, 33 kV inverter-duty transformer, p.5): %Z 7 % (stated on the 2.75 MVA winding base, applied here on the 4400 kVA winding base), vector group YNd11d11, LV1-LV2 impedance min 11 %, OCTC -10 to +10 % in 2.5 % steps, each LV winding 50 % of rated kVA. Nothing else about the IDT is sourced; the 8800 kVA rating and ONAN cooling are design choices.",
-      "BLK-AUX-TR-nn is the catalog is1180-33kv-63kva-dyn11, fed from the 33 kV side of the IDT; 63 kVA is a design assumption, not a calculated auxiliary load.",
-      "VCB ratings (630 A / 20 kA at the blocks and for the auxiliary feeder, 1250 A / 25 kA outgoing) are placeholders pending a fault study. CT-OG-01 has no spec: the only catalogued 33 kV CT is 200-100-50/1 A, below the export current of about 920 A.",
+      "BLK-AUX-TR-nn is the catalog is1180-33kv-63kva-dyn11, fed from the 33 kV side of the IDT through its own T-off VCB ICOG-AUX-VCB-nn; 63 kVA is a design assumption, not a calculated auxiliary load.",
+      "Every block feeder ends at the main HT switchboard in its own feeder panel (VCB-BF-nn with CT-BF-nn and an O/C + E/F relay REL-BF-nn), so the feeder cable is switched and protected at the bus end; CT-BF-nn carries no spec, its ratio follows the block feeder current.",
+      "VCB ratings (630 A / 20 kA at the blocks, the block auxiliary T-offs, the block feeder panels and the auxiliary feeder, 1250 A / 25 kA outgoing) are placeholders pending a fault study. CT-OG-01 has no spec: the only catalogued 33 kV CT is 200-100-50/1 A, below the export current of about 920 A.",
       "MV and auxiliary cable sizes (Havells 33 kV 3C Al) and all cable lengths are fixture choices, not a routed design. The export line from CT-OG-01 to POI-01 is by others and carries no cable."
     ]
   },
@@ -101,7 +102,7 @@
         "id": "inv_acspd",
         "tag": "AC-SPD-{0:02d}-{1}",
         "kind": "ac_spd",
-        "spec": "dehn-dg-se-ci-440-fm",
+        "spec": "dehn-dg-m-we-600",
         "group": "inv_sec",
         "voltage_v": 660.0
       },
@@ -144,6 +145,15 @@
         "group": "block"
       },
       {
+        "id": "blk_aux_vcb",
+        "tag": "ICOG-AUX-VCB-{0:02d}",
+        "kind": "vcb",
+        "spec": "abb-vd4-36kv-630a-20ka",
+        "group": "block",
+        "voltage_v": 33000.0,
+        "title": "BLOCK AUX TRANSFORMER T-OFF VCB"
+      },
+      {
         "id": "blk_aux",
         "tag": "BLK-AUX-TR-{0:02d}",
         "kind": "aux_transformer",
@@ -173,6 +183,39 @@
         "spec": "abb-polim-d-24-ur30kv",
         "group": "block",
         "voltage_v": 33000.0
+      },
+      {
+        "id": "bf_ct",
+        "tag": "CT-BF-{0:02d}",
+        "kind": "ct",
+        "group": "block",
+        "voltage_v": 33000.0,
+        "attributes": {
+          "housed_in": "mvsb"
+        },
+        "title": "FEEDER PANEL CT AT MAIN HT SWITCHBOARD"
+      },
+      {
+        "id": "bf_vcb",
+        "tag": "VCB-BF-{0:02d}",
+        "kind": "vcb",
+        "spec": "abb-vd4-36kv-630a-20ka",
+        "group": "block",
+        "voltage_v": 33000.0,
+        "attributes": {
+          "housed_in": "mvsb"
+        },
+        "title": "FEEDER PANEL VCB AT MAIN HT SWITCHBOARD"
+      },
+      {
+        "id": "bf_relay",
+        "tag": "REL-BF-{0:02d}",
+        "kind": "relay",
+        "group": "block",
+        "attributes": {
+          "housed_in": "mvsb"
+        },
+        "title": "FEEDER O/C + E/F RELAY"
       },
       {
         "id": "mv_bus",
@@ -317,8 +360,17 @@
         "service": "lv_ac"
       },
       {
-        "id": "e_idt_aux",
+        "id": "e_idt_auxvcb",
         "src": "idt:hv",
+        "dst": "blk_aux_vcb:in",
+        "service": "mv_ac",
+        "cable": "havells-ht-xlpe-al-3c-50-33kv-arm",
+        "length_m": 10.0,
+        "laying": "buried_direct"
+      },
+      {
+        "id": "e_idt_aux",
+        "src": "blk_aux_vcb:out",
         "dst": "blk_aux:hv",
         "service": "mv_ac",
         "cable": "havells-ht-xlpe-al-3c-50-33kv-arm",
@@ -352,12 +404,30 @@
       {
         "id": "e_icog_bus",
         "src": "icog_vcb:out",
-        "dst": "mv_bus:bus",
+        "dst": "bf_ct:in",
         "service": "mv_ac",
         "cable": "havells-ht-xlpe-al-3c-120-33kv-arm",
         "length_m": 400.0,
         "laying": "buried_direct",
         "remarks": "Block to main HT switchboard; length is a fixture assumption"
+      },
+      {
+        "id": "e_bfct_vcb",
+        "src": "bf_ct:out",
+        "dst": "bf_vcb:in",
+        "service": "mv_ac"
+      },
+      {
+        "id": "e_bf_bus",
+        "src": "bf_vcb:out",
+        "dst": "mv_bus:bus",
+        "service": "mv_ac"
+      },
+      {
+        "id": "c_bf_relay",
+        "src": "bf_ct:sec",
+        "dst": "bf_relay:sig",
+        "service": "control"
       },
       {
         "id": "e_bus_pt",

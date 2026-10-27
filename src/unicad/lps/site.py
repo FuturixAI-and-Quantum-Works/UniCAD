@@ -60,7 +60,10 @@ def designated_switchyard(project: Project) -> Polygon | None:
 
 def place_switchyard(project: Project, size: tuple[float, float], near: tuple[float, float] | None) -> tuple[Rect | None, str | None]:
     """The switchyard grid rectangle: inside a designated switchyard area if the site has one, else the free area nearest `near` (the layout's
-    switchyard location, so the grid is drawn where cable routing takes the switchyard to be)."""
+    switchyard location, so the grid is drawn where cable routing takes the switchyard to be), clear of the tables and of the placed BESS units
+    by their fire separation (structure.bess_separation)."""
+    from unicad.rules.structure import BESS_PLACED, BESS_SEPARATION_M
+
     marked = designated_switchyard(project)
     if marked is not None:
         x0, y0, x1, y1 = marked.buffer(-2.0).bounds
@@ -70,7 +73,8 @@ def place_switchyard(project: Project, size: tuple[float, float], near: tuple[fl
         return None, "no site boundary: the switchyard grid is not placed"
     layout = project.array_layout
     tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
-    free = site.buffer(-3.0).difference(tables.buffer(5.0)).difference(blocked(project).buffer(3.0))
+    bess = unary_union([SPoint(e.at.x, e.at.y) for e in layout.equipment if e.kind in BESS_PLACED]) if layout is not None else Polygon()
+    free = site.buffer(-3.0).difference(tables.buffer(5.0)).difference(blocked(project).buffer(3.0)).difference(bess.buffer(BESS_SEPARATION_M + 0.5))
     lx, ly = size
     room = free.buffer(-math.hypot(lx, ly) / 2)
     target = SPoint(near) if near is not None else site.centroid

@@ -80,7 +80,11 @@ def tag_range(tag: str, depth: int, count: int) -> str:
 
 
 def node_tag(net: ElectricalNetwork, node: Node) -> str:
-    depth = len(net.instance_ids(node.id)[0].split("@", 1)[1].split(".")) if "@" in net.instance_ids(node.id)[0] else 0
+    """The node's tag, or the range of its instances ('VCB-BF-01..VCB-BF-06') when it is housed outside the group it repeats with."""
+    ids = net.instance_ids(node.id)
+    depth = len(ids[0].split("@", 1)[1].split(".")) if "@" in ids[0] else 0
+    if node.housed_in is not None and len(ids) > 1 and node.group is not None:
+        return tag_range(node.tag, depth, net.group_by_id[node.group].count)
     return tag_range(node.tag, depth, node.count)
 
 
