@@ -102,7 +102,7 @@ class PlacementSpec(_Frozen):
     setbacks: Setbacks | None = None
     regions: Literal["auto", "ground", "roofs"] = "auto"
     target_dc_kwp: float | None = Field(default=None, gt=0)
-    fill: FillOrder = Field(default=FillOrder.SWITCHYARD, description="with a target: switchyard grows the array from the switchyard (given, marked on the site, or the transmission line), else rows")
+    fill: FillOrder = Field(default=FillOrder.ROWS, description="with a target: rows fills the front rows first; nearest fills closest to fill_from; switchyard (layout_place's default) grows the array from the switchyard (given, marked on the site, or the transmission line), else rows")
     fill_from: Point | None = None
     n_blocks: int | None = Field(default=None, gt=0)
     block_dc_kwp: float | None = Field(default=None, gt=0)

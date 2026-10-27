@@ -128,7 +128,7 @@ def test_ground_demo_dc_voltage_drop_fails_on_the_fixture_cables_and_passes_afte
     spec.loader.exec_module(samples)
     before = build_schedule(samples.ground_demo(CATALOG), CATALOG, LengthMode.AUTO)
     worst = dict(before.vd_summary)["DC VD, WORST PATH"]
-    assert float(worst.split(" %")[0]) > 1.0, worst  # the sample fills from the switchyard since close-e2e-3 B9, so its fixture cables now fit
+    assert worst.startswith("3.29 % exceeds the design-basis limit of 1.5 %")
 
     r = ground_build(ground)
     assert r.errors == () and r.blockers == ()
@@ -140,7 +140,7 @@ def test_ground_demo_dc_voltage_drop_fails_on_the_fixture_cables_and_passes_afte
     paths = [f for f in run_rules(r.project, CATALOG).by_rule("vdrop.dc") if f.message.startswith("DC voltage drop from")]
     assert paths and all(f.severity is Severity.INFO and f.measured <= limit for f in paths)
     strings = {CATALOG.get(r.project.network.edge_by_id[e].cable).size_mm2 for e in r.project.network.edge_by_id if e.startswith("e_str_")}
-    assert min(strings) >= 4
+    assert min(strings) > 4
 
 
 def test_central_inverters_stay_at_their_block_stations(ground):

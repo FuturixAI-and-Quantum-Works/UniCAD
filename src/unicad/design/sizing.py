@@ -279,10 +279,11 @@ def band_cables(s: Sizing, catalog: Catalog, hints: dict[str, EdgeHint], lengths
         per_m = {id(o): _drop(project, catalog, _apply(e, o)) / e.length_m for o in cheaper}
         upto: dict[int, tuple[float, CableOption]] = {}
         for length in ls:
-            o = next((o for o in cheaper if per_m[id(o)] * length <= worst + 1e-9), None)
+            up = math.ceil(length * 10 - 1e-9) / 10
+            o = next((o for o in cheaper if per_m[id(o)] * up <= worst + 1e-9), None)
             if o is not None:
-                upto[id(o)] = (max(length, upto.get(id(o), (0.0, o))[0]), o)
-        bands = tuple(CableBand(upto_m=round(m + 0.05, 1), cable=o.cable.id, runs=o.runs) for m, o in sorted(upto.values(), key=lambda v: v[0]))
+                upto[id(o)] = (max(up, upto.get(id(o), (0.0, o))[0]), o)
+        bands = tuple(CableBand(upto_m=m, cable=o.cable.id, runs=o.runs) for m, o in sorted(upto.values(), key=lambda v: v[0]))
         if bands:
             banded += 1
             e = e.model_copy(update={"bands": bands})
