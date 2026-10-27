@@ -14,7 +14,15 @@ import pytest
 from test_design import CATALOG
 from test_symbols import misread_texts
 
+from shapely.ops import unary_union
+
 from unicad.domain.network import NodeKind
+from unicad.domain.site import FeatureKind, shape_of
+from unicad.drafting.earthing_plan.sheet import render_earthing_sheet, render_lps_sheet
+from unicad.earthing import design_earthing
+from unicad.lps import design_lps
+from unicad.sets.common import sheet_spec
+from unicad.sets.plans import EarthingBuilder, LpsBuilder
 from unicad.domain.project import Project
 from unicad.drafting.sld import SldOptions
 from unicad.drafting.sld.annotate import system_parameters
@@ -317,3 +325,34 @@ def test_n4_each_lv_feeder_of_a_two_winding_idt_lands_on_its_own_winding():
         assert len({e.at for e in ends.values()}) == 2
     assert not [s for s in lay.stubs if s.node_id.startswith("idt_")]
     assert [lb.text for s in lay.stubs if s.node_id == "bess_tr" for lb in s.labels] == ["LV2 TO PCS-01-02"]
+
+
+def _plan_sheets(project, profile):
+    numbers = Numberer.for_project(project, profile)
+    return EarthingBuilder().plan(project, profile, CATALOG, numbers)[0], LpsBuilder().plan(project, profile, CATALOG, numbers)[0]
+
+
+def test_n14_rooftop_earthing_and_lps_plans_show_the_whole_plot_boundary():
+    project, profile = scenario("sgt-chakan")
+    boundary = unary_union([shape_of(f) for f in project.site.geometry.features if f.kind is FeatureKind.BOUNDARY])
+    earth, lps = _plan_sheets(project, profile)
+    sheets = [
+        render_earthing_sheet(ezdxf.new("R2018", setup=True), project, CATALOG, design_earthing(project), sheet_spec(project, earth, 1, 1), profile),
+        render_lps_sheet(ezdxf.new("R2018", setup=True), project, CATALOG, design_lps(project), sheet_spec(project, lps, 1, 1), profile),
+    ]
+    for res in sheets:
+        x0, y0, x1, y1 = res.extent
+        bx0, by0, bx1, by1 = boundary.bounds
+        assert x0 <= bx0 and y0 <= by0 and x1 >= bx1 and y1 >= by1
+
+
+def test_n15_the_switchyard_mesh_label_is_the_mesh_the_calculation_used():
+    project, profile = scenario("thar-40mw")
+    d = design_earthing(project)
+    earth, _ = _plan_sheets(project, profile)
+    doc = ezdxf.new("R2018", setup=True)
+    render_earthing_sheet(doc, project, CATALOG, d, sheet_spec(project, earth, 1, 1), profile)
+    texts = [e.dxf.text for e in doc.modelspace().query("TEXT")]
+    (mat,) = [t for t in texts if t.startswith("MV SWITCHYARD EARTH MAT")]
+    assert mat == f"MV SWITCHYARD EARTH MAT, {d.grid_spacing_m:g} m MESH"
+    assert any(t.startswith(f"{d.grid_spacing_m:.2f} m / ") for t in texts)

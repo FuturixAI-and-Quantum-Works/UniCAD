@@ -96,6 +96,11 @@ class EarthingSheet:
     extent: tuple[float, float, float, float] | None = None
 
 
+def _with_boundary(shape, d: LayoutDrawing) -> tuple[float, float, float, float]:
+    """Bounds of `shape` grown to take in the whole plot boundary, so a rooftop plan never cuts the plot off."""
+    return unary_union([shape, *(shape_of(f) for f in d.site.features if f.kind is FeatureKind.BOUNDARY)]).bounds
+
+
 def clip_circle(cx: float, cy: float, r: float, rect: Region) -> list[tuple[float, float]]:
     """Counter-clockwise arcs (start, end in degrees) of the circle that lie inside `rect`; [(0, 360)] when it is wholly inside."""
     angs = set()
@@ -275,7 +280,7 @@ class EarthingSheetWriter(_Writer):
         lay = self.e.layout
         pts = [(p.at.x, p.at.y) for p in lay.pits] + [(q.x, q.y) for r in lay.runs for q in r.points]
         shapes = [box(*MultiPoint(pts).bounds)] + [shape_of(f) for f in self.d.site.features if f.kind is FeatureKind.ROOF]
-        return unary_union(shapes).buffer(6.0).bounds
+        return _with_boundary(unary_union(shapes).buffer(6.0), self.d)
 
     def render(self) -> EarthingSheet:
         P, panel, scale = self._start(0)
@@ -324,7 +329,8 @@ class EarthingSheetWriter(_Writer):
         if lay.switchyard is not None:
             sy = lay.switchyard
             x, y = P((sy.x0 + sy.x1) / 2, sy.y0)
-            self._label_text([f"MV SWITCHYARD EARTH MAT, {sy.spacing:.1f} m MESH"], (x, y), 0.6 * th, 0.3 * th, "switchyard", layer=L_PIT_TAG, mask=True)
+            mesh = self.e.grid_spacing_m if self.e.grid_spacing_m is not None else sy.spacing
+            self._label_text([f"MV SWITCHYARD EARTH MAT, {mesh:g} m MESH"], (x, y), 0.6 * th, 0.3 * th, "switchyard", layer=L_PIT_TAG, mask=True)
         for g in groups:
             cx, cy = P((g.ring[0] + g.ring[2]) / 2, (g.ring[1] + g.ring[3]) / 2)
             ref = ", SEE DETAIL A"
@@ -603,7 +609,7 @@ class LpsSheetWriter(_Writer):
             return super()._extent()
         shapes = [SPoint(t.at.x, t.at.y) for t in self.lps.terminals] + [Polygon(table_corners(t)) for t in self.d.layout.table_by_id.values()]
         shapes += [shape_of(f) for f in self.d.site.features if f.kind is FeatureKind.ROOF]
-        return unary_union(shapes).buffer(3.0).bounds
+        return _with_boundary(unary_union(shapes).buffer(3.0), self.d)
 
     def render(self) -> EarthingSheet:
         P, panel, scale = self._start(0)
