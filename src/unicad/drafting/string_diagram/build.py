@@ -1,6 +1,7 @@
 """String diagram sheets of a project: one sheet (or more, when a type has too many strings for one) per distinct inverter or SCB type."""
 
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 import ezdxf
@@ -179,7 +180,10 @@ def paper_and_pages(types: list[DiagramType], start: PaperSize) -> tuple[PaperSi
     raise DoesNotFit(f"{error} even on A0; check the inverter's inputs per MPPT in the catalog, or draw this diagram by hand") from error
 
 
-def sheet_spec(project: Project, profile: CompanyProfile, paper: PaperSize, title: str, number: str, sheet_no: int, sheet_count: int, t: DiagramType) -> SheetSpec:
+def sheet_spec(
+    project: Project, profile: CompanyProfile, paper: PaperSize, title: str, number: str, sheet_no: int, sheet_count: int, t: DiagramType,
+    drawn_on: date | None = None,
+) -> SheetSpec:
     revs = project.revisions
     latest = revs[-1] if revs else None
     issued = IssuedFor[latest.issued_for.name] if latest and latest.issued_for else IssuedFor.INFORMATION
@@ -189,7 +193,7 @@ def sheet_spec(project: Project, profile: CompanyProfile, paper: PaperSize, titl
         location=prose(compose_location(site.name, site.address, site.state)), drawing_title=title, drawing_number=number,
         revision=latest.rev if latest else "00", scale="NTS", sheet_no=sheet_no, sheet_count=sheet_count, paper=paper,
         drawn_by=(latest.drawn or "") if latest else "", checked_by=(latest.checked or "") if latest else "",
-        approved_by=(latest.approved or "") if latest else "", drawn_date=latest.date if latest else None, issued_for=issued,
+        approved_by=(latest.approved or "") if latest else "", drawn_date=latest.date if latest else drawn_on, issued_for=issued,
     )  # fmt: skip
     return SheetSpec(
         paper=paper, title_block=tb, legend=legend_for(t), notes=notes_for(t), parameters=parameters_for(t),
@@ -198,7 +202,8 @@ def sheet_spec(project: Project, profile: CompanyProfile, paper: PaperSize, titl
 
 
 def build_string_diagram_sheets(
-    project: Project, catalog: Catalog, profile: CompanyProfile, out_dir: Path | None = None, *, paper: PaperSize | None = None, first_seq: int = FIRST_SEQ
+    project: Project, catalog: Catalog, profile: CompanyProfile, out_dir: Path | None = None, *, paper: PaperSize | None = None, first_seq: int = FIRST_SEQ,
+    drawn_on: date | None = None,
 ) -> list[SheetResult]:
     """One sheet per distinct inverter or SCB type that strings feed, more when a type has too many strings for one sheet.
 
@@ -225,7 +230,7 @@ def build_string_diagram_sheets(
             )  # fmt: skip
             seq += 1
             doc = ezdxf.new("R2018", setup=["linetypes"])
-            spec = sheet_spec(project, profile, size, prose(title), number, seq, total, t)
+            spec = sheet_spec(project, profile, size, prose(title), number, seq, total, t, drawn_on)
             rendered = render_sheet(doc, spec, profile, legend_drawer(doc.modelspace()))
             ink = draw.Ink(doc, profile.text_style)
             box = rendered.drawing_area

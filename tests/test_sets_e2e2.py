@@ -6,8 +6,10 @@ import functools
 import json
 import tempfile
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
+import ezdxf
 from test_design import CATALOG
 
 from unicad.domain.network import NodeKind
@@ -16,6 +18,7 @@ from unicad.drafting.sld.annotate import system_parameters
 from unicad.drafting.string_diagram import build_string_diagram_sheets
 from unicad.rules.ratio import plant_capacity
 from unicad.mcp import Config, build_server
+from unicad.sets import ALL_KINDS, render_set
 from unicad.sets.numbering import Numberer
 from unicad.sets.strings import StringsBuilder
 from unicad.store import ProjectStore
@@ -277,3 +280,15 @@ def test_n5_hybrid_system_parameters_count_pv_inverters_only_as_the_ratio_rule_d
     assert rows["AC CAPACITY (INVERTER RATED)"] == "20.064 MVA"
     assert rows["INVERTERS"] == "57 x 352 kVA (SUNGROW SG350HX)"
     assert rows["BESS PCS"].startswith("4 x 2.52 MVA (SUNGROW ST5015")
+
+
+def test_m24_an_unissued_set_dates_every_sheet_and_register_row_with_the_render_date(tmp_path):
+    project, profile = scenario("sgt-chakan")
+    assert not project.revisions
+    index = render_set(project, tmp_path, kinds=ALL_KINDS, formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=date(2026, 10, 1))
+    stamp = date(2026, 10, 1).strftime(profile.date_format)
+    for s in index.sheets:
+        texts = [e.dxf.text for e in ezdxf.readfile(tmp_path / s["files"]["dxf"]).modelspace().query("TEXT")]
+        assert stamp in texts, s["number"]
+    (register,) = [s for s in index.sheets if s["kind"] == "register"]
+    assert {r["date"] for r in register["rows"]} == {stamp}

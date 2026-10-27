@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet, SheetKind
@@ -14,6 +15,7 @@ from unicad.schedules import LengthMode, Schedule, build_bom, build_schedule
 from unicad.schedules.bom import Bom
 from unicad.schedules.dxf import NOTE_SOURCE, NOTE_SUMMARY, NOTE_VALUES, NOTE_VD, SheetContext, bom_table, lists_every_string, schedule_tables
 from unicad.schedules.ids import SCHEME
+from unicad.sets.common import dated
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
 
@@ -53,12 +55,12 @@ def _plan_pages(parts: Sequence[tuple[str, TableSpec]], paper: PaperSize, number
 
 
 def _draw(project: Project, profile: CompanyProfile, sheets: Sequence[Sheet], parts: Sequence[TableSpec], notes: tuple[str, ...],
-          params: tuple[tuple[str, str], ...], meta: Callable[[int], dict]) -> list[BuiltSheet]:  # fmt: skip
+          params: tuple[tuple[str, str], ...], meta: Callable[[int], dict], drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
     paper = PaperSize(sheets[0].paper)
 
     def spec(page: int, pages: int, part: int):
         s = sheets[page - 1]
-        return SheetContext(project, profile, s, paper, notes, params).spec(s.title, page, pages, 0)
+        return dated(SheetContext(project, profile, s, paper, notes, params).spec(s.title, page, pages, 0), drawn_on)
 
     render = render_tables([(p, paper) for p in parts], profile, spec)
     if render.pages != len(sheets):
@@ -82,7 +84,7 @@ class ScheduleBuilder:
         return _plan_pages(parts, _paper(project, SheetKind.CABLE_SCHEDULE, profile), numbers, SheetKind.CABLE_SCHEDULE, "cable_schedule", "cables")
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         schedule = schedule_of(project, catalog)
@@ -96,7 +98,7 @@ class ScheduleBuilder:
         notes = (NOTE_VALUES, NOTE_SOURCE, NOTE_VD, *(() if lists_every_string(schedule, self.detail) else (NOTE_SUMMARY,)), SCHEME.upper())
         parts = [spec for _, spec in schedule_tables(schedule, self.detail)]
         meta = {"rows": len(schedule.rows), "gaps": len(schedule.gaps)}
-        return _draw(project, profile, sheets, parts, notes, params, lambda i: meta if i == 0 else {})
+        return _draw(project, profile, sheets, parts, notes, params, lambda i: meta if i == 0 else {}, drawn_on)
 
 
 @dataclass(frozen=True)
@@ -116,14 +118,14 @@ class BomBuilder:
         return _plan_pages(parts, _paper(project, SheetKind.BOM, profile), numbers, SheetKind.BOM, "bom", "bom")
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         bom = self._bom(project, catalog)
         s = bom.summary()
         params = (("MODULES", f"{s['modules']:,.0f}"), ("INVERTERS", f"{s['inverters']:,.0f}"), ("CABLE ORDERED", f"{s['cable_m_ordered'] / 1000:,.1f} km"))
         notes = tuple(a.upper() for a in bom.assumptions)
-        built = _draw(project, profile, sheets, [bom_table(bom)], notes, params, lambda i: {"lines": len(bom.lines)} if i == 0 else {})
+        built = _draw(project, profile, sheets, [bom_table(bom)], notes, params, lambda i: {"lines": len(bom.lines)} if i == 0 else {}, drawn_on)
         return [b if i else BuiltSheet(b.sheet, b.doc, b.scale, tuple(dict.fromkeys([*b.warnings, *bom.warnings])), b.meta) for i, b in enumerate(built)]
 
 

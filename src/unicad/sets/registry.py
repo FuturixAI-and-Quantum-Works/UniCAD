@@ -6,6 +6,7 @@ To add a drawing kind, implement `SheetBuilder` and call `register`. A builder m
 with the other kinds' sheets: `plan(..., others)` and `build(..., drawing_set=<drawn sheets>, kinds=<sheet id -> kind>)`)."""
 
 from collections.abc import Sequence
+from datetime import date
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -32,9 +33,11 @@ class SheetBuilder(Protocol):
     def plan(self, project: Project, profile: CompanyProfile, catalog: Catalog | None, numbers: Numberer) -> tuple[Sheet, ...]: ...
 
     def build(
-        self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile, catalog: Catalog | None
+        self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile, catalog: Catalog | None,
+        *, drawn_on: date | None = None,
     ) -> list[BuiltSheet]:
-        """Draw `sheets` (this builder's plan); `drawing_set` is the sheets 'sheet x of y' counts (the kind's own sheets)."""
+        """Draw `sheets` (this builder's plan); `drawing_set` is the sheets 'sheet x of y' counts (the kind's own sheets). `drawn_on` dates a
+        sheet that has no issue revision yet."""
         ...
 
 

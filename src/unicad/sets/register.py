@@ -3,6 +3,7 @@ the other builders gave them. Planned after and drawn after every other kind, so
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet, SheetKind
@@ -11,7 +12,7 @@ from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.tables import render_tables
 from unicad.schedules.dxf import SheetContext
-from unicad.sets.common import issued_for, latest, location
+from unicad.sets.common import dated, issued_for, latest, location
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
 from unicad.sets.schedules import table_pages
@@ -34,13 +35,13 @@ def _parts(sheets: Sequence[Sheet]) -> tuple[Sheet, ...]:
     )
 
 
-def rows_for(project: Project, profile: CompanyProfile, drawing_set: Sequence[tuple[str, Sheet]]) -> list[RegisterRow]:
+def rows_for(project: Project, profile: CompanyProfile, drawing_set: Sequence[tuple[str, Sheet]], drawn_on: date | None = None) -> list[RegisterRow]:
     rows = []
     for kind, s in drawing_set:
         rev = latest(project, s)
         rows.append(RegisterRow(
             kind=kind, number=s.number, title=prose(s.title), paper=s.paper, scale=s.scale, rev=rev.rev if rev else "00",
-            issued_for=issued_for(rev).value, date=rev.date.strftime(profile.date_format) if rev else "-",
+            issued_for=issued_for(rev).value, date=d.strftime(profile.date_format) if (d := rev.date if rev else drawn_on) else "-",
         ))  # fmt: skip
     return rows
 
@@ -60,7 +61,7 @@ class RegisterBuilder:
     """Planned once every other kind is planned, drawn once every other kind is drawn (`drawing_set` then holds the drawn sheets)."""
 
     def plan(self, project: Project, profile: CompanyProfile, catalog: Catalog | None, numbers: Numberer,
-             others: Sequence[Sheet] = (), kinds: dict[str, str] | None = None) -> tuple[Sheet, ...]:  # fmt: skip
+             others: Sequence[Sheet] = (), kinds: dict[str, str] | None = None, drawn_on: date | None = None) -> tuple[Sheet, ...]:  # fmt: skip
         old = numbers.reuse(SheetKind.REGISTER.value)
         paper = old.paper if old and old.paper in PAPERS else "A3"
         base = Sheet(id="register", number=old.number if old else numbers.fresh("register"), kind=SheetKind.REGISTER, title=TITLE, paper=paper,
@@ -68,18 +69,18 @@ class RegisterBuilder:
         # A plan sheet's scale is only known once drawn; a wide one keeps the estimate on the safe side (build drops spare pages).
         listed = [(_kind_of(s, kinds or {}), s.model_copy(update={"scale": "1:10000"}) if s.kind in SCALED else s) for s in others]
         n = 1
-        while (need := self._pages(project, profile, _parts([base] * n), listed)) > n:
+        while (need := self._pages(project, profile, _parts([base] * n), listed, drawn_on)) > n:
             n = need
         numbers_ = [base.number] + [numbers.continuation(base.number, k) for k in range(1, n)]
         return _parts([base.model_copy(update={"number": num}) for num in numbers_])
 
     @staticmethod
-    def _pages(project: Project, profile: CompanyProfile, mine: Sequence[Sheet], listed: Sequence[tuple[str, Sheet]]) -> int:
-        rows = rows_for(project, profile, [("register", s) for s in mine] + list(listed))
+    def _pages(project: Project, profile: CompanyProfile, mine: Sequence[Sheet], listed: Sequence[tuple[str, Sheet]], drawn_on: date | None) -> int:
+        rows = rows_for(project, profile, [("register", s) for s in mine] + list(listed), drawn_on)
         return table_pages(register_table(rows, preamble(project)), PaperSize(mine[0].paper))
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None, kinds: dict[str, str] | None = None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, kinds: dict[str, str] | None = None, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         """Draws on the planned pages; when the drawn set lists in fewer pages than planned, the spare register pages are dropped."""
         planned = {s.id for s in sheets}
         paper = PaperSize(sheets[0].paper)
@@ -92,7 +93,7 @@ class RegisterBuilder:
                     listed += [("register", x) for x in mine]
                 elif s.id not in planned:
                     listed.append((_kind_of(s, kinds or {}), s))
-            rows = rows_for(project, profile, listed)
+            rows = rows_for(project, profile, listed, drawn_on)
             spec = register_table(rows, preamble(project))
             pages = table_pages(spec, paper)
             if pages == k:
@@ -104,7 +105,7 @@ class RegisterBuilder:
 
         def page_spec(page: int, pages: int, part: int):
             s = mine[page - 1]
-            return SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0)
+            return dated(SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0), drawn_on)
 
         render = render_tables([(spec, paper)], profile, page_spec)
         meta = {"rows": [r.__dict__ for r in rows]}

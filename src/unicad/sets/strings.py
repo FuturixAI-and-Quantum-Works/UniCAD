@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet, SheetKind
@@ -42,11 +43,11 @@ class StringsBuilder:
         return tuple(out)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         numbered = project.model_copy(update={"sheets": tuple(sheets)})
-        results = build_string_diagram_sheets(numbered, catalog, profile)
+        results = build_string_diagram_sheets(numbered, catalog, profile, drawn_on=drawn_on)
         if [r.number for r in results] != [s.number for s in sheets]:
             raise RuntimeError(f"string diagram sheets {[r.number for r in results]} differ from the plan {[s.number for s in sheets]}")
         return [

@@ -7,7 +7,7 @@ import ezdxf
 import pytest
 
 from test_design import CATALOG
-from test_sets import PROFILE, fixture
+from test_sets import DRAWN_ON, PROFILE, fixture
 from unicad.domain.project import Sheet, SheetKind
 from unicad.drafting.sheets.model import Numbering
 from unicad.drafting.sld import SldOptions
@@ -25,7 +25,7 @@ def roof():
 @pytest.fixture(scope="module")
 def roof_set(roof, tmp_path_factory):
     out = tmp_path_factory.mktemp("roof")
-    return out, render_set(roof.model_copy(update={"sheets": ()}), out, kinds=ALL_KINDS, formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    return out, render_set(roof.model_copy(update={"sheets": ()}), out, kinds=ALL_KINDS, formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
 
 
 def _texts(path: Path) -> set[str]:
@@ -88,7 +88,7 @@ def test_each_sheet_title_block_carries_its_set_number_and_sheet_of_its_kind(roo
 
 def test_kinds_the_project_cannot_draw_are_skipped_with_the_reason(tmp_path):
     p = fixture("utility_50mwac")
-    index = render_set(p, tmp_path, kinds=("register", "sld", "layout", "earthing", "lps"), formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    index = render_set(p, tmp_path, kinds=("register", "sld", "layout", "earthing", "lps"), formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     assert [s["kind"] for s in index.sheets] == ["register", "sld", "sld"]
     assert any(w.startswith("layout: not drawn: ") and ("layout_place" in w or "site_import" in w) for w in index.warnings)
     assert any(w.startswith("earthing: not drawn: ") and "earthing inputs" in w for w in index.warnings)
@@ -129,7 +129,7 @@ def test_a_discipline_start_moves_every_kind_block_with_it(roof):
 @pytest.fixture(scope="module")
 def acme_set(roof, tmp_path_factory):
     out = tmp_path_factory.mktemp("acme")
-    return out, render_set(roof.model_copy(update={"sheets": (), "company_profile": "acme"}), out, kinds=ALL_KINDS, formats=("dxf",), profile=ACME, catalog=CATALOG)
+    return out, render_set(roof.model_copy(update={"sheets": (), "company_profile": "acme"}), out, kinds=ALL_KINDS, formats=("dxf",), profile=ACME, catalog=CATALOG, drawn_on=DRAWN_ON)
 
 
 def test_the_acme_set_numbers_every_kind_from_the_same_blocks_under_its_pattern(acme_set):

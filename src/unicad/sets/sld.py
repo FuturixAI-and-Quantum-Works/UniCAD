@@ -4,6 +4,7 @@ distinct block type, and further sheets wherever a sheet would not be readable o
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from pydantic import BaseModel
 
@@ -256,11 +257,11 @@ class SldBuilder:
         return tuple(sheets)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:
         out = []
         for s, part in zip(sheets, partition(project.network, sheets)):
             nodes = _drawn(project.network, s, part.nodes)
-            doc, res = render_sld(_shown(project, s), s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=nodes, xrefs=part.xrefs)
+            doc, res = render_sld(_shown(project, s), s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=nodes, xrefs=part.xrefs, drawn_on=drawn_on)
             marks = {o.symbol_id: o for o in res.layout.offsheets}
             refs = [
                 {"edge": o.edge_id, "node": o.node_id, "to_sheet": o.target, "text": dict(sym.values).get("DESC", "")}

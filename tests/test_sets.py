@@ -6,6 +6,7 @@ import os
 import sys
 from collections import Counter
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,7 @@ from unicad.sets.numbering import Numberer
 from unicad.store import parse_project
 
 ROOT = Path(__file__).resolve().parents[1]
+DRAWN_ON = date(2026, 10, 1)
 LIBRECAD = Path(os.environ.get("LIBRECAD", "/tmp/opencode/proto/squashfs-root/AppRun"))
 PROFILE = CompanyProfile.load(ROOT / "profiles" / "default.json")
 FLOOR = SldOptions().min_scale
@@ -143,8 +145,8 @@ def test_a_sheet_unreadable_on_a0_is_split_and_the_pieces_still_pair_up(projects
 
 def test_set_dxf_and_index_are_byte_identical_across_runs(projects, tmp_path):
     p = projects["utility_50mwac"]
-    a = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG)
-    b = render_set(p, tmp_path / "b", formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    a = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
+    b = render_set(p, tmp_path / "b", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     names = sorted(x.name for x in (tmp_path / "a").iterdir())
     assert names == sorted(x.name for x in (tmp_path / "b").iterdir())
     assert names == ["01-UDEMO-DRL-U50-EE-001.dxf", "02-UDEMO-DRL-U50-EE-002.dxf", "index.json"]
@@ -152,7 +154,7 @@ def test_set_dxf_and_index_are_byte_identical_across_runs(projects, tmp_path):
         assert (tmp_path / "a" / n).read_bytes() == (tmp_path / "b" / n).read_bytes(), n
     index = json.loads((tmp_path / "a" / "index.json").read_text())
     assert [s["sheet_of"] for s in index["sheets"]] == ["1 of 2", "2 of 2"] and a.as_dict() == b.as_dict()
-    again = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    again = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     assert again.as_dict() == a.as_dict() and sorted(x.name for x in (tmp_path / "a").iterdir()) == names
 
 

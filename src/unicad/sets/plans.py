@@ -3,6 +3,7 @@
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 import ezdxf
 
@@ -86,7 +87,7 @@ class LayoutBuilder:
         return (_one_sheet(numbers, SheetKind.LAYOUT, "layout", "layout", title, default_paper(project, "A1", "A3")),)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         out = []
@@ -98,7 +99,7 @@ class LayoutBuilder:
             drawing = LayoutDrawing(project.site.geometry, layout, _module(project, catalog), max(t.cols for t in layout.table_by_id.values()), pitch,
                                     notes=layout_notes(project, pitch))  # fmt: skip
             doc = ezdxf.new("R2018", setup=True)
-            res = render_layout_sheet(doc, drawing, sheet_spec(project, s, i, len(sheets)), profile, view=view)  # type: ignore[arg-type]
+            res = render_layout_sheet(doc, drawing, sheet_spec(project, s, i, len(sheets), drawn_on=drawn_on), profile, view=view)  # type: ignore[arg-type]
             warnings = list(res.warnings)
             if view == "site":
                 warnings.append("internal roads are not stored with the array layout, so the sheet shows only the roads imported with the site")
@@ -129,14 +130,14 @@ class EarthingBuilder:
         return (_one_sheet(numbers, SheetKind.EARTHING, "earthing", "earthing", "EARTHING LAYOUT", default_paper(project, "A1", "A2")),)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         d = design_earthing(project)
         out = []
         for i, s in enumerate(sheets, start=1):
             doc = ezdxf.new("R2018", setup=True)
-            res = render_earthing_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=earthing_notes(d)), profile)
+            res = render_earthing_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=earthing_notes(d), drawn_on=drawn_on), profile)
             meta = {"pits": len(d.layout.pits), "resistance_ohm": round(d.resistance_ohm, 3), "target_ohm": d.target_ohm, "unbonded": len(d.unbonded)}
             out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(dict.fromkeys([*d.warnings, *res.warnings])), meta))
         return out
@@ -153,14 +154,14 @@ class LpsBuilder:
         return (_one_sheet(numbers, SheetKind.LPS, "lps", "lps", "LIGHTNING ARRESTER (LA) LAYOUT", default_paper(project, "A1", "A3")),)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         d = design_lps(project)
         out = []
         for i, s in enumerate(sheets, start=1):
             doc = ezdxf.new("R2018", setup=True)
-            res = render_lps_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=lps_notes(d)), profile)
+            res = render_lps_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=lps_notes(d), drawn_on=drawn_on), profile)
             meta = {"terminals": len(d.terminals), "radius_m": d.radius_m, "uncovered": len(d.uncovered)}
             out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(res.warnings), meta))
         return out
