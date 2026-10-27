@@ -3,7 +3,7 @@ order with their cables, fuses, MPPT inputs and table positions, and every insta
 
 import math
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from unicad.catalog.store import Catalog
@@ -56,6 +56,8 @@ class StringLine:
     isc_a: float
     length_m: float | None
     slots: tuple[tuple[str, int, int], ...]
+    length_text: str = ""
+    """The routed length the cable schedule gives this string ('62.4 m'), or the min..max over every instance the diagram stands for."""
 
     @property
     def positions(self) -> str:
@@ -97,6 +99,8 @@ class Output:
     length_m: float | None
     to_tag: str
     to_input: str
+    length_text: str = ""
+    cable: CableSpec | None = None
 
 
 @dataclass(frozen=True)
@@ -122,6 +126,7 @@ class DiagramType:
     voc_limit_v: float
     notes: tuple[str, ...]
     has_layout: bool
+    string_runs: int = 1
 
     @property
     def representative(self) -> Member:
@@ -230,9 +235,10 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
     net = project.network
     expanded = net.expand()
     ids = Ids(project, expanded)
-    schedule_rows = build_schedule(project, catalog, LengthMode.NETWORK).rows
+    schedule_rows = build_schedule(project, catalog, LengthMode.AUTO).rows
     string_cable_ids = {r.src: r.cable_id for r in schedule_rows if r.is_string}
     output_cable_ids = {r.src: r.cable_id for r in schedule_rows if not r.is_string and r.service is Service.DC}
+    routed = {r.src: r.run_length_m for r in schedule_rows if r.service is Service.DC}
     feeders: dict[str, list[str]] = defaultdict(list)
     successors: dict[str, list[str]] = defaultdict(list)
     for e in expanded.edges:
@@ -327,7 +333,7 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
             if out_edge is not None and rep.destination:
                 oc = cable_of(catalog, out_edge)
                 inv_tag, _, ip = rep.destination.partition(" ")
-                output = Output(output_cable_ids.get(rep.instance, f"{rep.tag}-{inv_tag}"), cable_text(oc, out_edge.runs), out_edge.runs, out_edge.length_m, inv_tag, ip)
+                output = Output(output_cable_ids.get(rep.instance, f"{rep.tag}-{inv_tag}"), cable_text(oc, out_edge.runs), out_edge.runs, out_edge.length_m, inv_tag, ip, cable=oc)
         if layout is None or not any(ln.slots for ln in lines):
             notes.append("No table positions: the array layout has no string assignment for these strings.")
         defs = {t: layout.table_by_id[t] for t in rep_tables(lines) if t in layout.table_by_id} if layout else {}
@@ -337,13 +343,94 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
             inverter_tags=_tag_range(net, first.inverter.id), string_cable=cable, string_callout=cable_text(cable, edge.runs if edge else 1),
             devices=devices, envelope=envelope, envelope_title=envelope_title, fuse=fuse, mppt=mppt, output=output, table_defs=defs,
             table_marks=marks, tmin_c=basis.ambient_min_c, voc_limit_v=min(inv_spec.dc_max_voltage, module.max_system_voltage),
-            notes=tuple(dict.fromkeys(notes)), has_layout=bool(defs),
+            notes=tuple(dict.fromkeys(notes)), has_layout=bool(defs), string_runs=edge.runs if edge else 1,
         ))  # fmt: skip
+    types = [_with_lengths(t, routed) for t in _merged(types)]
     every = {i for n in net.by_kind(NodeKind.PV_STRING) for i in net.instance_ids(n.id)}
     warnings = []
     if every - covered:
         warnings.append(f"{len(every - covered)} of {len(every)} string instances are not drawn: no inverter with a catalog spec or no module spec downstream")
     return types, warnings
+
+
+RANGE_NOTE = ("A cable length given as min..max spans the {what} this diagram stands for; the cable schedule gives each cable's own "
+              "routed length under its cable id.")
+
+
+def _span(values: list[float | None]) -> tuple[str, bool]:
+    vals = [round(v, 1) for v in values if v is not None]
+    if not vals:
+        return "", False
+    lo, hi = min(vals), max(vals)
+    return (f"{lo:g} m", False) if hi - lo < 0.05 else (f"{lo:g}..{hi:g} m", True)
+
+
+def _with_lengths(t: DiagramType, routed: dict[str, float | None]) -> DiagramType:
+    """`t` with every line and the output carrying the routed length of the cable schedule, a min..max range when its instances differ."""
+    ranged = False
+    lines = []
+    for i, ln in enumerate(t.lines):
+        text, r = _span([routed.get(m.strings[i]) for m in t.members if i < len(m.strings)] or [ln.length_m])
+        ranged |= r
+        lines.append(replace(ln, length_text=text))
+    output = t.output
+    if output is not None:
+        text, r = _span([routed.get(m.instance) for m in t.members] or [output.length_m])
+        ranged |= r
+        output = replace(output, length_text=text)
+    notes = t.notes + ((RANGE_NOTE.format(what=f"{len(t.members)} {t.label.lower()}es" if t.kind == "scb" else f"{len(t.members)} inverters"),) if ranged else ())
+    return replace(t, lines=tuple(lines), output=output, notes=notes)
+
+
+def _shape(t: DiagramType) -> tuple:
+    """What a diagram draws with tags, cable sizes and lengths left out: types of the same shape share one diagram."""
+    return (t.kind, tuple((ln.modules, ln.ip, ln.mppt) for ln in t.lines), t.module.id, t.inverter.id, t.envelope, t.fuse, t.mppt,
+            tuple(d.split(": ", 1)[-1] for d in t.devices), t.output is not None, t.has_layout)  # fmt: skip
+
+
+SIZE_NOTE = "Cable sizes differ between the {what} this diagram stands for (each sized for its own route): the cable schedule gives each cable's size; its cable id ends in the size."
+
+
+def cable_variants(pairs: list[tuple[CableSpec | None, int]]) -> str:
+    """One callout for the cables of several instances: '1C x 10 / 16 sq.mm Cu (+) / (-)' when only the size differs."""
+    unique = list(dict.fromkeys((c, r) for c, r in pairs))
+    if len(unique) == 1 or any(c is None for c, _ in unique) or len({(c.core_label, c.conductor) for c, _ in unique}) > 1:
+        return " OR ".join(dict.fromkeys(cable_text(c, r) for c, r in unique))
+    first, runs = unique[0]
+    tail = f"{first.conductor.value.capitalize()} (+) / (-)"
+    if len({r for _, r in unique}) == 1:
+        sizes = " / ".join(f"{z:g}" for z in sorted({c.size_mm2 for c, _ in unique}))
+        return f"{'' if runs == 1 else f'{runs} RUNS x '}{first.core_label}C x {sizes} sq.mm {tail}"
+    parts = [f"{'' if r == 1 else f'{r} RUNS x '}{c.core_label}C x {c.size_mm2:g} sq.mm" for c, r in sorted(unique, key=lambda u: (u[0].size_mm2, u[1]))]
+    return " OR ".join(dict.fromkeys(parts)) + f" {tail}"
+
+
+def _merged(types: list[DiagramType]) -> list[DiagramType]:
+    """Types of one shape (identical blocks whose templates the network keeps apart, or whose cables were sized per block) drawn once."""
+    groups: dict[tuple, list[DiagramType]] = {}
+    for t in types:
+        groups.setdefault(_shape(t), []).append(t)
+    out = []
+    for same in groups.values():
+        first = same[0]
+        if len(same) == 1:
+            out.append(first)
+            continue
+        what = f"{sum(len(x.members) for x in same)} {first.label.lower()}es" if first.kind == "scb" else f"{sum(len(x.members) for x in same)} inverters"
+        output = first.output
+        outs = [(x.output.cable, x.output.runs) for x in same if x.output]
+        if output is not None:
+            output = replace(output, callout=cable_variants(outs))
+        strings = [(x.string_cable, x.string_runs) for x in same]
+        ranges = [x.tag_range for x in same]
+        sized = (SIZE_NOTE.format(what=what),) if len(set(strings)) > 1 or len(set(outs)) > 1 else ()
+        notes = (*dict.fromkeys(n for x in same for n in x.notes), f"Typical for {', '.join(ranges)}.", *sized)
+        last = same[-1].inverter_tags.split("..")[-1]
+        out.append(replace(
+            first, members=tuple(m for x in same for m in x.members), string_callout=cable_variants(strings), output=output,
+            inverter_tags=f"{first.inverter_tags.split('..')[0]}..{last}", notes=notes,
+        ))  # fmt: skip
+    return out
 
 
 def rep_tables(lines: tuple[StringLine, ...] | list[StringLine]) -> list[str]:

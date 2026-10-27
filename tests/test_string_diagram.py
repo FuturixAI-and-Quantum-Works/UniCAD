@@ -83,7 +83,19 @@ def test_ground_projects_get_a1_sheets_and_the_utility_fixture_without_layout_st
 def test_one_sheet_per_distinct_type_and_numbers_are_unique(built):
     for rs in built.values():
         assert len({r.number for r in rs}) == len(rs) and len({r.sink_template for r in rs}) == len(rs)
-    assert [r.sink_template for r in built["central"]] == ["scb_b01aa", "scb_b01ab", "scb_b02aa", "scb_b02ab"]
+    assert [r.sink_template for r in built["central"]] == ["scb_b01aa", "scb_b01ab"]
+
+
+def test_scb_types_of_the_same_shape_in_different_blocks_share_one_diagram(projects, built):
+    """n22: the 23-input SCBs of blocks 01 and 02 are kept apart by the network (own templates, cables sized per block) but draw the
+    same diagram, so one sheet stands for both; so do the 22-input SCBs, whose output cables were sized with different runs."""
+    types, _ = plan_types(projects["central"], CATALOG)
+    merged = next(t for t in types if t.sink == "scb_b01aa")
+    assert {m.instance.partition("@")[0] for m in merged.members} == {"scb_b01aa", "scb_b02aa"}
+    (sheet,) = [r for r in built["central"] if r.sink_template == "scb_b01aa"]
+    assert set(sheet.covers) == {s for m in merged.members for s in m.strings}
+    ab = next(t for t in types if t.sink == "scb_b01ab")
+    assert ab.output is not None and " OR " in ab.output.callout and any("gives each cable's size" in n for n in ab.notes)
 
 
 def test_a_project_without_strings_has_no_sheets():
@@ -113,12 +125,13 @@ def test_every_string_instance_is_drawn_or_stood_for_exactly_once(projects, buil
 
 
 @pytest.mark.parametrize("name", ["rooftop", "central", "string"])
-def test_types_group_the_instances_of_one_template(projects, name):
+def test_types_group_the_instances_of_templates_that_draw_alike(projects, name):
     types, warnings = plan_types(projects[name], CATALOG)
     assert warnings == []
     net = projects[name].network
     for t in types:
-        assert [m.instance for m in t.members] == list(net.instance_ids(t.sink))
+        templates = list(dict.fromkeys(m.instance.partition("@")[0] for m in t.members))
+        assert templates[0] == t.sink and [m.instance for m in t.members] == [i for x in templates for i in net.instance_ids(x)]
         assert len({len(m.strings) for m in t.members}) == 1
         assert t.lines[0].instance == t.representative.strings[0]
         assert [ln.instance for ln in t.lines] == list(t.representative.strings)
@@ -169,6 +182,24 @@ def test_the_string_cable_label_is_the_schedule_callout(projects, built):
     row = next(r for r in schedule.rows if r.is_string)
     (r,) = built["rooftop"]
     assert f"{row.cores}C x {row.size_mm2:g} sq.mm Cu (+) / (-), {row.length_pos_m:g} m" in drawn_texts(r)
+
+
+@pytest.mark.parametrize("name", ["rooftop", "central", "string"])
+def test_each_string_shows_its_routed_length_or_the_range_over_its_instances(projects, built, name):
+    """D1: the length beside a string cable is the cable schedule's routed length of that string, or min..max over the instances the
+    diagram stands for (never the template's worst-case sizing length on every string), with a note pointing to the schedule."""
+    rows = {r.src: r for r in build_schedule(projects[name], CATALOG).rows if r.service.value == "dc"}
+    types, _ = plan_types(projects[name], CATALOG)
+    sheet_texts = {t for r in built[name] for t in drawn_texts(r)}
+    for t in types:
+        for i, ln in enumerate(t.lines):
+            vals = [round(rows[m.strings[i]].run_length_m, 1) for m in t.members]
+            want = f"{min(vals):g} m" if max(vals) - min(vals) < 0.05 else f"{min(vals):g}..{max(vals):g} m"
+            assert ln.length_text == want and any(x.endswith(", " + want) for x in sheet_texts), (t.sink, i, ln.length_text, want)
+        if any(".." in ln.length_text for ln in t.lines):
+            assert any("cable schedule gives each cable's own routed length" in n for n in t.notes)
+    if name == "central":
+        assert len({ln.length_text for t in types for ln in t.lines}) > 10
 
 
 def test_scb_output_cable_ids_and_inverter_inputs_are_the_schedule_ones(projects, built):

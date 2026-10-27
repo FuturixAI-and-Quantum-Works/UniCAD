@@ -226,7 +226,7 @@ def test_a_block_of_two_inverter_sections_is_framed_on_its_detail_sheet():
 
 
 def test_identical_blocks_share_one_typical_detail_sheet():
-    """Blocks with the same equipment, cables and sub-groups, differing only in tags and route lengths, are drawn once on a
+    """Blocks with the same equipment and sub-groups, differing only in tags and cable sizing (cable, runs, route length), are drawn once on a
     sheet TYPICAL FOR all of them; conductors to the others continue on that sheet."""
     from test_design_p5 import GROUND_MODULE
     from unicad.arrays import PlacementSpec, place_array
@@ -270,4 +270,4 @@ def test_identical_blocks_share_one_typical_detail_sheet():
            if any(under(x, rest) for x in (net.edge_by_id[r["edge"]].src_node, net.edge_by_id[r["edge"]].dst_node))]  # fmt: skip
     assert cut and {r["to_sheet"] for r in cut} <= {s.number for s in sheets if s.id.startswith(typical.id)}
     texts = " ".join(t for b in (done[s.id] for s in sheets if s.id.startswith(typical.id)) for t in (e.dxf.text for e in b.doc.modelspace().query("TEXT")))
-    assert "ACROSS THE BLOCKS" in texts.upper()
+    assert "(SEE CABLE SCHEDULE)" in texts.upper()

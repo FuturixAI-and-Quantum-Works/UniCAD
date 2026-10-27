@@ -108,7 +108,7 @@ def string_label(t: DiagramType, ln: StringLine) -> str:
 
 
 def callout(t: DiagramType, ln: StringLine) -> str:
-    return t.string_callout + (f", {ln.length_m:g} m" if ln.length_m else "")
+    return t.string_callout + (f", {ln.length_text}" if ln.length_text else "")
 
 
 def shown_modules(n: int) -> list[int]:
@@ -156,7 +156,7 @@ def columns(t: DiagramType, lines: tuple[StringLine, ...], u: float) -> Columns:
 
 
 def out_callout(out) -> str:
-    return out.callout + (f", {out.length_m:g} m" if out.length_m else "")
+    return out.callout + (f", {out.length_text}" if out.length_text else "")
 
 
 def top_zone(t: DiagramType, u: float) -> float:

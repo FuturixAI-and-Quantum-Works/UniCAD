@@ -9,6 +9,7 @@ from datetime import date
 from pydantic import BaseModel
 
 from unicad.catalog.store import Catalog
+from unicad.domain.catalog import CableSpec
 from unicad.domain.network import Edge, ElectricalNetwork, Group, NodeKind
 from unicad.domain.project import Project, Sheet, SheetKind, SheetScope
 from unicad.drafting.sheets.layout import metrics_for
@@ -18,6 +19,7 @@ from unicad.drafting.sld.layout import plan_pages
 from unicad.drafting.sld.model import SldOptions
 from unicad.drafting.sld.sheet import fit_layout, furniture_overflow, render_sld
 from unicad.drafting.sld.xref import partition
+from unicad.schedules import LengthMode, build_schedule
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
 
@@ -67,8 +69,8 @@ def _block_edges(net: ElectricalNetwork, members: frozenset[str]) -> list[Edge]:
 
 
 def _signature(net: ElectricalNetwork, g: Group) -> tuple:
-    """The block's equipment, sub-groups and connections with ids, tags and route lengths left out: two blocks with the same
-    signature draw the same detail sheet."""
+    """The block's equipment, sub-groups and connections with ids, tags and cable sizing (cable, runs, derating, route length) left out:
+    two blocks with the same signature draw the same detail sheet, which gives a cable that differs between them as a range."""
     members = _members(net, g.id)
     idx = {m: i for i, m in enumerate(members)}
     subs = [h.id for h in net.groups if h.id != g.id and _top(net, h.id) == g.id]
@@ -87,7 +89,7 @@ def _signature(net: ElectricalNetwork, g: Group) -> tuple:
         return ("m", idx[node], port) if node in idx else ("x", node, port)
 
     edges = tuple(
-        (end(e.src_node, e.src_port), end(e.dst_node, e.dst_port), e.service, spec(e.cable), e.runs, e.laying, e.derating)
+        (end(e.src_node, e.src_port), end(e.dst_node, e.dst_port), e.service, e.cable is None, e.laying)
         for e in _block_edges(net, frozenset(members))
     )
     return groups, nodes, edges
@@ -120,19 +122,58 @@ def _drawn(net: ElectricalNetwork, sheet: Sheet, nodes: frozenset[str]) -> froze
     return frozenset(n for n in nodes if _top(net, net.node(n).group) == blocks[0].id) if blocks else nodes
 
 
-def _shown(project: Project, sheet: Sheet) -> Project:
-    """The project as a TYPICAL sheet shows it: a cable whose route length differs between the blocks gives the range in a remark."""
-    blocks = _class_of(project.network, sheet)
-    if not blocks:
-        return project
+_routed: list[tuple[Project, Catalog | None, dict[str, list[float]]]] = []
+
+
+def _routed_lengths(project: Project, catalog: Catalog | None) -> dict[str, list[float]]:
+    """Per template edge, the routed length of each of its instances as the set's cable schedule gives it (kept for the last project asked)."""
+    if _routed and _routed[0][0] is project and _routed[0][1] is catalog:
+        return _routed[0][2]
+    out: dict[str, list[float]] = {}
+    if catalog is not None:
+        for r in build_schedule(project, catalog, LengthMode.AUTO).rows:
+            if (v := r.run_length_m) is not None:
+                out.setdefault(r.edge, []).append(v)
+    _routed[:] = [(project, catalog, out)]
+    return out
+
+
+def _cable_text(e: Edge, catalog: Catalog | None) -> str:
+    cable = catalog.get(e.cable) if isinstance(e.cable, str) and catalog is not None else e.cable
+    return f"{e.runs}R x {cable.callout()}" if isinstance(cable, CableSpec) else ""
+
+
+def _shown(project: Project, sheet: Sheet, catalog: Catalog | None = None) -> Project:
+    """The project as a sheet shows it: each cable with the routed length of the cable schedule, or `L = min..max m` when its instances
+    (on a TYPICAL sheet, those of every block it stands for) differ; a cable sized differently between those blocks names the sizes."""
     net = project.network
-    per_block = [_block_edges(net, frozenset(_members(net, g.id))) for g in blocks]
+    blocks = _class_of(net, sheet)
+    if blocks:
+        per_block = [_block_edges(net, frozenset(_members(net, g.id))) for g in blocks]
+        alike = {es[0].id: list(es) for es in zip(*per_block, strict=True)}
+    else:
+        alike = {e.id: [e] for e in net.edges}
+    routed = _routed_lengths(project, catalog)
     changed = {}
-    for k, e in enumerate(per_block[0]):
-        lengths = {es[k].length_m for es in per_block}
-        if len(lengths) > 1 and None not in lengths:
-            span = f"L = {min(lengths):g}..{max(lengths):g} m across the blocks; see the cable schedule"
-            changed[e.id] = e.model_copy(update={"length_m": None, "remarks": f"{e.remarks}; {span}" if e.remarks else span})
+    for eid, es in alike.items():
+        e = es[0]
+        notes = []
+        lengths = [round(v, 1) for x in es for v in routed.get(x.id, [])]
+        if not lengths and not any(x.length_m is None for x in es):
+            lengths = [x.length_m for x in es]
+        update: dict = {}
+        if lengths and max(lengths) - min(lengths) >= 0.05:
+            update["length_m"] = None
+            notes.append(f"L = {min(lengths):g}..{max(lengths):g} m (SEE CABLE SCHEDULE)")
+        elif lengths and min(lengths) != e.length_m:
+            update["length_m"] = min(lengths)
+        sizes = list(dict.fromkeys(_cable_text(x, catalog) for x in es))
+        if len(sizes) > 1:
+            notes.append(f"CABLE PER BLOCK: {' / '.join(sizes)}, SEE THE CABLE SCHEDULE")
+        if notes:
+            update["remarks"] = "; ".join(([e.remarks] if e.remarks else []) + notes)
+        if update:
+            changed[eid] = e.model_copy(update=update)
     if not changed:
         return project
     shown = ElectricalNetwork(groups=net.groups, nodes=net.nodes, edges=tuple(changed.get(e.id, e) for e in net.edges))
@@ -212,7 +253,7 @@ class SldBuilder:
         while (todo := next((i for i, s in enumerate(sheets) if s.id not in settled), None)) is not None:
             s = sheets[todo]
             part = next(p for p in partition(net, sheets) if p.sheet_id == s.id)
-            drawn, shown = _drawn(net, s, part.nodes), _shown(project, s)
+            drawn, shown = _drawn(net, s, part.nodes), _shown(project, s, catalog)
             papers = _papers_from(s.paper if s.id in fixed else smallest)
             target = self.options.min_scale if s.id in fixed else max(COMFORT, self.options.min_scale)
             scales = {}
@@ -264,7 +305,7 @@ class SldBuilder:
         out = []
         for s, part in zip(sheets, partition(project.network, sheets)):
             nodes = _drawn(project.network, s, part.nodes)
-            doc, res = render_sld(_shown(project, s), s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=nodes, xrefs=part.xrefs, drawn_on=drawn_on)
+            doc, res = render_sld(_shown(project, s, catalog), s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=nodes, xrefs=part.xrefs, drawn_on=drawn_on)
             marks = {o.symbol_id: o for o in res.layout.offsheets}
             refs = [
                 {"edge": o.edge_id, "node": o.node_id, "to_sheet": o.target, "text": dict(sym.values).get("DESC", "")}
