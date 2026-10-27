@@ -561,3 +561,20 @@ def test_a_fuseless_dc_junction_box_draws_terminals_and_the_legend_names_no_stri
     agent = jb.model_copy(update={"symbol": None})
     assert agent.symbol_key(catalog) == "dc.fuse"
     assert agent.model_copy(update={"attributes": {"fused": False}}).symbol_key(catalog) == "dc.jb"
+
+
+def test_breaker_type_is_shown_once_and_follows_the_device_class(projects, catalog, layouts):
+    """n19 / R2: an MCCB or ACB symbol carries its type label, so the text beside it gives make and model instead of the type again; the
+    tag prefix, the symbol and the catalog device class agree."""
+    net = projects["rooftop_500kwp"].network
+    by_node = {s.node_id: s for s in layouts["rooftop_500kwp"].symbols if s.node_id}
+    seen = set()
+    for n in net.by_kind(NodeKind.BREAKER):
+        spec = catalog.get(n.spec)
+        assert isinstance(spec, ProtectionSpec) and spec.device in ("mccb", "acb")
+        sym = by_node[n.id]
+        values = dict(sym.values)
+        assert sym.key == f"sw.{spec.device}" and n.tag.startswith(spec.device.upper())
+        assert values["DESC"] == f"{spec.manufacturer} {spec.model}".upper() and spec.device.upper() not in values["DESC"].split()
+        seen.add(spec.device)
+    assert seen == {"mccb", "acb"}

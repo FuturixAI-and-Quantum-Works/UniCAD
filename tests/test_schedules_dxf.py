@@ -7,6 +7,7 @@ import pymupdf
 import pytest
 from test_routing import CATALOG, fixture
 
+from unicad.domain.network import NodeKind
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, SheetSpec, TitleBlockData
 from unicad.drafting.tables import Column, TableSection, TableSpec, render_tables
 from unicad.schedules import LengthMode, build_bom, build_schedule
@@ -184,3 +185,24 @@ def test_a_section_band_is_drawn_only_where_the_section_changes():
     assert len(titles) == len(set(titles)), titles
     rows = [r for s in schedule.sections if s.service is not Service.DC for r in s.rows]
     assert sum(len(s.rows) for s in sections) == len(rows)
+
+
+def test_a_long_bom_remark_wraps_in_full_and_string_counts_are_summed():
+    """n20: the module remark of a multi-block plant is one total per string length (not a list per block), and a long remark wraps over
+    as many lines as it needs instead of ending in an ellipsis."""
+    import dataclasses
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("build_string_diagram_samples", Path(__file__).resolve().parents[1] / "tools" / "build_string_diagram_samples.py")
+    samples = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(samples)
+    p = samples.ground_central(CATALOG)
+    bom = build_bom(p, CATALOG, build_schedule(p, CATALOG))
+    module = next(ln for ln in bom.lines if ln.category == "PV MODULES")
+    n = sum(p.network.instance_count(s.id) for s in p.network.by_kind(NodeKind.PV_STRING))
+    assert module.remarks == f"{n:,} strings of 28"
+    words = [f"WORD{i:02d}" for i in range(60)]
+    long = dataclasses.replace(module, remarks=" ".join(words))
+    r = render_bom(p, dataclasses.replace(bom, lines=(long, *bom.lines[1:])), load_profile(p.company_profile))
+    flat = " ".join(t for doc in r.docs for t in texts(doc))
+    assert all(w in flat for w in words) and not [w for w in r.warnings if "truncated" in w]

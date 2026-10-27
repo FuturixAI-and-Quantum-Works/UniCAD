@@ -199,7 +199,7 @@ def bom_table(bom: Bom) -> TableSpec:
         Column("CATALOG ID", "left"),
         Column("QUANTITY"),
         Column("UNIT"),
-        Column("REMARKS", "left", wrap=True),
+        Column("REMARKS", "left", wrap=True, max_lines=24),
     )
     sections, sl = [], 0
     grouped = bom.by_category()

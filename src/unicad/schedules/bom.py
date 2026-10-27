@@ -94,18 +94,21 @@ def _describe(spec: object, node: Node) -> str:
 
 def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: frozenset[NodeKind] = frozenset()) -> list[BomLine]:
     net = project.network
-    totals: dict[tuple[str, str | None, str], list[float | str]] = {}
+    totals: dict[tuple[str, str | None, str], float] = {}
+    notes: dict[tuple[str, str | None, str], dict[str, None]] = {}
+    strings: dict[tuple[str, str | None, str], dict[int, int]] = {}
     for category, kinds in CATEGORIES:
         for n in net.nodes:
             if n.kind not in kinds or n.kind in skip:
                 continue
             count = net.instance_count(n.id)
             remarks = ""
+            series, n_strings = 0, 0
             if n.kind is NodeKind.PV_STRING:
                 if n.modules_in_series is None:
                     warnings.append(f"string {n.id} has no modules_in_series, so its modules are not counted")
                     continue
-                remarks = f"{count} strings of {n.modules_in_series}"
+                series, n_strings = n.modules_in_series, count
                 count *= n.modules_in_series
             elif n.kind in (NodeKind.SCB, NodeKind.DC_FUSE_BOX):
                 inputs = sum(per_instance(net, e.src_node, n.id) for e in net.edges if e.is_power and e.dst_node == n.id and net.node(e.src_node).kind is NodeKind.PV_STRING)
@@ -116,10 +119,19 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
             else:
                 spec = catalog.get(n.spec)
                 key = (category, spec.id, _describe(spec, n))
-            row = totals.setdefault(key, [0, ""])
-            row[0] += count
-            row[1] = "; ".join(dict.fromkeys(r for r in (str(row[1]), remarks) if r))
-    return [BomLine(c, item, cid, float(q), "nos", str(r)) for (c, cid, item), (q, r) in totals.items()]
+            totals[key] = totals.get(key, 0) + count
+            notes.setdefault(key, {})
+            if remarks:
+                notes[key][remarks] = None
+            if n_strings:
+                per = strings.setdefault(key, {})
+                per[series] = per.get(series, 0) + n_strings
+
+    def remark(key) -> str:
+        made = [f"{k:,} strings of {m}" for m, k in sorted(strings.get(key, {}).items())]
+        return "; ".join([*made, *notes[key]])
+
+    return [BomLine(c, item, cid, float(q), "nos", remark((c, cid, item))) for (c, cid, item), q in totals.items()]
 
 
 def _conductors(cable: CableSpec) -> int:

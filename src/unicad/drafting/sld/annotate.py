@@ -173,6 +173,8 @@ def _arrester_rating(spec: ProtectionSpec) -> str:
 
 
 ProtectionText = tuple[str, Callable[[ProtectionSpec], str]]
+TYPE_LABELLED: Final = frozenset({"mccb", "acb"})
+"""Devices whose symbol carries its type label (MCCB, ACB): the description beside it names the make and model instead of repeating the type."""
 PROTECTION_TEXT: Final[dict[str, ProtectionText]] = {
     "mcb": ("MCB", _switching_rating),
     "mccb": ("MCCB", _switching_rating),
@@ -257,7 +259,7 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
         case ProtectionSpec():
             label, rating_of = PROTECTION_TEXT[spec.device]
             rating = rating_of(spec)
-            desc = node.title or label
+            desc = node.title or (f"{spec.manufacturer} {spec.model}".upper() if spec.device in TYPE_LABELLED else label)
         case MeterSpec():
             rating = f"CL {spec.accuracy_class}, {spec.connection.upper().replace('_', '/')} OPERATED"
             desc = node.title or _METER_LABEL[spec.function]
