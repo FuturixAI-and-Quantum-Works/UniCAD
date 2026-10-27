@@ -110,6 +110,16 @@ def test_instructions_walk_the_whole_workflow_in_order():
         assert name in INSTRUCTIONS
 
 
+@pytest.mark.parametrize("text", [ROOFTOP, UTILITY], ids=["rooftop", "utility"])
+def test_pv_prompts_set_the_design_basis_before_the_design_as_the_instructions_do(text):
+    """close-e2e-1 M13: autobuild ran before the fault levels were set, so cables were not sized for the short circuit."""
+    order = ["project_create", "project_design_basis", "site_import", "layout_place", "network_autobuild", "validate", "earthing_design", "lps_design", "drawings_render", "project_snapshot"]
+    positions = [text.index(name) for name in order]
+    assert positions == sorted(positions)
+    basis = text[text.index("project_design_basis"):text.index("site_import")]
+    assert all(w in basis for w in ("fault_levels", "earthing", "lps", "ambient_min_c"))
+
+
 def test_prompts_cover_each_project_kind_and_the_review_loop():
     async def go():
         server = build()

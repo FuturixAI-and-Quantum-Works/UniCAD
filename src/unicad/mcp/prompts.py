@@ -4,29 +4,31 @@ from unicad.mcp.workspace import Workspace
 
 ROOFTOP = """Build a rooftop PV drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: grid voltage, DC or AC capacity, inverter make/size, module make/Wp, roof survey file (KML, KMZ, GeoJSON, DXF), roof setbacks from the design basis, soil resistivity, lightning protection level. Mark anything you assume.
-2. project_create(name, client, segment="ci_rooftop", site, grid_voltage_v). Read back `assumptions` and replace placeholders with site data when the user has it.
-3. site_import(project_id, file_path). Check `problems` and `imported_by_kind`; add missed obstacles with site_set_feature (kind="obstacle", height_m). site_set_setbacks with distances from the design basis, then site_summary for the buildable roof area.
-4. catalog_search for the module and inverter, catalog_get to check ratings, design_strings(project_id, module, inverter) for the string length.
-5. layout_place(project_id, module, mounting="rooftop_flush" or "rooftop_tilted", target_dc_kwp, ...). Check layout_summary: DC kWp reached, blocks, row pitch.
-6. network_autobuild(project_id, template="ci_rooftop", ac_kw or dc_kwp, module, inverter). Read `blockers` and `assumptions`. For hand changes use network_add_node / network_connect / network_update.
-7. validate(project_id). For each error, explain_finding(project_id, rule_id, subject), change the design (network_update, layout_place, site tools), and validate again until there are no errors. Report warnings to the user.
-8. earthing_design(project_id, soil_resistivity, fault_ka, clearing_s) and lps_design(project_id, method, level); validate again.
-9. Deliverables: drawings_render for the drawing sheets, cable_schedule and bom (xlsx). Quote the paths and the assumptions each returns.
-10. project_snapshot(project_id, label) once the set is agreed, e.g. "issued-approval-r0"."""
+1. Ask the user for anything missing: grid voltage, DC or AC capacity, inverter make/size, module make/Wp, roof survey file (KML, KMZ, GeoJSON, DXF), roof setbacks from the design basis, site ambient temperatures, fault level at the grid connection, soil resistivity, lightning protection level. Mark anything you assume.
+2. project_create(name, client, segment="ci_rooftop", site, grid_voltage_v). Read back `assumptions`: they are placeholders.
+3. project_design_basis(project_id, ...) before any design: ambient_min_c, ambient_max_c, altitude_m, fault_levels (one per system voltage, with its source), earthing (soil resistivity from the Wenner test, earth fault current and clearing time) and lps (level from the risk assessment, method). Each value you set replaces its placeholder.
+4. site_import(project_id, file_path). Check `problems` and `imported_by_kind`; add missed obstacles with site_set_feature (kind="obstacle", height_m). site_set_setbacks with distances from the design basis, then site_summary for the buildable roof area.
+5. catalog_search for the module and inverter, catalog_get to check ratings, design_strings(project_id, module, inverter) for the string length.
+6. layout_place(project_id, module, mounting="rooftop_flush" or "rooftop_tilted", target_dc_kwp, modules_per_string, strings_per_inverter, ...). Check layout_summary: DC kWp reached, blocks, row pitch.
+7. network_autobuild(project_id, template="ci_rooftop", ac_kw or dc_kwp, module, inverter). It sizes breakers and cables for the fault levels set in step 3. Read `blockers` and `assumptions`. For hand changes use network_add_node / network_connect / network_update. If you change the design basis afterwards, run network_autobuild again.
+8. validate(project_id). For each error, explain_finding(project_id, rule_id, subject), change the design (network_update, layout_place, site tools), and validate again until there are no errors. Report warnings to the user.
+9. earthing_design(project_id) and lps_design(project_id, method, level) design from the stored inputs; validate again.
+10. Deliverables: drawings_render(project_id, kinds=["all"]) for the drawing set, cable_schedule and bom (xlsx). Quote the paths and the assumptions each returns.
+11. project_snapshot(project_id, label) once the set is agreed, e.g. "issued-approval-r0"."""
 
 UTILITY = """Build a utility-scale PV drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: AC and DC capacity, inverter or PCS make/size, module make/Wp, MV voltage level, grid voltage at the point of interconnection, site boundary file, setbacks from the design basis, soil resistivity, earth fault level and clearing time, lightning protection level. Mark anything you assume.
-2. project_create(name, client, segment="utility", site, grid_voltage_v). Read back `assumptions`.
-3. site_import(project_id, file_path) for boundary, exclusions, water, roads and transmission lines; fix classification with kind_mapping or site_set_feature. site_set_setbacks (boundary_m, exclusion_m) from the design basis; site_summary for the buildable acres.
-4. catalog_search for module, inverter (or pcs) and transformer; design_strings(project_id, module, inverter) for the string length and DC/AC ratio.
-5. layout_place(project_id, module, tilt_deg, road_every_rows, target_dc_kwp, block_dc_kwp or n_blocks, modules_per_string). Check layout_summary (block_balance, gcr) and layout_blocks.
-6. network_autobuild(project_id, template="utility_string" or "utility_central", module, inverter, inverters_per_block). Layout strings are linked to the network automatically. Read `blockers` and `assumptions`.
-7. validate(project_id); explain_finding for each error; fix and re-validate until no errors remain.
-8. earthing_design(project_id, soil_resistivity, fault_ka, clearing_s, ...) and lps_design(project_id, method, level, ...); validate again.
-9. Deliverables: drawings_render for the drawing sheets, cable_schedule and bom. Quote paths, totals and assumptions.
-10. project_snapshot(project_id, label) once the set is agreed."""
+1. Ask the user for anything missing: AC and DC capacity, inverter or PCS make/size, module make/Wp, MV voltage level, grid voltage at the point of interconnection, site boundary file, setbacks from the design basis, site ambient temperatures, fault levels at each system voltage, soil resistivity, earth fault level and clearing time, lightning protection level. Mark anything you assume.
+2. project_create(name, client, segment="utility", site, grid_voltage_v). Read back `assumptions`: they are placeholders.
+3. project_design_basis(project_id, ...) before any design: ambient_min_c, ambient_max_c, altitude_m, fault_levels (one per system voltage, with its source), earthing (soil resistivity from the Wenner test, earth fault current and clearing time) and lps (level from the risk assessment, method). Each value you set replaces its placeholder.
+4. site_import(project_id, file_path) for boundary, exclusions, water, roads and transmission lines; fix classification with kind_mapping or site_set_feature. site_set_setbacks (boundary_m, exclusion_m) from the design basis; site_summary for the buildable acres.
+5. catalog_search for module, inverter (or pcs) and transformer; design_strings(project_id, module, inverter) for the string length and DC/AC ratio.
+6. layout_place(project_id, module, tilt_deg, road_every_rows, target_dc_kwp, block_dc_kwp or n_blocks, modules_per_string, strings_per_inverter). Check layout_summary (block_balance, gcr) and layout_blocks.
+7. network_autobuild(project_id, template="utility_string" or "utility_central", module, inverter, inverters_per_block). Layout strings are linked to the network automatically; breakers and cables are sized for the fault levels set in step 3. Read `blockers` and `assumptions`. If you change the design basis afterwards, run network_autobuild again.
+8. validate(project_id); explain_finding for each error; fix and re-validate until no errors remain.
+9. earthing_design(project_id, switchyard_m, ...) and lps_design(project_id, method, level, ...) design from the stored inputs; validate again.
+10. Deliverables: drawings_render(project_id, kinds=["all"]) for the drawing set, cable_schedule and bom. Quote paths, totals and assumptions.
+11. project_snapshot(project_id, label) once the set is agreed."""
 
 BESS = """Build a battery energy storage drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
