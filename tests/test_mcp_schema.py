@@ -11,7 +11,7 @@ import pytest
 from unicad.arrays.spec import FillOrder, MountingKind, PitchMethod
 from unicad.domain.layout import Orientation
 from unicad.domain.network import Laying, NodeKind, Service
-from unicad.domain.project import Segment
+from unicad.domain.project import IssuedFor, Segment
 from unicad.domain.site import FeatureKind
 from unicad.drafting.sheets.model import PaperSize
 from unicad.ingest.site_dxf import UNIT_NAMES
@@ -49,6 +49,7 @@ ENUMS: dict[tuple[str, str], set[str]] = {
     ("lps_design", "method"): {"ese", "rod"},
     ("lps_design", "level"): {"I", "II", "III", "IV"},
     ("project_create", "segment"): names(Segment),
+    ("project_issue", "issued_for"): names(IssuedFor),
     ("site_set_feature", "kind"): names(FeatureKind),
     ("site_set_feature", "coordinate_system"): COORDINATE_SYSTEMS,
     ("site_import", "coordinate_system"): COORDINATE_SYSTEMS,
@@ -73,7 +74,7 @@ FREE_TEXT = {
     "network_add_node.symbol", "network_add_node.tag", "network_add_node.title", "network_autobuild.battery", "network_autobuild.inverter", "network_autobuild.module",
     "network_autobuild.pcs", "network_connect.cable", "network_connect.dst", "network_connect.edge_id", "network_connect.remarks", "network_connect.src", "network_remove.ids",
     "network_update.id", "project_create.address", "project_create.client", "project_create.client_code", "project_create.name", "project_create.site", "project_create.state",
-    "project_create.utility", "project_diff.from_revision", "project_diff.to_revision", "project_snapshot.label", "site_import.file_path", "site_import.source_crs",
+    "project_create.utility", "project_diff.from_revision", "project_diff.to_revision", "project_issue.approved", "project_issue.checked", "project_issue.date", "project_issue.drawn", "project_issue.remarks", "project_issue.rev", "project_snapshot.label", "site_import.file_path", "site_import.source_crs",
     "site_remove_feature.ids", "site_set_feature.id", "site_set_feature.name",
 }  # fmt: skip
 

@@ -116,6 +116,27 @@ lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6})
 | `dc_ac_ratio_target` | number | no | Target DC/AC ratio |
 | `power_factor` | number | no | Design power factor |
 
+### `project_issue`
+
+Issue the drawing set: add a revision (mark, date, purpose, drawn/checked/approved names, remarks) that every sheet's title
+block, revision table and the drawing register show from the next drawings_render. The engineering rules run first (as in
+validate): approval, construction and as_built are refused while any error remains, and the refusal lists every error;
+proposal and information are allowed with errors and the response says the sheets carry them. A revision mark already
+issued is refused unless every value is the same (then nothing changes). Re-render with drawings_render afterwards.
+
+Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="0", drawn="A. Kumar", checked="S. Rao", approved="P. Iyer", date="2026-10-28").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `issued_for` | `proposal` \| `information` \| `approval` \| `construction` \| `as_built` | yes | Purpose of the issue: proposal, information, approval, construction, as_built |
+| `rev` | string | yes | Revision mark printed on every sheet, e.g. '0', 'A' or 'R1' |
+| `drawn` | string | yes | Name (or initials) of who drew the set, printed in the DRAWN cell |
+| `checked` | string | no | Name of the checker, printed in the CHECKED cell |
+| `approved` | string | no | Name of the approver, printed in the APPROVED cell |
+| `date` | string | no | Issue date as YYYY-MM-DD; today when omitted |
+| `remarks` | string | no | Revision description in the revision table; 'ISSUED FOR <PURPOSE>' when omitted |
+
 ## Catalog tools
 
 ### `catalog_search`

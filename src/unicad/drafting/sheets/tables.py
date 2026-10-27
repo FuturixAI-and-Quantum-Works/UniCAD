@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
@@ -9,6 +10,12 @@ from unicad.drafting.sheets.text import block_height, fit
 TEXT_FLOOR = 0.8
 TXT = LayerRole.TEXT
 TTL = LayerRole.TITLE
+
+
+def initials(name: str) -> str:
+    """A name as the revision table's BY / CHKD / APPD cells hold it: initials when it is longer than four characters."""
+    words = re.findall(r"[A-Za-z]+", name)
+    return "".join(w[0] for w in words).upper() if len(name) > 4 and words else name
 
 
 SymbolDrawer = Callable[[str, Region], bool]
@@ -208,8 +215,8 @@ class Tables:
                 cv.hline(TTL, y, self.x0, self.x1)
                 if r < len(shown):
                     rev = shown[r]
-                    cells = [rev.rev, rev.date.strftime(date_format), rev.description, rev.by,
-                             rev.checked, rev.approved]
+                    cells = [rev.rev, rev.date.strftime(date_format), rev.description, initials(rev.by),
+                             initials(rev.checked), initials(rev.approved)]
                     for c, text in enumerate(cells):
                         cell = Region(edges[c], y, edges[c + 1], y + row_h)
                         cv.put(TTL, cell, text, 0.9 * th, max_lines=2 if c == 2 else 1,

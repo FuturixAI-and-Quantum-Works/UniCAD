@@ -1,3 +1,4 @@
+import datetime as dt
 import re
 from typing import Annotated, Any, Literal
 
@@ -6,14 +7,17 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
 
-from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, LpsBasis, NoctThermal, Party, Project, Site
+from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, IssuedFor, IssueRevision, LpsBasis, NoctThermal, Party, Project, Site
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import SegmentArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Workspace, counts
+from unicad.rules import issue_gate, run_rules
 from unicad.store import canonical_json
+from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
+IssuedForArg = Annotated[IssuedFor, Field(description=f"Purpose of the issue: {', '.join(e.value for e in IssuedFor)}")]
 GRID_FREQUENCY_HZ = 50.0
 DEFAULTS = {
     "ambient_min_c": 10.0,
@@ -267,5 +271,45 @@ def register(server: MCPServer, ws: Workspace) -> None:
             if sizing and updated.network.nodes and db != p.design_basis:
                 problems.append({"severity": "warning", "subject": "design_basis", "message": f"{', '.join(sizing)} changed after the network was built: re-run network_autobuild so strings, breakers and cables are sized for the new values, then validate"})
             return Edit(updated, tuple(touched), extra, tuple(problems))
+
+        return ws.mutate(project_id, change)
+
+    @server.tool()
+    @guarded
+    def project_issue(
+        project_id: ProjectIdArg,
+        issued_for: IssuedForArg,
+        rev: Annotated[str, Field(min_length=1, max_length=8, description="Revision mark printed on every sheet, e.g. '0', 'A' or 'R1'")],
+        drawn: Annotated[str, Field(min_length=1, description="Name (or initials) of who drew the set, printed in the DRAWN cell")],
+        checked: Annotated[str | None, Field(description="Name of the checker, printed in the CHECKED cell")] = None,
+        approved: Annotated[str | None, Field(description="Name of the approver, printed in the APPROVED cell")] = None,
+        date: Annotated[dt.date | None, Field(description="Issue date as YYYY-MM-DD; today when omitted")] = None,
+        remarks: Annotated[str | None, Field(description="Revision description in the revision table; 'ISSUED FOR <PURPOSE>' when omitted")] = None,
+    ) -> dict[str, Any]:
+        """Issue the drawing set: add a revision (mark, date, purpose, drawn/checked/approved names, remarks) that every sheet's title
+        block, revision table and the drawing register show from the next drawings_render. The engineering rules run first (as in
+        validate): approval, construction and as_built are refused while any error remains, and the refusal lists every error;
+        proposal and information are allowed with errors and the response says the sheets carry them. A revision mark already
+        issued is refused unless every value is the same (then nothing changes). Re-render with drawings_render afterwards.
+
+        Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="0", drawn="A. Kumar", checked="S. Rao", approved="P. Iyer", date="2026-10-28")."""
+        purpose = IssuedFor(issued_for)
+        entry = IssueRevision(rev=rev, date=date or dt.date.today(), remarks=remarks or f"ISSUED FOR {purpose.value.replace('_', ' ').upper()}",
+                              issued_for=purpose, drawn=drawn, checked=checked, approved=approved)  # fmt: skip
+
+        def change(p: Project) -> Edit:
+            gate = issue_gate(run_rules(p, ws.catalog, None, thresholds_of(p.company_profile, ws.config.workspace)), purpose)
+            if not gate.allowed:
+                raise ToolError(f"cannot issue {project_id!r} for {purpose.value}: {len(gate.reasons)} error(s) remain; fix them (validate, explain_finding) or issue for information: "
+                                + "; ".join(gate.reasons))  # fmt: skip
+            same = next((r for r in p.revisions if r.rev == rev), None)
+            if same is not None and same != entry:
+                raise ToolError(f"revision {rev!r} was already issued on {same.date} for {same.issued_for.value if same.issued_for else 'an unstated purpose'}; give a new revision mark")
+            sheets = p.sheets if same is not None else tuple(s.model_copy(update={"revisions": (*s.revisions, entry)}) if s.revisions else s for s in p.sheets)
+            updated = p if same is not None else p.model_copy(update={"revisions": (*p.revisions, entry), "sheets": sheets})
+            problems = tuple({"severity": "warning", "subject": "issue", "message": f"issued for {purpose.value} with an open error: {r}"} for r in gate.reasons)
+            extra = {"issue": entry.model_dump(mode="json"), "revisions": [r.rev for r in updated.revisions],
+                     "gate": {"allowed": gate.allowed, "watermark": gate.watermark, "errors": len(gate.reasons)}}  # fmt: skip
+            return Edit(updated, ("revisions",), extra, problems)
 
         return ws.mutate(project_id, change)
