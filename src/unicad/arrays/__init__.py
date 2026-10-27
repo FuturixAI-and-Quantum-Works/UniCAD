@@ -1,5 +1,8 @@
 """Array placement: tables on the buildable area, inverter blocks, strings. Pure functions of the site, the spec and the module."""
 
+from shapely.geometry import LineString
+
+from unicad.arrays import siting
 from unicad.arrays.blocks import block_count, build_blocks
 from unicad.arrays.geometry import plan_depth, plan_length, table_centre, table_corners, table_polygon
 from unicad.arrays.place import PlacementError, inside_problems, place_tables, regions_for
@@ -15,7 +18,7 @@ from unicad.arrays.spec import (
 from unicad.arrays.strings import assign_strings
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, LayoutBlock
-from unicad.domain.site import SiteGeometry
+from unicad.domain.site import FeatureKind, SiteGeometry
 
 __all__ = [
     "BlockSummary", "FillOrder", "MountingKind", "PitchMethod", "PlacementError", "PlacementMetrics", "PlacementResult", "PlacementSpec",
@@ -38,6 +41,9 @@ def block_summaries(blocks: tuple[LayoutBlock, ...], full_cols: int, module_wp: 
 def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> PlacementResult:
     if spec.module != module.id:
         raise PlacementError(f"spec module {spec.module!r} does not match the module spec {module.id!r}")
+    widened = [f.id for f in site.of_kind(FeatureKind.ROAD) if f.polyline and f.width_m is None]
+    if widened:
+        site = site.with_features(f.model_copy(update={"width_m": spec.road_width_m}) if f.id in widened else f for f in site.features)
     placed = place_tables(site, spec, module)
     if not placed.tables:
         raise PlacementError("no table fits the buildable area; try a shorter table, a smaller setback or half tables")
@@ -60,7 +66,11 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     if not blocks:
         raise PlacementError(f"the placed tables hold fewer strings than one inverter of {spi} strings; lower strings_per_inverter or pass whole_inverters=false")
     strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter)
-    layout = ArrayLayout(blocks=blocks, strings=tuple(strings))
+    yard = siting.switchyard(
+        site, [b.station for b in blocks if b.station is not None], [t for b in blocks for t in b.tables], on_roofs, spec.switchyard, spec.switchyard_m,
+        [LineString([(p.x, p.y) for p in r.points]) for r in placed.roads], spec.road_width_m,
+    )  # fmt: skip
+    layout = ArrayLayout(blocks=blocks, strings=tuple(strings), switchyard=yard)
     summaries = block_summaries(blocks, spec.table_cols, module.pmax)
     caps = [s.dc_kwp for s in summaries]
     mean = sum(caps) / len(caps)
@@ -76,6 +86,12 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
         block_balance=round((max(caps) - min(caps)) / mean, 5) if mean else 0.0,
     )  # fmt: skip
     assumptions = spec.assumptions()
+    if yard is not None:
+        assumptions.append(f"{'MV switchyard' if not on_roofs else 'Main LT panel / switchyard'} at local ({yard.at.x:.1f}, {yard.at.y:.1f}): {yard.basis}; cable routing and earthing use this location")
+    if any(b.station is not None for b in blocks) and spec.station is None and not on_roofs:
+        assumptions.append(siting.SPOT_ASSUMPTION)
+    if widened:
+        assumptions.append(f"site road(s) {', '.join(repr(i) for i in widened)} have no width: taken as {spec.road_width_m:g} m (road_width_m) so tables and stations keep off them; set width_m on the site feature for the real width")
     if spec.modules_per_string is None:
         assumptions.append(f"modules per string: {mps} (one table row; set modules_per_string from the string sizing)")
     warnings = list(placed.warnings) + sorted(set(block_notes))

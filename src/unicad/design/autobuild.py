@@ -6,15 +6,16 @@ from collections import Counter
 from collections.abc import Mapping
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from unicad.arrays import PlacementResult
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec, ModuleSpec
-from unicad.domain.layout import ArrayLayout, StringAssignment
+from unicad.domain.layout import ArrayLayout, Point, StringAssignment
 from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
+from unicad.design.placement import place_equipment
 from unicad.design.plan import PvPlan, from_layout, uniform
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
 from unicad.design.sizing import size_network
@@ -64,6 +65,14 @@ class Intent(BaseModel):
     pcs: str | None = None
     battery: str | None = None
     lengths: dict[str, float] = Field(default_factory=dict, description="Override cable route lengths in m by role (string, scb_inv, vcb_bus, ...)")
+    bess_x: float | None = Field(default=None, description="Local x (m) of the BESS area centre; default the free area nearest the switchyard")
+    bess_y: float | None = None
+
+    @model_validator(mode="after")
+    def _bess_xy(self) -> "Intent":
+        if (self.bess_x is None) != (self.bess_y is None):
+            raise ValueError("pass bess_x and bess_y together")
+        return self
 
 
 class AutobuildResult(BaseModel):
@@ -350,9 +359,9 @@ def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: Place
     net = b.network()
     linked = _link_strings(net, built.string_links) if lay is not None else ()
     if lay is not None:
-        array_layout = ArrayLayout(blocks=lay.blocks, strings=linked)
+        array_layout = lay.model_copy(update={"strings": linked, "equipment": ()})
     elif project.array_layout is not None:
-        array_layout = project.array_layout.model_copy(update={"strings": ()})
+        array_layout = project.array_layout.model_copy(update={"strings": (), "equipment": ()})
         notes.append("The existing array layout is kept without string links: the new network's strings were not built from it.")
     else:
         array_layout = None
@@ -364,6 +373,10 @@ def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: Place
             sh = sh.model_copy(update={"scope": sh.scope.model_copy(update={"nodes": keep})})
         sheets.append(sh)
     draft = project.model_copy(update={"network": net, "array_layout": array_layout, "sheets": tuple(sheets)})
+    placed, placing = place_equipment(draft, catalog, Point(x=intent.bess_x, y=intent.bess_y) if intent.bess_x is not None else None)
+    if placed is not None and placed.equipment:
+        draft = draft.model_copy(update={"array_layout": placed})
+    notes.extend(placing)
     sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
     routed = None
     if linked:

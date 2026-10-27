@@ -165,15 +165,19 @@ def test_blocks_are_spatially_compact(ground, fixed):
         assert b.station is not None
 
 
-def test_station_sits_on_a_road_clear_of_tables(ground, fixed):
+def test_station_stands_beside_a_road_off_it_and_clear_of_tables(ground, fixed):
     from shapely.geometry import LineString
+
+    from unicad.arrays.siting import STATION_CLEAR_M
     from shapely.geometry import Point as SPoint
 
-    roads = [LineString([(p.x, p.y) for p in r.points]) for r in fixed.roads] + [shape_of(f) for f in ground.of_kind(FeatureKind.ROAD)]
+    inner = [(LineString([(p.x, p.y) for p in r.points]), r.width_m / 2) for r in fixed.roads]
+    site_roads = [(shape_of(f), (f.width_m or 0) / 2) for f in ground.of_kind(FeatureKind.ROAD)]
     for b in fixed.layout.blocks:
         s = SPoint(b.station.x, b.station.y)
-        assert min(r.distance(s) for r in roads) < 0.01, b.id
-        assert not any(table_polygon(t).contains(s) for t in tables_of(fixed))
+        gaps = [r.distance(s) - half for r, half in inner + site_roads]
+        assert min(gaps) >= STATION_CLEAR_M - 0.01 and min(gaps) < 15.0, (b.id, min(gaps))
+        assert min(table_polygon(t).distance(s) for t in tables_of(fixed)) >= STATION_CLEAR_M - 0.01, (b.id, min(table_polygon(t).distance(s) for t in tables_of(fixed)))
 
 
 @pytest.mark.parametrize("fill", ["rows", "nearest"])

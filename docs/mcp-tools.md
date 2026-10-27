@@ -162,12 +162,12 @@ Example: site_import(project_id="p1", file_path="/data/site.kml", kind_mapping={
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `file_path` | string | yes | Path to a .kml, .kmz, .geojson, .dxf or coordinate-list (.csv/.txt) file on the machine running the server |
-| `format` | string | no | One of kml, kmz, geojson, dxf, coords; guessed from the extension when omitted |
+| `format` | `kml` \| `kmz` \| `geojson` \| `dxf` \| `coords` | no | File format; guessed from the extension when omitted |
 | `kind_mapping` | object | no | Overrides for how shapes are classified: {placemark name, folder name or DXF layer: kind}. Keys match case-insensitively, exact first and then as a substring; the value is a feature kind or 'ignore'. Without it names are matched against a rules table (e.g. 'roof', 'pond', 'boundary', 'road', 'transmission'). |
 | `origin_lon` | number | no | Longitude of the file's local (0, 0). Only for local-metre files (DXF, coordinate lists) when the project has no site latitude/longitude yet |
 | `origin_lat` | number | no | Latitude of the file's local (0, 0); pair with origin_lon |
 | `source_crs` | string | no | EPSG code when a DXF or coordinate list holds projected metres, e.g. 'EPSG:32643'; omit for local metres |
-| `units` | string | no | Drawing units of a DXF without a usable $INSUNITS: m, mm, cm, ft, in, km, yd, dm |
+| `units` | `in` \| `ft` \| `mm` \| `cm` \| `m` \| `km` \| `yd` \| `dm` | no | Drawing units of a DXF without a usable $INSUNITS |
 | `coordinate_system` | `lonlat` \| `latlon` \| `local` | no | Coordinate lists only: lonlat, latlon or local (metres). Guessed when omitted |
 | `replace` | boolean | no | Discard the existing site geometry first and start a new local frame Default: `False`. |
 
@@ -181,7 +181,7 @@ Example: site_set_feature(project_id="p1", id="ahu_3", kind="obstacle", coordina
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `id` | string | yes | Feature id (letters, digits, '_', '-', '.'); an existing id is replaced |
-| `kind` | `boundary` \| `roof` \| `exclusion` \| `road` \| `building` \| `obstacle` \| `water` \| `setback_line` \| `transmission_line` \| `existing_structure` | yes | boundary, roof, exclusion, road, building, obstacle, water, setback_line, transmission_line or existing_structure |
+| `kind` | `boundary` \| `roof` \| `exclusion` \| `road` \| `building` \| `obstacle` \| `water` \| `setback_line` \| `transmission_line` \| `existing_structure` \| `switchyard` | yes | Feature kind; 'switchyard' marks the MV switchyard area that layout, routing and earthing use |
 | `coordinates` | list of list of number | yes | Points as [x, y] pairs: local metres, or [lon, lat] when coordinate_system='lonlat'. Do not repeat the first point at the end |
 | `coordinate_system` | `lonlat` \| `latlon` \| `local` | no | 'local' (metres in the site frame), 'lonlat' (degrees) or 'latlon' Default: `local`. |
 | `closed` | boolean | no | Polygon (true) or open path (false). Default: polygon, except road, setback_line and transmission_line which default to a path |
@@ -252,41 +252,44 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `module` | string | yes | Catalog id of the PV module, e.g. 'waaree-bi-55-540' |
-| `mounting` | string | no | fixed_tilt, tracker_1p, rooftop_flush, rooftop_tilted or carport Default: `fixed_tilt`. |
+| `mounting` | `fixed_tilt` \| `tracker_1p` \| `rooftop_flush` \| `rooftop_tilted` \| `carport` | no | Mounting structure Default: `fixed_tilt`. |
 | `table_rows` | integer | no | Modules across a table (2 for 2P, 1 for a 1P tracker) Default: `2`. |
 | `table_cols` | integer | no | Modules along a table or tracker; default the string length (modules_per_string), else 28 |
 | `orientation` | `portrait` \| `landscape` | no | portrait or landscape Default: `portrait`. |
 | `tilt_deg` | number | no | Fixed tilt; 0 for trackers and flat roofs Default: `0.0`. |
 | `azimuth_deg` | number | no | Direction the modules face, clockwise from grid north; 180 = south Default: `180.0`. |
 | `axis_azimuth_deg` | number | no | Tracker axis direction; 0 = north-south Default: `0.0`. |
-| `pitch_method` | string | no | solstice (shade-free 09:00-15:00 solar time on the winter solstice), explicit (pitch_m), gcr (gcr) or gap (row_gap_m) Default: `solstice`. |
+| `pitch_method` | `solstice` \| `explicit` \| `gcr` \| `gap` | no | solstice (shade-free 09:00-15:00 solar time on the winter solstice), explicit (pitch_m), gcr (gcr) or gap (row_gap_m) Default: `solstice`. |
 | `pitch_m` | number | no | Row-to-row pitch for pitch_method='explicit' |
 | `gcr` | number | no | Ground coverage ratio for pitch_method='gcr' |
 | `row_gap_m` | number | no | Clear gap between rows for pitch_method='gap' |
 | `half_tables` | boolean | no | Fill edges with half tables (only where a half table holds whole strings, unless half_cols is given) Default: `True`. |
 | `half_cols` | integer | no | Modules along a half table; default the longest shorter table that holds whole strings |
-| `table_gap_m` | number | no | Gap between tables along a row (default 1.5 m, reported as an assumption) |
+| `table_gap_m` | number | no | Gap between tables along a row (default 1.5 m on the ground, 0.6 m maintenance walkway on roofs; reported as an assumption) |
 | `module_gap_m` | number | no | Gap between modules on a table (default 0.02 m, reported as an assumption) |
 | `road_every_rows` | integer | no | Leave an internal road after every N rows |
 | `road_width_m` | number | no | Internal road width (default 6 m) |
 | `walkway_every_tables` | integer | no | Leave a walkway after every N tables along a row |
 | `walkway_width_m` | number | no | Walkway width (default 4 m) |
 | `target_dc_kwp` | number | no | Stop at this DC capacity instead of filling the site |
-| `fill` | string | no | With a target: 'rows' (front rows first) or 'nearest' (closest to fill_from) Default: `rows`. |
+| `fill` | `rows` \| `nearest` | no | With a target: 'rows' (front rows first) or 'nearest' (closest to fill_from) Default: `rows`. |
 | `fill_from_x` | number | no | Local x (m) of the point to fill around, e.g. the pooling substation |
 | `fill_from_y` | number | no | Local y (m) of the point to fill around |
 | `n_blocks` | integer | no | Number of inverter blocks |
 | `block_dc_kwp` | number | no | Largest DC capacity per block; the block count is rounded up from it |
 | `modules_per_string` | integer | no | Modules in series; default the network pv_string modules_in_series, else table_cols |
 | `strings_per_inverter` | integer | no | Strings per inverter within a block (string inverters); default one inverter per block |
-| `regions` | string | no | auto (roofs for rooftop mountings, else ground), ground or roofs Default: `auto`. |
+| `regions` | `auto` \| `ground` \| `roofs` | no | auto (roofs for rooftop mountings, else ground), ground or roofs Default: `auto`. |
 | `whole_inverters` | boolean | no | With strings_per_inverter: size every block to whole inverters and leave out the few remainder tables instead of adding a part-loaded inverter Default: `True`. |
 | `station_x` | number | no | Local x (m) of the inverter station for every block, e.g. a ground-level inverter room; default on the block (on a roof for rooftop arrays) |
 | `station_y` | number | no | Local y (m) of the inverter station |
+| `switchyard_x` | number | no | Local x (m) of the MV switchyard (main LT panel on an LT plant); cable routing and earthing read it. Default: a site area of kind 'switchyard', else derived and reported |
+| `switchyard_y` | number | no | Local y (m) of the MV switchyard |
 
 ### `layout_summary`
 
-Array layout totals: tables (full and half), modules, DC kWp, blocks and their balance, row pitch and GCR, linked strings.
+Array layout totals: tables (full and half), modules, DC kWp, blocks and their balance, row pitch and GCR, linked strings, the
+switchyard location with how it was chosen, and the equipment network_autobuild placed in the field (string inverters, BESS units) by kind.
 
 Example: layout_summary(project_id="p1").
 
@@ -368,6 +371,8 @@ network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="ada
 | `battery` | string | no | Catalog battery id |
 | `use_layout` | boolean | no | Build the PV plan from the project's array layout (layout_place) and link every layout string to one pv_string instance Default: `True`. |
 | `lengths` | object | no | Cable route length overrides in m by role, e.g. {"vcb_bus": 650} |
+| `bess_x` | number | no | Local x (m) of the BESS area centre (bess_ac, hybrid); default the free area nearest the switchyard |
+| `bess_y` | number | no | Local y (m) of the BESS area centre |
 
 ### `network_add_group`
 
@@ -482,7 +487,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `families` | list of string | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps |
+| `families` | list of `structure` \| `pv_strings` \| `ratio` \| `protection` \| `cables` \| `vdrop` \| `earthing` \| `lps` | no | Rule families to run; omit for all |
 | `include_info` | boolean | no | Also list info findings (segment voltage drops, unstated deratings); they are always counted. Default: `False`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 

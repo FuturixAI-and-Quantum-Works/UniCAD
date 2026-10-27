@@ -216,6 +216,9 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
             layout = project.array_layout
             stations = [(b.station.x, b.station.y) for b in layout.blocks if b.station is not None] if layout is not None else []
             near = (sum(p[0] for p in stations) / len(stations), sum(p[1] for p in stations) / len(stations)) if stations else None
+            if layout is not None and layout.switchyard is not None:
+                near = (layout.switchyard.at.x, layout.switchyard.at.y)
+                assumptions.append(f"MV switchyard earth grid centred on the layout's switchyard location ({layout.switchyard.basis})")
             yard, problem = place_switchyard(project, basis.switchyard_m or (0.0, 0.0), near)
             if problem:
                 warnings.append(problem)
@@ -356,7 +359,8 @@ def summary(d: EarthingDesign) -> dict:
         g = d.grid
         sy = lay.switchyard
         out["switchyard_grid"] = {
-            "size_m": [round(sy.x1 - sy.x0, 3), round(sy.y1 - sy.y0, 3)], "spacing_m": d.grid_spacing_m, "rg_ohm": round(g.rg, 4),
+            "size_m": [round(sy.x1 - sy.x0, 3), round(sy.y1 - sy.y0, 3)],
+            "extent_m": {"x0": round(sy.x0, 3), "y0": round(sy.y0, 3), "x1": round(sy.x1, 3), "y1": round(sy.y1, 3)}, "spacing_m": d.grid_spacing_m, "rg_ohm": round(g.rg, 4),
             "rest_of_plant_ohm": d.rest_ohm, "split_factor": round(d.split_factor, 4), "fault_current_a": round(d.basis.fault_current_ka * 1000),
             "grid_current_a": round(g.gpr / g.rg, 1), "gpr_v": round(g.gpr), "e_touch_tolerable_v": round(g.e_touch, 1),
             "e_step_tolerable_v": round(g.e_step, 1), "e_mesh_v": round(g.e_mesh, 1), "e_step_v": round(g.e_s, 1), "safe": g.safe,

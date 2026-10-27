@@ -43,11 +43,12 @@ class FeatureKind(StrEnum):
     SETBACK_LINE = "setback_line"
     TRANSMISSION_LINE = "transmission_line"
     EXISTING_STRUCTURE = "existing_structure"
+    SWITCHYARD = "switchyard"
 
 
 LINE_KINDS = frozenset({FeatureKind.ROAD, FeatureKind.SETBACK_LINE, FeatureKind.TRANSMISSION_LINE})
 GROUND_CARVE_KINDS = frozenset({
-    FeatureKind.EXCLUSION, FeatureKind.WATER, FeatureKind.OBSTACLE, FeatureKind.BUILDING, FeatureKind.EXISTING_STRUCTURE,
+    FeatureKind.EXCLUSION, FeatureKind.WATER, FeatureKind.OBSTACLE, FeatureKind.BUILDING, FeatureKind.EXISTING_STRUCTURE, FeatureKind.SWITCHYARD,
 }) | LINE_KINDS  # fmt: skip
 ROOF_CARVE_KINDS = frozenset({FeatureKind.EXCLUSION, FeatureKind.OBSTACLE, FeatureKind.EXISTING_STRUCTURE})
 

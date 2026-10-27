@@ -12,6 +12,7 @@ from unicad.routing.model import RouteAssumptions
 
 COMBINERS = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
+BUSES = frozenset({NodeKind.BUSBAR, NodeKind.HT_PANEL, NodeKind.LT_PANEL, NodeKind.ACDB, NodeKind.POI_GRID})
 CO_LOCATED_M = 1.0
 
 
@@ -58,13 +59,16 @@ class Locator:
         self.block_of_table = {t.id: b.id for b in layout.blocks for t in b.tables}
         self.block_frame = {b.id: b.tables[0].azimuth_deg for b in layout.blocks if b.tables}
         self.stations = {b.id: b.station for b in layout.blocks if b.station is not None}
+        self.placed = layout.equipment_by_node
+        self._succs: dict[str, list[str]] = {n.id: [] for n in expanded.nodes}
         self.strings = self._string_points()
         self._preds: dict[str, list[str]] = {n.id: [] for n in expanded.nodes}
         for e in expanded.edges:
             if e.is_power:
                 self._preds[e.dst_node].append(e.src_node)
+                self._succs[e.src_node].append(e.dst_node)
         self.notes: list[str] = []
-        for name in ("strings_below", "generators_below", "switchyard", "location"):
+        for name in ("strings_below", "generators_below", "switchyard", "location", "placed_near", "fed_generator"):
             setattr(self, name, lru_cache(maxsize=None)(getattr(self, name)))
 
     def _string_points(self) -> dict[str, StringPoints]:
@@ -101,6 +105,9 @@ class Locator:
         azimuth = next(iter(self.block_frame.values()), 180.0)
         if a.switchyard is not None:
             return Place(*a.switchyard, azimuth, "switchyard")
+        if self.layout.switchyard is not None:
+            at = self.layout.switchyard.at
+            return Place(at.x, at.y, azimuth, "switchyard")
         if not self.stations:
             return None
         pts = list(self.stations.values())
@@ -108,27 +115,68 @@ class Locator:
         mv = any(n.kind in (NodeKind.TRANSFORMER, NodeKind.VCB, NodeKind.RMU) for n in self.net.nodes)
         what = "MV switchyard" if mv else "main LT panel collecting the inverters"
         self.notes.append(
-            f"The {what} is not located in the project; it is assumed at the centroid of the {len(pts)} block station(s), local metres ({x:.1f}, {y:.1f}). Pass the real position to replace it."
+            f"The {what} is not located in the project; it is assumed at the centroid of the {len(pts)} block station(s), local metres ({x:.1f}, {y:.1f}). Re-run layout_place (with switchyard_x and switchyard_y for the real position) to store one location that routing and earthing share."
         )
         return Place(x, y, azimuth, "switchyard")
+
+    def _block_near(self, at) -> str | None:
+        return min(self.stations, key=lambda b: math.hypot(self.stations[b].x - at.x, self.stations[b].y - at.y), default=None)
 
     def station(self, block: str) -> Place | None:
         s = self.stations.get(block)
         return None if s is None else Place(s.x, s.y, self.block_frame.get(block, 180.0), f"station {block}")
 
+    def fed_generator(self, node_id: str) -> str | None:
+        """The generator a DC-side node feeds (an isolator or SPD between strings and its inverter), following power flow."""
+        seen, todo = {node_id}, list(self._succs[node_id])
+        while todo:
+            n = todo.pop(0)
+            if n in seen:
+                continue
+            seen.add(n)
+            if self.net.node(n).kind in GENERATORS:
+                return n
+            if self.net.node(n).kind in COMBINERS:
+                return None
+            todo += self._succs[n]
+        return None
+
+    def placed_near(self, node_id: str) -> str | None:
+        """For equipment with no strings below it (BESS switchgear): the nearest placed node it feeds, else the nearest placed node feeding it,
+        never through a busbar or panel."""
+        if not self.placed or self.net.node(node_id).kind in BUSES:
+            return None
+        for step in (self._succs, self._preds):
+            seen, todo = {node_id}, list(step[node_id])
+            while todo:
+                n = todo.pop(0)
+                if n in seen or self.net.node(n).kind in BUSES:
+                    continue
+                seen.add(n)
+                if n in self.placed:
+                    return n
+                todo += step[n]
+        return None
+
     def location(self, node_id: str) -> Place | None:
         kind = self.net.node(node_id).kind
+        if node_id in self.placed:
+            p = self.placed[node_id]
+            return Place(p.at.x, p.at.y, self.block_frame.get(self._block_near(p.at), 180.0), f"{p.tag} ({p.basis})")
         below = self.strings_below(node_id)
         if kind is NodeKind.PV_STRING:
             p = self.strings.get(node_id)
             return None if p is None else Place(*p.centre, p.azimuth_deg, "string")
         if not below:
-            return None
+            near = self.placed_near(node_id)
+            return None if near is None else self.location(near)
         if kind in COMBINERS:
             pts = [self.strings[s] for s in below]
             x, y = sum(p.centre[0] for p in pts) / len(pts), sum(p.centre[1] for p in pts) / len(pts)
             return Place(x, y, pts[0].azimuth_deg, f"{self.net.node(node_id).tag} (centroid of {len(pts)} strings)")
         gens = self.generators_below(node_id)
+        if not gens and (fed := self.fed_generator(node_id)) is not None:
+            return self.location(fed)
         blocks = {self.block_of_generator(g) for g in gens} - {None}
         if len(blocks) == 1:
             return self.station(next(iter(blocks)))

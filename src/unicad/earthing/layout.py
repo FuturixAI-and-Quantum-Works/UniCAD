@@ -7,7 +7,6 @@ shortest links (a minimum spanning tree over the parts).
 """
 
 import math
-import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
@@ -18,10 +17,10 @@ from shapely.geometry import Point as SPoint
 from shapely.ops import nearest_points, unary_union
 
 from unicad.arrays.geometry import frame, plan_depth, plan_length, table_corners, to_site
+from unicad.arrays.siting import free_spot, marked_switchyard
 from unicad.domain.layout import LayoutBlock, Point, Table
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
-from unicad.domain.site import shape_of
 from unicad.earthing.model import ConductorRole, Item, Pit, PitRole, Run
 from unicad.lps.design import LpsDesign, blocked, boundary, is_rooftop, roofs
 
@@ -387,22 +386,17 @@ def _scb_positions(block: LayoutBlock, n: int) -> list[tuple[float, float]]:
 # --- switchyard --------------------------------------------------------------------------------
 
 
-SWITCHYARD_NAME = re.compile(r"switch ?yard|sub ?station|pooling", re.IGNORECASE)
 
 
 def designated_switchyard(project: Project) -> Polygon | None:
-    """A site area marked for the switchyard: attribute use=switchyard, or a name or id that says switchyard, substation or pooling."""
-    geo = project.site.geometry
-    if geo is None:
-        return None
-    for f in geo.features:
-        if f.polygon and (f.attributes.get("use") == "switchyard" or SWITCHYARD_NAME.search(f.name or "") or SWITCHYARD_NAME.search(f.id)):
-            return shape_of(f)
-    return None
+    """A site area marked for the switchyard: kind 'switchyard', attribute use=switchyard, or a name or id that says switchyard, substation or pooling."""
+    marked = marked_switchyard(project.site.geometry)
+    return None if marked is None else marked[1]
 
 
 def place_switchyard(project: Project, size: tuple[float, float], near: tuple[float, float] | None) -> tuple[tuple[float, float, float, float] | None, str | None]:
-    """The switchyard grid rectangle: inside a designated switchyard area if the site has one, else the free area nearest `near`."""
+    """The switchyard grid rectangle: inside a designated switchyard area if the site has one, else the free area nearest `near` (the layout's
+    switchyard location, so the grid is drawn where cable routing takes the switchyard to be)."""
     marked = designated_switchyard(project)
     if marked is not None:
         x0, y0, x1, y1 = marked.buffer(-2.0).bounds
@@ -641,6 +635,10 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         array_runs += [s[3] for s in segs]
         if tables:
             _risers(lay, segs, tables[0].azimuth_deg, sizes.array, 1.6 * (pitch or 10), buried=True)
+    placed = layout.equipment_by_node if layout is not None else {}
+    field_items = [it for it in plant if it[0] in placed] + [it for items in per_block.values() for it in items if it[0] in placed]
+    plant = [it for it in plant if it[0] not in placed]
+    per_block = {i: [it for it in items if it[0] not in placed] for i, items in per_block.items()}
     yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
     panel_items = [it for it in plant if it not in yard_items]
     host = next((i for i, b in enumerate(blocks) if b.station is not None), None) if lay.rooftop else None
@@ -670,6 +668,8 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             if not lay.rooftop:
                 lay.pit(PitRole.EP, (p[0] + 1.0, p[1] + 0.6), (iid,))
                 lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (p[0] + 1.0, p[1] + 0.6)], (iid,))
+    for iid, tag, kind in field_items:
+        _field_item(lay, iid, tag, kind, _xy(placed[iid].at), array_runs, sizes)
     if yard_items:
         _switchyard(lay, switchyard[0], switchyard[1], yard_items, sizes, perimeter_pits)
     if panel_items:
@@ -695,6 +695,22 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     _pit_spurs(lay, sizes)
     connect_all(lay, sizes.main)
     return lay
+
+
+def _field_item(lay: EarthingLayout, iid: str, tag: str, kind: NodeKind, p: tuple[float, float], array_runs: list[Run], sizes: Sizes) -> None:
+    """Equipment the layout places in the field (string inverters at their rows, BESS units): bonded where it stands, to the nearest array
+    conductors, and on the ground to its own pit beside it."""
+    on_roof = lay.rooftop and any(r.links and not r.buried for r in array_runs)
+    lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], on_roof=on_roof))
+    near = sorted(array_runs, key=lambda r: LineString([_xy(q) for q in r.points]).distance(SPoint(p)))[: CONNECTIONS[kind]]
+    for r in near:
+        q = nearest_points(LineString([_xy(x) for x in r.points]), SPoint(p))[0]
+        if math.dist(p, (q.x, q.y)) > TOL:
+            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (q.x, q.y)], (iid,), buried=not on_roof)
+    if not on_roof:
+        pit = (p[0] + 1.0, p[1] + 0.6)
+        lay.pit(PitRole.EP, pit, (iid,))
+        lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, pit], (iid,))
 
 
 def _perimeter_ring(lay: EarthingLayout, poly: Polygon, site: Polygon | None, sizes: Sizes, offset: float = 1.5) -> None:
@@ -730,8 +746,21 @@ def _row_pitch(tables: list[Table]) -> float | None:
 
 
 def _panel_area(project: Project, lay: EarthingLayout, site: Polygon | None, roof_polys) -> tuple[float, float]:
-    """Plant-level panels: beside the first roof edge nearest the station on rooftop projects, else beside the station nearest the site centroid."""
+    """Plant-level panels: at the layout's switchyard location (main LT panel) on rooftop projects or when there is no switchyard grid, else at the
+    free spot nearest it clear of the grid, tables and roads; without a stored location, beside the first roof edge nearest the station on rooftop
+    projects, else beside the station nearest the site centroid."""
     layout = project.array_layout
+    if layout is not None and layout.switchyard is not None:
+        at = _xy(layout.switchyard.at)
+        geo = project.site.geometry
+        if lay.rooftop or geo is None:
+            return at
+        taken = [Polygon(table_corners(t)) for t in layout.table_by_id.values()]
+        if lay.switchyard is not None:
+            y = lay.switchyard
+            taken.append(box(y.x0, y.y0, y.x1, y.y1))
+        spot = free_spot(geo, at, unary_union(taken))
+        return _xy(spot) if spot is not None else at
     stations = [_xy(b.station) for b in layout.blocks if b.station is not None] if layout is not None else []
     if lay.rooftop and roof_polys:
         ref = stations[0] if stations else roof_polys[0][1].centroid.coords[0]

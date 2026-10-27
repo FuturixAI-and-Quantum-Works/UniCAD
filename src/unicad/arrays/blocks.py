@@ -10,6 +10,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import nearest_points, unary_union
 
 from unicad.arrays.geometry import frame, table_centre, table_corners
+from unicad.arrays.siting import free_spot, occupied, roof_spot
 from unicad.arrays.spec import RoadLine
 from unicad.domain.layout import LayoutBlock, Point, Table
 from unicad.domain.site import FeatureKind, SiteGeometry, shape_of
@@ -188,9 +189,10 @@ def station_point(tables: Sequence[Table], weights: Sequence[float], hull: Polyg
 ROOF_STATION_INSET_M = 0.5
 
 
-def roof_station(tables: Sequence[Table], weights: Sequence[float], site: SiteGeometry) -> Point | None:
+def roof_station(tables: Sequence[Table], weights: Sequence[float], site: SiteGeometry, others: Sequence[Table] = ()) -> Point | None:
     """On the roof that carries most of the block's capacity: the point of its edge nearest the capacity-weighted centre of the block's
-    tables on that roof, ROOF_STATION_INSET_M inside the edge so the station stands on the roof, not between roofs."""
+    tables on that roof, ROOF_STATION_INSET_M inside the edge so the station stands on the roof, not between roofs, moved to the nearest
+    spot of that roof clear of every table (`others`, the whole array) when the edge point lies over one."""
     roofs = [(f.id, shape_of(f)) for f in site.of_kind(FeatureKind.ROOF) if f.polygon]
     if not roofs:
         return None
@@ -210,7 +212,9 @@ def roof_station(tables: Sequence[Table], weights: Sequence[float], site: SiteGe
     inner = roof.buffer(-ROOF_STATION_INSET_M)
     ring = (inner if not inner.is_empty and isinstance(inner, Polygon) else roof).exterior
     _, q = nearest_points(ShapelyPoint(cx, cy), ring)
-    return Point(x=round(q.x, 3), y=round(q.y, 3))
+    on_roof = [t for t in (others or tables) if roof.intersects(Polygon(table_corners(t)))]
+    clear = roof_spot(roof, (q.x, q.y), on_roof, ROOF_STATION_INSET_M)
+    return clear or Point(x=round(q.x, 3), y=round(q.y, 3))
 
 
 def corridors(site: SiteGeometry) -> list[tuple[str, BaseGeometry]]:
@@ -326,7 +330,9 @@ def build_blocks(
     if units and quantum and trim:
         groups = [_trim(g, tables, kwp, units, quantum, notes, bi) for bi, g in enumerate(groups, start=1)]
         groups = [g for g in groups if g]
-    roads = site_roads(site) + [LineString([(p.x, p.y) for p in r.points]) for r in internal]
+    inner = [LineString([(p.x, p.y) for p in r.points]) for r in internal]
+    roads = site_roads(site) + inner
+    taken = None
     blocks = []
     for bi, idx in enumerate(groups, start=1):
         bid = f"B{bi:02d}"
@@ -334,8 +340,12 @@ def build_blocks(
         renamed = [tables[i].model_copy(update={"id": f"{bid}-T{k:03d}"}) for k, i in enumerate(members, start=1)]
         w = [kwp[i] for i in members]
         hull = outline(renamed, closing_m)
-        at = station or (roof_station(renamed, w, site) if on_roofs else None)
-        at = at or station_point(renamed, w, hull, roads)
+        at = station or (roof_station(renamed, w, site, tables) if on_roofs else None)
+        if at is None:
+            at = station_point(renamed, w, hull, roads)
+            if taken is None:
+                taken = occupied(site, tables, inner, max((r.width_m for r in internal), default=0.0))
+            at = free_spot(site, (at.x, at.y), taken) or at
         ring = tuple(Point(x=round(x, 3), y=round(y, 3)) for x, y in list(hull.exterior.coords)[:-1])
         blocks.append(LayoutBlock(id=bid, name=f"BLOCK-{bi:02d}", boundary=ring, tables=tuple(renamed), station=at))
     return blocks

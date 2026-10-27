@@ -107,7 +107,9 @@ def test_stations_and_switchyard_give_block_to_switchyard_lengths():
     feeders = [i for i in est.instances.values() if i.edge == "e_icog_bus"]
     assert len(feeders) == 2
     assert all(i.positive_m >= i.straight_pos_m > 0 for i in feeders)
-    assert any("switchyard is not located" in w for w in est.warnings)
+    assert p.array_layout.switchyard is not None and not any("switchyard is not located" in w for w in est.warnings)
+    unlocated = p.model_copy(update={"array_layout": p.array_layout.model_copy(update={"switchyard": None})})
+    assert any("switchyard is not located" in w for w in estimate_routes(unlocated, CATALOG).warnings)
     at = next(iter(p.array_layout.blocks)).station
     moved = estimate_routes(p, CATALOG, RouteAssumptions(switchyard=(at.x + 500.0, at.y)))
     assert not any("switchyard is not located" in w for w in moved.warnings)

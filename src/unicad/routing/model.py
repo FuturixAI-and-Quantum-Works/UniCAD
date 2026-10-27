@@ -30,7 +30,9 @@ class RouteAssumptions:
             "Horizontal run is the Manhattan distance in the array frame (along the table rows, then across the rows through the gaps between tables); site roads and obstacles are not routed around.",
             f"Each cable gets {self.drop_per_end_m:g} m of vertical drop and {self.termination_m:g} m of termination slack at each end ({self.per_cable_m:g} m per cable): design assumptions, not site measurements.",
             "A string's +ve and -ve leads run from the first and last module of the string, so they differ by the length of the string along the table.",
-            "Combiner boxes stand at the centroid of the strings they collect; inverters, transformers and block switchgear stand at the inverter station of the layout block holding most of their strings.",
+            "Combiner boxes stand at the centroid of the strings they collect; equipment the layout places in the field (string inverters at the end of their table rows, BESS units) "
+            "stands where the layout puts it, DC isolators at the inverter they feed; transformers and block switchgear stand at the inverter station of the layout block holding most of their strings, "
+            "and plant-level equipment at the layout's switchyard location.",
         )
 
 

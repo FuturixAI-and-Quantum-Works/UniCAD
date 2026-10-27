@@ -31,8 +31,21 @@ def design_for(project: Project) -> EarthingDesign | None:
     return d
 
 
+BASIS = "design_basis.earthing."
+STEP_SOURCES = {
+    ("pipe_resistance", "L"): BASIS + "electrode_length_m",
+    ("pipe_resistance", "d"): BASIS + "electrode_diameter_mm",
+    ("pipe_resistance", "rho"): BASIS + "soil_resistivity_ohm_m",
+    ("strip_resistance", "rho"): BASIS + "soil_resistivity_ohm_m",
+    ("strip_resistance", "L"): "earthing layout: buried conductor length",
+    ("strip_resistance", "w"): "earthing.sizing standard GS flat width of the main conductor",
+    ("strip_resistance", "t"): BASIS + "burial_depth_m",
+}
+CALCULATED = "calculated by the rule (see formula and docs)"
+
+
 def _inputs(step: Step) -> tuple[Quantity, ...]:
-    return tuple(Quantity(name=v.name, value=v.value, unit=v.unit, source=v.source) for v in step.inputs)
+    return tuple(Quantity(name=v.name, value=v.value, unit=v.unit, source=v.source or STEP_SOURCES.get((step.name, v.name), CALCULATED)) for v in step.inputs)
 
 
 @rule("earthing.conductor_size", "Earth conductor carries the earth fault", clause=CLAUSE)
@@ -67,7 +80,7 @@ def electrode_resistance(project: Project, catalog: Catalog) -> Iterator[Finding
     if d is None:
         return
     ok = d.resistance_ohm <= d.target_ohm
-    inputs = _inputs(d.electrode) + (Quantity(name="pits", value=sum(1 for p in d.layout.pits if p.on_ground)),)
+    inputs = _inputs(d.electrode) + (Quantity(name="pits", value=sum(1 for p in d.layout.pits if p.on_ground), source="earthing layout: pits on the ground"),)
     if d.strip is not None:
         inputs += _inputs(d.strip)
     yield Finding(
@@ -75,7 +88,7 @@ def electrode_resistance(project: Project, catalog: Catalog) -> Iterator[Finding
         message=f"earth resistance {d.resistance_ohm:.3g} ohm with {d.pit_count} pits and {sum(r.length_m for r in d.layout.runs if r.buried):,.0f} m of buried conductor "
         f"({'within' if ok else 'above'} the {d.target_ohm:g} ohm target); method: {d.resistance_method}",
         measured=d.resistance_ohm, limit=d.target_ohm, unit="ohm", formula="R = 1 / (n / R_pit + 1 / R_strip), not below the Sverak value of the network area; in parallel with the switchyard grid Rg",
-        inputs=inputs + tuple(Quantity(name=k, value=v, unit="ohm") for k, v in d.resistance_parts.items()),
+        inputs=inputs + tuple(Quantity(name=k, value=v, unit="ohm", source=f"calculated: {d.resistance_method}") for k, v in d.resistance_parts.items()),
         assumptions=tuple(a for a in d.assumptions if "target" in a or "parallel" in a or "electrode" in a or "earth resistance" in a),
     )  # fmt: skip
     if d.pits_by_current is not None and d.pit_count < d.pits_by_current:
@@ -107,9 +120,16 @@ def touch_step(project: Project, catalog: Catalog) -> Iterator[Finding]:
             rule_id="earthing.touch_step", severity=Severity.INFO if ok else Severity.ERROR, subjects=("switchyard",),
             message=f"switchyard grid {d.grid_spacing_m:g} m mesh: {what} voltage {got:,.0f} V against {lim:,.0f} V tolerable (GPR {g.gpr:,.0f} V)",
             measured=round(got, 1), limit=round(lim, 1), unit="V", formula="Em = rho Km Ki IG / LM; Es = rho Ks Ki IG / LS",
-            inputs=(Quantity(name="Rg", value=round(g.rg, 4), unit="ohm"), Quantity(name="Sf", value=round(d.split_factor, 4)), Quantity(name="IG", value=round(g.gpr / g.rg, 1), unit="A"),
-                    Quantity(name="Km", value=round(g.km, 4)), Quantity(name="Ki", value=round(g.ki, 4)),
-                    Quantity(name="Ks", value=round(g.ks, 4)), Quantity(name="Cs", value=round(g.cs, 4)), Quantity(name="LM", value=round(g.lm, 1), unit="m")),
+            inputs=(
+                Quantity(name="rho", value=d.basis.soil_resistivity_ohm_m, unit="ohm m", source=BASIS + "soil_resistivity_ohm_m"),
+                Quantity(name="Rg", value=round(g.rg, 4), unit="ohm", source="calculated: Sverak grid resistance (IEEE 80) of the switchyard grid"),
+                Quantity(name="Sf", value=round(d.split_factor, 4), source="calculated: Sf = R_rest / (Rg + R_rest)"),
+                Quantity(name="IG", value=round(g.gpr / g.rg, 1), unit="A", source=f"calculated: Sf x {BASIS}fault_current_ka"),
+                *(Quantity(name=n, value=round(v, 4), source=f"calculated: IEEE 80 {what} from the grid geometry (switchyard size, mesh {d.grid_spacing_m:g} m, burial depth)")
+                  for n, v, what in (("Km", g.km, "mesh spacing factor"), ("Ki", g.ki, "irregularity factor"), ("Ks", g.ks, "step spacing factor"))),
+                Quantity(name="Cs", value=round(g.cs, 4), source=f"calculated: IEEE 80 surface layer derating from {BASIS}surface_resistivity_ohm_m and surface_layer_m"),
+                Quantity(name="LM", value=round(g.lm, 1), unit="m", source="calculated: IEEE 80 effective buried length of the grid conductors and rods"),
+            ),
             assumptions=tuple(a for a in d.assumptions if "grid" in a or "surface" in a or "body" in a or "strip" in a or "GPR" in a),
         )  # fmt: skip
 

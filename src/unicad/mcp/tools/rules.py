@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -25,6 +25,27 @@ def rebuild_hint(findings: tuple[Finding, ...]) -> str | None:
             "are sized for the current design basis (fault levels, limits; hand edits made since the last build are replaced), then validate again.")
 
 
+EARTHING_HINTS = {
+    "earthing.touch_step": (
+        "touch or step voltage above the IEEE 80 tolerable value: give the switchyard a crushed-rock surface layer with earthing_design(project_id, "
+        "surface_resistivity=<ohm m, from the rock supplier or the IEEE 80 table of surface materials>, surface_layer_m=<m>), or a larger grid (switchyard_m) or a "
+        "shorter clearing time (clearing_s from the protection study), then validate again"
+    ),
+    "earthing.electrode_resistance": (
+        "earth resistance above the target: earthing_design picks the pit count for the target, so re-run earthing_design (with the measured "
+        "soil_resistivity, or a longer electrode_length_m) and check target_ohm against the utility's requirement"
+    ),
+    "earthing.conductor_size": "earth conductor below the fault duty: re-run earthing_design with the fault_ka and clearing_s of the earth fault so it re-sizes the conductor",
+    "earthing.every_equipment_bonded": "equipment not bonded to the earth network: re-run earthing_design after the latest layout_place and network_autobuild so every item is laid out",
+}
+
+
+def earthing_hint(findings: tuple[Finding, ...]) -> str | None:
+    """What to change when earthing rules report errors: the tool and the parameter that moves each limit."""
+    ids = sorted({f.rule_id for f in findings if f.severity is Severity.ERROR and f.rule_id in EARTHING_HINTS})
+    return "; ".join(f"{i}: {EARTHING_HINTS[i]}" for i in ids) + "." if ids else None
+
+
 def compact(f: Finding) -> dict[str, Any]:
     out: dict[str, Any] = {"rule_id": f.rule_id, "severity": f.severity.value, "subjects": list(f.subjects), "message": f.message}
     for key in ("measured", "limit", "unit"):
@@ -38,7 +59,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def validate(
         project_id: ProjectIdArg,
-        families: Annotated[list[str] | None, Field(description=f"Rule families to run; omit for all: {', '.join(rule_families())}")] = None,
+        families: Annotated[list[Literal[rule_families()]] | None, Field(description="Rule families to run; omit for all")] = None,
         include_info: Annotated[bool, Field(description="Also list info findings (segment voltage drops, unstated deratings); they are always counted.")] = False,
         revision: RevisionArg = None,
     ) -> dict[str, Any]:
@@ -54,8 +75,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         shown = [compact(f) for f in report.findings if include_info or f.severity is not Severity.INFO]
         gates = {p.value: {"allowed": (g := issue_gate(report, p)).allowed, "watermark": g.watermark} for p in IssuedFor}
         out = {"project_id": project_id, "revision": rev, "rules": len(report.rules), "counts": report.counts, "blocking": report.blocking, "gates": gates, "findings": shown}
-        if project.network.nodes and (hint := rebuild_hint(report.findings)):
-            out["next"] = hint
+        hints = [h for h in (rebuild_hint(report.findings) if project.network.nodes else None, earthing_hint(report.findings)) if h]
+        if hints:
+            out["next"] = " ".join(hints)
         if company:
             out["company_thresholds"] = {"profile": project.company_profile, "values": {name: s.value for name, s in company.items()}}
         return out

@@ -108,9 +108,36 @@ class LayoutBlock(_Frozen):
         return self
 
 
+class Located(_Frozen):
+    """A point on the site and how it was chosen (given by the agent, read from the site, or derived; the derivation in words)."""
+
+    at: Point
+    basis: str
+
+
+class PlacedEquipment(_Frozen):
+    """A network node instance standing on the site away from its block station, e.g. a string inverter at the end of its table rows or a
+    BESS container. `node` is the expanded instance id, `tag` its formatted tag, `kind` its node kind."""
+
+    node: str
+    tag: str
+    kind: str
+    at: Point
+    basis: str
+
+
 class ArrayLayout(_Frozen):
+    """`switchyard` is the one location of the MV switchyard (or, on an LT plant, the main LT panel) that cable routing, earthing and the
+    layout drawing all read. `equipment` holds what the network places in the field; everything else stands at its block station."""
+
     blocks: tuple[LayoutBlock, ...] = ()
     strings: tuple[StringAssignment, ...] = ()
+    switchyard: Located | None = None
+    equipment: tuple[PlacedEquipment, ...] = ()
+
+    @property
+    def equipment_by_node(self) -> dict[str, PlacedEquipment]:
+        return {e.node: e for e in self.equipment}
 
     @cached_property
     def table_by_id(self) -> dict[str, Table]:
