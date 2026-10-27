@@ -219,3 +219,51 @@ def test_a_block_of_two_inverter_sections_is_framed_on_its_detail_sheet():
     done = SldBuilder().build(p, sheets, sheets, PROFILE, CATALOG)
     details = [b for b in done if b.sheet.id.startswith("sld_block")]
     assert details and not [w for b in details for w in b.warnings if "without a frame" in w or "untitled" in w]
+
+
+def test_identical_blocks_share_one_typical_detail_sheet():
+    """Blocks with the same equipment, cables and sub-groups, differing only in tags and route lengths, are drawn once on a
+    sheet TYPICAL FOR all of them; conductors to the others continue on that sheet."""
+    from test_design_p5 import GROUND_MODULE
+    from unicad.arrays import PlacementSpec, place_array
+    from unicad.ingest.site_import import import_site
+    from unicad.sets.sld import block_classes, block_types
+
+    site = import_site(ROOT / "fixtures" / "sites" / "ground_mount_rajasthan.kml", None).geometry
+    spec = PlacementSpec(module=GROUND_MODULE, table_rows=2, table_cols=28, tilt_deg=25, modules_per_string=28, strings_per_inverter=24, road_every_rows=12,
+                         block_dc_kwp=1560, target_dc_kwp=6240)  # fmt: skip
+    base = blank("utility_50mwac")
+    base = base.model_copy(update={"site": base.site.model_copy(update={"geometry": site})})
+    p = autobuild(base, CATALOG, {"template": "utility_string", "module": GROUND_MODULE, "inverter": "sungrow-sg350hx"}, layout=place_array(site, spec, CATALOG.get(GROUND_MODULE))).project
+    net = p.network
+    classes = block_classes(net)
+    shared = next(gs for gs, _ in classes if len(gs) > 1)
+    assert len(classes) < len(block_types(net))
+    sheets = plan_sld_set(p, PROFILE, CATALOG)
+    done = {b.sheet.id: b for b in SldBuilder().build(p, sheets, sheets, PROFILE, CATALOG)}
+    typical = next(s for s in sheets if s.id == f"sld_{shared[0].id}")
+    assert typical.title.endswith("SLD FOR " + ", ".join(g.tag for g in shared))
+    assert not any(s.id == f"sld_{g.id}" for g in shared[1:] for s in sheets)
+    subs = {g.id: refs for g, refs in block_types(net)}
+
+    def under(n, refs):
+        gid = net.node(n).group
+        while gid is not None and gid not in refs:
+            gid = net.group_by_id[gid].within
+        return gid is not None
+
+    shown = set(subs[shared[0].id])
+    rest = {r for g in shared[1:] for r in subs[g.id]}
+    drawn = [n for b in done.values() for n in b.meta["nodes"]]
+    assert len(drawn) == len(set(drawn))
+    assert {n for n in done[typical.id].meta["nodes"] if net.node(n).group} and all(not under(n, rest) for n in done[typical.id].meta["nodes"])
+    assert any(under(n, shown) for n in done[typical.id].meta["nodes"])
+    represented = {r for gs, _ in classes for g in gs[1:] for r in subs[g.id]}
+    others = {n for n in _power_nodes(net) if under(n, represented)}
+    assert others and not others & set(drawn)
+    assert _power_nodes(net) - others <= set(drawn)
+    cut = [r for b in done.values() for r in b.meta["cross_refs"]
+           if any(under(x, rest) for x in (net.edge_by_id[r["edge"]].src_node, net.edge_by_id[r["edge"]].dst_node))]  # fmt: skip
+    assert cut and {r["to_sheet"] for r in cut} <= {s.number for s in sheets if s.id.startswith(typical.id)}
+    texts = " ".join(t for b in (done[s.id] for s in sheets if s.id.startswith(typical.id)) for t in (e.dxf.text for e in b.doc.modelspace().query("TEXT")))
+    assert "ACROSS THE BLOCKS" in texts.upper()

@@ -5,8 +5,10 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from pydantic import BaseModel
+
 from unicad.catalog.store import Catalog
-from unicad.domain.network import ElectricalNetwork, Group, NodeKind
+from unicad.domain.network import Edge, ElectricalNetwork, Group, NodeKind
 from unicad.domain.project import Project, Sheet, SheetKind, SheetScope
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
@@ -49,6 +51,90 @@ def block_types(net: ElectricalNetwork) -> list[tuple[Group, tuple[str, ...]]]:
     return out
 
 
+def _top(net: ElectricalNetwork, gid: str | None) -> str | None:
+    while gid is not None and net.group_by_id[gid].within is not None:
+        gid = net.group_by_id[gid].within
+    return gid
+
+
+def _ref_top(net: ElectricalNetwork, ref: str) -> str | None:
+    return _top(net, net.node(ref).group if ref in net.node_by_id else ref)
+
+
+def _block_edges(net: ElectricalNetwork, members: frozenset[str]) -> list[Edge]:
+    return [e for e in net.edges if e.src_node in members or e.dst_node in members]
+
+
+def _signature(net: ElectricalNetwork, g: Group) -> tuple:
+    """The block's equipment, sub-groups and connections with ids, tags and route lengths left out: two blocks with the same
+    signature draw the same detail sheet."""
+    members = _members(net, g.id)
+    idx = {m: i for i, m in enumerate(members)}
+    subs = [h.id for h in net.groups if h.id != g.id and _top(net, h.id) == g.id]
+    gidx = {h: i for i, h in enumerate(subs)} | {g.id: -1}
+    groups = tuple((net.group_by_id[h].count, net.group_by_id[h].title, gidx[net.group_by_id[h].within]) for h in subs)
+
+    def spec(x: object) -> object:
+        return x.model_dump_json() if isinstance(x, BaseModel) else x
+
+    nodes = tuple(
+        (n.kind, spec(n.spec), n.symbol, n.count, gidx[n.group], n.voltage_v, n.modules_in_series, n.ports, tuple(sorted(n.attributes.items())), n.title)
+        for n in map(net.node, members)
+    )
+
+    def end(node: str, port: str) -> tuple:
+        return ("m", idx[node], port) if node in idx else ("x", node, port)
+
+    edges = tuple(
+        (end(e.src_node, e.src_port), end(e.dst_node, e.dst_port), e.service, spec(e.cable), e.runs, e.laying, e.derating)
+        for e in _block_edges(net, frozenset(members))
+    )
+    return groups, nodes, edges
+
+
+def block_classes(net: ElectricalNetwork) -> list[tuple[tuple[Group, ...], tuple[str, ...]]]:
+    """Block types grouped by signature, in network order: the blocks one TYPICAL detail sheet stands for and the sub-groups of
+    the first, which the sheet draws."""
+    out: dict[tuple, tuple[list[Group], tuple[str, ...]]] = {}
+    for g, subs in block_types(net):
+        out.setdefault(_signature(net, g), ([], subs))[0].append(g)
+    return [(tuple(gs), subs) for gs, subs in out.values()]
+
+
+def _class_of(net: ElectricalNetwork, sheet: Sheet) -> tuple[Group, ...]:
+    """The blocks a detail sheet stands for when it is TYPICAL for more than one."""
+    if sheet.kind is not SheetKind.SLD_DETAIL or not sheet.scope.nodes:
+        return ()
+    top = _ref_top(net, sheet.scope.nodes[0])
+    return next((gs for gs, _ in block_classes(net) if len(gs) > 1 and gs[0].id == top), ())
+
+
+def _drawn(net: ElectricalNetwork, sheet: Sheet, nodes: frozenset[str]) -> frozenset[str]:
+    """What a sheet draws of the nodes it owns: a TYPICAL sheet owns every block of its class (so cut conductors elsewhere point
+    to it) and draws the first."""
+    blocks = _class_of(net, sheet)
+    return frozenset(n for n in nodes if _top(net, net.node(n).group) == blocks[0].id) if blocks else nodes
+
+
+def _shown(project: Project, sheet: Sheet) -> Project:
+    """The project as a TYPICAL sheet shows it: a cable whose route length differs between the blocks gives the range in a remark."""
+    blocks = _class_of(project.network, sheet)
+    if not blocks:
+        return project
+    net = project.network
+    per_block = [_block_edges(net, frozenset(_members(net, g.id))) for g in blocks]
+    changed = {}
+    for k, e in enumerate(per_block[0]):
+        lengths = {es[k].length_m for es in per_block}
+        if len(lengths) > 1 and None not in lengths:
+            span = f"L = {min(lengths):g}..{max(lengths):g} m across the blocks; see the cable schedule"
+            changed[e.id] = e.model_copy(update={"length_m": None, "remarks": f"{e.remarks}; {span}" if e.remarks else span})
+    if not changed:
+        return project
+    shown = ElectricalNetwork(groups=net.groups, nodes=net.nodes, edges=tuple(changed.get(e.id, e) for e in net.edges))
+    return project.model_copy(update={"network": shown})
+
+
 def _papers_from(first: str) -> tuple[str, ...]:
     return PAPERS[PAPERS.index(first):] if first in PAPERS else PAPERS
 
@@ -79,18 +165,24 @@ class SldBuilder:
         )]
         if base:
             fixed.add("sld")
-        for g, subs in blocks:
+        subs_of = {g.id: subs for g, subs in blocks}
+        for members, subs in block_classes(net):
+            g = members[0]
             old = numbers.reuse(SheetKind.SLD_DETAIL.value)
             name = annotate.prose(g.title) if g.title else "BLOCK"
             span = annotate.group_label(net, g)
             sid = f"sld_{g.id}"
+            if len(members) > 1:
+                title = f"TYPICAL {name} SLD FOR {', '.join(annotate.group_label(net, m) for m in members)}"
+            else:
+                title = f"TYPICAL {name} SLD ({span})" if span != name else f"TYPICAL {name} SLD"
             sheets.append(Sheet(
                 id=sid,
                 number=old.number if old else numbers.fresh(),
                 kind=SheetKind.SLD_DETAIL,
-                title=f"TYPICAL {name} SLD ({span})" if span != name else f"TYPICAL {name} SLD",
+                title=title,
                 paper=old.paper if old else profile.default_paper.value,
-                scope=SheetScope(nodes=subs),
+                scope=SheetScope(nodes=tuple(r for m in members for r in subs_of[m.id])),
                 revisions=old.revisions if old else (),
             ))
             if old:
@@ -116,12 +208,13 @@ class SldBuilder:
         while (todo := next((i for i, s in enumerate(sheets) if s.id not in settled), None)) is not None:
             s = sheets[todo]
             part = next(p for p in partition(net, sheets) if p.sheet_id == s.id)
+            drawn, shown = _drawn(net, s, part.nodes), _shown(project, s)
             papers = _papers_from(s.paper if s.id in fixed else smallest)
             target = self.options.min_scale if s.id in fixed else max(COMFORT, self.options.min_scale)
             scales = {}
             for paper in papers:
-                layout, _, scale = fit_layout(project, catalog, paper, part.nodes, self.options, part.xrefs)
-                roomy = paper == papers[-1] or not furniture_overflow(project, s.model_copy(update={"paper": paper}), layout, catalog, profile)
+                layout, _, scale = fit_layout(shown, catalog, paper, drawn, self.options, part.xrefs)
+                roomy = paper == papers[-1] or not furniture_overflow(shown, s.model_copy(update={"paper": paper}), layout, catalog, profile)
                 scales[paper] = scale if roomy else 0.0
                 if scales[paper] >= target:
                     break
@@ -131,7 +224,7 @@ class SldBuilder:
             if good or s.id in split:
                 continue
             area = metrics_for(PaperSize(papers[-1])).drawing_area
-            pages = plan_pages(net, catalog, area.width, area.height, self.options, part.nodes)
+            pages = plan_pages(shown.network, catalog, area.width, area.height, self.options, drawn)
             taken = {sid for sid in (x.id for x in sheets)}
             extra = []
             for pg in pages[1:]:
@@ -166,13 +259,14 @@ class SldBuilder:
               catalog: Catalog | None) -> list[BuiltSheet]:
         out = []
         for s, part in zip(sheets, partition(project.network, sheets)):
-            doc, res = render_sld(project, s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=part.nodes, xrefs=part.xrefs)
+            nodes = _drawn(project.network, s, part.nodes)
+            doc, res = render_sld(_shown(project, s), s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=nodes, xrefs=part.xrefs)
             marks = {o.symbol_id: o for o in res.layout.offsheets}
             refs = [
                 {"edge": o.edge_id, "node": o.node_id, "to_sheet": o.target, "text": dict(sym.values).get("DESC", "")}
                 for sym in res.layout.symbols if sym.role == "offsheet" and (o := marks.get(sym.id)) is not None
             ]
-            meta = {"nodes": sorted(part.nodes), "cut_edges": list(part.cut_edges), "cross_refs": refs, "readable": res.placement.readable}
+            meta = {"nodes": sorted(nodes), "cut_edges": list(part.cut_edges), "cross_refs": refs, "readable": res.placement.readable}
             out.append(BuiltSheet(s, doc, res.placement.scale, res.warnings, meta))
         return out
 
