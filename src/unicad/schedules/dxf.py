@@ -124,19 +124,23 @@ def _numbered(columns: tuple[Column, ...]) -> tuple[Column, ...]:
 
 
 def _sections(schedule: Schedule, services: frozenset[Service], detail: bool) -> list[TableSection]:
-    """Table sections of the given services, numbered continuously. Strings are summarised per combiner unless `detail`."""
+    """Table sections of the given services, numbered continuously. Strings are summarised per combiner unless `detail`. On a plant of
+    several blocks each DC block starts a page."""
     out: list[TableSection] = []
     sl = 0
+    blocks = {r.block for sec in schedule.sections if sec.service is Service.DC for r in sec.rows}
+    split = len(blocks) > 1 and "" not in blocks
+    prev = None
     for sec in schedule.sections:
         if sec.service not in services:
             continue
-        first = _first_block(sec)
-        for block, rows in _by_block(sec):
+        for block, rows in _by_block(sec, split):
             body = _summarise(rows) if rows[0].is_string and not detail else [_row_cells(r) for r in rows]
             numbered = tuple((str(sl + i + 1), *cells) for i, cells in enumerate(body))
             sl += len(body)
             title = sec.title if block is None else f"{sec.title} - {block}"
-            out.append(TableSection(title, numbered, page_break_before=block is not None and block != first))
+            out.append(TableSection(title, numbered, page_break_before=block is not None and prev is not None and block != prev))
+            prev = block
     return out
 
 
@@ -144,15 +148,11 @@ def _row_cells(r: CableRow) -> tuple[str, ...]:
     return _dc_row(r) if r.is_dc else _ac_row(r)
 
 
-def _first_block(sec: Section) -> str | None:
-    return next((r.block for r in sec.rows if r.block), None)
-
-
-def _by_block(sec: Section) -> list[tuple[str | None, list[CableRow]]]:
-    """Rows of a DC section split by block so each block starts a page; other sections stay whole."""
-    blocks = list(dict.fromkeys(r.block for r in sec.rows))
-    if sec.service is not Service.DC or len(blocks) < 2 or not all(blocks):
+def _by_block(sec: Section, split: bool) -> list[tuple[str | None, list[CableRow]]]:
+    """Rows of a DC section split by block (in order of first appearance) when the plant has several blocks; other sections stay whole."""
+    if sec.service is not Service.DC or not split:
         return [(None, list(sec.rows))]
+    blocks = list(dict.fromkeys(r.block for r in sec.rows))
     return [(b, [r for r in sec.rows if r.block == b]) for b in blocks]
 
 

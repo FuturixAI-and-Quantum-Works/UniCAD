@@ -99,9 +99,32 @@ def test_schedule_tables_summarise_strings_per_combiner_for_big_projects_and_lis
 def test_summarised_utility_schedule_breaks_pages_per_block():
     (_, dc), _ = schedule_tables(build_schedule(fixture("utility_50mwac"), CATALOG))
     strings = [s for s in dc.sections if "STRING" in s.title]
-    assert [s.title.rsplit(" - ", 1)[1] for s in strings] == [f"B0{i}" for i in range(1, 7)]
+    assert [s.title.rsplit(" - ", 1)[1] for s in strings] == [f"BLOCK-0{i}" for i in range(1, 7)]
     assert [s.page_break_before for s in strings] == [False] + [True] * 5
     assert all(len(s.rows) == 30 for s in strings)
+
+
+def test_layout_blocks_take_their_block_from_the_network_group_not_the_instance_index():
+    """close-e2e-1 follow-up: INV-06-03 of a layout block (a count-1 group) was put in B01 from its instance path."""
+    from test_design import blank
+    from test_design_p5 import GROUND_MODULE
+    from unicad.arrays import PlacementSpec, place_array
+    from unicad.design import autobuild
+    from unicad.ingest.site_import import import_site
+
+    site = import_site(ROOT / "fixtures" / "sites" / "ground_mount_rajasthan.kml", None).geometry
+    spec = PlacementSpec(module=GROUND_MODULE, table_rows=2, table_cols=28, tilt_deg=25, modules_per_string=28, strings_per_inverter=24, road_every_rows=12,
+                         block_dc_kwp=1560, target_dc_kwp=6240)  # fmt: skip
+    base = blank("utility_50mwac")
+    base = base.model_copy(update={"site": base.site.model_copy(update={"geometry": site})})
+    p = autobuild(base, CATALOG, {"template": "utility_string", "module": GROUND_MODULE, "inverter": "sungrow-sg350hx"}, layout=place_array(site, spec, CATALOG.get(GROUND_MODULE))).project
+    schedule = build_schedule(p, CATALOG)
+    strings = [r for r in schedule.rows if r.is_string]
+    assert {r.block for r in strings} == {f"BLOCK-0{i}" for i in range(1, 7)}
+    assert all(r.cable_id.startswith(f"INV-{r.block[-2:]}-") for r in strings)
+    (_, dc), _ = schedule_tables(schedule)
+    titled = [s.title.rsplit(" - ", 1)[-1] for s in dc.sections if "STRING" in s.title]
+    assert titled == [f"BLOCK-0{i}" for i in range(1, 7)]
 
 
 def test_schedule_pages_carry_the_project_title_block_and_continuous_numbering():

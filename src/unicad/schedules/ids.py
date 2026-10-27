@@ -81,12 +81,22 @@ class Ids:
         return None, None
 
     def block_of(self, node_id: str) -> str:
-        """'B01' style block label of the inverter downstream of `node_id`, or '' when there is none."""
+        """Tag of the block (a top-level group holding a transformer, e.g. 'BLOCK-06') of the inverter downstream of `node_id`, or ''
+        when there is none."""
         _, gen = self._roles(node_id)
         if gen is None:
             return ""
-        path = indices(gen)
-        return f"B{path[0] if len(path) >= 2 else 1:02d}"
+        net = self.project.network
+        base, _, suffix = gen.partition("@")
+        gid = net.node(base).group
+        if gid is None:
+            return ""
+        while (g := net.group_by_id[gid]).within is not None:
+            gid = g.within
+        if not any(n.group == g.id and n.kind is NodeKind.TRANSFORMER for n in net.nodes):
+            return ""
+        path = tuple(int(i) for i in suffix.split(".")) if suffix else ()
+        return g.tag.format(*path[: int(g.count > 1)])
 
     def string_id(self, string_id: str) -> StringId:
         combiner, gen = self._roles(string_id)
