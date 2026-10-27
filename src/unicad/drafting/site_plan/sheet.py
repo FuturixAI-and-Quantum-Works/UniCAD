@@ -368,10 +368,11 @@ class LayoutSheetWriter:
             xs, ys = [p[0] for p in pts], [p[1] for p in pts]
             self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
 
-    def _feature_labels(self, P: _Plan, compact: bool) -> None:
+    def _feature_labels(self, P: _Plan, compact: bool | None = None) -> None:
+        """Labels of the compact features (`compact`), of the others (`not compact`) or of all in feature order (None)."""
         feats = [f for f in self.d.site.features if self.view == "site" or f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)]
         for f in feats:
-            if (f.kind in COMPACT) is not compact:
+            if compact is not None and (f.kind in COMPACT) is not compact:
                 continue
             if f.kind in (FeatureKind.WATER, FeatureKind.EXCLUSION, FeatureKind.TRANSMISSION_LINE, FeatureKind.ROAD, FeatureKind.BUILDING, FeatureKind.ROOF) or (
                 f.kind is FeatureKind.OBSTACLE and self.view == "roofs"

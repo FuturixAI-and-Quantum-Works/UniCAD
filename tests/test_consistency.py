@@ -249,3 +249,12 @@ def test_the_server_keeps_ezdxf_bookkeeping_off_stderr(tmp_path):
 
     asyncio.run(asyncio.wait_for(run(), 300))
     assert "dictionary" not in log.read_text()
+
+
+def test_the_sld_parameters_and_the_bom_count_the_strings_the_network_defines(projects, tmp_path):
+    p = projects["rooftop"]
+    index, by_kind = render(p, tmp_path, ("sld", "bom"))
+    strings = len(string_instances(p.network))
+    in_series = p.network.node(p.network.by_kind(NodeKind.PV_STRING)[0].id).modules_in_series
+    assert f"{strings} x {in_series} MODULES" in {t for page in by_kind["sld"] for t in page}
+    assert f"{strings} STRINGS OF {in_series}" in {t for page in by_kind["bom"] for t in page}
