@@ -1,6 +1,6 @@
 from collections import Counter
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -23,9 +23,9 @@ from unicad.domain.site import (
 )
 from unicad.ingest.site_common import Georef, ParsedSite, Placed, RawFeature, place
 from unicad.ingest.site_coords import CoordinateSystem
-from unicad.ingest.site_dxf import UNIT_NAMES
-from unicad.ingest.site_import import FORMATS, import_site
+from unicad.ingest.site_import import import_site
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import DrawingUnitArg, SiteFormatArg, values
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Problem, Workspace
 
@@ -164,12 +164,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def site_import(
         project_id: ProjectIdArg,
         file_path: Annotated[str, Field(description="Path to a .kml, .kmz, .geojson, .dxf or coordinate-list (.csv/.txt) file on the machine running the server")],
-        format: Annotated[Literal[FORMATS] | None, Field(description="File format; guessed from the extension when omitted")] = None,
+        format: SiteFormatArg = None,
         kind_mapping: KindMappingArg = None,
         origin_lon: OriginLon = None,
         origin_lat: OriginLat = None,
         source_crs: Annotated[str | None, Field(description="EPSG code when a DXF or coordinate list holds projected metres, e.g. 'EPSG:32643'; omit for local metres")] = None,
-        units: Annotated[Literal[tuple(UNIT_NAMES)] | None, Field(description="Drawing units of a DXF without a usable $INSUNITS")] = None,
+        units: DrawingUnitArg = None,
         coordinate_system: Annotated[CoordinateSystem | None, Field(description="Coordinate lists only: lonlat, latlon or local (metres). Guessed when omitted")] = None,
         replace: Annotated[bool, Field(description="Discard the existing site geometry first and start a new local frame")] = False,
     ) -> dict[str, Any]:
@@ -198,15 +198,15 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def site_set_feature(
         project_id: ProjectIdArg,
         id: Annotated[str, Field(description="Feature id (letters, digits, '_', '-', '.'); an existing id is replaced")],
-        kind: Annotated[FeatureKind, Field(description="Feature kind; 'switchyard' marks the MV switchyard area that layout, routing and earthing use")],
+        kind: Annotated[FeatureKind, Field(description=f"Feature kind: {values(FeatureKind)}; 'switchyard' marks the MV switchyard area that layout, routing and earthing use")],
         coordinates: Annotated[list[list[float]], Field(min_length=2, description="Points as [x, y] pairs: local metres, or [lon, lat] when coordinate_system='lonlat'. Do not repeat the first point at the end")],
         coordinate_system: Annotated[CoordinateSystem, Field(description="'local' (metres in the site frame), 'lonlat' (degrees) or 'latlon'")] = "local",
         closed: Annotated[bool | None, Field(description="Polygon (true) or open path (false). Default: polygon, except road, setback_line and transmission_line which default to a path")] = None,
         holes: Annotated[list[list[list[float]]] | None, Field(description="Inner rings of a polygon, same coordinate system")] = None,
         name: str | None = None,
-        height_m: Annotated[float | None, Field(ge=0, description="Height above the roof or ground, for roofs and obstacles")] = None,
-        width_m: Annotated[float | None, Field(gt=0, description="Corridor width of a road, setback line or transmission line path")] = None,
-        setback_m: Annotated[float | None, Field(ge=0, description="Clearance to keep around this feature (inset for boundary and roof), replacing the project default")] = None,
+        height_m: Annotated[float | None, Field(ge=0, description="Height in metres above the roof or ground, for roofs and obstacles")] = None,
+        width_m: Annotated[float | None, Field(gt=0, description="Corridor width in metres of a road, setback line or transmission line path")] = None,
+        setback_m: Annotated[float | None, Field(ge=0, description="Clearance in metres to keep around this feature (inset for boundary and roof), replacing the project default")] = None,
         attributes: dict[str, str | int | float | bool] | None = None,
         origin_lon: OriginLon = None,
         origin_lat: OriginLat = None,
@@ -264,10 +264,10 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def site_set_setbacks(
         project_id: ProjectIdArg,
-        boundary_m: Annotated[float | None, Field(ge=0, description="Clearance inside the site boundary, e.g. for a perimeter fence road")] = None,
-        roof_edge_m: Annotated[float | None, Field(ge=0, description="Clearance inside each roof edge")] = None,
-        exclusion_m: Annotated[float | None, Field(ge=0, description="Clearance around exclusions, water, buildings, existing structures and road or line corridors")] = None,
-        obstacle_m: Annotated[float | None, Field(ge=0, description="Clearance around obstacles such as roof units")] = None,
+        boundary_m: Annotated[float | None, Field(ge=0, description="Clearance in metres inside the site boundary, e.g. for a perimeter fence road")] = None,
+        roof_edge_m: Annotated[float | None, Field(ge=0, description="Clearance in metres inside each roof edge")] = None,
+        exclusion_m: Annotated[float | None, Field(ge=0, description="Clearance in metres around exclusions, water, buildings, existing structures and road or line corridors")] = None,
+        obstacle_m: Annotated[float | None, Field(ge=0, description="Clearance in metres around obstacles such as roof units")] = None,
     ) -> dict[str, Any]:
         """Set the default clearances used for buildable area. Values you omit keep their stored value (initially 0). Take the distances from the design basis or the authority's rules; none are assumed.
 
@@ -294,10 +294,10 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def site_summary(
         project_id: ProjectIdArg,
         revision: RevisionArg = None,
-        boundary_setback_m: Annotated[float | None, Field(ge=0, description="Trial boundary clearance; not stored")] = None,
-        roof_edge_setback_m: Annotated[float | None, Field(ge=0, description="Trial roof edge clearance; not stored")] = None,
-        exclusion_setback_m: Annotated[float | None, Field(ge=0, description="Trial exclusion clearance; not stored")] = None,
-        obstacle_setback_m: Annotated[float | None, Field(ge=0, description="Trial obstacle clearance; not stored")] = None,
+        boundary_setback_m: Annotated[float | None, Field(ge=0, description="Trial boundary clearance in metres; not stored")] = None,
+        roof_edge_setback_m: Annotated[float | None, Field(ge=0, description="Trial roof edge clearance in metres; not stored")] = None,
+        exclusion_setback_m: Annotated[float | None, Field(ge=0, description="Trial exclusion clearance in metres; not stored")] = None,
+        obstacle_setback_m: Annotated[float | None, Field(ge=0, description="Trial obstacle clearance in metres; not stored")] = None,
     ) -> dict[str, Any]:
         """Site geometry summary: frame, feature counts, areas in m2 and acres, buildable area after setbacks, and warnings. Setback arguments try other clearances without storing them.
 

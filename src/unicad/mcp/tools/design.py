@@ -65,7 +65,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         metering: Annotated[Literal["net", "abt"], Field(description="C&I HT metering: net or ABT")] = "net",
         block_switch: Annotated[Literal["vcb", "rmu"], Field(description="Switch on each block transformer's HV side")] = "vcb",
         auxiliary: Annotated[bool, Field(description="Add block and plant auxiliary transformers")] = True,
-        export_limit_kw: Annotated[float | None, Field(gt=0, description="Sanctioned export capacity, recorded on the POI")] = None,
+        export_limit_kw: Annotated[float | None, Field(gt=0, description="Sanctioned export capacity in kW, recorded on the POI")] = None,
         bess_kw: Annotated[float | None, Field(gt=0, description="Storage power in kW (bess_dc, hybrid)")] = None,
         bess_kwh: Annotated[float | None, Field(gt=0, description="Storage energy in kWh")] = None,
         pcs: Annotated[str | None, Field(description="Catalog PCS id")] = None,

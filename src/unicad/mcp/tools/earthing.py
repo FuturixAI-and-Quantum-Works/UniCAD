@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -8,6 +8,7 @@ from unicad.domain.project import EarthingBasis, LpsBasis, Project
 from unicad.earthing import design_earthing, summary
 from unicad.lps import coverage_points, design_lps
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import LpsLevelArg, LpsMethodArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Workspace
 
@@ -53,7 +54,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         corrosion_allowance: Annotated[float | None, Field(ge=0, lt=5, description="Extra cross-section for corrosion, e.g. 0.2 for 20 %; default 0")] = None,
         tables_per_pit: Annotated[int | None, Field(gt=0, description="Ground-mount arrays: at least one array pit per this many tables; default 20")] = None,
         surface_resistivity: Annotated[float | None, Field(gt=0, description="Switchyard surface layer (crushed rock) resistivity, ohm m")] = None,
-        surface_layer_m: Annotated[float | None, Field(gt=0, description="Switchyard surface layer thickness")] = None,
+        surface_layer_m: Annotated[float | None, Field(gt=0, description="Switchyard surface layer thickness in metres")] = None,
         switchyard_m: Annotated[tuple[float, float] | None, Field(description="MV switchyard earth grid length x width in m, from the substation layout; "
                                 "needed for the IEEE 80 touch and step check unless the site marks a switchyard area")] = None,  # fmt: skip
     ) -> dict[str, Any]:
@@ -88,12 +89,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def lps_design(
         project_id: ProjectIdArg,
-        method: Annotated[Literal["ese", "rod"], Field(description="ese (early streamer emission, NF C 17-102) or rod (conventional air terminal, rolling sphere)")],
-        level: Annotated[Literal["I", "II", "III", "IV"], Field(description="Lightning protection level from the IS/IEC 62305-2 risk assessment")],
-        ese_radius_m: Annotated[float | None, Field(gt=0, description="ESE protection radius from the terminal datasheet for this level and height")] = None,
-        ese_delta_t_us: Annotated[float | None, Field(gt=0, le=60, description="ESE efficiency dT from the test certificate (radius computed by NF C 17-102)")] = None,
-        mast_height_m: Annotated[float | None, Field(gt=0, description="Terminal height above the protected plane (ESE) or rod height")] = None,
-        protected_height_m: Annotated[float | None, Field(ge=0, description="Height to protect for rods (table top or roof plant)")] = None,
+        method: LpsMethodArg,
+        level: LpsLevelArg,
+        ese_radius_m: Annotated[float | None, Field(gt=0, description="ESE protection radius in metres from the terminal datasheet for this level and height")] = None,
+        ese_delta_t_us: Annotated[float | None, Field(gt=0, le=60, description="ESE efficiency dT in microseconds (µs) from the test certificate (radius computed by NF C 17-102)")] = None,
+        mast_height_m: Annotated[float | None, Field(gt=0, description="Terminal height in metres above the protected plane (ESE) or rod height")] = None,
+        protected_height_m: Annotated[float | None, Field(ge=0, description="Height in metres to protect for rods (table top or roof plant)")] = None,
     ) -> dict[str, Any]:
         """Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
         inverter station and roof corner inside a protection zone, and prove it. ESE follows NF C 17-102, a French standard used in Indian

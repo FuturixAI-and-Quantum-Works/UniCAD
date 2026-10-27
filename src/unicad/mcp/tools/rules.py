@@ -6,10 +6,10 @@ from pydantic import Field
 
 from unicad.domain.project import IssuedFor
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import RuleFamiliesArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
 from unicad.rules import REGISTRY, Finding, Severity, explain, issue_gate, run_rules
-from unicad.rules import families as rule_families
 from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
@@ -59,7 +59,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def validate(
         project_id: ProjectIdArg,
-        families: Annotated[list[Literal[rule_families()]] | None, Field(description="Rule families to run; omit for all")] = None,
+        families: RuleFamiliesArg = None,
         include_info: Annotated[bool, Field(description="Also list info findings (segment voltage drops, unstated deratings); they are always counted.")] = False,
         revision: RevisionArg = None,
     ) -> dict[str, Any]:

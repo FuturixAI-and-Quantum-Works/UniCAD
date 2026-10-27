@@ -18,7 +18,7 @@ from unicad.ingest.site_dxf import UNIT_NAMES
 from unicad.ingest.site_import import FORMATS
 from unicad.mcp import Config, build_server, schema
 from unicad.mcp.tools.catalog import KINDS
-from unicad.rules import families
+from unicad.rules import REGISTRY, families
 from unicad.sets import ALL_KINDS
 
 
@@ -58,24 +58,17 @@ ENUMS: dict[tuple[str, str], set[str]] = {
     ("layout_place", "fill"): names(FillOrder),
     ("layout_place", "regions"): {"auto", "ground", "roofs"},
     ("validate", "families"): set(families()),
+    ("explain_finding", "rule_id"): set(REGISTRY),
     ("site_import", "format"): set(FORMATS),
     ("site_import", "units"): set(UNIT_NAMES),
 }
 
 NETWORK_UPDATE_FIELDS = {"kind": NODE_KINDS, "service": SERVICES, "laying": LAYINGS}
 
-# Enum-valued parameters still typed as a plain string in tool modules g3 does not own. Each is fixed by importing the alias of the
-# same meaning from unicad.mcp.schema (MountingArg, PitchMethodArg, FillOrderArg, RegionModeArg, RuleFamiliesArg, SiteFormatArg,
-# DrawingUnitArg); the xfail then turns into a pass and its entry is deleted.
-PENDING_G2 = {
-    ("layout_place", "mounting"), ("layout_place", "pitch_method"), ("layout_place", "fill"), ("layout_place", "regions"),
-    ("validate", "families"), ("site_import", "format"), ("site_import", "units"),
-}  # fmt: skip
-
 FREE_TEXT = {
     "bom.out_dir", "cable_schedule.out_dir", "catalog_get.id", "catalog_search.manufacturer", "catalog_search.text", "company_assign.profile_id", "company_get.profile_id",
     "company_onboard.answers", "company_onboard.dxf_path", "company_preview_sheet.profile_id", "company_update.profile_id", "design_strings.inverter", "design_strings.module",
-    "drawings_preview.sheet", "explain_finding.rule_id", "explain_finding.subject", "layout_blocks.block", "layout_place.module", "network_add_group.id", "network_add_group.tag",
+    "drawings_preview.sheet", "explain_finding.subject", "layout_blocks.block", "layout_place.module", "network_add_group.id", "network_add_group.tag",
     "network_add_group.title", "network_add_group.within", "network_add_node.group", "network_add_node.id", "network_add_node.ports", "network_add_node.spec",
     "network_add_node.symbol", "network_add_node.tag", "network_add_node.title", "network_autobuild.battery", "network_autobuild.inverter", "network_autobuild.module",
     "network_autobuild.pcs", "network_connect.cable", "network_connect.dst", "network_connect.edge_id", "network_connect.remarks", "network_connect.src", "network_remove.ids",
@@ -116,21 +109,14 @@ def lookup(tool: str, param: str) -> tuple[dict, dict]:
     return sch["properties"][param], sch.get("$defs", {})
 
 
-def enum_cases():
-    for key, expected in ENUMS.items():
-        marks = [pytest.mark.xfail(reason="tool module owned by g2: adopt the alias from unicad.mcp.schema", strict=False)] if key in PENDING_G2 else []
-        yield pytest.param(*key, expected, id=".".join(key), marks=marks)
-
-
-@pytest.mark.parametrize("tool, param, expected", list(enum_cases()))
+@pytest.mark.parametrize("tool, param, expected", [pytest.param(*key, expected, id=".".join(key)) for key, expected in ENUMS.items()])
 def test_enum_valued_parameter_declares_exactly_the_values_the_tool_accepts(tool, param, expected):
     prop, defs = lookup(tool, param)
     allowed, _ = resolve(prop, defs)
     assert allowed == expected, f"{tool}.{param} is not an enum of {sorted(expected)}"
 
 
-PENDING_DESCRIPTIONS_G2 = {("lps_design", "level"), ("project_create", "segment")}  # adopt LpsLevelArg, SegmentArg from unicad.mcp.schema
-LISTED = [k for k in ENUMS if k not in PENDING_G2 | PENDING_DESCRIPTIONS_G2 and (len(ENUMS[k]) <= 12 or k == ("network_add_node", "kind"))]
+LISTED = [k for k in ENUMS if len(ENUMS[k]) <= 12 or k == ("network_add_node", "kind")]
 
 
 @pytest.mark.parametrize("tool, param", LISTED)
@@ -177,24 +163,13 @@ UNIT_PATTERNS = {
     "_m": r"\bm\b|metre|meter", "_mm": r"\bmm\b", "_kw": r"kW", "_kwp": r"kWp", "_kwh": r"kWh", "_kva": r"kVA", "_v": r"\bV\b|volt", "_ka": r"kA",
     "_deg": r"deg|°", "_pct": r"%", "_s": r"\bs\b|second", "_us": r"µs|\bus\b|microsecond", "_ohm": r"ohm", "_kv": r"kV", "_c": r"°C",
 }  # fmt: skip
-PENDING_UNITS_G2 = {
-    ("network_autobuild", "export_limit_kw"), ("earthing_design", "surface_layer_m"), ("lps_design", "ese_radius_m"), ("lps_design", "ese_delta_t_us"),
-    ("lps_design", "mast_height_m"), ("lps_design", "protected_height_m"), ("layout_place", "tilt_deg"), ("layout_place", "azimuth_deg"),
-    ("layout_place", "axis_azimuth_deg"), ("layout_place", "pitch_m"), ("layout_place", "row_gap_m"), ("layout_place", "target_dc_kwp"),
-    ("layout_place", "block_dc_kwp"), ("site_set_feature", "height_m"), ("site_set_feature", "width_m"), ("site_set_feature", "setback_m"),
-    ("site_set_setbacks", "roof_edge_m"), ("site_set_setbacks", "exclusion_m"), ("site_set_setbacks", "obstacle_m"), ("site_summary", "boundary_setback_m"),
-    ("site_summary", "roof_edge_setback_m"), ("site_summary", "exclusion_setback_m"), ("site_summary", "obstacle_setback_m"),
-}  # fmt: skip
-
-
 def unit_cases():
     for tool, sch in SCHEMAS.items():
         for param, prop in sch["properties"].items():
             numeric = "number" in str(prop) or "integer" in str(prop)
             suffix = next((s for s in sorted(UNIT_PATTERNS, key=len, reverse=True) if param.endswith(s)), None)
             if numeric and suffix:
-                marks = [pytest.mark.xfail(reason="tool module owned by g2: name the unit in the description", strict=False)] if (tool, param) in PENDING_UNITS_G2 else []
-                yield pytest.param(tool, param, UNIT_PATTERNS[suffix], id=f"{tool}.{param}", marks=marks)
+                yield pytest.param(tool, param, UNIT_PATTERNS[suffix], id=f"{tool}.{param}")
 
 
 @pytest.mark.parametrize("tool, param, pattern", list(unit_cases()))

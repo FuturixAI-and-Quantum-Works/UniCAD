@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -13,6 +13,7 @@ from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
 from unicad.domain.site import SiteGeometry
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import FillOrderArg, MountingArg, PitchMethodArg, RegionModeArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Problem, Workspace
 
@@ -127,17 +128,17 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def layout_place(
         project_id: ProjectIdArg,
         module: Annotated[str, Field(description="Catalog id of the PV module, e.g. 'waaree-bi-55-540'")],
-        mounting: Annotated[Literal["fixed_tilt", "tracker_1p", "rooftop_flush", "rooftop_tilted", "carport"], Field(description="Mounting structure")] = "fixed_tilt",
+        mounting: MountingArg = "fixed_tilt",
         table_rows: Annotated[int, Field(gt=0, description="Modules across a table (2 for 2P, 1 for a 1P tracker)")] = 2,
         table_cols: Annotated[int | None, Field(gt=0, description="Modules along a table or tracker; default the string length (modules_per_string), else 28")] = None,
         orientation: Annotated[Orientation, Field(description="portrait or landscape")] = Orientation.PORTRAIT,
-        tilt_deg: Annotated[float, Field(ge=0, le=60, description="Fixed tilt; 0 for trackers and flat roofs")] = 0.0,
-        azimuth_deg: Annotated[float, Field(ge=0, lt=360, description="Direction the modules face, clockwise from grid north; 180 = south")] = 180.0,
-        axis_azimuth_deg: Annotated[float, Field(ge=0, lt=180, description="Tracker axis direction; 0 = north-south")] = 0.0,
-        pitch_method: Annotated[Literal["solstice", "explicit", "gcr", "gap"], Field(description="solstice (shade-free 09:00-15:00 solar time on the winter solstice), explicit (pitch_m), gcr (gcr) or gap (row_gap_m)")] = "solstice",
-        pitch_m: Annotated[Metres, Field(description="Row-to-row pitch for pitch_method='explicit'")] = None,
+        tilt_deg: Annotated[float, Field(ge=0, le=60, description="Fixed tilt in degrees from horizontal; 0 for trackers and flat roofs")] = 0.0,
+        azimuth_deg: Annotated[float, Field(ge=0, lt=360, description="Direction the modules face in degrees, clockwise from grid north; 180 = south")] = 180.0,
+        axis_azimuth_deg: Annotated[float, Field(ge=0, lt=180, description="Tracker axis direction in degrees, clockwise from grid north; 0 = north-south")] = 0.0,
+        pitch_method: PitchMethodArg = "solstice",
+        pitch_m: Annotated[Metres, Field(description="Row-to-row pitch in metres for pitch_method='explicit'")] = None,
         gcr: Annotated[float | None, Field(gt=0, lt=1, description="Ground coverage ratio for pitch_method='gcr'")] = None,
-        row_gap_m: Annotated[float | None, Field(ge=0, description="Clear gap between rows for pitch_method='gap'")] = None,
+        row_gap_m: Annotated[float | None, Field(ge=0, description="Clear gap between rows in metres for pitch_method='gap'")] = None,
         half_tables: Annotated[bool, Field(description="Fill edges with half tables (only where a half table holds whole strings, unless half_cols is given)")] = True,
         half_cols: Annotated[int | None, Field(gt=0, description="Modules along a half table; default the longest shorter table that holds whole strings")] = None,
         table_gap_m: Annotated[float | None, Field(ge=0, description="Gap between tables along a row (default 1.5 m on the ground, 0.6 m maintenance walkway on roofs; reported as an assumption)")] = None,
@@ -146,15 +147,15 @@ def register(server: MCPServer, ws: Workspace) -> None:
         road_width_m: Annotated[Metres, Field(description="Internal road width (default 6 m)")] = None,
         walkway_every_tables: Annotated[int | None, Field(gt=0, description="Leave a walkway after every N tables along a row")] = None,
         walkway_width_m: Annotated[Metres, Field(description="Walkway width (default 4 m)")] = None,
-        target_dc_kwp: Annotated[float | None, Field(gt=0, description="Stop at this DC capacity instead of filling the site")] = None,
-        fill: Annotated[Literal["rows", "nearest"], Field(description="With a target: 'rows' (front rows first) or 'nearest' (closest to fill_from)")] = "rows",
+        target_dc_kwp: Annotated[float | None, Field(gt=0, description="Stop at this DC capacity in kWp instead of filling the site")] = None,
+        fill: FillOrderArg = "rows",
         fill_from_x: Annotated[float | None, Field(description="Local x (m) of the point to fill around, e.g. the pooling substation")] = None,
         fill_from_y: Annotated[float | None, Field(description="Local y (m) of the point to fill around")] = None,
         n_blocks: Annotated[int | None, Field(gt=0, description="Number of inverter blocks")] = None,
-        block_dc_kwp: Annotated[float | None, Field(gt=0, description="Largest DC capacity per block; the block count is rounded up from it")] = None,
+        block_dc_kwp: Annotated[float | None, Field(gt=0, description="Largest DC capacity per block in kWp; the block count is rounded up from it")] = None,
         modules_per_string: Annotated[int | None, Field(gt=0, description="Modules in series; default the network pv_string modules_in_series, else table_cols")] = None,
         strings_per_inverter: Annotated[int | None, Field(gt=0, description="Strings per inverter within a block (string inverters); default one inverter per block")] = None,
-        regions: Annotated[Literal["auto", "ground", "roofs"], Field(description="auto (roofs for rooftop mountings, else ground), ground or roofs")] = "auto",
+        regions: RegionModeArg = "auto",
         whole_inverters: Annotated[bool, Field(description="With strings_per_inverter: size every block to whole inverters and leave out the few remainder tables instead of adding a part-loaded inverter")] = True,
         station_x: Annotated[float | None, Field(description="Local x (m) of the inverter station for every block, e.g. a ground-level inverter room; default on the block (on a roof for rooftop arrays)")] = None,
         station_y: Annotated[float | None, Field(description="Local y (m) of the inverter station")] = None,

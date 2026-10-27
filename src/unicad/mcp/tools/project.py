@@ -6,8 +6,9 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
 
-from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, LpsBasis, NoctThermal, Party, Project, Segment, Site
+from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, LpsBasis, NoctThermal, Party, Project, Site
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import SegmentArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Workspace, counts
 from unicad.store import canonical_json
@@ -68,7 +69,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def project_create(
         name: Annotated[str, Field(description="Project title, e.g. '500 kWp Rooftop Solar PV Plant'")],
         client: Annotated[str, Field(description="Client company name")],
-        segment: Annotated[Segment, Field(description="Project segment")],
+        segment: SegmentArg,
         site: Annotated[str, Field(description="Site name, e.g. 'Demo Industries factory roof'")],
         grid_voltage_v: Annotated[float, Field(gt=0, description="Grid connection voltage in volts, e.g. 415 or 33000")],
         project_id: Annotated[str | None, Field(description="Lowercase id (letters, digits, '-', '_'); derived from name when omitted")] = None,
