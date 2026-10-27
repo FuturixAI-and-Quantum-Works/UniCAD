@@ -14,6 +14,7 @@ class Routed:
     lengths: dict[str, float] = field(default_factory=dict)
     roles: dict[str, str] = field(default_factory=dict)
     unresolved: dict[str, str] = field(default_factory=dict)
+    instances: dict[str, list[float]] = field(default_factory=dict)
     statements: tuple[str, ...] = ()
     notes: tuple[str, ...] = ()
 
@@ -29,6 +30,8 @@ def route(sized: Project, catalog: Catalog, edge_roles: dict[str, str], given_ro
     for eid, t in templates.items():
         out.lengths[eid] = round(t.maximum_m, 1)
         out.roles[eid] = edge_roles[eid]
+    for i in est.instances.values():
+        out.instances.setdefault(i.edge, []).append(i.effective_m)
     out.statements = est.assumptions
     return out
 

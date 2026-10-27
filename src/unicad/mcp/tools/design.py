@@ -42,7 +42,10 @@ def register(server: MCPServer, ws: Workspace) -> None:
 
         Returns the allowed modules-per-string range and the chosen length, string voltages at the coldest and hottest cell temperatures,
         strings per MPPT and per inverter (limit and the count nearest the DC/AC target), the DC/AC ratio achieved, which constraint binds
-        each quantity, and the margins to each limit. Example: design_strings(project_id="p1", module="waaree-bi-55-540", inverter="sungrow-sg110cx")."""
+        each quantity, and the margins to each limit. strings_per_inverter respects the string-fuse rule validate applies (pv_strings.string_fuses):
+        strings_per_mppt_unfused / strings_per_inverter_unfused are the most that need no fuse; string_fuses is 'optional' when the DC/AC target needs
+        more, with the trade-off in the assumptions (pass that strings_per_inverter to network_autobuild for a design with one gPV fuse per string).
+        Example: design_strings(project_id="p1", module="waaree-bi-55-540", inverter="sungrow-sg110cx")."""
         p, rev = ws.load(project_id, revision)
         d = size_strings(_spec(ws, module, ModuleSpec, "module"), _spec(ws, inverter, InverterSpec, "inverter"), p.design_basis, modules_per_string)
         return {"project_id": project_id, "revision": rev} | d.model_dump(mode="json")

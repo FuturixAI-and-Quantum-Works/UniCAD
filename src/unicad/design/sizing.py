@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import ProtectionSpec
-from unicad.domain.network import Edge, ElectricalNetwork, NetworkError, NodeKind, Service
+from unicad.domain.network import CableBand, Edge, ElectricalNetwork, NetworkError, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NodeHint
 from unicad.design.select import (
@@ -80,6 +80,14 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
     if role == "dc_isolator":
         voc = max(max_dc_voc(project, catalog, node_id) or 0.0, hint.voltage_v or 0.0)
         return pick_rated(catalog, ["dc_isolator"], amps, voc, hint.poles).id
+    if role == "string_fuse":
+        voc = max_dc_voc(project, catalog, node_id) or 0.0
+        fuse = pick_rated(catalog, ["fuse_gpv"], amps, voc, hint.poles)
+        feeds = [f for f in string_feeds(project, catalog) if node_id in f.path]
+        limit = min((f.module.max_series_fuse for f in feeds if f.module.max_series_fuse is not None), default=None)
+        if limit is not None and fuse.rated_current > limit:
+            raise NoFit(f"the smallest catalog gPV fuse rated >= {amps:.1f} A at {voc:.0f} V is {fuse.rated_current:g} A, above the module max series fuse {limit:g} A")
+        return fuse.id
     need = k * amps
     if role in ("lv_breaker", "vcb"):
         fault = prospective_fault(project, catalog, node_id)
@@ -243,6 +251,47 @@ def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s:
             return project
         project = _rebuild(project, edges=[changed.get(e.id, e) for e in net.edges])
     return project
+
+
+BAND_SERVICES = frozenset({Service.DC, Service.LV_AC})
+BANDS = (
+    "String and LT cables are sized per length band: each routed instance takes the smallest cable that carries the design current, withstands the fault "
+    "and whose voltage drop at its own routed length is at most the drop the template cable has at the worst-case length, so every instance stays within "
+    "the path limit the rules check on the worst case; the cable schedule and BOM list each instance with its band's cable."
+)
+
+
+def band_cables(s: Sizing, catalog: Catalog, hints: dict[str, EdgeHint], lengths: dict[str, list[float]]) -> Sizing:
+    """Give each multi-instance DC or LT edge with routed instance lengths the cable bands its shorter instances need (see BANDS)."""
+    project = s.project
+    net = project.network
+    edges = []
+    banded = 0
+    for e in net.edges:
+        ls = lengths.get(e.id)
+        cur = s.chosen.get(e.id)
+        if not ls or len(ls) < 2 or cur is None or e.service not in BAND_SERVICES or e.length_m is None or e.id not in hints:
+            edges.append(e)
+            continue
+        worst = _drop(project, catalog, e)
+        need = _need(project, catalog, e, hints[e.id], s)
+        cheaper = [o for o in _options(project, catalog, e, hints[e.id], s) if o.iz >= need - 1e-9 and o.cost < cur.cost]
+        per_m = {id(o): _drop(project, catalog, _apply(e, o)) / e.length_m for o in cheaper}
+        upto: dict[int, tuple[float, CableOption]] = {}
+        for length in ls:
+            up = math.ceil(length * 10 - 1e-9) / 10
+            o = next((o for o in cheaper if per_m[id(o)] * up <= worst + 1e-9), None)
+            if o is not None:
+                upto[id(o)] = (max(up, upto.get(id(o), (0.0, o))[0]), o)
+        bands = tuple(CableBand(upto_m=m, cable=o.cable.id, runs=o.runs) for m, o in sorted(upto.values(), key=lambda v: v[0]))
+        if bands:
+            banded += 1
+            e = e.model_copy(update={"bands": bands})
+        edges.append(e)
+    if banded:
+        s.project = _rebuild(project, edges=edges)
+        s.assumptions.append(BANDS)
+    return s
 
 
 def size_network(project: Project, catalog: Catalog, node_hints: dict[str, NodeHint], edge_hints: dict[str, EdgeHint]) -> Sizing:

@@ -244,8 +244,17 @@ class Node(_Frozen):
         return KIND_SYMBOLS.get(self.kind)
 
 
+class CableBand(_Frozen):
+    """A smaller cable for the instances of a template edge whose route is at most `upto_m`: sized for that length band, not the worst instance."""
+
+    upto_m: float = Field(gt=0)
+    cable: str
+    runs: int = Field(default=1, gt=0)
+
+
 class Edge(_Frozen):
-    """A connection or cable run. `runs` is the number of parallel runs; `length_m` is per instance."""
+    """A connection or cable run. `runs` is the number of parallel runs; `length_m` is per instance. `bands`, shortest first, give the cable of the
+    instances routed at most `upto_m`; instances longer than every band (and the rules' worst case at `length_m`) take `cable`."""
 
     id: Id
     src: Terminal
@@ -257,6 +266,13 @@ class Edge(_Frozen):
     laying: Laying | None = None
     derating: float | None = Field(default=None, gt=0, le=1)
     remarks: str | None = None
+    bands: tuple[CableBand, ...] = ()
+
+    def band_for(self, length_m: float | None) -> "CableBand | None":
+        """The band an instance routed `length_m` falls in, or None when it takes the edge's own cable."""
+        if length_m is None:
+            return None
+        return next((b for b in self.bands if length_m <= b.upto_m + 1e-6), None)
 
     @property
     def src_node(self) -> str:
@@ -439,15 +455,14 @@ class ElectricalNetwork(_Frozen):
             elif spec.kind == "protection" and spec.device not in PROTECTION_DEVICES[n.kind]:
                 problems.append(f"node {n.id!r} ({n.kind}) cannot use {spec.device} device {n.spec!r}")
         for e in self.edges:
-            if not isinstance(e.cable, str):
-                continue
-            try:
-                spec = catalog.get(e.cable)
-            except KeyError:
-                problems.append(f"edge {e.id!r} references unknown catalog id {e.cable!r}")
-                continue
-            if spec.kind != "cable":
-                problems.append(f"edge {e.id!r} cable {e.cable!r} is a {spec.kind}, not a cable")
+            for ref in ([e.cable] if isinstance(e.cable, str) else []) + [b.cable for b in e.bands]:
+                try:
+                    spec = catalog.get(ref)
+                except KeyError:
+                    problems.append(f"edge {e.id!r} references unknown catalog id {ref!r}")
+                    continue
+                if spec.kind != "cable":
+                    problems.append(f"edge {e.id!r} cable {ref!r} is a {spec.kind}, not a cable")
         return problems
 
     def check_catalog(self, catalog: "Catalog") -> None:

@@ -127,3 +127,59 @@ def missing_spec(project: Project, catalog: Catalog) -> Iterator[Finding]:
             yield Finding(rule_id="structure.missing_spec", severity=Severity.WARNING, subjects=(n.id,), message=f"{label(net, n.id)} ({n.kind}) has no catalog spec; its ratings cannot be checked")
         if n.kind is NodeKind.PV_STRING and n.modules_in_series is None:
             yield Finding(rule_id="structure.missing_spec", severity=Severity.ERROR, subjects=(n.id,), message=f"{label(net, n.id)} has no modules_in_series; string voltages cannot be checked")
+
+
+BESS_SEPARATION_M = 3.05
+BESS_SEPARATION_SOURCE = (
+    f"{BESS_SEPARATION_M:g} m: the 10 ft (3.05 m) clearance of outdoor ESS to exposures in IFC 2024 Section 1207.8.3 (as quoted in Mayfield Renewables, "
+    "'C&I BESS Outdoor Location per IFC 1207', 2025), applied with the switchyard taken as an exposure hazard (design assumption; no Indian code clearance is cited)."
+)
+BESS_PLACED = frozenset({"battery", "pcs", "transformer"})
+
+
+def switchyard_footprint(project: Project):
+    """The MV switchyard earth-mat footprint when its size is known: the area marked on the site, else switchyard_m centred on the layout's switchyard."""
+    from shapely.geometry import box
+
+    from unicad.arrays.siting import marked_switchyard
+
+    marked = marked_switchyard(project.site.geometry)
+    if marked is not None:
+        return marked[1]
+    layout, e = project.array_layout, project.design_basis.earthing
+    if layout is None or layout.switchyard is None or e is None or not e.switchyard_m:
+        return None
+    (x, y), (lx, ly) = (layout.switchyard.at.x, layout.switchyard.at.y), e.switchyard_m
+    return box(x - lx / 2, y - ly / 2, x + lx / 2, y + ly / 2)
+
+
+@rule("structure.bess_separation", "BESS units stand outside the switchyard with a fire separation")
+def bess_separation(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """Battery containers, PCS and BESS transformers placed on the layout must stand outside the MV switchyard earth mat and at least BESS_SEPARATION_M from
+    its edge (see the assumption for the source). Checked when the switchyard size is known (switchyard_m or a marked area): error when closer, with the
+    re-run that moves them (network_autobuild places BESS units clear of the switchyard)."""
+    from shapely.geometry import Point as ShapelyPoint
+
+    layout = project.array_layout
+    yard = switchyard_footprint(project)
+    if layout is None or yard is None:
+        return
+    for p in layout.equipment:
+        if p.kind not in BESS_PLACED or project.network.node_by_id.get(p.node.split("@")[0]) is None:
+            continue
+        node = project.network.node(p.node.split("@")[0])
+        if p.kind == "transformer" and not any(project.network.node(u).kind is NodeKind.PCS for u in project.network.upstream(node.id)):
+            continue
+        d = yard.exterior.distance(ShapelyPoint(p.at.x, p.at.y)) * (-1 if yard.contains(ShapelyPoint(p.at.x, p.at.y)) else 1)
+        if d >= BESS_SEPARATION_M - 1e-6:
+            continue
+        yield Finding(
+            rule_id="structure.bess_separation",
+            severity=Severity.ERROR,
+            subjects=(p.node,),
+            message=f"{p.tag} ({p.kind}) stands {'inside the switchyard earth mat' if d < 0 else f'{d:.1f} m from the switchyard edge'}; keep {BESS_SEPARATION_M:g} m clear: re-run network_autobuild (or pass bess_x/bess_y) after setting switchyard_m",
+            measured=round(d, 2),
+            limit=BESS_SEPARATION_M,
+            unit="m",
+            assumptions=(BESS_SEPARATION_SOURCE,),
+        )

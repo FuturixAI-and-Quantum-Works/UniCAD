@@ -42,6 +42,9 @@ class StringDesign(_Frozen):
     strings_per_mppt_max: int | None
     strings_per_inverter_max: int
     strings_per_inverter: int
+    strings_per_mppt_unfused: int | None = None
+    strings_per_inverter_unfused: int | None = None
+    string_fuses: str = "not_needed"
     dc_kwp_per_inverter: float
     dc_ac_ratio: float
     dc_ac_ratio_target: float
@@ -102,6 +105,22 @@ def strings_cap(module: ModuleSpec, inverter: InverterSpec) -> tuple[int | None,
     return None, total, min(caps, key=lambda k: (caps[k], k)), notes
 
 
+def unfused_per_mppt(module: ModuleSpec) -> int | None:
+    """Most strings in parallel on one MPPT without a fuse per string (pv_strings.string_fuses): two, or more while the reverse current
+    (Np - 1) x 1.25 x Isc stays within the module's maximum series fuse rating. None when the module gives no maximum series fuse."""
+    if module.max_series_fuse is None:
+        return None
+    n = 2
+    while (n * ISC_FACTOR.value * module.isc) <= module.max_series_fuse and n < 200:
+        n += 1
+    return n
+
+
+def fuses_needed(module: ModuleSpec, strings_per_mppt: int) -> bool:
+    limit = unfused_per_mppt(module)
+    return limit is not None and strings_per_mppt > limit
+
+
 def operating_cap(module: ModuleSpec, inverter: InverterSpec) -> int | None:
     """Most strings per inverter before the operating current Imp exceeds the inverter's input current rating (a clipping warning, not a limit)."""
     if inverter.topology != "central" and inverter.max_input_current_per_mppt is not None:
@@ -154,9 +173,25 @@ def size_strings(module: ModuleSpec, inverter: InverterSpec, basis: DesignBasis,
     assumptions += notes
     string_kw = n * module.pmax / 1000.0
     target = basis.dc_ac_ratio_target
-    s = max(1, min(s_max, round(target * inverter.ac_rated_kva / string_kw)))
+    want = round(target * inverter.ac_rated_kva / string_kw)
+    unfused = unfused_per_mppt(module) if per_mppt is not None else None
+    s_free = min(s_max, unfused * inverter.mppt_count) if unfused is not None else s_max
+    s = max(1, min(s_free, want))
     binding["strings_per_inverter_max"] = why
-    binding["strings_per_inverter"] = "dc_ac_ratio_target" if s < s_max else why
+    binding["strings_per_inverter"] = "dc_ac_ratio_target" if s < s_free else ("string_fuses (unfused limit)" if s_free < s_max else why)
+    fuses = "not_needed"
+    if unfused is not None and unfused < per_mppt:
+        fused_s = max(1, min(s_max, want))
+        if fused_s > s_free:
+            fuses = "optional"
+            assumptions.append(
+                f"String fuses: up to {unfused} strings per MPPT ({s_free} per inverter, {s_free * string_kw:.2f} kWp, DC/AC {s_free * string_kw / inverter.ac_rated_kva:.3f}) need no fuse, since the reverse "
+                f"current (Np - 1) x {ISC_FACTOR.value:g} x {module.isc:g} A stays within the {module.max_series_fuse:g} A max series fuse of {module.id} (pv_strings.string_fuses). The DC/AC target "
+                f"needs {fused_s} per inverter ({-(-fused_s // inverter.mppt_count)} per MPPT): pass strings_per_inverter={fused_s} to network_autobuild for a design with one gPV fuse per string "
+                f"in a string fuse box at the inverter (more parts and fuse losses, fewer inverters), or keep {s} without fuses."
+            )
+    elif unfused is None and per_mppt is not None and per_mppt > 2:
+        assumptions.append(f"{module.id} gives no max series fuse: whether strings above two per MPPT need fuses is not checked (pv_strings.string_fuses warns).")
     clip = operating_cap(module, inverter)
     if clip is not None and s > clip:
         binding["operating_current"] = f"above {clip} strings the inverter current-limits at high irradiance (pv_strings.operating_current warning); kept for the DC/AC target"
@@ -185,6 +220,9 @@ def size_strings(module: ModuleSpec, inverter: InverterSpec, basis: DesignBasis,
         strings_per_mppt_max=per_mppt,
         strings_per_inverter_max=s_max,
         strings_per_inverter=s,
+        strings_per_mppt_unfused=unfused,
+        strings_per_inverter_unfused=s_free if unfused is not None else None,
+        string_fuses=fuses,
         dc_kwp_per_inverter=round(s * string_kw, 3),
         dc_ac_ratio=round(s * string_kw / inverter.ac_rated_kva, 4),
         dc_ac_ratio_target=target,

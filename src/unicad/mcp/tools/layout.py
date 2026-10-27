@@ -5,7 +5,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from unicad.arrays import PlacementResult, PlacementSpec, block_summaries, place_array, plan_length, table_centre
+from unicad.arrays import FillOrder, PlacementResult, PlacementSpec, block_summaries, place_array, plan_length, table_centre
 from unicad.arrays.geometry import frame
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Orientation, StringAssignment
@@ -13,7 +13,7 @@ from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
 from unicad.domain.site import SiteGeometry
 from unicad.mcp.errors import guarded
-from unicad.mcp.schema import FillOrderArg, MountingArg, PitchMethodArg, RegionModeArg
+from unicad.mcp.schema import MountingArg, PitchMethodArg, RegionModeArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Problem, Workspace
 
@@ -147,8 +147,11 @@ def register(server: MCPServer, ws: Workspace) -> None:
         road_width_m: Annotated[Metres, Field(description="Internal road width (default 6 m)")] = None,
         walkway_every_tables: Annotated[int | None, Field(gt=0, description="Leave a walkway after every N tables along a row")] = None,
         walkway_width_m: Annotated[Metres, Field(description="Walkway width (default 4 m)")] = None,
+        row_walkway_every_rows: Annotated[int | None, Field(gt=0, description="Leave a maintenance walkway between rows after every N rows; on roofs the default is 2 when the rows stand closer than a walkway (reported as an assumption)")] = None,
+        row_walkway_m: Annotated[Metres, Field(description="Clear width of the walkway between rows in metres (default 0.6 m)")] = None,
         target_dc_kwp: Annotated[float | None, Field(gt=0, description="Stop at this DC capacity in kWp instead of filling the site")] = None,
-        fill: FillOrderArg = "rows",
+        fill: Annotated[FillOrder, Field(description="With a target: switchyard (default) grows the array from the switchyard (switchyard_x/y, an area marked on the site, "
+                                                     "else the site's transmission line) and falls back to rows; rows fills the front rows first; nearest fills closest to fill_from")] = FillOrder.SWITCHYARD,
         fill_from_x: Annotated[float | None, Field(description="Local x (m) of the point to fill around, e.g. the pooling substation")] = None,
         fill_from_y: Annotated[float | None, Field(description="Local y (m) of the point to fill around")] = None,
         n_blocks: Annotated[int | None, Field(gt=0, description="Number of inverter blocks")] = None,
@@ -179,6 +182,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 "pitch_m": pitch_m, "gcr": gcr, "row_gap_m": row_gap_m, "half_cols": half_cols, "table_gap_m": table_gap_m,
                 "module_gap_m": module_gap_m, "road_every_rows": road_every_rows, "road_width_m": road_width_m,
                 "walkway_every_tables": walkway_every_tables, "walkway_width_m": walkway_width_m, "target_dc_kwp": target_dc_kwp,
+                "row_walkway_every_rows": row_walkway_every_rows, "row_walkway_m": row_walkway_m,
                 "n_blocks": n_blocks, "block_dc_kwp": block_dc_kwp, "modules_per_string": mps, "strings_per_inverter": strings_per_inverter,
             }  # fmt: skip
             if (fill_from_x is None) != (fill_from_y is None):

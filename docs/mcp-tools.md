@@ -292,8 +292,10 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `road_width_m` | number | no | Internal road width (default 6 m) |
 | `walkway_every_tables` | integer | no | Leave a walkway after every N tables along a row |
 | `walkway_width_m` | number | no | Walkway width (default 4 m) |
+| `row_walkway_every_rows` | integer | no | Leave a maintenance walkway between rows after every N rows; on roofs the default is 2 when the rows stand closer than a walkway (reported as an assumption) |
+| `row_walkway_m` | number | no | Clear width of the walkway between rows in metres (default 0.6 m) |
 | `target_dc_kwp` | number | no | Stop at this DC capacity in kWp instead of filling the site |
-| `fill` | `rows` \| `nearest` | no | With a target: rows, nearest. rows fills the front rows first, nearest fills closest to fill_from Default: `rows`. |
+| `fill` | `switchyard` \| `rows` \| `nearest` | no | With a target: switchyard (default) grows the array from the switchyard (switchyard_x/y, an area marked on the site, else the site's transmission line) and falls back to rows; rows fills the front rows first; nearest fills closest to fill_from Default: `switchyard`. |
 | `fill_from_x` | number | no | Local x (m) of the point to fill around, e.g. the pooling substation |
 | `fill_from_y` | number | no | Local y (m) of the point to fill around |
 | `n_blocks` | integer | no | Number of inverter blocks |
@@ -344,7 +346,10 @@ Size PV strings for a module on an inverter against the project's design basis, 
 
 Returns the allowed modules-per-string range and the chosen length, string voltages at the coldest and hottest cell temperatures,
 strings per MPPT and per inverter (limit and the count nearest the DC/AC target), the DC/AC ratio achieved, which constraint binds
-each quantity, and the margins to each limit. Example: design_strings(project_id="p1", module="waaree-bi-55-540", inverter="sungrow-sg110cx").
+each quantity, and the margins to each limit. strings_per_inverter respects the string-fuse rule validate applies (pv_strings.string_fuses):
+strings_per_mppt_unfused / strings_per_inverter_unfused are the most that need no fuse; string_fuses is 'optional' when the DC/AC target needs
+more, with the trade-off in the assumptions (pass that strings_per_inverter to network_autobuild for a design with one gPV fuse per string).
+Example: design_strings(project_id="p1", module="waaree-bi-55-540", inverter="sungrow-sg110cx").
 
 Read-only.
 
@@ -525,7 +530,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `rule_id` | `structure.unconnected_port` \| `structure.path_to_poi` \| `structure.inverter_ac_voltage` \| `structure.transformer_voltage` \| `structure.missing_spec` \| `pv_strings.voc_max` \| `pv_strings.hot_cell` \| `pv_strings.vmp_min` \| `pv_strings.start_voltage` \| `pv_strings.vmp_max` \| `pv_strings.inputs` \| `pv_strings.isc_per_mppt` \| `pv_strings.operating_current` \| `pv_strings.string_fuses` \| `ratio.dc_ac_inverter` \| `ratio.dc_ac_plant` \| `ratio.export_limit` \| `protection.rated_current` \| `protection.breaking_capacity` \| `protection.fault_level` \| `protection.rated_voltage` \| `protection.spd_dc` \| `protection.spd_ac` \| `protection.earthing` \| `protection.string_fuse_rating` \| `cables.missing` \| `cables.ampacity` \| `cables.protection` \| `cables.short_circuit` \| `vdrop.dc` \| `vdrop.ac` \| `earthing.conductor_size` \| `earthing.electrode_resistance` \| `earthing.touch_step` \| `earthing.every_equipment_bonded` \| `lps.coverage` | yes | Rule id from validate, e.g. 'cables.ampacity' |
+| `rule_id` | `structure.unconnected_port` \| `structure.path_to_poi` \| `structure.inverter_ac_voltage` \| `structure.transformer_voltage` \| `structure.missing_spec` \| `structure.bess_separation` \| `pv_strings.voc_max` \| `pv_strings.hot_cell` \| `pv_strings.vmp_min` \| `pv_strings.start_voltage` \| `pv_strings.vmp_max` \| `pv_strings.inputs` \| `pv_strings.isc_per_mppt` \| `pv_strings.operating_current` \| `pv_strings.string_fuses` \| `ratio.dc_ac_inverter` \| `ratio.dc_ac_plant` \| `ratio.export_limit` \| `protection.rated_current` \| `protection.breaking_capacity` \| `protection.fault_level` \| `protection.rated_voltage` \| `protection.spd_dc` \| `protection.spd_ac` \| `protection.spd_ac_poles` \| `protection.earthing` \| `protection.string_fuse_rating` \| `protection.mv_cable` \| `protection.transformer_feed` \| `cables.missing` \| `cables.ampacity` \| `cables.protection` \| `cables.short_circuit` \| `vdrop.dc` \| `vdrop.ac` \| `vdrop.bands` \| `earthing.conductor_size` \| `earthing.electrode_resistance` \| `earthing.touch_step` \| `earthing.every_equipment_bonded` \| `lps.coverage` | yes | Rule id from validate, e.g. 'cables.ampacity' |
 | `subject` | string | yes | One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb' |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 

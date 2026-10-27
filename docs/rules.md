@@ -53,6 +53,14 @@ Standard: none (design practice). Segments: all.
 
 Strings, inverters, PCS, batteries and transformers need a catalog spec (and strings a module count) for the engineering rules to run, and breakers, vacuum breakers and fuses one so their current and breaking capacity can be checked against the design current and the prospective fault: missing ones are errors. Isolators, SPDs and meters without a spec cannot be rating-checked: warnings.
 
+### `structure.bess_separation`: BESS units stand outside the switchyard with a fire separation
+
+Standard: none (design practice). Segments: all.
+
+Battery containers, PCS and BESS transformers placed on the layout must stand outside the MV switchyard earth mat and at least BESS_SEPARATION_M from
+its edge (see the assumption for the source). Checked when the switchyard size is known (switchyard_m or a marked area): error when closer, with the
+re-run that moves them (network_autobuild places BESS units clear of the switchyard).
+
 
 ## pv_strings
 
@@ -178,6 +186,13 @@ Standard: none (design practice). Segments: all.
 
 Each inverter or PCS AC zone should contain an AC SPD or lightning arrester. Warning when none is modelled.
 
+### `protection.spd_ac_poles`: AC SPD has a pole per phase conductor
+
+Standard: none (design practice). Segments: all.
+
+An AC surge protective device on a three-phase circuit must protect every phase: a three- or four-pole SPD (3+0, 3+1, 4+0). A single- or two-pole
+catalog SPD there protects one phase only: error. Circuits fed only by single-phase inverters count as single-phase.
+
 ### `protection.earthing`: Inverters and panels are earthed
 
 Standard: IS 3043. Segments: all.
@@ -189,6 +204,22 @@ Every inverter and PCS needs an earth connection (an edge on its 'pe' port): err
 Standard: IEC 62548. Segments: all.
 
 A gPV fuse carrying n strings must be rated at least n x 1.25 x Isc, and a fuse protecting a single string must not exceed the module's maximum series fuse rating.
+
+### `protection.mv_cable`: Every MV cable is protected at the end the fault current comes from
+
+Standard: none (design practice). Segments: all.
+
+An MV cable must have a circuit breaker, RMU breaker or fuse (switch-fuse) at its grid end, so a cable fault is cleared from the side that feeds it:
+the bus end of a block feeder, the transformer-tap end of an auxiliary transformer feeder. A breaker at the far end only (the block VCB of a feeder that
+tees straight onto the main bus) leaves the cable unprotected: error.
+
+### `protection.transformer_feed`: Every transformer tap is switched and protected
+
+Standard: none (design practice). Segments: all.
+
+A transformer fed from another transformer's terminals or from a bus (an auxiliary transformer tapped off a block transformer's HV side, a plant
+auxiliary transformer on the main bus) must be fed through a breaker, RMU breaker or switch-fuse on its supply side: error when the supply reaches it
+through cables and panel wiring alone. Block transformers on an export path are protected by their block VCB or RMU (protection.mv_cable).
 
 
 ## cables
@@ -249,6 +280,14 @@ Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of 
 Standard: none (design practice). Segments: all.
 
 Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at 90 degC and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over.
+
+### `vdrop.bands`: Length-band cables keep within the worst-case cable's drop and carry the current
+
+Standard: none (design practice). Segments: all.
+
+A template edge may give its shorter instances smaller cables (Edge.bands): each band's cable, at the band's longest route (upto_m), must have a
+voltage drop no larger than the edge's own cable at the worst-case length (so every instance stays inside the path limit vdrop.dc / vdrop.ac check
+on the worst case), and an ampacity no lower than the design current and the rating of every device protecting the edge. Error otherwise.
 
 
 ## earthing

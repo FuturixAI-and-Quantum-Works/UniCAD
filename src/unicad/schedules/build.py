@@ -33,8 +33,9 @@ def kind_label(net: ElectricalNetwork, node_id: str) -> str:
     return SHORT_LABEL.get(node.kind, node.kind.value.replace("_", " ").upper())
 
 
-def section_title(net: ElectricalNetwork, e: Edge, cable: CableSpec) -> str:
-    return f"{kind_label(net, e.src_node)} TO {kind_label(net, e.dst_node)} CABLE ({cable.size_mm2:g} sq.mm)"
+def section_title(net: ElectricalNetwork, e: Edge, cable: CableSpec, sizes: set[float] | None = None) -> str:
+    sq = "/".join(f"{x:g}" for x in sorted(sizes)) if sizes and len(sizes) > 1 else f"{cable.size_mm2:g}"
+    return f"{kind_label(net, e.src_node)} TO {kind_label(net, e.dst_node)} CABLE ({sq} sq.mm)"
 
 
 def cables_per_run(cable: CableSpec, e: Edge, n_phases: int) -> int:
@@ -65,18 +66,19 @@ class _Electrical:
 
     def __init__(self, project: Project, catalog: Catalog):
         self.project, self.catalog = project, catalog
-        self._by_edge: dict[str, tuple[float | None, float | None, int]] = {}
-        self._by_length: dict[tuple[str, float], tuple[float | None, float | None]] = {}
+        self._by_edge: dict[tuple, tuple[float | None, float | None, int]] = {}
+        self._by_length: dict[tuple, tuple[float | None, float | None]] = {}
 
     def fixed(self, e: Edge) -> tuple[float | None, float | None, int]:
-        if e.id not in self._by_edge:
+        key = (e.id, str(e.cable), e.runs)
+        if key not in self._by_edge:
             ib = edge_current(self.project, self.catalog, e)
             iz = edge_ampacity(self.project, self.catalog, e)
-            self._by_edge[e.id] = (None if ib is None else ib.value, None if iz is None else iz.value, phases(self.project, self.catalog, e))
-        return self._by_edge[e.id]
+            self._by_edge[key] = (None if ib is None else ib.value, None if iz is None else iz.value, phases(self.project, self.catalog, e))
+        return self._by_edge[key]
 
     def at_length(self, e: Edge, length: float) -> tuple[float | None, float | None]:
-        key = (e.id, round(length, 6))
+        key = (e.id, str(e.cable), e.runs, round(length, 6))
         if key not in self._by_length:
             drop = segment_drop(self.project, self.catalog, e.model_copy(update={"length_m": length}))
             self._by_length[key] = (None if drop is None else drop.value, self._loss(e, length))
@@ -125,11 +127,10 @@ def build_schedule(
     for e in ordered:
         cable = cable_of(catalog, e)
         assert cable is not None
-        ib, iz, n_ph = elec.fixed(e)
-        per_run = cables_per_run(cable, e, n_ph)
         rows: list[CableRow] = []
         src_node = net.node(e.src_node)
         module = module_of(net, catalog, src_node) if src_node.kind is NodeKind.PV_STRING else None
+        sizes: set[float] = set()
         for ie in sorted(instances[e.id], key=lambda x: indices(x.id)):
             est = estimate.instances.get(ie.id)
             if est is not None:
@@ -143,25 +144,33 @@ def build_schedule(
             if e.service is Service.DC and pos is not None and neg is None:
                 neg = pos
             eff = None if pos is None else ((pos + neg) / 2 if neg is not None else pos)
-            vd, loss = elec.at_length(e, eff) if eff is not None else (None, None)
+            band = e.band_for(eff) if source == "estimated" else None
+            be = e if band is None else e.model_copy(update={"cable": band.cable, "runs": band.runs, "bands": ()})
+            bc = cable if band is None else cable_of(catalog, be)
+            if band is not None:
+                basis += f"; length band up to {band.upto_m:g} m, sized for its own route"
+            ib, iz, n_ph = elec.fixed(be)
+            per_run = cables_per_run(bc, be, n_ph)
+            vd, loss = elec.at_length(be, eff) if eff is not None else (None, None)
             from_tag, to_tag = instance_tag(net, ie.src_node), instance_tag(net, ie.dst_node)
             string_id = ids.string_id(ie.src_node) if src_node.kind is NodeKind.PV_STRING else None
-            cable_id = _unique(string_id.text(cable.size_mm2) if string_id else f"{from_tag}-{to_tag}", seen_ids)
+            cable_id = _unique(string_id.text(bc.size_mm2) if string_id else f"{from_tag}-{to_tag}", seen_ids)
+            sizes.add(bc.size_mm2)
             sl += 1
             rows.append(
                 CableRow(
                     sl=sl, cable_id=cable_id, edge=e.id, instance=ie.id, src=ie.src_node, dst=ie.dst_node, service=e.service,
                     block=ids.block_of(ie.src_node), is_string=src_node.kind is NodeKind.PV_STRING, from_tag=from_tag, to_tag=to_tag,
-                    cable_ref=e.cable if isinstance(e.cable, str) else cable.id, callout=f"{per_run} x {cable.callout()}" if cable.cores == 1 and e.service is not Service.DC else cable.callout(), cores=cable.core_label,
-                    size_mm2=cable.size_mm2, conductor=cable.conductor.value.upper(), runs=e.runs, cables_per_run=per_run,
+                    cable_ref=be.cable if isinstance(be.cable, str) else bc.id, callout=f"{per_run} x {bc.callout()}" if bc.cores == 1 and e.service is not Service.DC else bc.callout(), cores=bc.core_label,
+                    size_mm2=bc.size_mm2, conductor=bc.conductor.value.upper(), runs=be.runs, cables_per_run=per_run,
                     length_pos_m=pos, length_neg_m=neg, length_source=source, length_basis=basis,
                     laying=e.laying.value if e.laying else None, ib_a=ib, iz_a=iz, vd_pct=vd, loss_w=loss,
                     module=module.model if module else None, module_wp=module.pmax if module else None, remarks=e.remarks or "",
-                    flags=_flags(e, iz, pos, vd), stem=string_id.stem if string_id else "",
+                    flags=_flags(be, iz, pos, vd), stem=string_id.stem if string_id else "",
                 )
             )  # fmt: skip
         if rows:
-            sections.append(Section(section_title(net, e, cable), e.id, e.service, tuple(rows)))
+            sections.append(Section(section_title(net, e, cable, sizes), e.id, e.service, tuple(rows)))
         if e.length_m is None and any(r.length_pos_m is None for r in rows):
             gaps.append(f"{edge_label(net, e)}: no length stated and none estimated ({estimate.unresolved.get(e.id, 'no array layout')}); its {len(rows)} row(s) carry no length, voltage drop or loss")
     gaps += _missing_cables(project, catalog)
@@ -237,9 +246,11 @@ def _basis(project: Project, catalog: Catalog, sections: list[Section]) -> tuple
         used = {}
         for s in sections:
             if s.service is service:
-                cable = cable_of(catalog, net.edge_by_id[s.edge])
-                if cable is not None:
-                    used[cable.id] = cable
+                e0 = net.edge_by_id[s.edge]
+                for ref in dict.fromkeys(r.cable_ref for r in s.rows):
+                    cable = cable_of(catalog, e0 if not isinstance(e0.cable, str) or ref == e0.cable else e0.model_copy(update={"cable": ref}))
+                    if cable is not None:
+                        used[cable.id] = cable
         if used:
             text = "; ".join(f"{c.callout()} {'R90 ' + format(c.r_ohm_per_km_90c, 'g') + ' ohm/km' if c.r_ohm_per_km_90c else 'no catalog resistance'}" for c in used.values())
             out.append((f"{name} CABLES", text))

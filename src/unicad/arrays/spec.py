@@ -47,6 +47,7 @@ class PitchMethod(StrEnum):
 
 
 class FillOrder(StrEnum):
+    SWITCHYARD = "switchyard"
     ROWS = "rows"
     NEAREST = "nearest"
 
@@ -95,11 +96,13 @@ class PlacementSpec(_Frozen):
     road_every_rows: int | None = Field(default=None, gt=0)
     road_width_m: float = Field(default=6.0, gt=0)
     walkway_every_tables: int | None = Field(default=None, gt=0)
+    row_walkway_every_rows: int | None = Field(default=None, gt=0, description="leave a maintenance walkway after every N rows; on roofs default 2 when the row gap is narrower than a walkway")
+    row_walkway_m: float = Field(default=0.6, gt=0, description="clear width of the walkway between rows")
     walkway_width_m: float = Field(default=4.0, gt=0)
     setbacks: Setbacks | None = None
     regions: Literal["auto", "ground", "roofs"] = "auto"
     target_dc_kwp: float | None = Field(default=None, gt=0)
-    fill: FillOrder = FillOrder.ROWS
+    fill: FillOrder = Field(default=FillOrder.ROWS, description="with a target: rows fills the front rows first; nearest fills closest to fill_from; switchyard (layout_place's default) grows the array from the switchyard (given, marked on the site, or the transmission line), else rows")
     fill_from: Point | None = None
     n_blocks: int | None = Field(default=None, gt=0)
     block_dc_kwp: float | None = Field(default=None, gt=0)

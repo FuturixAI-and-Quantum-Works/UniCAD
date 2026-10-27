@@ -13,7 +13,7 @@ from unicad.rules.grouping import grouping
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
-from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, label
+from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, zone_at
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
 PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})
@@ -289,12 +289,44 @@ def cable_fault(project: Project, catalog: Catalog, e: Edge, guards: dict[str, l
         t = LV_BREAKER_CLEARING_S
         time = Quantity(name="t", value=t, unit="s", source=f"assumption: instantaneous trip of {spec.model} ({spec.device.upper()}), {t:g} s")
         tnote = (f"{label(net, nid)} {spec.model} ({spec.device.upper()}) protects the cable. {LV_BREAKER_CLEARING}",)
+    elif (hv := _hv_clearing(project, zone, v)) is not None and (declared is None or fed is not None):
+        t, time, tnote = hv
     elif declared is not None:
         t, time, tnote = declared.clearing_s, declared.inputs()[1], declared.assumptions
     else:
         t, why = default_clearing(basis, v)
         time, tnote = Quantity(name="t", value=t, unit="s", source=why), (why,)
     return CableFault(v, ka, t, where, (*current, time), (*notes, *tnote))
+
+
+HV_PROTECTIVE = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.BREAKER, NodeKind.FUSE})
+
+
+def _hv_clearing(project: Project, zone, v: float) -> tuple[float, Quantity, tuple[str, ...]] | None:
+    """Clearing time of an LT cable fault fed by a transformer and not guarded by an LT breaker: the breaker on that transformer's HV side clears it,
+    in the clearing time of the HV fault level (its relay and break times are not modelled). None when no such transformer and breaker exist."""
+    net, basis = project.network, project.design_basis
+    for n in net.by_kind(NodeKind.TRANSFORMER):
+        if zone_at(net, n.id, "lv") != zone:
+            continue
+        hv_zone = zone_at(net, n.id, "hv")
+        if hv_zone is None or hv_zone.voltage_v is None:
+            continue
+        ends = [e.dst_node if e.src_node == n.id else e.src_node for e in net.edges if e.is_power and e.service is not Service.DC and n.id in (e.src_node, e.dst_node) and e.id in hv_zone.edge_ids]
+        brk = min((m for m in ends if net.node(m).kind in HV_PROTECTIVE), key=lambda m: (not exports(net, m), m), default=None)
+        if brk is None:
+            continue
+        level = fault_at(basis, hv_zone.voltage_v)
+        if level is not None:
+            t, basis_note = level.clearing_s, f"the clearing time of the {hv_zone.voltage_v:g} V fault level ({level.where})"
+        else:
+            t, basis_note = default_clearing(basis, hv_zone.voltage_v)
+        note = (
+            f"An LT fault on this cable is fed by {label(net, n.id)} and cleared by {label(net, brk)} on its HV side (no LT breaker guards the cable; an inverter's "
+            f"integrated AC breaker clears only the inverter's own contribution). The breaker's relay and break times are not modelled, so {t:g} s is taken: {basis_note} (assumption)."
+        )
+        return t, Quantity(name="t", value=t, unit="s", source=f"assumption: {label(net, brk)} on the {label(net, n.id)} HV side, {t:g} s"), (note,)
+    return None
 
 
 def _protected_cables(project: Project, catalog: Catalog, node_id: str) -> Iterator[tuple[Edge, Ampacity]]:

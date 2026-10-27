@@ -125,12 +125,12 @@ def test_every_template_builds_a_rule_clean_network(built, case):
 def test_bess_and_hybrid_put_storage_behind_its_own_transformer_on_the_mv_bus(built):
     for case in ("bess_ac", "hybrid"):
         net = built[case].project.network
-        assert chain(net, "bat") == ["battery", "pcs", "breaker", "transformer", "vcb", "busbar", "vcb", "ct", "poi_grid"]
+        assert chain(net, "bat") == ["battery", "pcs", "breaker", "transformer", "vcb", "ct", "vcb", "busbar", "vcb", "ct", "poi_grid"]
         tr = net.node("bess_tr").spec
         assert isinstance(tr, TransformerSpec) and tr.lv_kv == (0.69, 0.69) and tr.rated_kva == 2 * 2520
     hybrid = built["hybrid"].project.network
     assert chain(hybrid, "str")[:4] == ["pv_string", "scb", "inverter", "transformer"]
-    assert {e.src_node for e in hybrid.edges if e.dst == "mv_bus:bus"} == {"icog", "icog_bess"}
+    assert {e.src_node for e in hybrid.edges if e.dst == "mv_bus:bus"} == {"bf_vcb", "bf_vcb_bess"}
 
 
 def test_dc_coupled_storage_reaches_the_inverter_through_a_dc_dc_converter(built):
@@ -174,7 +174,7 @@ def test_residential_inverter_is_the_smallest_that_covers_the_load_and_takes_the
 
 def test_ht_rooftop_steps_up_through_a_catalog_transformer_and_rmu(built):
     net = built["ci_rooftop_ht"].project.network
-    assert chain(net, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "ct", "transformer", "rmu", "busbar", "vcb", "ct", "poi_grid"]
+    assert chain(net, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "ct", "transformer", "rmu", "ct", "vcb", "busbar", "vcb", "ct", "poi_grid"]
     assert net.node("tr").spec == "is1180-11kv-2500kva-dyn11"
     assert net.node("net_meter").spec == "generic-meter-net-ct_pt-0.5s"
 
@@ -188,7 +188,9 @@ def test_800v_string_inverters_build_with_a_project_idt_and_1150v_breakers():
     for brk in ("inv_brkaa", "inv_brkba", "acdb_brka", "acdb_brkb"):
         assert CATALOG.get(net.node(brk).spec).rated_voltage >= 800
     assert any("project-specific inline spec (idt-7040kva-33-0.8-0.8-ynd11d11-project)" in a and "BHEL PS 439-1304" in a for a in r.assumptions)
-    assert any("ACCB-SPD" in b and "no catalog spd_ac" in b for b in r.blockers)
+    # close-e2e-3 n23: the 800 V ACCB takes the three-pole DEHNguard M WE 600 (Uc 600 V >= 1.1 x 800 / sqrt 3), not a single-pole unit or a blocker
+    assert not any("ACCB-SPD" in b for b in r.blockers), r.blockers
+    assert {net.node(n).spec for n in ("acdb_spda", "acdb_spdb")} == {"dehn-dg-m-we-600"}
 
 
 def test_block_lv_buses_are_capped_so_every_breaker_has_a_catalog_spec():
@@ -230,9 +232,14 @@ def test_rooftop_500kw_matches_the_hand_fixture_chain_and_counts(built):
 
 def test_utility_50mwac_matches_the_hand_fixture_chain_and_counts(built):
     hand, auto = fixture("utility_50mwac").network, built["utility_central"].project.network
-    assert chain(auto, "str") == chain(hand, "str")
-    for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.VCB, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER):
+    # autobuild adds the feeder panel (CT + VCB) at the main HT switchboard and a T-off VCB per block aux transformer, which the hand fixture lacks (close-e2e-3 B2, B3)
+    want = chain(hand, "str")
+    at = want.index("busbar")
+    assert chain(auto, "str") == [*want[:at], "ct", "vcb", *want[at:]]
+    blocks = instances(hand, NodeKind.TRANSFORMER)
+    for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER):
         assert instances(auto, kind) == instances(hand, kind), kind
+    assert instances(auto, NodeKind.VCB) == instances(hand, NodeKind.VCB) + 2 * blocks
     assert abs(instances(auto, NodeKind.SCB) - instances(hand, NodeKind.SCB)) <= 0.2 * instances(hand, NodeKind.SCB)
     idt = auto.node("idt").spec
     assert (idt.rated_kva, idt.lv_kv, idt.vector_group) == (8800, (0.66, 0.66), "YNd11d11")

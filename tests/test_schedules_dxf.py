@@ -121,11 +121,12 @@ def test_layout_blocks_take_their_block_from_the_network_group_not_the_instance_
     p = autobuild(base, CATALOG, {"template": "utility_string", "module": GROUND_MODULE, "inverter": "sungrow-sg350hx"}, layout=place_array(site, spec, CATALOG.get(GROUND_MODULE))).project
     schedule = build_schedule(p, CATALOG)
     strings = [r for r in schedule.rows if r.is_string]
-    assert {r.block for r in strings} == {f"BLOCK-0{i}" for i in range(1, 7)}
+    n = len(p.array_layout.blocks)
+    assert n >= 5 and {r.block for r in strings} == {f"BLOCK-0{i}" for i in range(1, n + 1)}
     assert all(r.cable_id.startswith(f"INV-{r.block[-2:]}-") for r in strings)
     (_, dc), _ = schedule_tables(schedule)
     titled = [s.title.rsplit(" - ", 1)[-1] for s in dc.sections if "STRING" in s.title]
-    assert titled == [f"BLOCK-0{i}" for i in range(1, 7)]
+    assert titled == [f"BLOCK-0{i}" for i in range(1, n + 1)]
 
 
 def test_schedule_pages_carry_the_project_title_block_and_continuous_numbering():

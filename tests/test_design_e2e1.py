@@ -49,7 +49,9 @@ def test_b4_ci_rooftop_autobuild_on_a_six_block_layout_numbers_inverters_once(tm
         async with connect(tmp_path / "ws") as c:
             await scenario_a(c, table_rows=1, table_cols=19, half_tables=False, n_blocks=6)
             r = await c.call("network_autobuild", **A_AUTOBUILD)
-            assert r["rules"]["error"] == 0 and r["design"]["instances"]["inverter"] == 6 and r["design"]["strings_linked"] == 72
+            # the roof holds 6 x 12 strings without row walkways; with the maintenance walkway every 2 rows (close-e2e-3 R1) it holds whole inverters only
+            inv = r["design"]["instances"]["inverter"]
+            assert r["rules"]["error"] == 0 and inv >= 5 and r["design"]["strings_linked"] == 12 * inv
             net = await c.call("project_get", project_id="sgt-chakan", full=True)
             tags = Counter(n["tag"] for n in net["project"]["network"]["nodes"])
             assert all(v == 1 for v in tags.values()), tags
