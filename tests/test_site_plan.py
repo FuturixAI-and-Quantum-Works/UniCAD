@@ -188,3 +188,101 @@ def test_every_roof_and_obstacle_is_labelled_clear_of_all_outlines_and_modules(p
         assert not [o for o in outlines if g.intersects(o)], f"{name} touches an outline"
         assert not [t for t in tables if g.intersection(t).area > 1e-6], f"{name} sits on modules"
     assert overlapping(list(out.labels)) == [] and out.warnings == ()
+
+
+def _plan_spec(paper: PaperSize, title: str) -> SheetSpec:
+    tb = TitleBlockData(client="C", project_title="P", location="L", drawing_title=title, drawing_number="X-101", paper=paper,
+                        issued_for=IssuedFor.INFORMATION)  # fmt: skip
+    return SheetSpec(paper=paper, title_block=tb)
+
+
+@pytest.fixture(scope="module")
+def pune_plans():
+    """The Pune rooftop (close-e2e scenario A site) with field string inverters placed beside their tables and the station on the
+    roof just inside its edge, drawn as the layout, earthing and LA sheets."""
+    from unicad.design import autobuild
+    from unicad.drafting.earthing_plan import render_earthing_sheet, render_lps_sheet
+    from unicad.earthing import design_earthing
+    from unicad.earthing.samples import pune
+
+    from dataclasses import replace
+
+    from unicad.earthing.samples import ROOF_SPEC, _project, with_basis
+
+    catalog = load_catalog()
+    base, _ = pune()
+    spec = ROOF_SPEC.model_copy(update={"modules_per_string": 19}) if hasattr(ROOF_SPEC, "model_copy") else replace(ROOF_SPEC, modules_per_string=19)
+    p, result = _project("rooftop_500kwp", "rooftop_midc_pune.kml", Setbacks(roof_edge_m=1.2, obstacle_m=0.6), spec)
+    p = with_basis(p, base.design_basis.earthing, base.design_basis.lps)
+    p = autobuild(p, catalog, {"template": "ci_rooftop", "module": spec.module, "inverter": "solis-s5-gc100k", "modules_per_string": 19,
+                               "connection": "lt_panel"}, layout=p.array_layout).project
+    d = design_earthing(p)
+    profile = CompanyProfile.load(ROOT / "profiles" / "default.json")
+    module = catalog.get(next(n.spec for n in p.network.nodes if n.kind.value == "pv_string"))
+    out = {"project": p}
+    doc = ezdxf.new("R2018", setup=True)
+    out["layout"] = (doc, render_layout_sheet(doc, LayoutDrawing(p.site.geometry, p.array_layout, module, result.full_table.cols), _plan_spec(PaperSize.A3, "LAYOUT"), profile))
+    doc = ezdxf.new("R2018", setup=True)
+    out["earthing"] = (doc, render_earthing_sheet(doc, p, catalog, d, _plan_spec(PaperSize.A2, "EARTHING"), profile))
+    from unicad.earthing.samples import rajasthan
+
+    ground, _ = rajasthan()
+    doc = ezdxf.new("R2018", setup=True)
+    out["lps"] = (doc, render_lps_sheet(doc, ground, catalog, design_earthing(ground).lps, _plan_spec(PaperSize.A1, "LA"), profile))
+    return out
+
+
+def test_field_equipment_is_drawn_and_tagged_at_its_stored_position_on_the_layout_and_earthing_sheets(pune_plans):
+    """A3: every string inverter the design placed in the field appears with its tag on the layout sheet and the earthing sheet."""
+    equipment = pune_plans["project"].array_layout.equipment
+    assert equipment
+    for name in ("layout", "earthing"):
+        doc, _ = pune_plans[name]
+        texts = {t.strip() for e in doc.modelspace().query("TEXT") for t in e.dxf.text.split(",")}
+        assert {e.tag for e in equipment} <= texts, name
+
+
+def test_a_station_on_a_roof_edge_keeps_a_dot_at_its_position_and_its_symbol_beside_it(pune_plans):
+    """m18: the station symbol does not straddle the roof edge line; a dot marks the stored position and a leader joins the symbol."""
+    doc, sheet = pune_plans["layout"]
+    msp = doc.modelspace()
+    from unicad.drafting.symbols import REGISTRY
+
+    refs = [e for e in msp.query("INSERT") if e.dxf.name == REGISTRY["layout.inverter"].block_name]
+    assert refs
+    dots = [e for e in msp.query("CIRCLE") if e.dxf.layer == "L-STATION"]
+    roof_lines = [e for e in msp.query("LWPOLYLINE") if e.dxf.layer == "L-ROOF"]
+    for ref in refs:
+        bb = ezdxf.bbox.extents([ref])
+        icon = box(bb.extmin.x, bb.extmin.y, bb.extmax.x, bb.extmax.y)
+        assert not any(LineString([(x, y) for x, y, *_ in r.get_points()] + [r.get_points()[0][:2]]).intersects(icon) for r in roof_lines)
+    station = pune_plans["project"].array_layout.blocks[0].station
+    assert station is not None and len(dots) == 1
+
+
+def test_cut_protection_circles_end_on_the_drawn_plan_window_not_the_sheet_frame(pune_plans):
+    """n14: an ESE circle larger than the plan is cut at the plan window, which is drawn and lies inside the plan room."""
+    doc, sheet = pune_plans["lps"]
+    msp = doc.modelspace()
+    arcs = [e for e in msp.query("ARC") if e.dxf.layer == "E-LPS-ZONE"]
+    window = [e for e in msp.query("LWPOLYLINE") if e.dxf.layer == "E-LPS-ZONE"]
+    assert arcs and len(window) == 1
+    xs = [p[0] for p in window[0].get_points()]
+    ys = [p[1] for p in window[0].get_points()]
+    room = sheet.room
+    assert room.x0 - 1e-6 <= min(xs) and max(xs) <= room.x1 + 1e-6 and room.y0 - 1e-6 <= min(ys) and max(ys) <= room.y1 + 1e-6
+    for e in arcs:
+        for pt in (e.start_point, e.end_point):
+            on_x = min(abs(pt.x - min(xs)), abs(pt.x - max(xs))) < 1e-3 and min(ys) - 1e-3 <= pt.y <= max(ys) + 1e-3
+            on_y = min(abs(pt.y - min(ys)), abs(pt.y - max(ys))) < 1e-3 and min(xs) - 1e-3 <= pt.x <= max(xs) + 1e-3
+            assert on_x or on_y
+
+
+def test_water_and_exclusions_are_drawn_and_named_on_the_lightning_underlay(pune_plans):
+    """n25: the pond and the rocky outcrop of the Rajasthan site are outlined, filled and named under the LA layout, as on the layout sheet."""
+    doc, _ = pune_plans["lps"]
+    msp = doc.modelspace()
+    layers = {e.dxf.layer for e in msp}
+    assert {"L-WATER", "L-WATER-FILL", "L-EXCLUSION"} <= layers
+    texts = " ".join(e.dxf.text for e in msp.query("TEXT")).upper()
+    assert "POND" in texts and "OUTCROP" in texts

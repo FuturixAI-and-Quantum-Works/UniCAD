@@ -2729,6 +2729,51 @@
     ]
   },
   {
+    "key": "layout.field_equipment",
+    "title": "Field equipment (plan)",
+    "category": "layout",
+    "standard": "UniCAD plan-view convention",
+    "tag_prefix": "EQ",
+    "block_name": "UC_LAYOUT_FIELD_EQUIPMENT",
+    "size": {
+      "width": 7.5,
+      "height": 7.5
+    },
+    "pins": [],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 10.0,
+        "y": 6.5,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 10.0,
+        "y": 2.75,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 10.0,
+        "y": -1.25,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
     "key": "prot.spd_ac",
     "title": "AC surge protective device (Type 2)",
     "category": "protection",

@@ -58,3 +58,9 @@ def scb_plan(b):
     p = Pen(b)
     p.rect(0.0, 0.0, 10.0, 7.5)
     p.text("SCB", 5.0, 3.75, 2.2)
+
+
+@symbol("layout.field_equipment", "Field equipment (plan)", C, STD, 7.5, 7.5, (), std_attrs(7.5, 7.5), tag_prefix="EQ")
+def field_equipment_plan(b):
+    p = Pen(b)
+    p.rect(0.0, 0.0, 7.5, 7.5)

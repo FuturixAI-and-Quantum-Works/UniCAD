@@ -301,6 +301,7 @@ class EarthingSheetWriter(_Writer):
         grouped = {t for g in groups for t in g.pits}
         sq = max(0.25 * th, 1.2 * P.k)
         terminals: dict[str, tuple[float, float]] = {}
+        field: dict[str, tuple[float, float] | None] = {e.tag: None for e in self.d.layout.equipment} if self.d.layout else {}
         for it in lay.items:
             x, y = P(it.at.x, it.at.y)
             if it.kind in ("ese", "air_terminal"):
@@ -309,6 +310,9 @@ class EarthingSheetWriter(_Writer):
                 terminals[it.tag] = (x, y)
                 continue
             self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
+            self.placer.block(Region(x - sq, y - sq, x + sq, y + sq))
+            if it.tag in field:
+                field[it.tag] = (x, y)
         at_mast: dict[str, str] = {}
         drawn = []
         for p in lay.pits:
@@ -346,6 +350,7 @@ class EarthingSheetWriter(_Writer):
         for p, x, y in drawn:
             colour = LE_COLOUR if p.role is PitRole.LE else PIT_COLOUR[p.role.treated]
             self._label_text([p.tag], (x, y), tag_h, r, p.tag, layer=L_PIT_TAG, colour=colour, mask=True)
+        self._tag_clusters([(tag, at) for tag, at in field.items() if at is not None], 0.45 * th, sq, layer=L_PIT_TAG)
         self._feature_labels(P)
         self.clip = None
         self._panel_e(panel, groups)
@@ -620,9 +625,12 @@ class LpsSheetWriter(_Writer):
         d = self.lps
         h = 0.6 * th
         pts = []
+        view = self._view(P)
+        if any(clip_circle(*P(t.at.x, t.at.y), d.radius_m * P.k, view) != [(0.0, 360.0)] for t in d.terminals):
+            self._poly([(view.x0, view.y0), (view.x1, view.y0), (view.x1, view.y1), (view.x0, view.y1)], L_LPS_ZONE, colour=UNDERLAY)
         for t in d.terminals:
             x, y = P(t.at.x, t.at.y)
-            for a0, a1 in clip_circle(x, y, d.radius_m * P.k, self.room):
+            for a0, a1 in clip_circle(x, y, d.radius_m * P.k, view):
                 if a1 - a0 >= 360 - 1e-9:
                     self.msp.add_circle((x, y), d.radius_m * P.k, dxfattribs={"layer": L_LPS_ZONE})
                 else:
@@ -637,6 +645,13 @@ class LpsSheetWriter(_Writer):
         self.clip = None
         self._panel_l(panel)
         return self._done(scale)
+
+    def _view(self, P: _Plan) -> Region:
+        """The plan window: the drawn extent with a margin, inside the plan room. Protection circles are cut at its border, which is
+        drawn, so a cut circle reads as leaving the plan rather than as running into the sheet frame."""
+        (x0, y0), (x1, y1) = P(self.bounds[0], self.bounds[1]), P(self.bounds[2], self.bounds[3])
+        m, room = 4 * self.m.th, self.room
+        return Region(max(room.x0, x0 - m), max(room.y0, y0 - m), min(room.x1, x1 + m), min(room.y1, y1 + m))
 
     def _panel_l(self, panel: Region) -> None:
         th = self.m.th

@@ -310,6 +310,7 @@ class LayoutSheetWriter:
         self._site(P)
         self._tables(P)
         self._blocks(P)
+        self._equipment(P)
         self._areas(P)
         self._feature_labels(P, compact=False)
         self._block_drawing(P)
@@ -330,6 +331,8 @@ class LayoutSheetWriter:
         out = [("layout.module", f"PV MODULE {mod.pmax:g} Wp, {mod.length:g} x {mod.width:g} mm")]
         if any(b.station for b in self.d.layout.blocks):
             out.append(("layout.inverter", "INVERTER STATION (INDICATIVE LOCATION)"))
+        if self.d.layout.equipment:
+            out.append(("layout.field_equipment", "FIELD EQUIPMENT (INVERTER, SCB, BESS, PCS, TRANSFORMER) AT ITS DESIGN POSITION, TAGGED"))
         out.append(("ann.north", "GRID NORTH"))
         return tuple(out)
 
@@ -510,11 +513,14 @@ class LayoutSheetWriter:
             x, y = P(b.station.x, b.station.y)
             w, h = sym.width * s, sym.height * s
             icon = Region(x - w / 2 - 0.25 * th, y - h / 2 - 0.25 * th, x + w / 2 + 0.25 * th, y + h / 2 + 0.25 * th)
+            if self._crosses(icon, P, footprints):
+                icon = self._beside(icon, (x, y), colour, clash)
             self.placer.block(icon)
             self._mask(icon)
             self._poly([(icon.x0, icon.y0), (icon.x1, icon.y0), (icon.x1, icon.y1), (icon.x0, icon.y1)], L_STATION.name, colour=colour)
-            self.msp.add_blockref(sym.block_name, (x - w / 2, y - h / 2), dxfattribs={"layer": L_STATION.name, "xscale": s, "yscale": s})
-            stations.append((b, lines, hs, (x, y), icon, colour))
+            cx, cy = icon.centre
+            self.msp.add_blockref(sym.block_name, (cx - w / 2, cy - h / 2), dxfattribs={"layer": L_STATION.name, "xscale": s, "yscale": s})
+            stations.append((b, lines, hs, (cx, cy), icon, colour))
         for b, lines, hs, (x, y), icon, colour in stations:
             p = self.placer.place(Label(b.id, (x, y), max(text_width(t, hh) for t, hh in zip(lines, hs)) + 0.8 * th, 2.9 * th, clear=(icon.x1 - icon.x0) / 2 + 0.3 * th), cost=clash)
             if p is None:
@@ -529,6 +535,55 @@ class LayoutSheetWriter:
             tx, cy = label.x0 + 0.4 * th, label.centre[1]
             self._text(lines[0], (tx, cy + 0.6 * th), hs[0], align="ML")
             self._text(lines[1], (tx, cy - 0.65 * th), hs[1], align="ML")
+
+    def _crosses(self, r: Region, P: _Plan, footprints: Sequence[Polygon]) -> bool:
+        """Whether a symbol drawn over `r` would sit on a roof edge, obstacle outline or table, so it has to stand beside its point."""
+        g = box(r.x0, r.y0, r.x1, r.y1)
+        edges = [LineString(P.ring(shape_of(f).exterior.coords)) for f in self.d.site.features
+                 if f.polygon and f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE, FeatureKind.BUILDING)]  # fmt: skip
+        return any(e.intersects(g) for e in edges) or any(f.intersects(g) for f in footprints)
+
+    def _beside(self, icon: Region, at: tuple[float, float], colour: int, cost) -> Region:
+        """`icon` moved clear of outlines next to `at`, which keeps a dot and a leader to it, so the point stays where the design put it."""
+        th = self.m.th
+        p = self.placer.place(Label(f"icon {at}", at, icon.x1 - icon.x0, icon.y1 - icon.y0, clear=0.3 * th), cost=cost)
+        if p is None:
+            return icon
+        self.msp.add_circle(at, 0.18 * th, dxfattribs={"layer": L_STATION.name, "color": colour})
+        if p.leader is not None:
+            self.msp.add_line(p.leader[0], p.leader[1], dxfattribs={"layer": L_STATION.name, "color": colour})
+        return p.box
+
+    def _equipment(self, P: _Plan) -> None:
+        """Field equipment the design placed away from the stations (string inverters, SCBs, BESS containers, PCS and their transformers),
+        a square at its stored position with its tag."""
+        th = self.m.th
+        side = 0.6 * th
+        for e in self.d.layout.equipment:
+            x, y = P(e.at.x, e.at.y)
+            r = Region(x - side / 2, y - side / 2, x + side / 2, y + side / 2)
+            self._mask(r)
+            self._poly([(r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1)], L_STATION.name, lineweight=35)
+            self.placer.block(r)
+        self._tag_clusters([(e.tag, P(e.at.x, e.at.y)) for e in self.d.layout.equipment], 0.5 * th, side / 2)
+
+    def _tag_clusters(self, items: Sequence[tuple[str, tuple[float, float]]], h: float, clear: float, **kw) -> None:
+        """Tag each piece of equipment; pieces standing closer than two text heights on the paper share one label listing their tags."""
+        th = self.m.th
+        groups: list[list[tuple[str, tuple[float, float]]]] = []
+        for tag, at in items:
+            near = [g for g in groups if any(math.dist(at, q) < 2.5 * th for _, q in g)]
+            merged = [x for g in near for x in g] + [(tag, at)]
+            groups = [g for g in groups if g not in near] + [merged]
+        for g in groups:
+            tags = [t for t, _ in g]
+            lines = [", ".join(tags[i : i + 3]) for i in range(0, len(tags), 3)]
+            xs, ys = [q[0] for _, q in g], [q[1] for _, q in g]
+            at = ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)
+            spread = max(max(xs) - min(xs), max(ys) - min(ys)) / 2
+            if not self._label_text(lines, at, h, clear + spread, f"equipment {tags[0]}", mask=True, **kw) and len(tags) > 1:
+                self.placer.overflow.pop()
+                self._label_text([f"{tags[0]}..{tags[-1]} ({len(tags)} NOS)"], at, h, clear + spread, f"equipment {tags[0]}", mask=True, **kw)
 
     def _areas(self, P: _Plan) -> None:
         th = self.m.th
