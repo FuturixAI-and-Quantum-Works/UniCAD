@@ -180,7 +180,7 @@ def test_drawings_render_and_preview_over_stdio(tmp_path):
             for s in r["sheets"]:
                 assert Path(s["files"]["dxf"]).is_file() and Path(s["files"]["pdf"]).is_file() and s["files"]["dwg"] is None
                 assert s["cross_refs"] and all(x["to_sheet"] for x in s["cross_refs"])
-            assert "unknown drawing kinds" in await c.fail("drawings_render", project_id="utility-50mwac", kinds=["nonsense"])
+            assert "Input should be 'all'" in await c.fail("drawings_render", project_id="utility-50mwac", kinds=["nonsense"])
             shot = await c.call("drawings_preview", project_id="utility-50mwac", sheet="UDEMO-DRL-U50-EE-002", region=[0, 0, 300, 200], px=800)
             png = Path(shot["png"])
             assert png.is_file() and png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n" and max(shot["width_px"], shot["height_px"]) == 800
