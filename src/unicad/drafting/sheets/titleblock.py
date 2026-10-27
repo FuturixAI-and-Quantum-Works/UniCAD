@@ -200,13 +200,14 @@ class TitleBlock:
 
     def _signoff_row(self, w: float) -> Row:
         m, d, th, roles = self.m, self.data, self.m.th, self.profile.roles
-        cols = self._columns([1, 1, 1])
+        cols = self._columns([1, 1, 1, 0.85])
         people = [
-            (roles.drawn, d.drawn_by, d.drawn_date),
-            (roles.checked, d.checked_by, d.checked_date),
-            (roles.approved, d.approved_by, d.approved_date),
+            (roles.drawn, d.drawn_by, None),
+            (roles.checked, d.checked_by, d.checked_date if d.checked_date != d.drawn_date else None),
+            (roles.approved, d.approved_by, d.approved_date if d.approved_date != d.drawn_date else None),
+            ("DATE", self._fmt_date(d.drawn_date), None),
         ]
-        date_h = 0.85 * th
+        date_h = 0.85 * th if any(dt for _, _, dt in people) else 0.0
         height = self._label_strip - self._lp + (1.3 * th) + (1.3 * date_h) + 0.2 * th + 2 * m.pad_y
 
         def draw(top: float) -> None:
@@ -220,8 +221,8 @@ class TitleBlock:
                 body_top = top - self._label_strip + self._lp
                 name_cell = Region(x0, body_top - 1.3 * th - m.pad_y, x1, body_top)
                 cv.put(T, name_cell, name, th, pad_x=m.pad_x, pad_y=m.pad_y / 2)
-                date_cell = Region(x0, cell.y0, x1, name_cell.y0)
-                cv.put(T, date_cell, self._fmt_date(dt), date_h, pad_x=m.pad_x, pad_y=m.pad_y / 2)
+                if dt is not None:
+                    cv.put(T, Region(x0, cell.y0, x1, name_cell.y0), self._fmt_date(dt), date_h, pad_x=m.pad_x, pad_y=m.pad_y / 2)
 
         return Row(height, draw)
 

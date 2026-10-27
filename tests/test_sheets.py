@@ -357,3 +357,17 @@ def test_a_location_naming_a_place_twice_is_drawn_once(profile):
     doc, _ = render(spec, profile)
     texts = " ".join(e.dxf.text for e in doc.modelspace().query("TEXT"))
     assert "PUNE, MIDC CHAKAN, MAHARASHTRA" in texts and "MAHARASHTRA, MAHARASHTRA" not in texts
+
+
+def test_default_title_block_has_a_date_cell_and_names_only_in_the_signoff_cells(profile):
+    """B6: the DRAWN cell holds the drafter's name and the issue date has its own DATE cell."""
+    spec = samples.rooftop_500kwp(PaperSize.A3)
+    tb = spec.title_block.model_copy(update={"drawn_by": "A. Kumar", "checked_date": None, "approved_date": None})
+    doc, _ = render(spec.model_copy(update={"title_block": tb}), profile)
+    texts = {e.dxf.text: e for e in doc.modelspace().query("TEXT")}
+    assert "DATE" in texts and "A. Kumar" in texts
+    when = tb.drawn_date.strftime(profile.date_format)
+    dates = [e for e in doc.modelspace().query("TEXT") if e.dxf.text == when]
+    label, name = texts["DATE"], texts["A. Kumar"]
+    signoff = [e for e in dates if abs(e.dxf.insert.y - name.dxf.insert.y) < 1.0]
+    assert len(signoff) == 1 and signoff[0].dxf.insert.x > label.dxf.insert.x - 0.5 > name.dxf.insert.x
