@@ -125,7 +125,7 @@ def test_every_template_builds_a_rule_clean_network(built, case):
 def test_bess_and_hybrid_put_storage_behind_its_own_transformer_on_the_mv_bus(built):
     for case in ("bess_ac", "hybrid"):
         net = built[case].project.network
-        assert chain(net, "bat") == ["battery", "pcs", "transformer", "vcb", "busbar", "vcb", "ct", "poi_grid"]
+        assert chain(net, "bat") == ["battery", "pcs", "breaker", "transformer", "vcb", "busbar", "vcb", "ct", "poi_grid"]
         tr = net.node("bess_tr").spec
         assert isinstance(tr, TransformerSpec) and tr.lv_kv == (0.69, 0.69) and tr.rated_kva == 2 * 2520
     hybrid = built["hybrid"].project.network

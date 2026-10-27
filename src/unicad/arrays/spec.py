@@ -51,6 +51,11 @@ class FillOrder(StrEnum):
     NEAREST = "nearest"
 
 
+ROOF_TABLE_GAP_M = 0.6
+ROOF_TABLE_GAP = (
+    f"gap between tables along a row on a roof: {ROOF_TABLE_GAP_M:g} m, a cleaning and maintenance walkway between tables (common C&I rooftop practice, "
+    "not from a cited source; set table_gap_m, or walkway_every_tables for wider walkways every N tables)"
+)
 DEFAULTS_ARE_ASSUMPTIONS = {
     "module_gap_m": "gap between modules on a table",
     "table_gap_m": "gap between tables along a row",
@@ -102,6 +107,8 @@ class PlacementSpec(_Frozen):
     strings_per_inverter: int | None = Field(default=None, gt=0)
     whole_inverters: bool = Field(default=True, description="with strings_per_inverter: size every block to whole inverters, leaving out the remainder tables")
     station: Point | None = Field(default=None, description="inverter station of every block, local metres; default on the block (on a roof for rooftop arrays)")
+    switchyard: Point | None = Field(default=None, description="MV switchyard (main LT panel on an LT plant), local metres; default a marked site area, else derived")
+    switchyard_m: tuple[float, float] | None = Field(default=None, description="switchyard length x width, to keep a derived switchyard clear of tables")
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -119,6 +126,8 @@ class PlacementSpec(_Frozen):
             problems.append("a tracker's tilt is its rotation; leave tilt_deg at 0")
         if problems:
             raise ValueError("invalid placement spec: " + "; ".join(problems))
+        if self.mounting.on_roof and "table_gap_m" not in self.model_fields_set:
+            object.__setattr__(self, "table_gap_m", ROOF_TABLE_GAP_M)
         return self
 
     @property
@@ -131,8 +140,8 @@ class PlacementSpec(_Frozen):
         return (self.axis_azimuth_deg + 90.0) % 360 if self.mounting.is_tracker else self.azimuth_deg
 
     def assumptions(self) -> list[str]:
-        out = [f"{label}: {getattr(self, f)} (default, not from a cited source)" for f, label in DEFAULTS_ARE_ASSUMPTIONS.items()
-               if f not in self.model_fields_set and (f != "tracker_max_rotation_deg" or self.mounting.is_tracker)]
+        out = [ROOF_TABLE_GAP if f == "table_gap_m" and self.mounting.on_roof else f"{label}: {getattr(self, f)} (default, not from a cited source)"
+               for f, label in DEFAULTS_ARE_ASSUMPTIONS.items() if f not in self.model_fields_set and (f != "tracker_max_rotation_deg" or self.mounting.is_tracker)]
         if self.road_every_rows and "road_width_m" not in self.model_fields_set:
             out.append(f"internal road width: {self.road_width_m} m (default, not from a cited source)")
         if self.walkway_every_tables and "walkway_width_m" not in self.model_fields_set:

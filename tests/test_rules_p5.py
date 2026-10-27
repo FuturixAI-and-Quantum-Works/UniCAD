@@ -51,8 +51,12 @@ def test_constants_are_the_cited_xlpe_values():
 
 def test_without_fault_levels_one_info_names_the_unchecked_voltages():
     fs = findings(fixture("utility_50mwac"), "cables.short_circuit")
-    assert len(fs) == 1 and fs[0].severity is Severity.INFO and fs[0].subjects == ()
-    assert "33000 V" in fs[0].message and "660 V" in fs[0].message and "design_basis.fault_levels" in fs[0].message
+    rest = [f for f in fs if f.subjects == ()]
+    assert len(rest) == 1 and rest[0].severity is Severity.INFO
+    assert "33000 V" in rest[0].message and "660 V" not in rest[0].message and "design_basis.fault_levels" in rest[0].message
+    # the 660 V zone is fed by the IDT, so its cables are checked against the transformer-fed current even without a declared level
+    f = sc(fixture("utility_50mwac"), "e_inv_idt")
+    assert {q.name: q for q in f.inputs}["I_fault"].source.startswith("transformer-fed")
 
 
 def test_aluminium_xlpe_3c_120_fails_a_25_ka_one_second_fault_on_the_33kv_bus():
@@ -107,9 +111,9 @@ def test_clearing_time_falls_back_to_the_earthing_basis_then_to_one_second():
 
 
 def test_low_voltage_levels_match_by_zone_voltage():
-    p = variant("utility_50mwac", with_levels(level(50, voltage_v=660.0, source="IDT impedance")))
+    p = variant("utility_50mwac", with_levels(level(60, voltage_v=660.0, source="IDT impedance")))
     f = sc(p, "e_inv_idt")
-    assert f.severity is Severity.INFO and f.measured == 3200 and f.limit == pytest.approx(50000 / 94, abs=0.01)
+    assert f.severity is Severity.INFO and f.measured == 3200 and f.limit == pytest.approx(60000 / 94, abs=0.01)
     assert not [x for x in findings(p, "cables.short_circuit") if x.subjects == ("e_icog_bus",)]
     rest = [x for x in findings(p, "cables.short_circuit") if x.subjects == ()]
     assert len(rest) == 1 and "33000 V" in rest[0].message and "660 V" not in rest[0].message

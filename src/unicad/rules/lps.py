@@ -9,6 +9,7 @@ from unicad.rules.model import Finding, Quantity, Severity
 from unicad.rules.registry import rule
 
 _CACHE: list[tuple[Project, LpsDesign]] = []
+STEP_SOURCES = {"LPL": "design_basis.lps.level", "dL": "calculated: dL = v x dT with v = 1 m/us (NF C 17-102) from design_basis.lps.ese_delta_t_us"}
 
 
 def lps_for(project: Project) -> LpsDesign | None:
@@ -31,7 +32,7 @@ def coverage(project: Project, catalog: Catalog) -> Iterator[Finding]:
     d = lps_for(project)
     if d is None:
         return
-    inputs = tuple(Quantity(name=v.name, value=v.value, unit=v.unit, source=v.source) for s in d.steps for v in s.inputs)
+    inputs = tuple(Quantity(name=v.name, value=v.value, unit=v.unit, source=v.source or STEP_SOURCES.get(v.name, "calculated by the rule (see formula and docs)")) for s in d.steps for v in s.inputs)
     for t in d.uncovered[:200]:
         yield Finding(rule_id="lps.coverage", severity=Severity.ERROR, subjects=(t.id,), message=f"{t.kind} {t.id} lies outside every protection zone (radius {d.radius_m:g} m)",
                       measured=None, limit=d.radius_m, unit="m", inputs=inputs, assumptions=d.assumptions)  # fmt: skip

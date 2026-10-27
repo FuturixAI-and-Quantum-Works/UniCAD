@@ -1,6 +1,6 @@
 from collections import Counter
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -23,6 +23,7 @@ from unicad.domain.site import (
 )
 from unicad.ingest.site_common import Georef, ParsedSite, Placed, RawFeature, place
 from unicad.ingest.site_coords import CoordinateSystem
+from unicad.ingest.site_dxf import UNIT_NAMES
 from unicad.ingest.site_import import FORMATS, import_site
 from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
@@ -163,12 +164,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def site_import(
         project_id: ProjectIdArg,
         file_path: Annotated[str, Field(description="Path to a .kml, .kmz, .geojson, .dxf or coordinate-list (.csv/.txt) file on the machine running the server")],
-        format: Annotated[str | None, Field(description=f"One of {', '.join(FORMATS)}; guessed from the extension when omitted")] = None,
+        format: Annotated[Literal[FORMATS] | None, Field(description="File format; guessed from the extension when omitted")] = None,
         kind_mapping: KindMappingArg = None,
         origin_lon: OriginLon = None,
         origin_lat: OriginLat = None,
         source_crs: Annotated[str | None, Field(description="EPSG code when a DXF or coordinate list holds projected metres, e.g. 'EPSG:32643'; omit for local metres")] = None,
-        units: Annotated[str | None, Field(description="Drawing units of a DXF without a usable $INSUNITS: m, mm, cm, ft, in, km, yd, dm")] = None,
+        units: Annotated[Literal[tuple(UNIT_NAMES)] | None, Field(description="Drawing units of a DXF without a usable $INSUNITS")] = None,
         coordinate_system: Annotated[CoordinateSystem | None, Field(description="Coordinate lists only: lonlat, latlon or local (metres). Guessed when omitted")] = None,
         replace: Annotated[bool, Field(description="Discard the existing site geometry first and start a new local frame")] = False,
     ) -> dict[str, Any]:
@@ -197,7 +198,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def site_set_feature(
         project_id: ProjectIdArg,
         id: Annotated[str, Field(description="Feature id (letters, digits, '_', '-', '.'); an existing id is replaced")],
-        kind: Annotated[FeatureKind, Field(description="boundary, roof, exclusion, road, building, obstacle, water, setback_line, transmission_line or existing_structure")],
+        kind: Annotated[FeatureKind, Field(description="Feature kind; 'switchyard' marks the MV switchyard area that layout, routing and earthing use")],
         coordinates: Annotated[list[list[float]], Field(min_length=2, description="Points as [x, y] pairs: local metres, or [lon, lat] when coordinate_system='lonlat'. Do not repeat the first point at the end")],
         coordinate_system: Annotated[CoordinateSystem, Field(description="'local' (metres in the site frame), 'lonlat' (degrees) or 'latlon'")] = "local",
         closed: Annotated[bool | None, Field(description="Polygon (true) or open path (false). Default: polygon, except road, setback_line and transmission_line which default to a path")] = None,

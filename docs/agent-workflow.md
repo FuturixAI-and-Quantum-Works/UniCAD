@@ -341,7 +341,7 @@ layout_place(
     "pitch_m": 5.196,
     "gcr": 0.8845,
     "buildable_m2": 6615.0,
-    "area_used_m2": 1489.5,
+    "area_used_m2": 1386.6,
     "strings": 22,
     "unstrung_modules": 0,
     "block_balance": 0.0
@@ -350,7 +350,8 @@ layout_place(
   "strings_planned": 22,
   "assumptions": [
     "gap between modules on a table: 0.02 (default, not from a cited source)",
-    "gap between tables along a row: 1.5 (default, not from a cited source)"
+    "gap between tables along a row on a roof: 0.6 m, a cleaning and maintenance walkway between tables (common...",
+    "Main LT panel / switchyard at local (68.9, 14.0): derived: on the ground 6 m outside the roof edge nearest..."
   ],
   "summary": {
     "groups": 0,
@@ -406,7 +407,7 @@ network_autobuild(
     "dc_ac_ratio": 1.221,
     "strings_linked": 22,
     "segment_hint": "ci_rooftop",
-    "routed_edges": 2,
+    "routed_edges": 3,
     "modules_per_string": 20,
     "inverters": 2,
     "strings": 22
@@ -477,7 +478,7 @@ Fix the model, not the drawing. Cable, length and laying method are example inpu
 network_update(
     project_id="pune-midc-factory-roof",
     id="e_ct_poi",
-    fields={"cable": "polycab-lt-xlpe-al-1c-400-arm", "length_m": 20, "laying": "tray"},
+    fields={"cable": "polycab-lt-xlpe-al-1c-400-arm", "length_m": 40, "laying": "tray"},
 )
 ```
 
@@ -503,8 +504,8 @@ validate(project_id="pune-midc-factory-roof")
       "rule_id": "vdrop.ac",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.64 + 1.05 + 0.18 + 0.29 = 2.15 % exceeds vdrop_ac_max...",
-      "measured": 2.152,
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.50 + 1.32 + 0.11 + 0.57 = 2.50 % exceeds vdrop_ac_max...",
+      "measured": 2.497,
       "limit": 2.0,
       "unit": "%"
     },
@@ -535,36 +536,36 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
       "title": "AC voltage drop from inverter to the point of interconnection within the design basis",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.64 + 1.05 + 0.18 + 0.29 = 2.15 % exceeds vdrop_ac_max...",
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.50 + 1.32 + 0.11 + 0.57 = 2.50 % exceeds vdrop_ac_max...",
       "formula": "dV%_total = sum(dV%_segment)",
       "inputs": [
         {
           "name": "dV%[e_inv_brk_b01a]",
-          "value": 0.6358,
+          "value": 0.497,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         {
           "name": "dV%[e_brk_ct]",
-          "value": 1.0548,
+          "value": 1.3175,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         {
           "name": "dV%[e_iso_ltp]",
-          "value": 0.1754,
+          "value": 0.1098,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         {
           "name": "dV%[e_ct_poi]",
-          "value": 0.2865,
+          "value": 0.573,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         "... 1 more"
       ],
-      "measured": 2.152,
+      "measured": 2.497,
       "limit": 2.0,
       "unit": "%",
       "assumptions": [
@@ -655,13 +656,13 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.array",
         "description": "25x6 MM GS FLAT - MMS / TABLE ROW EARTHING",
-        "quantity": 337.0,
+        "quantity": 322.0,
         "unit": "m"
       },
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 12.0,
+        "quantity": 20.0,
         "unit": "m"
       },
       "... 1 more"
@@ -752,15 +753,13 @@ cable_schedule(project_id="pune-midc-factory-roof")
   "rows": 31,
   "totals": {
     "rows": 31.0,
-    "cable_m": 2831.31,
-    "loss_w": 6067.59,
-    "cable_m_dc": 2516.31,
-    "cable_m_lv_ac": 315.0
+    "cable_m": 2404.53,
+    "loss_w": 5483.87,
+    "cable_m_dc": 2059.77,
+    "cable_m_lv_ac": 344.76
   },
-  "length_sources": {"estimated": 24, "network": 7},
-  "warnings": [
-    "The main LT panel collecting the inverters is not located in the project; it is assumed at the centroid of..."
-  ]
+  "length_sources": {"estimated": 26, "network": 5},
+  "warnings": []
 }
 ```
 
@@ -782,7 +781,7 @@ bom(project_id="pune-midc-factory-roof")
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 2974.0
+    "cable_m_ordered": 2526.0
   },
   "warnings": []
 }
@@ -886,7 +885,7 @@ layout_place(
     "pitch_m": 5.196,
     "gcr": 0.8845,
     "buildable_m2": 6599.0,
-    "area_used_m2": 1489.5,
+    "area_used_m2": 1386.6,
     "strings": 22,
     "unstrung_modules": 0,
     "block_balance": 0.0
@@ -918,8 +917,8 @@ project_diff(project_id="pune-midc-factory-roof", from_revision="issued-approval
       {
         "id": "B01",
         "fields": [
-          {"path": "station.x", "before": 71.778, "after": 80.07},
-          {"path": "boundary_points", "before": 16, "after": 18},
+          {"path": "station.x", "before": 68.92, "after": 69.52},
+          {"path": "boundary_points", "before": 18, "after": 32},
           {"path": "tables_modified", "before": 0, "after": 22}
         ]
       }

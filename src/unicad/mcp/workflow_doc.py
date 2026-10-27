@@ -119,7 +119,7 @@ def steps() -> list[Step]:
         ),
         Step(
             "network_update",
-            p | {"id": "e_ct_poi", "fields": {"cable": "polycab-lt-xlpe-al-1c-400-arm", "length_m": 20, "laying": "tray"}},
+            p | {"id": "e_ct_poi", "fields": {"cable": "polycab-lt-xlpe-al-1c-400-arm", "length_m": 40, "laying": "tray"}},
             "Fix the model, not the drawing. Cable, length and laying method are example inputs.",
             keep=("revision", "changed", "problems"),
         ),

@@ -12,6 +12,7 @@ from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.tools.rules import compact
 from unicad.mcp.workspace import Edit, Workspace
+from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 LIST_CAP = 40
@@ -71,6 +72,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         battery: Annotated[str | None, Field(description="Catalog battery id")] = None,
         use_layout: Annotated[bool, Field(description="Build the PV plan from the project's array layout (layout_place) and link every layout string to one pv_string instance")] = True,
         lengths: Annotated[dict[str, float] | None, Field(description="Cable route length overrides in m by role, e.g. {\"vcb_bus\": 650}")] = None,
+        bess_x: Annotated[float | None, Field(description="Local x (m) of the BESS area centre (bess_ac, hybrid); default the free area nearest the switchyard")] = None,
+        bess_y: Annotated[float | None, Field(description="Local y (m) of the BESS area centre")] = None,
     ) -> dict[str, Any]:
         """Replace the project's electrical network with a complete one built from a short intent: strings sized from the catalog and design basis,
         a topology template (residential, ci_rooftop, utility_string, utility_central, bess_ac, bess_dc, hybrid) with protection, metering, SPDs and
@@ -83,12 +86,13 @@ def register(server: MCPServer, ws: Workspace) -> None:
             template=template, ac_kw=ac_kw, dc_kwp=dc_kwp, module=module, inverter=inverter, grid_voltage_v=grid_voltage_v,
             modules_per_string=modules_per_string, strings_per_inverter=strings_per_inverter, inverters_per_block=inverters_per_block,
             step_up_kv=step_up_kv, connection=connection, metering=metering, block_switch=block_switch, auxiliary=auxiliary,
-            export_limit_kw=export_limit_kw, bess_kw=bess_kw, bess_kwh=bess_kwh, pcs=pcs, battery=battery, lengths=lengths or {},
+            export_limit_kw=export_limit_kw, bess_kw=bess_kw, bess_kwh=bess_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
         )  # fmt: skip
 
         def change(p: Project) -> Edit:
             layout = p.array_layout if use_layout and p.array_layout is not None and p.array_layout.blocks else None
-            r = autobuild(p, ws.catalog, intent, layout=layout)
+            company = thresholds_of(p.company_profile, ws.config.workspace)
+            r = autobuild(p, ws.catalog, intent, layout=layout, thresholds=company)
             findings = [compact(f) for f in r.findings]
             extra = {
                 "template": r.template,
@@ -100,6 +104,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 "assumptions": list(r.assumptions),
                 "strings_design": r.strings.model_dump(mode="json") if r.strings else None,
             }
+            if company:
+                extra["company_thresholds"] = {"profile": p.company_profile, "values": {name: s.value for name, s in company.items()}}
             problems = tuple({"severity": "warning", "subject": "autobuild", "message": b} for b in r.blockers)
             return Edit(r.project, tuple(n.id for n in r.project.network.nodes), extra, problems)
 

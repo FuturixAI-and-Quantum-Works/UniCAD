@@ -141,3 +141,11 @@ def test_ground_demo_dc_voltage_drop_fails_on_the_fixture_cables_and_passes_afte
     assert paths and all(f.severity is Severity.INFO and f.measured <= limit for f in paths)
     strings = {CATALOG.get(r.project.network.edge_by_id[e].cable).size_mm2 for e in r.project.network.edge_by_id if e.startswith("e_str_")}
     assert min(strings) > 4
+
+
+def test_central_inverters_stay_at_their_block_stations(ground):
+    """close-e2e-2 N3: only string inverters move into the field; a central inverter fed by SCBs stays at its block station."""
+    r = ground_build(ground)
+    lay = r.project.array_layout
+    assert lay.switchyard is not None and not [e for e in lay.equipment if e.kind == "inverter"]
+    assert not any(a.startswith("String inverters stand in the field") for a in r.assumptions)

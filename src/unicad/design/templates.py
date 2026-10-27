@@ -577,7 +577,10 @@ def bess_blocks(c: Ctx, bp: BessPlan, kv: float, switch: str) -> None:
         f"{n * pcs.rated_kva:g} kVA {kv:g}/{vv / 1000:g} kV BESS transformer", vv, n, pcs.rated_kva, kv, f"ac_voltage of catalog {pcs.id}",
     )  # fmt: skip
     b.node("bess_tr", "BESS-TR", NodeKind.TRANSFORMER, group=g, spec=spec)
-    b.edge("e_pcs_tr", "pcs:ac", "bess_tr:lv", V.LV_AC, EdgeHint(LV3_FAMILY), c.L("pcs_tr"), Laying.TRENCH)
+    brk = b.node("pcs_brk", "BESS-ACB", NodeKind.BREAKER, group=pg, voltage_v=vv, hint=NodeHint("lv_breaker", (3,)))
+    b.edge("e_pcs_brk", "pcs:ac", f"{brk}:in", V.LV_AC, EdgeHint(LV3_FAMILY), c.L("pcs_tr"), Laying.TRENCH)
+    b.edge("e_brk_tr", f"{brk}:out", "bess_tr:lv", V.LV_AC, EdgeHint(LV3_FAMILY), c.L("acb_tr"), Laying.TRENCH)
+    b.assume("Each PCS feeds its BESS transformer LV winding through its own LT breaker (BESS-ACB), so a PCS or winding can be isolated and its fault cleared on its own.")
     b.earth("pcs")
     block_feeder(c, g, "_bess", "bess_tr", kv, switch, block_aux=False, tag="BESS")
     b.assume(
@@ -592,7 +595,7 @@ def bess_ac(c: Ctx, bp: BessPlan, switch: str, aux: bool, export_limit_kw: float
     kv = _kv(c)
     bess_blocks(c, bp, kv, switch)
     mv_yard(c, kv, "abt", aux, export_limit_kw)
-    c.lengths_assumption(["bat_pcs", "pcs_tr", "idt_vcb", "vcb_bus", "main_aux_mv", "main_aux_lv"])
+    c.lengths_assumption(["bat_pcs", "pcs_tr", "acb_tr", "idt_vcb", "vcb_bus", "main_aux_mv", "main_aux_lv"])
     return c.built
 
 
@@ -674,5 +677,5 @@ def hybrid(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, bp:
         string_blocks(c, plan, inverter, module, kv, switch, aux)
     bess_blocks(c, bp, kv, switch)
     mv_yard(c, kv, "abt", aux, export_limit_kw)
-    c.lengths_assumption(["string", "scb_inv", "inv_accb", "accb_idt", "inv_idt", "bat_pcs", "pcs_tr", "idt_vcb", "vcb_bus"])
+    c.lengths_assumption(["string", "scb_inv", "inv_accb", "accb_idt", "inv_idt", "bat_pcs", "pcs_tr", "acb_tr", "idt_vcb", "vcb_bus"])
     return c.built

@@ -8,7 +8,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import CableSpec, Conductor, ProtectionSpec
 from unicad.domain.network import Edge, ElectricalNetwork, Laying, NodeKind, Service
 from unicad.domain.project import Project
-from unicad.rules.faults import fault_at
+from unicad.rules.faults import LV_BREAKER_CLEARING, LV_BREAKER_CLEARING_S, default_clearing, fault_at, prospective_in
 from unicad.rules.grouping import grouping
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
@@ -194,21 +194,126 @@ def ampacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
             yield Finding(rule_id="cables.ampacity", severity=Severity.INFO, message=f"{where}: derating not specified, {taken}; Ib {ib.value:.1f} A within {working}", **common)
 
 
+IN_LINE = frozenset({NodeKind.CT, NodeKind.METER, NodeKind.ISOLATOR, NodeKind.DC_ISOLATOR})
+
+
+def protected_edges(net: ElectricalNetwork, node_id: str) -> tuple[Edge, ...]:
+    """Power edges in series with an overcurrent device: those at it and those reached through in-line CTs, meters and isolators, up to the
+    next panel, switching device or equipment. An isolator or CT does not interrupt overload current, so the cable beyond it is still the
+    device's to protect."""
+    out: dict[str, Edge] = {}
+    seen, stack = {node_id}, [node_id]
+    while stack:
+        at = stack.pop()
+        for e in net.edges_at(at):
+            if not e.is_power or e.id in out:
+                continue
+            other = e.dst_node if e.src_node == at else e.src_node
+            if net.node(other).kind in TAPS:
+                continue
+            out[e.id] = e
+            if other not in seen and net.node(other).kind in IN_LINE:
+                seen.add(other)
+                stack.append(other)
+    return tuple(out.values())
+
+
+def overload_device(catalog: Catalog, node) -> ProtectionSpec | None:
+    if node.spec is None:
+        return None
+    spec = node.spec if isinstance(node.spec, ProtectionSpec) else catalog.get(node.spec)
+    if not isinstance(spec, ProtectionSpec) or spec.device not in OVERLOAD_DEVICES or spec.rated_current is None:
+        return None
+    return spec
+
+
+def protectors(project: Project, catalog: Catalog) -> dict[str, list[tuple[str, ProtectionSpec]]]:
+    """The overcurrent devices (node id, spec) protecting each edge (see protected_edges), by edge id."""
+    net = project.network
+    out: dict[str, list[tuple[str, ProtectionSpec]]] = {}
+    for n in net.nodes:
+        spec = overload_device(catalog, n)
+        if spec is None:
+            continue
+        for e in protected_edges(net, n.id):
+            out.setdefault(e.id, []).append((n.id, spec))
+    return out
+
+
+def protecting_in(project: Project, catalog: Catalog) -> dict[str, float]:
+    """Largest rated current In of the overcurrent devices protecting each edge, by edge id."""
+    return {eid: max(s.rated_current for _, s in devs) for eid, devs in protectors(project, catalog).items()}
+
+
+LV_MAX_V = 1000.0
+LV_BREAKERS = frozenset({"mcb", "mccb", "acb"})
+
+
+@dataclass(frozen=True)
+class CableFault:
+    """The fault a cable must withstand: current, clearing time, and where each comes from."""
+
+    voltage_v: float
+    ka: float
+    clearing_s: float
+    where: str
+    inputs: tuple[Quantity, ...]
+    assumptions: tuple[str, ...]
+
+
+def cable_fault(project: Project, catalog: Catalog, e: Edge, guards: dict[str, list[tuple[str, ProtectionSpec]]] | None = None) -> CableFault | None:
+    """Prospective fault on an AC cable and its clearing time. The current is the level declared for the cable's system voltage or, in an LT zone a
+    transformer feeds, the transformer-fed current when larger (as protection.fault_level). The time is the instantaneous trip of the LT breaker
+    protecting the cable (LV_BREAKER_CLEARING_S) when one does, else the clearing time of the declared level, else the default chain."""
+    net, basis = project.network, project.design_basis
+    zone = edge_zone(net, e)
+    v = zone.voltage_v if zone else None
+    if v is None:
+        return None
+    declared = fault_at(basis, v)
+    fed = prospective_in(project, catalog, zone) if v <= LV_MAX_V else None
+    if fed is not None and fed.where != "transformer-fed":
+        fed = None
+    if declared is None and fed is None:
+        return None
+    if fed is not None and (declared is None or fed.ka > declared.ka):
+        ka, where = fed.ka, f"transformer-fed ({fed.formula})"
+        current = (Quantity(name="I_fault", value=fed.ka, unit="kA", source=where), *fed.inputs)
+        notes: tuple[str, ...] = fed.assumptions
+    else:
+        ka, where, current, notes = declared.ka, declared.where, declared.inputs()[:1], ()
+    guards = protectors(project, catalog) if guards is None else guards
+    breaker = next(((nid, s) for nid, s in guards.get(e.id, []) if s.device in LV_BREAKERS), None) if v <= LV_MAX_V else None
+    if breaker is not None:
+        nid, spec = breaker
+        t = LV_BREAKER_CLEARING_S
+        time = Quantity(name="t", value=t, unit="s", source=f"assumption: instantaneous trip of {spec.model} ({spec.device.upper()}), {t:g} s")
+        tnote = (f"{label(net, nid)} {spec.model} ({spec.device.upper()}) protects the cable. {LV_BREAKER_CLEARING}",)
+    elif declared is not None:
+        t, time, tnote = declared.clearing_s, declared.inputs()[1], declared.assumptions
+    else:
+        t, why = default_clearing(basis, v)
+        time, tnote = Quantity(name="t", value=t, unit="s", source=why), (why,)
+    return CableFault(v, ka, t, where, (*current, time), (*notes, *tnote))
+
+
 def _protected_cables(project: Project, catalog: Catalog, node_id: str) -> Iterator[tuple[Edge, Ampacity]]:
-    for e in project.network.edges_at(node_id):
-        if e.is_power and (iz := edge_ampacity(project, catalog, e)) is not None:
+    for e in protected_edges(project.network, node_id):
+        if (iz := edge_ampacity(project, catalog, e)) is not None:
             yield e, iz
 
 
 @rule("cables.protection", "Overcurrent device rating does not exceed the cable ampacity", clause=OVERLOAD)
 def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable connected directly to it, so the device trips before the cable overheats. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model."""
+    """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
+    A device protects the cables connected to it and those reached from it through in-line CTs, meters and isolators (which do not interrupt overload current), up to the next panel, switching device
+    or equipment. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
+
+    Worked example: an ACB of In 1250 A feeding a CT, an isolator and then a cable of Iz 980 A to the LT panel is an error (1250 A > 980 A), although the cable does not touch the ACB."""
     net = project.network
     for n in net.nodes:
-        if n.spec is None:
-            continue
-        spec = catalog.get(n.spec)
-        if not isinstance(spec, ProtectionSpec) or spec.device not in OVERLOAD_DEVICES or spec.rated_current is None:
+        spec = overload_device(catalog, n)
+        if spec is None:
             continue
         for e, iz in _protected_cables(project, catalog, n.id):
             z = iz.calc()
@@ -232,22 +337,27 @@ def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
 @rule("cables.short_circuit", "Cable conductor withstands the prospective fault", clause=OVERLOAD)
 def short_circuit(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """The conductor of every AC power cable must carry the prospective fault current for the clearing time without overheating (adiabatic heating): A >= I sqrt(t) / k, where A is the conductor
-    area (area x parallel runs), I the three-phase fault level and t the clearing time of the system voltage the cable sits in (design_basis.fault_levels), and k the conductor and insulation constant.
-    k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). Without a clearing time on the level,
-    design_basis.earthing.fault_clearing_s is used, else 1 s, and the finding says so. The fault is taken at the cable's source end, which is conservative (cable impedance only lowers it), and only
-    the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not checked. Where no fault level is declared for a cable's system voltage a single info finding
-    lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+    area (area x parallel runs), I the three-phase fault current and t its clearing time, and k the conductor and insulation constant.
 
-    Worked example (a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE): I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
-    (it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA)."""
-    net, basis = project.network, project.design_basis
+    I is the level declared for the cable's system voltage (design_basis.fault_levels) or, in an LT zone (up to 1000 V) fed by a transformer, the transformer-fed current of
+    protection.fault_level when that is larger. t depends on the voltage level: an LT cable protected by an MCB, MCCB or ACB (directly, or through in-line CTs, meters and
+    isolators as for cables.protection) is cleared by the breaker's instantaneous trip, taken as 0.1 s (a labelled assumption: the shortest duration IEC 60364-4-43 applies the
+    adiabatic formula to); every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
+    k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). The fault is taken at the
+    cable's source end, which is conservative (cable impedance only lowers it), and only the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not
+    checked. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+
+    Worked examples: a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE: I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
+    (it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA). A 415 V cable behind an ACB with a 25 kA level: 25000 x sqrt(0.1) / 94 = 84.1 mm2, so one run of 95 sq.mm passes."""
+    net = project.network
     unchecked: dict[str, int] = {}
+    guards = protectors(project, catalog)
     for e in net.edges:
         cable = cable_of(catalog, e)
         if not e.is_power or cable is None or e.service not in AC_SERVICES:
             continue
         zone = edge_zone(net, e)
-        fault = fault_at(basis, zone.voltage_v if zone else None)
+        fault = cable_fault(project, catalog, e, guards)
         if fault is None:
             key = f"{zone.voltage_v:g} V" if zone and zone.voltage_v else "undeclared voltage"
             unchecked[key] = unchecked.get(key, 0) + 1
@@ -270,7 +380,7 @@ def short_circuit(project: Project, catalog: Catalog) -> Iterator[Finding]:
             message=f"{where}: conductor {'withstands' if ok else 'cannot withstand'} the {fault.ka:g} kA fault at {fault.voltage_v:g} V: {working}",
             measured=round(have, 2), limit=round(need, 2), unit="mm2", formula="A >= I sqrt(t) / k",
             inputs=(
-                *fault.inputs(),
+                *fault.inputs,
                 Quantity(name="k", value=k.value, unit=k.unit, source=f"threshold.{k.name}"),
                 Quantity(name="A", value=have, unit="mm2", source=cable.id),
             ),

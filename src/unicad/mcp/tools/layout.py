@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -77,6 +77,7 @@ def _result_json(r: PlacementResult) -> dict[str, Any]:
         "target_reached": r.target_reached,
         "blocks": _blocks_json(r.blocks),
         "internal_roads": len(r.roads),
+        "switchyard": None if r.layout.switchyard is None else {"x": r.layout.switchyard.at.x, "y": r.layout.switchyard.at.y, "basis": r.layout.switchyard.basis},
         "assumptions": list(r.assumptions),
     }
 
@@ -126,37 +127,40 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def layout_place(
         project_id: ProjectIdArg,
         module: Annotated[str, Field(description="Catalog id of the PV module, e.g. 'waaree-bi-55-540'")],
-        mounting: Annotated[str, Field(description="fixed_tilt, tracker_1p, rooftop_flush, rooftop_tilted or carport")] = "fixed_tilt",
+        mounting: Annotated[Literal["fixed_tilt", "tracker_1p", "rooftop_flush", "rooftop_tilted", "carport"], Field(description="Mounting structure")] = "fixed_tilt",
         table_rows: Annotated[int, Field(gt=0, description="Modules across a table (2 for 2P, 1 for a 1P tracker)")] = 2,
         table_cols: Annotated[int | None, Field(gt=0, description="Modules along a table or tracker; default the string length (modules_per_string), else 28")] = None,
         orientation: Annotated[Orientation, Field(description="portrait or landscape")] = Orientation.PORTRAIT,
         tilt_deg: Annotated[float, Field(ge=0, le=60, description="Fixed tilt; 0 for trackers and flat roofs")] = 0.0,
         azimuth_deg: Annotated[float, Field(ge=0, lt=360, description="Direction the modules face, clockwise from grid north; 180 = south")] = 180.0,
         axis_azimuth_deg: Annotated[float, Field(ge=0, lt=180, description="Tracker axis direction; 0 = north-south")] = 0.0,
-        pitch_method: Annotated[str, Field(description="solstice (shade-free 09:00-15:00 solar time on the winter solstice), explicit (pitch_m), gcr (gcr) or gap (row_gap_m)")] = "solstice",
+        pitch_method: Annotated[Literal["solstice", "explicit", "gcr", "gap"], Field(description="solstice (shade-free 09:00-15:00 solar time on the winter solstice), explicit (pitch_m), gcr (gcr) or gap (row_gap_m)")] = "solstice",
         pitch_m: Annotated[Metres, Field(description="Row-to-row pitch for pitch_method='explicit'")] = None,
         gcr: Annotated[float | None, Field(gt=0, lt=1, description="Ground coverage ratio for pitch_method='gcr'")] = None,
         row_gap_m: Annotated[float | None, Field(ge=0, description="Clear gap between rows for pitch_method='gap'")] = None,
         half_tables: Annotated[bool, Field(description="Fill edges with half tables (only where a half table holds whole strings, unless half_cols is given)")] = True,
         half_cols: Annotated[int | None, Field(gt=0, description="Modules along a half table; default the longest shorter table that holds whole strings")] = None,
-        table_gap_m: Annotated[float | None, Field(ge=0, description="Gap between tables along a row (default 1.5 m, reported as an assumption)")] = None,
+        table_gap_m: Annotated[float | None, Field(ge=0, description="Gap between tables along a row (default 1.5 m on the ground, 0.6 m maintenance walkway on roofs; reported as an assumption)")] = None,
         module_gap_m: Annotated[float | None, Field(ge=0, description="Gap between modules on a table (default 0.02 m, reported as an assumption)")] = None,
         road_every_rows: Annotated[int | None, Field(gt=0, description="Leave an internal road after every N rows")] = None,
         road_width_m: Annotated[Metres, Field(description="Internal road width (default 6 m)")] = None,
         walkway_every_tables: Annotated[int | None, Field(gt=0, description="Leave a walkway after every N tables along a row")] = None,
         walkway_width_m: Annotated[Metres, Field(description="Walkway width (default 4 m)")] = None,
         target_dc_kwp: Annotated[float | None, Field(gt=0, description="Stop at this DC capacity instead of filling the site")] = None,
-        fill: Annotated[str, Field(description="With a target: 'rows' (front rows first) or 'nearest' (closest to fill_from)")] = "rows",
+        fill: Annotated[Literal["rows", "nearest"], Field(description="With a target: 'rows' (front rows first) or 'nearest' (closest to fill_from)")] = "rows",
         fill_from_x: Annotated[float | None, Field(description="Local x (m) of the point to fill around, e.g. the pooling substation")] = None,
         fill_from_y: Annotated[float | None, Field(description="Local y (m) of the point to fill around")] = None,
         n_blocks: Annotated[int | None, Field(gt=0, description="Number of inverter blocks")] = None,
         block_dc_kwp: Annotated[float | None, Field(gt=0, description="Largest DC capacity per block; the block count is rounded up from it")] = None,
         modules_per_string: Annotated[int | None, Field(gt=0, description="Modules in series; default the network pv_string modules_in_series, else table_cols")] = None,
         strings_per_inverter: Annotated[int | None, Field(gt=0, description="Strings per inverter within a block (string inverters); default one inverter per block")] = None,
-        regions: Annotated[str, Field(description="auto (roofs for rooftop mountings, else ground), ground or roofs")] = "auto",
+        regions: Annotated[Literal["auto", "ground", "roofs"], Field(description="auto (roofs for rooftop mountings, else ground), ground or roofs")] = "auto",
         whole_inverters: Annotated[bool, Field(description="With strings_per_inverter: size every block to whole inverters and leave out the few remainder tables instead of adding a part-loaded inverter")] = True,
         station_x: Annotated[float | None, Field(description="Local x (m) of the inverter station for every block, e.g. a ground-level inverter room; default on the block (on a roof for rooftop arrays)")] = None,
         station_y: Annotated[float | None, Field(description="Local y (m) of the inverter station")] = None,
+        switchyard_x: Annotated[float | None, Field(description="Local x (m) of the MV switchyard (main LT panel on an LT plant); cable routing and earthing read it. "
+                                                    "Default: a site area of kind 'switchyard', else derived and reported")] = None,
+        switchyard_y: Annotated[float | None, Field(description="Local y (m) of the MV switchyard")] = None,
     ) -> dict[str, Any]:
         """Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
         site an inverter station per block and assign strings to module slots. Replaces any existing array layout.
@@ -180,6 +184,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 raise ValueError("pass fill_from_x and fill_from_y together")
             if (station_x is None) != (station_y is None):
                 raise ValueError("pass station_x and station_y together")
+            if (switchyard_x is None) != (switchyard_y is None):
+                raise ValueError("pass switchyard_x and switchyard_y together")
+            earthing = p.design_basis.earthing
             cols = table_cols or mps or 28
             notes: list[str] = []
             if table_cols is None:
@@ -197,6 +204,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 azimuth_deg=azimuth_deg, axis_azimuth_deg=axis_azimuth_deg, pitch_method=pitch_method, half_tables=halves, fill=fill,
                 fill_from=None if fill_from_x is None else {"x": fill_from_x, "y": fill_from_y}, regions=regions, whole_inverters=whole_inverters,
                 station=None if station_x is None else {"x": station_x, "y": station_y},
+                switchyard=None if switchyard_x is None else {"x": switchyard_x, "y": switchyard_y},
+                switchyard_m=earthing.switchyard_m if earthing is not None else None,
                 **{k: v for k, v in (given | {"half_cols": half}).items() if v is not None},
             )  # fmt: skip
             result = place_array(site, spec, mod)
@@ -228,7 +237,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @server.tool(annotations=READ_ONLY)
     @guarded
     def layout_summary(project_id: ProjectIdArg, revision: RevisionArg = None) -> dict[str, Any]:
-        """Array layout totals: tables (full and half), modules, DC kWp, blocks and their balance, row pitch and GCR, linked strings.
+        """Array layout totals: tables (full and half), modules, DC kWp, blocks and their balance, row pitch and GCR, linked strings, the
+        switchyard location with how it was chosen, and the equipment network_autobuild placed in the field (string inverters, BESS units) by kind.
 
         Example: layout_summary(project_id="p1")."""
         p, rev = ws.load(project_id, revision)
@@ -263,6 +273,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
             "tilt_deg": t0.tilt_deg,
             "array_length_m": round(sum(plan_length(t) for t in tables), 1),
             "strings_linked": len(layout.strings),
+            "switchyard": None if layout.switchyard is None else {"x": layout.switchyard.at.x, "y": layout.switchyard.at.y, "basis": layout.switchyard.basis},
+            "field_equipment": dict(Counter(e.kind for e in layout.equipment)),
         }
 
     @server.tool(annotations=READ_ONLY)
