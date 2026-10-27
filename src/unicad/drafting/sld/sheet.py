@@ -30,10 +30,7 @@ from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage
 from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
 
-NOTES = (
-    "REPEATED GROUPS ARE DRAWN ONCE IN A DASHED FRAME; (x N) IS THE NUMBER OF IDENTICAL INSTANCES.",
-    "CABLE CALLOUTS: RUNS x CORES x SIZE, CONDUCTOR, INSULATION, ARMOUR, VOLTAGE GRADE, LAYING, LENGTH.",
-)
+NOTES = annotate.GENERAL_NOTES
 
 
 @dataclass(frozen=True)
@@ -99,7 +96,7 @@ def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catal
         issued_for=issued,
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
-    notes = layout.notes + NOTES + annotate.assumption_notes(project)
+    notes = NOTES + layout.notes + annotate.assumption_notes(project)
     return SheetSpec(
         paper=paper,
         title_block=tb,
@@ -165,7 +162,8 @@ def render_sld(
         doc = ezdxf.new("R2018", setup=["linetypes"])
     spec = sheet_spec(project, sheet, layout, catalog, sheets)
     n = len(project.design_basis.assumptions)
-    fallbacks = (NOTES + (f"{n} DESIGN BASIS ASSUMPTIONS ARE LISTED IN THE PROJECT RECORD.",) if n else NOTES, NOTES[:1], ())
+    kept = NOTES + layout.notes
+    fallbacks = (kept + (f"{n} DESIGN BASIS ASSUMPTIONS ARE LISTED IN THE PROJECT RECORD.",) if n else kept, kept)
     for notes in fallbacks:
         scratch = ezdxf.new("R2018", setup=["linetypes"])
         if not any("legend rows" in w for w in render_sheet(scratch, spec, profile, legend_drawer(scratch.modelspace())).warnings):

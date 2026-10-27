@@ -15,6 +15,7 @@
       "cut_edges": [
         "e_inv_idt"
       ],
+      "drawing_scale": "NTS",
       "files": {
         "dwg": null,
         "dxf": "01-UDEMO-DRL-U50-EE-001.dxf",
@@ -22,6 +23,7 @@
       },
       "id": "sld",
       "kind": "sld",
+      "kind_sheet_of": "1 of 2",
       "nodes": [
         "abt_check",
         "abt_main",
@@ -64,6 +66,7 @@
       "cut_edges": [
         "e_inv_idt"
       ],
+      "drawing_scale": "NTS",
       "files": {
         "dwg": null,
         "dxf": "02-UDEMO-DRL-U50-EE-002.dxf",
@@ -71,6 +74,7 @@
       },
       "id": "sld_block",
       "kind": "sld",
+      "kind_sheet_of": "2 of 2",
       "nodes": [
         "inv",
         "inv_acspd",

@@ -188,3 +188,34 @@ def test_drawings_render_and_preview_over_stdio(tmp_path):
             assert Path(whole["png"]).is_file() and whole["region"][2] > 1000
 
     asyncio.run(asyncio.wait_for(run(), 240))
+
+
+def test_a_split_keeps_the_metering_pt_on_the_sheet_of_its_abt_meters():
+    """close-e2e-1 M15: the split put the bus PT on its own part, so 'no pin to attach abt_main' and the PT-to-meter wiring was not drawn."""
+    p = fixture("utility_50mwac")
+    tight = SldOptions(min_scale=2.0, max_scale=3.0)
+    sheets = SldBuilder(tight).plan(p, PROFILE, CATALOG, Numberer.for_project(p, PROFILE))
+    done = SldBuilder(tight).build(p, sheets, sheets, PROFILE, CATALOG)
+    assert len(sheets) > 2
+    assert not [w for b in done for w in b.warnings if "no pin to attach" in w or "could not be drawn" in w]
+    home = {n: b.sheet.id for b in done for n in b.meta["nodes"]}
+    assert home["mv_pt"] == home["abt_main"] == home["abt_check"]
+
+
+def test_a_block_of_two_inverter_sections_is_framed_on_its_detail_sheet():
+    """close-e2e-1 m19: blocks of 19 + 1 inverters warned 'no clean outline ... drawn without a frame' on every block sheet."""
+    from test_design_p5 import GROUND_MODULE
+    from unicad.arrays import PlacementSpec, place_array
+    from unicad.ingest.site_import import import_site
+
+    site = import_site(ROOT / "fixtures" / "sites" / "ground_mount_rajasthan.kml", None).geometry
+    spec = PlacementSpec(module=GROUND_MODULE, table_rows=2, table_cols=27, tilt_deg=25, n_blocks=2, modules_per_string=27, road_every_rows=12, target_dc_kwp=2 * 144 * 27 * 0.58 * 1.1)
+    base = blank("utility_50mwac")
+    base = base.model_copy(update={"site": base.site.model_copy(update={"geometry": site})})
+    intent = {"template": "utility_string", "module": GROUND_MODULE, "inverter": "sungrow-sg350hx", "modules_per_string": 27, "inverters_per_block": 7}
+    p = autobuild(base, CATALOG, intent, layout=place_array(site, spec, CATALOG.get(GROUND_MODULE))).project
+    assert {g.within for g in p.network.groups if g.id.startswith("inv_sec_b01")} == {"block_b01"} and len([g for g in p.network.groups if g.id.startswith("inv_sec_b01")]) == 2
+    sheets = plan_sld_set(p, PROFILE, CATALOG)
+    done = SldBuilder().build(p, sheets, sheets, PROFILE, CATALOG)
+    details = [b for b in done if b.sheet.id.startswith("sld_block")]
+    assert details and not [w for b in details for w in b.warnings if "without a frame" in w or "untitled" in w]

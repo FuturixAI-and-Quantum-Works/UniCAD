@@ -18,7 +18,7 @@ from unicad.domain.catalog import (
     ProtectionSpec,
     TransformerSpec,
 )
-from unicad.domain.network import Edge, ElectricalNetwork, Group, Node, NodeKind
+from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
 from unicad.domain.project import DesignBasis, Project
 
 _KIND_LABEL = {
@@ -32,6 +32,7 @@ _KIND_LABEL = {
     NodeKind.HT_PANEL: "HT PANEL",
     NodeKind.POI_GRID: "GRID",
     NodeKind.VCB: "VACUUM CIRCUIT BREAKER",
+    NodeKind.BREAKER: "CIRCUIT BREAKER",
     NodeKind.AUX_TRANSFORMER: "AUXILIARY TRANSFORMER",
 }
 _METER_LABEL = {"net": "NET METER", "generation": "GENERATION METER", "abt": "ABT METER", "check": "CHECK METER"}
@@ -44,6 +45,16 @@ _LAYING = {
     "buried_duct": "IN BURIED DUCT",
     "overhead": "OVERHEAD",
 }
+
+
+UNSPECIFIED = "RATING TO BE SPECIFIED"
+
+
+def unspecified(node: Node) -> bool:
+    """A node whose kind is chosen from the catalog but has no spec: its rating is an open item on the drawing."""
+    if node.spec is not None or node.kind not in SPEC_KINDS:
+        return False
+    return not (node.kind in (NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER) and node.attributes)
 
 
 def kind_label(kind: NodeKind) -> str:
@@ -258,6 +269,8 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
                 vector = str(a.get("vector_group", ""))
             elif node.voltage_v:
                 rating = volts(node.voltage_v)
+            if unspecified(node):
+                rating = _join(rating or None, UNSPECIFIED)
     out = {"TAG": node_tag(net, node), "RATING": rating, "DESC": desc, "VECTOR": vector}
     if node.kind is NodeKind.RELAY:
         ansi = _ansi_texts(node)
@@ -308,6 +321,11 @@ def bus_texts(net: ElectricalNetwork, node: Node) -> tuple[str, ...]:
 
 
 REMARK_INLINE_CHARS = 42
+GENERAL_NOTES = (
+    "REPEATED GROUPS ARE DRAWN ONCE IN A DASHED FRAME; (x N) IS THE NUMBER OF IDENTICAL INSTANCES.",
+    "CABLE CALLOUTS: RUNS x CORES x SIZE, CONDUCTOR, INSULATION, ARMOUR, VOLTAGE GRADE, LAYING, LENGTH.",
+)
+"""The sheet's first notes; cable remarks too long for a callout follow them, then the design-basis assumptions."""
 
 
 def remark(edge: Edge) -> str:

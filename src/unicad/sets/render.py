@@ -38,9 +38,10 @@ def plan_set(project: Project, kinds: Sequence[str], profile: CompanyProfile, ca
         if not getattr(builder(k), "summary", False):
             planned[k] = builder(k).plan(project, profile, catalog, numbers)
     others = tuple(s for sheets in planned.values() for s in sheets)
+    owner = {s.id: k for k, sheets in planned.items() for s in sheets}
     for k in kinds:
         if getattr(builder(k), "summary", False):
-            planned[k] = builder(k).plan(project, profile, catalog, numbers, others)
+            planned[k] = builder(k).plan(project, profile, catalog, numbers, others, kinds=owner)
     return [(k, planned[k]) for k in kinds]
 
 

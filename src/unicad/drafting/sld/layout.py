@@ -13,15 +13,17 @@ x positions come from a tidy-tree pass over per-level contours (levels: 2r for r
 
 import heapq
 import math
+import re
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import ProtectionSpec, TransformerSpec
+from unicad.domain.catalog import PROTECTION_SYMBOLS, ProtectionSpec, TransformerSpec
 from unicad.domain.network import (
     EARTH_PORT,
     KIND_SYMBOLS,
+    PROTECTION_DEVICES,
     SIGNAL_PORTS,
     SOURCE_KINDS,
     Edge,
@@ -59,6 +61,8 @@ BUS_KINDS = frozenset({NodeKind.BUSBAR, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKi
 _TERMINAL_KINDS = SOURCE_KINDS | {NodeKind.LOAD}
 # A string's catalog spec is its module, whose symbol is one module; the string symbol comes from its kind.
 _ARRAY_KINDS = frozenset({NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK})
+# Kinds without a symbol of their own draw a spec-less node as their most common device.
+FALLBACK_SYMBOLS = {NodeKind.BREAKER: "sw.mccb"}
 EARTH_SYMBOL = "earth.earth"
 OFFSHEET_SYMBOL = "ann.offsheet"
 STUB = 2.5
@@ -263,6 +267,8 @@ class _Builder:
         self.earth_nodes: set[str] = set()
         self.control_only: list[Node] = []
         self.markers = {m.id for m in markers}
+        self.stands_for = {f"{MARKER_PREFIX}{e.id}": e.dst_node if e.src_node in keep else e.src_node for e in self.cut_edges}
+        """Off-sheet marker id -> the node beyond the sheet edge it stands in for."""
         for n in (*net.nodes, *markers):
             if n.id not in keep and n.id not in self.markers:
                 continue
@@ -276,7 +282,9 @@ class _Builder:
             key = _idt_key(n, catalog, net) or (KIND_SYMBOLS[n.kind] if n.kind is NodeKind.AUX_TRANSFORMER and not n.symbol else key)
             key = _variant_key(n, key, catalog)
             if key is None and n.kind not in BUS_KINDS:
-                raise LayoutError(f"node {n.id!r} ({n.kind}) has no symbol")
+                key = _fallback_key(n)
+            if n.id not in self.markers and annotate.unspecified(n):
+                self.warnings.append(f"node {n.id!r} ({n.kind}) has no catalog spec: drawn as {_symbol(key).title} marked {annotate.UNSPECIFIED}")
             self.recs[n.id] = _Rec(n, key)
         self.power_edges = [e for e in edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
         self.frames: list[_FrameRec] = []
@@ -490,7 +498,7 @@ class _Builder:
         for rec in sorted((r for r in self.recs.values() if r.tree_edge), key=lambda r: self.order[r.tree_edge.id]):
             text = annotate.remark(rec.tree_edge)
             if text and annotate.is_long_remark(text):
-                notes.setdefault(text, len(notes) + 1)
+                notes.setdefault(text, len(annotate.GENERAL_NOTES) + len(notes) + 1)
         self.notes = tuple(notes)
         for rec in self.recs.values():
             lines = annotate.cable_callout(rec.tree_edge, self.catalog, notes) if rec.tree_edge else ()
@@ -513,6 +521,13 @@ class _Builder:
         return ext.union(eg.body)
 
     # ---------------------------------------------------------------- tidy x
+    def _in_group(self, gid: str | None, target: str) -> bool:
+        while gid is not None:
+            if gid == target:
+                return True
+            gid = self.net.group_by_id[gid].within
+        return False
+
     def _members(self, g: Group) -> frozenset[str]:
         out = set()
         for nid, rec in self.recs.items():
@@ -589,7 +604,7 @@ class _Builder:
             for lv, (lo, hi) in cc.items():
                 clo, chi = contour.get(lv, (math.inf, -math.inf))
                 contour[lv] = (min(clo, lo + off), max(chi, hi + off))
-            tlo, thi = contour[lvl - 1]
+            tlo, thi = contour.get(lvl - 1, (0.0, 0.0))
             contour[lvl - 1] = (min(tlo, 0.0), max(thi, off))
         self._frames_at(nid, contour)
         return contour
@@ -1051,6 +1066,7 @@ class _Builder:
             members = self._members(g)
             if not members:
                 continue
+            members |= {m for m, other in self.stands_for.items() if self._in_group(self.net.node(other).group, g.id)}
             pad = o.frame_pad
             mine: list[Box] = []
             others: list[Box] = []
@@ -1071,9 +1087,14 @@ class _Builder:
                     mine.extend(lb.box for lb in c.labels)
                 else:
                     others.append(union_all([lb.box for lb in c.labels]))
+            for f in (*frames, *out):
+                if self._in_group(self.net.group_by_id[f.group_id].within, g.id):
+                    mine.extend([f.box.grow(pad / 2), *(lb.box for lb in f.labels)])
             span = union_all(mine)
             limit = None
             for f in (*frames, *out):
+                if self._in_group(self.net.group_by_id[f.group_id].within, g.id):
+                    continue
                 if f.labels:
                     others.append(union_all([lb.box for lb in f.labels]))
                 if not f.box.contains(span):
@@ -1204,6 +1225,17 @@ def _variant_key(node: Node, key: str | None, catalog: Catalog | None) -> str | 
         if isinstance(spec, ProtectionSpec) and spec.surge_counter:
             return "prot.la_counter"
     return key
+
+
+def _fallback_key(node: Node) -> str:
+    """The symbol of a node that names none and has no spec: the device its tag prefix names (ACB-01 -> ACB) among those its kind
+    allows, else the kind's fallback."""
+    prefix = (m.group().lower() if (m := re.match(r"[A-Za-z]+", node.tag)) else "")
+    if prefix in PROTECTION_DEVICES.get(node.kind, ()) and prefix in PROTECTION_SYMBOLS:
+        return PROTECTION_SYMBOLS[prefix]
+    if node.kind in FALLBACK_SYMBOLS:
+        return FALLBACK_SYMBOLS[node.kind]
+    raise LayoutError(f"node {node.id!r} ({node.kind}) has no symbol; set one with network_update fields={{'symbol': ...}}")
 
 
 def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[str]:
@@ -1591,6 +1623,13 @@ def plan_pages(
         return (page(nodes, lay),)
     subtrees = [frozenset(b._subtree_nodes(c)) - b.markers for c in b.recs[split].children if c not in b.markers]
     main = nodes - frozenset().union(*subtrees)
+    # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn.
+    wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
+    subtrees = [s for s in subtrees if s not in wired]
+    main = main.union(*wired)
+    # The main page also takes the first feeders while it stays readable, so it is not a strip across an empty sheet.
+    while subtrees and layout_sld(network, catalog, options, main | subtrees[0]).fit_scale(width, height, options) >= options.min_scale:
+        main |= subtrees.pop(0)
     pages = [page(main, layout_sld(network, catalog, options, main))]
     current: frozenset[str] = frozenset()
     for sub in subtrees:
