@@ -592,3 +592,43 @@ def test_single_core_ac_runs_name_their_cables_per_run_as_the_schedule_and_bill_
     row = next(r for r in build_schedule(p, catalog).rows if r.edge == "e_acb_ct")
     assert row.callout.startswith("3 x 1C x 400 sq.mm") and row.runs == 3 and row.cables_per_run == 3
     assert row.cable_metres == pytest.approx(3 * 3 * row.length_pos_m)
+
+
+def _block_order_problems(doc) -> list[str]:
+    """Blocks inserted (with attributes) inside another block but defined after it: LibreDWG drops their contents on DWG write (C5)."""
+    order = {b.name: i for i, b in enumerate(doc.blocks)}
+    out = []
+    for b in doc.blocks:
+        for e in b.query("INSERT"):
+            if e.attribs and order.get(e.dxf.name, -1) > order[b.name]:
+                out.append(f"{e.dxf.name} after {b.name}")
+    return out
+
+
+def test_symbols_turned_upright_are_defined_before_the_diagram_block_that_inserts_them(tmp_path):
+    """C5: the BESS SLD lost its turned battery symbol on DWG read-back (ATTDEF 23->20, LINE 175->167, SOLID 32->29): the turned copy was
+    created while the diagram block was being written, so it came after it. Every symbol block now precedes the diagram block."""
+    from unicad.drafting.sld.model import PlacedSymbol
+    from unicad.drafting.sld.write import write_body
+    from unicad.render.dwg import DwgConverter, available_converter, entity_counts
+
+    import ezdxf
+
+    sym = PlacedSymbol(id="b", node_id="bat", key="bat.bess", at=(0.0, 0.0), rotation=180.0, values=(("TAG", "BAT-01"),), labels=(), body=Box(-40, -30, 0, 0), pins=())
+    layout = typing.cast(typing.Any, type("L", (), {"frames": (), "wires": (), "busbars": (), "symbols": (sym,), "callouts": (), "stubs": (), "junctions": ()}))
+    doc = ezdxf.new("R2018", setup=["linetypes"])
+    write_body(doc, layout, "UC_SLD_TEST")
+    doc.modelspace().add_blockref("UC_SLD_TEST", (0, 0))
+    assert any(b.name.endswith("_T180") for b in doc.blocks) and _block_order_problems(doc) == []
+    if available_converter() is None:
+        return
+    dxf = tmp_path / "s.dxf"
+    doc.saveas(dxf)
+    result = DwgConverter().to_dwg(dxf, tmp_path / "s.dwg", strict=False)
+    assert {k: v for k, v in result.mismatches.items() if k != "ATTRIB"} == {}
+
+
+def test_sld_sheets_define_every_nested_symbol_before_its_diagram_block(projects, catalog, profile):
+    for name, p in projects.items():
+        doc, _ = render_sld(p, "sld", profile, catalog)
+        assert _block_order_problems(doc) == [], name

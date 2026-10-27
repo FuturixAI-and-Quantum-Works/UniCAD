@@ -10,6 +10,7 @@ from ezdxf.layouts import BaseLayout
 from unicad.drafting.sheets.canvas import Region
 from unicad.drafting.sld.model import Label, SldLayout, SldOptions, WireKind
 from unicad.drafting.symbols import insert
+from unicad.drafting.symbols.install import block_for
 
 LAYERS: dict[str, tuple[int, str, int]] = {
     "E-SLD-AC": (7, "CONTINUOUS", 35),
@@ -66,6 +67,9 @@ def write_body(doc: Drawing, layout: SldLayout, block_name: str, text_style: str
     _layers(doc)
     if text_style not in doc.styles:
         doc.styles.add(text_style, font="standard.shx")
+    for sym in layout.symbols:
+        # LibreDWG drops the contents of a block defined after the block inserting it with attributes, so define them first.
+        block_for(doc, sym.key, sym.rotation)
     block = doc.blocks.new(block_name, base_point=(0, 0))
     for f in layout.frames:
         b = f.box
