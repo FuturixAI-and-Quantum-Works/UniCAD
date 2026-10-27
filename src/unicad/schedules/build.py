@@ -11,7 +11,7 @@ from unicad.routing import RouteAssumptions, RouteEstimate, TemplateLength, esti
 from unicad.rules.cables import cable_of, edge_ampacity, edge_label, needs_cable, phases
 from unicad.rules.topology import edge_current, instance_tag, module_of, per_instance
 from unicad.rules.vdrop import segment_drop
-from unicad.schedules.ids import SCHEME, Ids, indices
+from unicad.schedules.ids import COMBINERS, Ids, indices, scheme_note
 from unicad.schedules.model import CableRow, LengthMode, Schedule, Section
 
 SERVICE_ORDER = {Service.DC: 0, Service.LV_AC: 1, Service.MV_AC: 2, Service.HV_AC: 3}
@@ -26,8 +26,11 @@ SHORT_LABEL = {NodeKind.PV_STRING: "STRING", NodeKind.PV_ARRAY_BLOCK: "ARRAY BLO
 
 
 def kind_label(net: ElectricalNetwork, node_id: str) -> str:
-    kind = net.node(node_id).kind
-    return SHORT_LABEL.get(kind, kind.value.replace("_", " ").upper())
+    """The equipment a section title names: a combiner by its own title (a fuseless DC fuse box is a DC JUNCTION BOX), else the kind."""
+    node = net.node(node_id)
+    if node.kind in COMBINERS and node.title:
+        return node.title.upper()
+    return SHORT_LABEL.get(node.kind, node.kind.value.replace("_", " ").upper())
 
 
 def section_title(net: ElectricalNetwork, e: Edge, cable: CableSpec) -> str:
@@ -112,7 +115,9 @@ def build_schedule(
     for ie in expanded.edges:
         instances[template_of(ie.id)].append(ie)
 
-    ordered = sorted(cabled, key=lambda e: (SERVICE_ORDER[e.service], net.edges.index(e)))
+    kinds = [(kind_label(net, e.src_node), kind_label(net, e.dst_node)) for e in net.edges]
+    position = {e.id: (kinds.index(k), i) for i, (e, k) in enumerate(zip(net.edges, kinds, strict=True))}
+    ordered = sorted(cabled, key=lambda e: (SERVICE_ORDER[e.service], *position[e.id]))
     sections: list[Section] = []
     gaps: list[str] = []
     seen_ids: set[str] = set()
@@ -169,7 +174,8 @@ def build_schedule(
         notes += estimate.assumptions
     if any(r.length_source == "network" for r in schedule_rows):
         notes.append("Lengths marked NET are as stated in the network and are not measured on the layout.")
-    notes.append(SCHEME)
+    first = next((r.cable_id for r in schedule_rows if r.is_string), None)
+    notes.append(scheme_note(first) if first else scheme_note())
     notes += list(project.design_basis.assumptions)
     return Schedule(
         project_id=project.id, project_name=project.name, sections=tuple(sections), basis=basis, vd_summary=summary,

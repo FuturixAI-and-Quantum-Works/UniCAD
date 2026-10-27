@@ -11,7 +11,7 @@ from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, R
 from unicad.drafting.sheets.titleblock import compose_location
 from unicad.drafting.tables import Column, TableRender, TableSection, TableSpec, render_tables
 from unicad.schedules.bom import CATEGORY_ORDER, Bom
-from unicad.schedules.ids import SCHEME, indices
+from unicad.schedules.ids import indices
 from unicad.schedules.model import CableRow, Schedule, Section
 
 PROFILE_DIR = Path(__file__).resolve().parents[3] / "profiles"
@@ -139,7 +139,11 @@ def _sections(schedule: Schedule, services: frozenset[Service], detail: bool) ->
             numbered = tuple((str(sl + i + 1), *cells) for i, cells in enumerate(body))
             sl += len(body)
             title = sec.title if block is None else f"{sec.title} - {block}"
-            out.append(TableSection(title, numbered, page_break_before=block is not None and prev is not None and block != prev))
+            brk = block is not None and prev is not None and block != prev
+            if out and out[-1].title == title and not brk:
+                out[-1] = TableSection(title, out[-1].rows + numbered, out[-1].page_break_before)
+            else:
+                out.append(TableSection(title, numbered, page_break_before=brk))
             prev = block
     return out
 
@@ -257,7 +261,7 @@ def render_schedule(project: Project, schedule: Schedule, profile: CompanyProfil
         ("TOTAL POWER LOSS", f"{totals['loss_w'] / 1000:,.1f} kW"),
         *[(k, v.split(" (")[0]) for k, v in schedule.vd_summary if k.endswith("WORST PATH")],
     )
-    notes = (NOTE_VALUES, NOTE_SOURCE, NOTE_VD, *(() if lists_every_string(schedule, detail) else (NOTE_SUMMARY,)), SCHEME.upper())
+    notes = (NOTE_VALUES, NOTE_SOURCE, NOTE_VD, *(() if lists_every_string(schedule, detail) else (NOTE_SUMMARY,)), schedule.scheme.upper())
     ctx = SheetContext(project, profile, sheet, size, notes, params)
     titles = [t for t, _ in parts]
     render = render_tables([(spec, size) for _, spec in parts], profile, lambda page, pages, part: ctx.spec(titles[part], page, pages, 90 + part))

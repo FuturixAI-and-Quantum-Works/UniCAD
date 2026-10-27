@@ -327,3 +327,18 @@ def test_a_project_without_cables_has_an_empty_schedule():
     s = build_schedule(p, CATALOG)
     assert not s.rows and s.totals()["cable_m"] == 0
     assert any("has no cable" in g for g in s.gaps)
+
+
+def test_section_titles_name_the_combiner_as_built_and_the_id_note_uses_the_projects_own_cable_id():
+    """n17: a fuseless DC fuse box that autobuild titles DC JUNCTION BOX heads its sections as such, and the cable id note explains an id
+    of this project (no SCB example on a rooftop that has none)."""
+    p = fixture("rooftop_500kwp")
+    net = p.network
+    nodes = tuple(n.model_copy(update={"title": "DC JUNCTION BOX"}) if n.id == "dcfb" else n for n in net.nodes)
+    p = p.model_copy(update={"network": type(net)(groups=net.groups, nodes=nodes, edges=net.edges)})
+    schedule = build_schedule(p, CATALOG)
+    titles = [s.title for s in schedule.sections]
+    assert titles[0].startswith("STRING TO DC JUNCTION BOX CABLE") and not any("DC FUSE BOX" in t for t in titles)
+    first = next(r.cable_id for r in schedule.rows if r.is_string)
+    assert f"String cable id {first} reads" in schedule.scheme and "SCB" not in schedule.scheme
+    assert schedule.scheme in schedule.assumptions

@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from unicad.domain.network import Service
 from unicad.routing import TemplateLength
+from unicad.schedules.ids import scheme_note
 
 
 class LengthMode(StrEnum):
@@ -88,6 +89,12 @@ class Schedule:
     warnings: tuple[str, ...]
     gaps: tuple[str, ...]
     template_lengths: dict[str, TemplateLength] = field(default_factory=dict)
+
+    @property
+    def scheme(self) -> str:
+        """The cable id scheme note, explained on this schedule's first string cable id."""
+        first = next((r.cable_id for r in self.rows if r.is_string), None)
+        return scheme_note(first) if first else scheme_note()
 
     @property
     def rows(self) -> tuple[CableRow, ...]:

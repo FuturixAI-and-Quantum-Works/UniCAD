@@ -14,7 +14,6 @@ from unicad.drafting.tables.plan import plan_table
 from unicad.schedules import LengthMode, Schedule, build_bom, build_schedule
 from unicad.schedules.bom import Bom
 from unicad.schedules.dxf import NOTE_SOURCE, NOTE_SUMMARY, NOTE_VALUES, NOTE_VD, SheetContext, bom_table, lists_every_string, schedule_tables
-from unicad.schedules.ids import SCHEME
 from unicad.sets.common import dated
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
@@ -95,7 +94,7 @@ class ScheduleBuilder:
             ("TOTAL POWER LOSS", f"{totals['loss_w'] / 1000:,.1f} kW"),
             *[(k, v.split(" (")[0]) for k, v in schedule.vd_summary if k.endswith("WORST PATH")],
         )
-        notes = (NOTE_VALUES, NOTE_SOURCE, NOTE_VD, *(() if lists_every_string(schedule, self.detail) else (NOTE_SUMMARY,)), SCHEME.upper())
+        notes = (NOTE_VALUES, NOTE_SOURCE, NOTE_VD, *(() if lists_every_string(schedule, self.detail) else (NOTE_SUMMARY,)), schedule.scheme.upper())
         parts = [spec for _, spec in schedule_tables(schedule, self.detail)]
         meta = {"rows": len(schedule.rows), "gaps": len(schedule.gaps)}
         return _draw(project, profile, sheets, parts, notes, params, lambda i: meta if i == 0 else {}, drawn_on)

@@ -164,3 +164,23 @@ def test_bom_pages_render_without_truncation():
     assert r.pages == 2 and not [w for w in r.warnings if "truncated" in w]
     flat = [t for doc in r.docs for t in texts(doc)]
     assert "PV MODULES" in flat and "116,640" in flat and "BILL OF MATERIALS" in flat
+
+
+def test_a_section_band_is_drawn_only_where_the_section_changes():
+    """B8: per-block templates of the same equipment pair and cable (a 9-block utility plant) list their rows under one section band,
+    not a band above every row."""
+    import importlib.util
+
+    from unicad.domain.network import Service
+    from unicad.schedules.dxf import _sections
+
+    spec = importlib.util.spec_from_file_location("build_string_diagram_samples", Path(__file__).resolve().parents[1] / "tools" / "build_string_diagram_samples.py")
+    samples = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(samples)
+    p = samples.ground_central(CATALOG)
+    schedule = build_schedule(p, CATALOG)
+    sections = _sections(schedule, frozenset(Service) - {Service.DC}, detail=True)
+    titles = [s.title for s in sections]
+    assert len(titles) == len(set(titles)), titles
+    rows = [r for s in schedule.sections if s.service is not Service.DC for r in s.rows]
+    assert sum(len(s.rows) for s in sections) == len(rows)

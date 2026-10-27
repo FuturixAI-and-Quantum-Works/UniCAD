@@ -12,11 +12,19 @@ COMBINERS = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 
 SCHEME_FIELDS = "inverter tag, combiner tag, structure row, structure no., input no., cable size"
-SCHEME = (
-    f"String cable id INV-01-SCB-02-R003-0027-IP05-4 sqmm reads {SCHEME_FIELDS}. "
-    "Inverter and combiner are the network tags of the equipment fed (no combiner where the string goes straight to the inverter); "
-    "R and structure no. are the table's row rank and position in the block; IP is the input at the combiner or MPPT."
-)
+SCHEME_EXAMPLE = "INV-01-SCB-02-R003-0027-IP05-4 sqmm"
+
+
+def scheme_note(example: str = SCHEME_EXAMPLE) -> str:
+    """How a string cable id reads, shown on `example` (the project's own first string cable id where it has one)."""
+    return (
+        f"String cable id {example} reads {SCHEME_FIELDS}. "
+        "Inverter and combiner are the network tags of the equipment fed (no combiner where the string goes straight to the inverter); "
+        "R and structure no. are the table's row rank and position in the block; IP is the input at the combiner or MPPT."
+    )
+
+
+SCHEME = scheme_note()
 
 
 @dataclass(frozen=True)
