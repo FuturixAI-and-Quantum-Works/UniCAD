@@ -504,7 +504,7 @@ class _Builder:
                 notes.setdefault(text, len(annotate.GENERAL_NOTES) + len(notes) + 1)
         self.notes = tuple(notes)
         for rec in self.recs.values():
-            lines = annotate.cable_callout(rec.tree_edge, self.catalog, notes) if rec.tree_edge else ()
+            lines = annotate.cable_callout(rec.tree_edge, self.catalog, notes, self.net) if rec.tree_edge else ()
             if len(lines) > self.o.callout_lines:
                 lines = lines[: self.o.callout_lines - 1] + (", ".join(lines[self.o.callout_lines - 1 :]),)
             rec.callout = lines

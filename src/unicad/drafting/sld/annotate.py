@@ -21,6 +21,7 @@ from unicad.domain.catalog import (
 from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
 from unicad.domain.project import DesignBasis, Project
 from unicad.rules.ratio import plant_capacity
+from unicad.rules.topology import AC_SERVICES, GENERATORS
 
 _KIND_LABEL = {
     NodeKind.SCB: "STRING COMBINER BOX",
@@ -339,15 +340,29 @@ def is_long_remark(text: str) -> bool:
     return len(text) > REMARK_INLINE_CHARS
 
 
-def cable_callout(edge: Edge, catalog: Catalog | None, note_of: Mapping[str, int] | None = None) -> tuple[str, ...]:
-    """Cable callout lines; a remark too long to sit beside the wire is referred to its note number in `note_of`."""
+def ac_phases(net: ElectricalNetwork, catalog: Catalog | None, edge: Edge) -> int:
+    """Phase conductors of an AC circuit: 1 when only single-phase generators feed it (as the cable rules and the bill count), else 3."""
+    src = edge.src_node if edge.src_node in net.node_by_id else edge.dst_node
+    if src not in net.node_by_id:
+        return 3
+    gens = [net.node(g) for g in (src, *net.upstream(src)) if net.node(g).kind in GENERATORS and net.node(g).spec]
+    ph = {getattr(catalog.get(g.spec), "phases", 3) for g in gens} if catalog is not None else set()
+    return 1 if ph == {1} else 3
+
+
+def cable_callout(edge: Edge, catalog: Catalog | None, note_of: Mapping[str, int] | None = None, net: ElectricalNetwork | None = None) -> tuple[str, ...]:
+    """Cable callout lines; a remark too long to sit beside the wire is referred to its note number in `note_of`. A single-core AC run
+    names its cables per run ('1R x 3 x 1C x 400 sq.mm'), as the bill counts them."""
     cable = edge.cable
     if isinstance(cable, str) and catalog is not None:
         cable = catalog.get(cable)
     lines: list[str] = []
     tail: list[str] = []
     if isinstance(cable, CableSpec):
-        lines.append(f"{edge.runs}R x {cable.callout()}")
+        per_run = ""
+        if cable.cores == 1 and edge.service in AC_SERVICES and net is not None:
+            per_run = f"{2 if ac_phases(net, catalog, edge) == 1 else 3} x "
+        lines.append(f"{edge.runs}R x {per_run}{cable.callout()}")
         tail.append(cable.voltage_grade)
         if edge.laying:
             tail.append(_LAYING[edge.laying.value])

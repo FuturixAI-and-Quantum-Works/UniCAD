@@ -152,7 +152,7 @@ def build_schedule(
                 CableRow(
                     sl=sl, cable_id=cable_id, edge=e.id, instance=ie.id, src=ie.src_node, dst=ie.dst_node, service=e.service,
                     block=ids.block_of(ie.src_node), is_string=src_node.kind is NodeKind.PV_STRING, from_tag=from_tag, to_tag=to_tag,
-                    cable_ref=e.cable if isinstance(e.cable, str) else cable.id, callout=cable.callout(), cores=cable.core_label,
+                    cable_ref=e.cable if isinstance(e.cable, str) else cable.id, callout=f"{per_run} x {cable.callout()}" if cable.cores == 1 and e.service is not Service.DC else cable.callout(), cores=cable.core_label,
                     size_mm2=cable.size_mm2, conductor=cable.conductor.value.upper(), runs=e.runs, cables_per_run=per_run,
                     length_pos_m=pos, length_neg_m=neg, length_source=source, length_basis=basis,
                     laying=e.laying.value if e.laying else None, ib_a=ib, iz_a=iz, vd_pct=vd, loss_w=loss,

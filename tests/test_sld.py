@@ -178,7 +178,7 @@ def test_annotations_come_from_the_catalog_and_project(layouts, projects, catalo
     assert vals["str"]["RATING"] == f"{n} x {module.pmax:g} Wp = {n * module.pmax / 1000:g} kWp"
     assert vals["str"]["COUNT"] == "x 10 NOS"
     callouts = {c.edge_id: [lb.text for lb in c.labels] for c in roof.callouts}
-    assert callouts["e_acb_ct"][0] == "3R x 1C x 400 sq.mm Al XLPE ARM"
+    assert callouts["e_acb_ct"][0] == "3R x 3 x 1C x 400 sq.mm Al XLPE ARM"
     assert "ON TRAY" in callouts["e_acb_ct"][1]
     util = layouts["utility_50mwac"]
     uvals = {s.node_id: dict(s.values) for s in util.symbols if s.node_id}
@@ -578,3 +578,17 @@ def test_breaker_type_is_shown_once_and_follows_the_device_class(projects, catal
         assert values["DESC"] == f"{spec.manufacturer} {spec.model}".upper() and spec.device.upper() not in values["DESC"].split()
         seen.add(spec.device)
     assert seen == {"mccb", "acb"}
+
+
+def test_single_core_ac_runs_name_their_cables_per_run_as_the_schedule_and_bill_do(projects, catalog, layouts):
+    """A4: 3 runs of single-core 400 sq.mm on a three-phase circuit read '3R x 3 x 1C x 400 sq.mm', the schedule's cable column says
+    '3 x 1C x 400 sq.mm' with 3 runs, and the bill's metres are runs x 3 x length; multicore and DC callouts are unchanged."""
+    from unicad.schedules import build_schedule
+
+    p = projects["rooftop_500kwp"]
+    text = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in layouts["rooftop_500kwp"].callouts}
+    assert text["e_acb_ct"].startswith("3R x 3 x 1C x 400 sq.mm Al XLPE ARM")
+    assert text["e_inv_mccb"].startswith("1R x 4C x 95 sq.mm") and text["e_dcfb_iso"].startswith("10R x 1C x 6 sq.mm")
+    row = next(r for r in build_schedule(p, catalog).rows if r.edge == "e_acb_ct")
+    assert row.callout.startswith("3 x 1C x 400 sq.mm") and row.runs == 3 and row.cables_per_run == 3
+    assert row.cable_metres == pytest.approx(3 * 3 * row.length_pos_m)
