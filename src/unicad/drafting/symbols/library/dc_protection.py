@@ -24,6 +24,27 @@ def fuse(b):
 
 
 @symbol(
+    "dc.jb",
+    "DC junction box (terminals, no fuse)",
+    C,
+    "IEC 60617 terminals in an enclosure (UniCAD composite)",
+    10.0,
+    20.0,
+    inline_pins(CX, 20.0, DC),
+    std_attrs(10.0, 20.0),
+    tag_prefix="DCJB",
+)
+def junction_box(b):
+    p = Pen(b)
+    p.dashed_rect(0.5, 3.0, 9.5, 17.0, dash=2.0, gap=1.0)
+    p.line(CX, 20.0, CX, 14.0)
+    p.circle(CX, 13.0, 1.0)
+    p.line(CX, 12.0, CX, 8.0)
+    p.circle(CX, 7.0, 1.0)
+    p.line(CX, 6.0, CX, 0.0)
+
+
+@symbol(
     "dc.isolator",
     "DC isolator / disconnector",
     C,

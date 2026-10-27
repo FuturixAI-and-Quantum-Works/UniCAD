@@ -239,6 +239,8 @@ class Node(_Frozen):
             return self.spec.symbol
         if self.spec and catalog is not None:
             return catalog.get(self.spec).symbol
+        if self.kind is NodeKind.DC_FUSE_BOX and self.attributes.get("fused") is False:
+            return "dc.jb"
         return KIND_SYMBOLS.get(self.kind)
 
 

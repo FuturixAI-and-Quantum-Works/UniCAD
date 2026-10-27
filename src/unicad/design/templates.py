@@ -158,7 +158,7 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
         b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
         b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
         return [s]
-    fb = b.node(f"dcfb{sfx}", "DCJB", NodeKind.DC_FUSE_BOX, group=group, title="DC JUNCTION BOX")
+    fb = b.node(f"dcfb{sfx}", "DCJB", NodeKind.DC_FUSE_BOX, group=group, symbol="dc.jb", title="DC JUNCTION BOX")
     iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=(2, 4)))
     b.edge(f"e_str{sfx}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
     b.edge(f"e_dcfb_spd{sfx}", f"{fb}:out", f"{spd}:line", V.DC)
@@ -470,7 +470,7 @@ def string_blocks(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSp
         g = b.group(f"block{blk.sfx}", "BLOCK", count=blk.count, part=blk.part, title=f"STRING INVERTER BLOCK ({n} x {inverter.ac_rated_kva:g} kVA)")
         outs = []
         for sec in secs:
-            within = g if len(secs) == 1 else b.group(f"lv_sec{sec.sfx}", "LV", within=g, part=sec.part, title=f"LV SECTION {sec.part} ({sec.inverters} x {inverter.ac_rated_kva:g} kVA)")
+            within = g if len(secs) == 1 else b.group(f"lv_sec{sec.sfx}", "LV", within=g, part=sec.part, tag=f"{b.group_tag(g)} SECTION {sec.part}", title=f"LV SECTION {sec.part} ({sec.inverters} x {inverter.ac_rated_kva:g} kVA)")
             invs = inverter_groups(c, within, sec, inverter, module, plan.modules_per_string, False, Laying.AIR, True)
             outs.append((sec, lv_board(c, within, sec.sfx, invs, v, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")))
         if len(secs) > 1:

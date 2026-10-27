@@ -41,6 +41,7 @@ _RATING = {
     "pv.string": "18 x 550 Wp",
     "pv.array": "180 kWp",
     "dc.fuse": "15 A 1500 Vdc",
+    "dc.jb": "4 in 4 out",
     "dc.isolator": "63 A 1500 Vdc",
     "dc.spd": "Type 2 1500 Vdc",
     "dc.mcb": "32 A 1000 Vdc",

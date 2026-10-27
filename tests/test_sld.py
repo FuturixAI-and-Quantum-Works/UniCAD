@@ -541,3 +541,23 @@ def test_general_notes_come_first_and_cable_notes_keep_their_numbers(projects, c
     assert notes[: len(NOTES)] == NOTES and notes[len(NOTES)] == lay.notes[0]
     callouts = {c.edge_id: " ".join(lb.text for lb in c.labels) for c in lay.callouts}
     assert f"SEE NOTE {len(NOTES) + 1}" in callouts["e_str"]
+
+
+def test_a_fuseless_dc_junction_box_draws_terminals_and_the_legend_names_no_string_fuse(catalog, profile):
+    """close-e2e-1 m20: the pass-through DC junction box drew the gPV fuse symbol and the legend listed GPV STRING FUSE."""
+    from test_design import ROOF_MOD, blank
+    from unicad.design import autobuild
+    from unicad.sets.sld import plan_sld_set
+
+    p = autobuild(blank("rooftop_500kwp", segment="residential"), catalog, {"template": "residential", "ac_kw": 5, "module": ROOF_MOD, "grid_voltage_v": 230}).project
+    jb = p.network.by_kind(NodeKind.DC_FUSE_BOX)[0]
+    sheets = plan_sld_set(p, profile, catalog)
+    doc, res = render_sld(p, sheets[0].id, profile, catalog, sheets=sheets)
+    assert next(s for s in res.layout.symbols if s.node_id == jb.id).key == "dc.jb"
+    legend = {slot.key for slot in res.sheet.legend_slots}
+    assert "dc.jb" in legend and "dc.fuse" not in legend
+    texts = {e.dxf.text for e in doc.modelspace().query("TEXT")}
+    assert "DC JUNCTION BOX" in " ".join(texts) and not any("STRING FUSE" in t for t in texts)
+    agent = jb.model_copy(update={"symbol": None})
+    assert agent.symbol_key(catalog) == "dc.fuse"
+    assert agent.model_copy(update={"attributes": {"fused": False}}).symbol_key(catalog) == "dc.jb"

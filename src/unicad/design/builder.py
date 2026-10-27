@@ -36,6 +36,7 @@ class _Group:
     count: int
     within: str | None
     title: str | None
+    tag: str | None = None
 
 
 @dataclass
@@ -64,7 +65,7 @@ class NetBuilder:
             group = g.within
         return list(reversed(out))
 
-    def _tag(self, prefix: str, group: str | None, count: int) -> str:
+    def _tag(self, prefix: str, group: str | None, count: int, own: str | None = None) -> str:
         parts, i = [], 0
         for g in self._chain(group):
             if g.count > 1:
@@ -74,13 +75,20 @@ class NetBuilder:
                 parts.append(g.part)
         if count > 1:
             parts.append(f"{{{i}:02d}}")
+        elif own:
+            parts.append(own)
         if not parts and not prefix[-1].isdigit():
             parts.append("01")
         return "-".join([prefix, *parts])
 
-    def group(self, id: str, prefix: str, count: int = 1, within: str | None = None, part: str | None = None, title: str | None = None) -> str:
-        self.groups[id] = _Group(id, prefix, part, count, within, title)
+    def group(self, id: str, prefix: str, count: int = 1, within: str | None = None, part: str | None = None, title: str | None = None,
+              tag: str | None = None) -> str:
+        self.groups[id] = _Group(id, prefix, part, count, within, title, tag)
         return id
+
+    def group_tag(self, id: str) -> str:
+        g = self.groups[id]
+        return g.tag or self._tag(g.prefix, g.within, g.count, g.part)
 
     def node(self, id: str, prefix: str, kind: NodeKind, group: str | None = None, count: int = 1, hint: NodeHint | None = None, **kw: Any) -> str:
         spec = kw.pop("spec", None)
@@ -124,10 +132,7 @@ class NetBuilder:
     def network(self) -> ElectricalNetwork:
         groups = []
         for g in self.groups.values():
-            tag = self._tag(g.prefix, g.within, g.count)
-            if g.part and g.count == 1:
-                tag = f"{tag}-{g.part}"
-            groups.append({"id": g.id, "tag": tag, "count": g.count, "within": g.within, "title": g.title})
+            groups.append({"id": g.id, "tag": self.group_tag(g.id), "count": g.count, "within": g.within, "title": g.title})
         nodes = [{k: v for k, v in n.items() if v is not None} for n in self.nodes]
         edges = [{k: v for k, v in e.items() if v is not None} for e in self.edges]
         return ElectricalNetwork.model_validate({"groups": groups, "nodes": nodes, "edges": edges})

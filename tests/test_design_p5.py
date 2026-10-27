@@ -106,6 +106,16 @@ def test_given_lengths_are_never_replaced(ground):
     assert any(e.id.startswith("e_scb_inv") and e.length_m != 150.0 for e in r.project.network.edges)
 
 
+def test_layout_blocks_and_their_lv_sections_carry_one_block_number(ground):
+    """close-e2e-1 m19: layout blocks were tagged BLOCK-01-01..BLOCK-01-06."""
+    tops = [g.tag for g in ground_build(ground).project.network.groups if g.within is None and g.tag.startswith("BLOCK")]
+    assert tops == ["BLOCK-01", "BLOCK-02"]
+    net = autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_string", "ac_kw": 7040, "module": UTIL_MOD, "inverter": "sungrow-sg350hx",
+                                                        "modules_per_string": 28, "inverters_per_block": 20}).project.network  # fmt: skip
+    sections = [g.tag for g in net.groups if g.within is not None and net.group_by_id[g.within].tag == "BLOCK-01" and g.count == 1]
+    assert sections == ["BLOCK-01 SECTION A", "BLOCK-01 SECTION B"]
+
+
 def test_without_a_layout_lengths_stay_placeholders():
     r = central(blank("utility_50mwac"))
     assert "routed_edges" not in r.summary and r.project.network.edge_by_id["e_str"].length_m == 30.0

@@ -592,6 +592,66 @@
     ]
   },
   {
+    "key": "dc.jb",
+    "title": "DC junction box (terminals, no fuse)",
+    "category": "dc_protection",
+    "standard": "IEC 60617 terminals in an enclosure (UniCAD composite)",
+    "tag_prefix": "DCJB",
+    "block_name": "UC_DC_JB",
+    "size": {
+      "width": 10.0,
+      "height": 20.0
+    },
+    "pins": [
+      {
+        "name": "in",
+        "x": 5.0,
+        "y": 20.0,
+        "side": "N",
+        "kind": "dc"
+      },
+      {
+        "name": "out",
+        "x": 5.0,
+        "y": 0.0,
+        "side": "S",
+        "kind": "dc"
+      }
+    ],
+    "attrs": [
+      {
+        "tag": "TAG",
+        "x": 12.5,
+        "y": 12.75,
+        "height": 2.5,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "RATING",
+        "x": 12.5,
+        "y": 9.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      },
+      {
+        "tag": "DESC",
+        "x": 12.5,
+        "y": 5.0,
+        "height": 2.0,
+        "default": "",
+        "visible": true,
+        "centred": false,
+        "max_chars": 0
+      }
+    ]
+  },
+  {
     "key": "dc.isolator",
     "title": "DC isolator / disconnector",
     "category": "dc_protection",
