@@ -243,3 +243,40 @@ def test_n23_three_phase_ac_spds_have_three_or_four_poles_and_a_single_pole_one_
             assert hits and hits[0]["severity"] == "error" and hits[0]["subjects"] == [one["id"]], hits
 
     run(go())
+
+
+def _sheet(path, name):
+    import openpyxl
+
+    ws = openpyxl.load_workbook(path, read_only=True)[name]
+    head, _units, *body = list(ws.iter_rows(values_only=True))
+    return [dict(zip(head, r, strict=False)) for r in body if r[0] is not None]
+
+
+def test_s1_a4_string_and_lt_cables_are_sized_per_length_band_and_the_schedule_and_bom_follow(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_a(c)
+            await c.call("layout_place", **A_PLACE)
+            built = await c.call("network_autobuild", **A_BUILD)
+            assert any(a.startswith("String and LT cables are sized per length band") for a in built["assumptions"])
+            net = (await project(c, A))["network"]
+            banded = {e["id"]: e for e in net["edges"] if e.get("bands")}
+            assert any(i.startswith("e_str") for i in banded) and any(i.startswith("e_inv_brk") for i in banded), sorted(banded)
+            v = await c.call("validate", project_id=A)
+            assert v["counts"]["error"] == 0 and not [f for f in v["findings"] if f["rule_id"] == "vdrop.bands"], v["findings"]
+            rows = _sheet((await c.call("cable_schedule", project_id=A, format="xlsx"))["files"][0], "Cable schedule")
+            for eid, e in banded.items():
+                mine = [r for r in rows if r["NETWORK EDGE"] == eid]
+                refs = {r["CATALOG ID"] for r in mine}
+                assert refs == {e["cable"], *(b["cable"] for b in e["bands"])}, (eid, refs)
+                for r in mine:
+                    length = (r["LENGTH POSITIVE POLARITY"] + (r["LENGTH NEGATIVE POLARITY"] or r["LENGTH POSITIVE POLARITY"])) / 2
+                    band = next((b for b in e["bands"] if length <= b["upto_m"] + 1e-6), None)
+                    assert r["CATALOG ID"] == (band["cable"] if band else e["cable"]), (eid, length, r["CATALOG ID"])
+                    assert r["VOLTAGE DROP"] is not None
+            bom = _sheet((await c.call("bom", project_id=A, format="xlsx"))["files"][0], "BOM")
+            ordered = {ln["CATALOG ID"] for ln in bom if ln["CATEGORY"] == "CABLES"}
+            assert {b["cable"] for e in banded.values() for b in e["bands"]} <= ordered, ordered
+
+    run(go())

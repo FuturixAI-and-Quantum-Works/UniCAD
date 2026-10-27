@@ -273,6 +273,14 @@ Standard: none (design practice). Segments: all.
 
 Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at 90 degC and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over.
 
+### `vdrop.bands`: Length-band cables keep within the worst-case cable's drop and carry the current
+
+Standard: none (design practice). Segments: all.
+
+A template edge may give its shorter instances smaller cables (Edge.bands): each band's cable, at the band's longest route (upto_m), must have a
+voltage drop no larger than the edge's own cable at the worst-case length (so every instance stays inside the path limit vdrop.dc / vdrop.ac check
+on the worst case), and an ampacity no lower than the design current and the rating of every device protecting the edge. Error otherwise.
+
 
 ## earthing
 

@@ -186,3 +186,36 @@ def ac(project: Project, catalog: Catalog) -> Iterator[Finding]:
         edges = [e for e in _path_edges(net, nodes) if e.service is not Service.DC]
         if edges:
             yield _cumulative(project, catalog, "vdrop.ac", g.id, edges, limit, "vdrop_ac_max", "AC voltage drop")
+
+
+@rule("vdrop.bands", "Length-band cables keep within the worst-case cable's drop and carry the current")
+def bands(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """A template edge may give its shorter instances smaller cables (Edge.bands): each band's cable, at the band's longest route (upto_m), must have a
+    voltage drop no larger than the edge's own cable at the worst-case length (so every instance stays inside the path limit vdrop.dc / vdrop.ac check
+    on the worst case), and an ampacity no lower than the design current and the rating of every device protecting the edge. Error otherwise."""
+    from unicad.rules.cables import edge_ampacity, protectors
+
+    net = project.network
+    guards = None
+    for e in net.edges:
+        if not e.bands or e.length_m is None:
+            continue
+        worst = segment_drop(project, catalog, e)
+        ib = edge_current(project, catalog, e)
+        if guards is None:
+            guards = protectors(project, catalog)
+        need = max([ib.value if ib is not None else 0.0, *(s.rated_current for _, s in guards.get(e.id, []) if s.rated_current)])
+        for b in e.bands:
+            v = e.model_copy(update={"cable": b.cable, "runs": b.runs, "length_m": b.upto_m, "bands": ()})
+            d, iz = segment_drop(project, catalog, v), edge_ampacity(project, catalog, v)
+            problems = []
+            if worst is not None and d is not None and d.value > worst.value + 1e-6:
+                problems.append(f"drop {d.value:.3f} % at {b.upto_m:g} m exceeds the worst-case {worst.value:.3f} % of {e.cable} at {e.length_m:g} m")
+            if iz is not None and iz.value < need - 1e-6:
+                problems.append(f"ampacity {iz.value:.1f} A is below the {need:.1f} A it must carry")
+            if not problems:
+                continue
+            yield Finding(
+                rule_id="vdrop.bands", severity=Severity.ERROR, subjects=(e.id,),
+                message=f"{edge_label(net, e)} band up to {b.upto_m:g} m ({b.runs} x {b.cable}): " + "; ".join(problems),
+            )  # fmt: skip

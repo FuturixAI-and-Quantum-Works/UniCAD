@@ -18,7 +18,7 @@ from unicad.design import templates as T
 from unicad.design.placement import place_equipment
 from unicad.design.plan import PvPlan, from_layout, uniform
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
-from unicad.design.sizing import size_network
+from unicad.design.sizing import band_cables, size_network
 from unicad.design.strings import DesignError, StringDesign, size_strings
 from unicad.rules import Finding, Severity, run_rules
 from unicad.rules.ratio import plant_capacity
@@ -385,6 +385,7 @@ def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: Place
             edges = tuple(e.model_copy(update={"length_m": routed.lengths[e.id]}) if e.id in routed.lengths else e for e in draft.network.edges)
             draft = draft.model_copy(update={"network": draft.network.model_copy(update={"edges": edges})})
             sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
+            sizing = band_cables(sizing, catalog, b.edge_hints, routed.instances)
     sized = Project.model_validate(_breaker_tags(sizing.project, catalog).model_dump(mode="json"), context={"catalog": catalog})
     report = run_rules(sized, catalog, thresholds=thresholds)
     findings = tuple(f for f in report.findings if f.severity is not Severity.INFO)
