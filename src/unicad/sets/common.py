@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from unicad.domain.project import IssueRevision, Project, Segment, Sheet
 from unicad.drafting.sheets.model import IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
+from unicad.drafting.sheets.titleblock import compose_location
 from unicad.drafting.sld.annotate import prose
 
 LARGE_SEGMENTS = frozenset({Segment.UTILITY, Segment.BESS, Segment.HYBRID})
@@ -24,7 +25,7 @@ def issued_for(rev: IssueRevision | None) -> IssuedFor:
 
 def location(project: Project) -> str:
     site = project.site
-    return ", ".join(x for x in (site.name, site.address, site.state) if x)
+    return compose_location(site.name, site.address, site.state)
 
 
 def sheet_spec(

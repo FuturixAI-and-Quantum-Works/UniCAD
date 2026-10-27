@@ -24,8 +24,8 @@ from unicad.drafting.dxfrules import HATCH_PATTERNS, LIBRECAD_FONTS, MIN_LINEWEI
 from unicad.drafting.sheets.canvas import EPS, Canvas, Region
 from unicad.drafting.sheets.layout import SheetMetrics
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, LayerRole, TemplateRef, TitleBlockData
-from unicad.drafting.sheets.text import DESCENDER, LINE_PITCH, text_width
-from unicad.drafting.sheets.titleblock import place_logo
+from unicad.drafting.sheets.text import DESCENDER, LINE_PITCH, fit, text_width
+from unicad.drafting.sheets.titleblock import compose_location, place_logo
 
 T = LayerRole.TITLE
 Align = Literal["left", "center", "right"]
@@ -49,7 +49,7 @@ def _values(d: TitleBlockData, p: CompanyProfile) -> dict[str, Callable[[], str]
         "CLIENT": lambda: d.client,
         "CONSULTANT": lambda: d.consultant or "",
         "PROJECT_TITLE": lambda: d.project_title,
-        "LOCATION": lambda: d.location,
+        "LOCATION": lambda: compose_location(d.location),
         "LOA_NO": lambda: d.loa_no or "",
         "TITLE": lambda: d.drawing_title,
         "DRAWING_TITLE": lambda: d.drawing_title,
@@ -77,6 +77,8 @@ def _values(d: TitleBlockData, p: CompanyProfile) -> dict[str, Callable[[], str]
 
 
 _ISSUED_NAMES = frozenset(f"ISSUED_{o.name}" for o in IssuedFor)
+_WRAPPED = frozenset({"LOCATION"})
+"""Placeholders whose value wraps onto smaller lines to fit its cell rather than being cut."""
 KNOWN_PLACEHOLDERS = frozenset(
     "OWNER CLIENT CONSULTANT PROJECT_TITLE LOCATION LOA_NO TITLE DRAWING_TITLE DRAWING_NO REV SCALE SHEET SHEET_NO SHEET_COUNT "
     "PAPER DRAWN CHECKED APPROVED DRAWN_DATE CHECKED_DATE APPROVED_DATE DATE ISSUED_FOR COMPANY ADDRESS CONFIDENTIALITY "
@@ -358,6 +360,13 @@ class ImportedTitleBlock:
             "right": Region(cell.x0, cell.y0, ax + pad_x, cell.y1),
             "center": Region(ax - (half := min(ax - cell.x0, cell.x1 - ax)), cell.y0, ax + half, cell.y1),
         }[f.align]
+        if f.name in _WRAPPED:
+            inner = span.inset(pad_x, pad_y)
+            for n in range(lines, lines + 8):
+                fitted = fit(text, inner.width, h, max_lines=n, max_h=inner.height)
+                if not fitted.truncated:
+                    cv.draw_fitted(T, span, inner, fitted, f.align, "middle" if len(fitted.lines) == 1 else "top")
+                    return
         cv.put(T, span, text, h, align=f.align, valign="middle" if lines == 1 else "top", max_lines=lines, pad_x=pad_x, pad_y=pad_y)
 
     def draw(self, y_bottom: float) -> Region:

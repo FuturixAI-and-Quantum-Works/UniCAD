@@ -192,6 +192,18 @@ def test_imported_title_block_replaces_the_builtin_one(acme):
     assert "UniCAD Demo EPC" in texts(doc_default) and "Acme Solar EPC Pvt. Ltd." not in texts(doc_default)
 
 
+@pytest.mark.parametrize("paper", [PaperSize.A3, PaperSize.A1])
+def test_the_imported_location_names_each_place_once_and_wraps_instead_of_truncating(acme, paper):
+    """close-e2e-1 m16: 'PUNE, MIDC CHAKAN, PUNE, MAHARASHTRA, MAHARASHTRA', cut short in the Acme title block."""
+    _, _, profile = acme
+    place = "SHREE GANESH TEXTILES FACTORY ROOF, GAT NO 123, MIDC CHAKAN PHASE II, TALUKA KHED, PUNE, MIDC CHAKAN PHASE II, PUNE, MAHARASHTRA, MAHARASHTRA"
+    expected = "SHREE GANESH TEXTILES FACTORY ROOF, GAT NO 123, MIDC CHAKAN PHASE II, TALUKA KHED, PUNE, MAHARASHTRA"
+    doc, r = render(profile, paper, location=place)
+    shown = " ".join(t for t in texts(doc) if t and t in expected)
+    assert expected in shown, shown
+    assert not any("truncated" in w for w in r.warnings) and not any(t.endswith("...") for t in texts(doc))
+
+
 def test_text_shrinks_to_fit_inside_each_placeholder_box(acme):
     _, _, profile = acme
     long = "VERY LONG UNBROKEN-" + "X" * 70

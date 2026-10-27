@@ -250,10 +250,9 @@ def test_every_sheet_title_block_shows_the_whole_location_once(projects, tmp_pat
     _, by_kind = render(p.model_copy(update={"site": site}), tmp_path)
     expected = "SHREE GANESH TEXTILES FACTORY ROOF, MIDC CHAKAN, PUNE, MAHARASHTRA"
     for kind, pages in by_kind.items():
-        if kind == "register":
-            continue
         for page in pages:
             assert expected in " ".join(page), kind
+            assert not any(t.count("MIDC CHAKAN") > 1 or t.count("MAHARASHTRA") > 1 for t in page), kind
             assert not any(t.endswith("...") and not t.startswith("...") for t in page), kind
 
 
