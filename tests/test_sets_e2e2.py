@@ -16,7 +16,9 @@ from test_symbols import misread_texts
 
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
+from unicad.drafting.sld import SldOptions
 from unicad.drafting.sld.annotate import system_parameters
+from unicad.drafting.sld.layout import layout_sld
 from unicad.drafting.string_diagram import build_string_diagram_sheets
 from unicad.rules.ratio import plant_capacity
 from unicad.mcp import Config, build_server
@@ -303,3 +305,15 @@ def test_n13_no_text_on_any_sheet_reads_upside_down_or_mirrored(project_id, tmp_
     index = render_set(project, tmp_path, kinds=ALL_KINDS, formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=DRAWN_ON)
     bad = {s["number"]: m for s in index.sheets if (m := misread_texts(ezdxf.readfile(tmp_path / s["files"]["dxf"])))}
     assert bad == {}
+
+
+def test_n4_each_lv_feeder_of_a_two_winding_idt_lands_on_its_own_winding():
+    project, _ = scenario("kutch-hybrid")
+    lay = layout_sld(project.network, CATALOG, SldOptions(), None, None)
+    for b in ("b01", "b02", "b03"):
+        ends = {w.edge_id: w.end for w in lay.wires if w.edge_id in (f"e_accb_idt_{b}a", f"e_accb_idt_{b}b")}
+        assert {e.owner for e in ends.values()} == {f"idt_{b}"}
+        assert sorted(e.pin for e in ends.values()) == ["lv1", "lv2"]
+        assert len({e.at for e in ends.values()}) == 2
+    assert not [s for s in lay.stubs if s.node_id.startswith("idt_")]
+    assert [lb.text for s in lay.stubs if s.node_id == "bess_tr" for lb in s.labels] == ["LV2 TO PCS-01-02"]
