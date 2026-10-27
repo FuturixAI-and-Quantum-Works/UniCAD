@@ -6,28 +6,51 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 from shapely.ops import nearest_points, unary_union
 from shapely.prepared import prep
 
 from unicad.arrays.geometry import table_centre, table_corners
-from unicad.domain.layout import Mounting, Point
-from unicad.domain.project import LpsBasis, Project, Segment
-from unicad.domain.site import FeatureKind, shape_of
+from unicad.domain.layout import Point
+from unicad.domain.project import LpsBasis, Project
+from unicad.domain.site import FeatureKind
 from unicad.earthing.model import Step
-from unicad.lps.zones import CoverageError, ese_radius, greedy_cover, rod_radius, sphere_radius
+from unicad.lps.site import blocked, boundary, is_rooftop, roofs, switchyard_footprint
+from unicad.lps.zones import CoverageError, covered, ese_radius, greedy_cover, rod_radius, sphere_radius
 
-ROOFTOP_SEGMENTS = frozenset({Segment.RESIDENTIAL, Segment.CI_ROOFTOP})
 ROD_HEIGHT_ASSUMED_M = 10.0
 GROUND_PROTECTED_ASSUMED_M = 3.0
 ROOF_PROTECTED_ASSUMED_M = 1.0
+MAST_CLEAR_M = 1.5
+MAST_CLEAR_MIN_M = 0.5
+SAMPLE_PITCH_M = 4.0
+ENVELOPE_M = {"inverter": 2.0}
+ENVELOPE_DEFAULT_M = 8.0
+CLASS_LABEL = {
+    "table": "tables", "station": "inverter stations", "switchyard": "MV switchyard", "bess": "BESS units", "field_inverter": "string inverters",
+    "roof": "roofs", "building": "buildings",
+}
+ENVELOPE_ASSUMPTION = (
+    f"equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer) is protected as a {ENVELOPE_DEFAULT_M:g} m square "
+    f"centred on its stored position and each string inverter as a {ENVELOPE_M['inverter']:g} m square (assumed envelopes, not datasheet sizes)"
+)
+MAST_ASSUMPTION = (
+    f"terminals keep {MAST_CLEAR_M:g} m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure) "
+    "and stand off stations, the switchyard grid and BESS units"
+)
 
 
 @dataclass(frozen=True)
 class Target:
+    """A point that must lie inside a protection zone. Points sampled from one structure share the part of `id` before '#', its `group`."""
+
     id: str
     kind: str
     at: tuple[float, float]
+
+    @property
+    def group(self) -> str:
+        return self.id.split("#")[0]
 
 
 @dataclass(frozen=True)
@@ -36,6 +59,17 @@ class Terminal:
     at: Point
     on_roof: bool
     roof: str | None = None
+
+
+@dataclass(frozen=True)
+class ClassCoverage:
+    kind: str
+    covered: int
+    total: int
+
+    @property
+    def label(self) -> str:
+        return CLASS_LABEL.get(self.kind, self.kind)
 
 
 @dataclass(frozen=True)
@@ -54,41 +88,59 @@ class LpsDesign:
     def covered_all(self) -> bool:
         return not self.uncovered
 
+    def coverage(self) -> tuple[ClassCoverage, ...]:
+        """Per target class, the structures (tables, stations, BESS units, ...) all of whose points lie inside a terminal's radius, recomputed
+        from the terminal positions, over the structures of the class."""
+        return class_coverage(self.targets, [(t.at.x, t.at.y) for t in self.terminals], self.radius_m)
 
-def is_rooftop(project: Project) -> bool:
+
+def class_coverage(targets: tuple[Target, ...], terminals: list[tuple[float, float]], radius: float) -> tuple[ClassCoverage, ...]:
+    pts = np.asarray([t.at for t in targets], dtype=float).reshape(-1, 2)
+    ok = covered(pts, terminals, radius) if len(pts) else np.zeros(0, dtype=bool)
+    groups: dict[tuple[str, str], bool] = {}
+    for t, hit in zip(targets, ok):
+        k = (t.kind.removesuffix("_corner"), t.group)
+        groups[k] = groups.get(k, True) and bool(hit)
+    out: dict[str, list[int]] = {}
+    for (kind, _), hit in groups.items():
+        c = out.setdefault(kind, [0, 0])
+        c[0] += hit
+        c[1] += 1
+    order = list(CLASS_LABEL)
+    return tuple(ClassCoverage(k, c[0], c[1]) for k, c in sorted(out.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 99, kv[0])))
+
+
+def equipment_footprint(kind: str, at: tuple[float, float]) -> Polygon:
+    """The assumed protected envelope of one piece of placed equipment or a station standing at `at`."""
+    h = ENVELOPE_M.get(kind, ENVELOPE_DEFAULT_M) / 2
+    return box(at[0] - h, at[1] - h, at[0] + h, at[1] + h)
+
+
+def _samples(poly: Polygon, pitch: float = SAMPLE_PITCH_M) -> list[tuple[float, float]]:
+    """Corners, points along the edges at most `pitch` apart and a grid inside at that pitch: a footprint inside the radius of one terminal at
+    all of them is covered."""
+    out: list[tuple[float, float]] = []
+    ring = list(poly.exterior.coords)
+    for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
+        n = max(1, math.ceil(math.hypot(x1 - x0, y1 - y0) / pitch))
+        out += [(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n) for i in range(n)]
+    x0, y0, x1, y1 = poly.bounds
+    inside = prep(poly.buffer(-1e-6))
+    out += [(float(x), float(y)) for x in np.arange(x0 + pitch / 2, x1, pitch) for y in np.arange(y0 + pitch / 2, y1, pitch) if inside.contains(SPoint(x, y))]
+    out.append((poly.centroid.x, poly.centroid.y))
+    return out
+
+
+def _footprint_targets(gid: str, kind: str, poly: Polygon) -> list[Target]:
+    return [Target(f"{gid}#{i}", kind, (round(x, 3), round(y, 3))) for i, (x, y) in enumerate(_samples(poly))]
+
+
+def placed_equipment(project: Project) -> list[tuple[str, str, str, tuple[float, float]]]:
+    """(class, id, kind, position) of the equipment the layout places in the field: string inverters and BESS units."""
     layout = project.array_layout
-    if layout is not None and any(t.mounting is Mounting.ROOF_FLUSH for t in layout.table_by_id.values()):
-        return True
-    return project.segment in ROOFTOP_SEGMENTS
-
-
-def roofs(project: Project) -> list[tuple[str, Polygon]]:
-    geo = project.site.geometry
-    if geo is None:
+    if layout is None:
         return []
-    return [(f.id, shape_of(f)) for f in geo.features if f.kind in (FeatureKind.ROOF, FeatureKind.BUILDING) and f.polygon]
-
-
-def boundary(project: Project) -> Polygon | None:
-    geo = project.site.geometry
-    if geo is None:
-        return None
-    parts = [shape_of(f) for f in geo.features if f.kind is FeatureKind.BOUNDARY and f.polygon]
-    return unary_union(parts) if parts else None
-
-
-def blocked(project: Project) -> Polygon:
-    geo = project.site.geometry
-    if geo is None:
-        return Polygon()
-    shapes = []
-    for f in geo.features:
-        if f.kind in (FeatureKind.WATER, FeatureKind.EXCLUSION, FeatureKind.EXISTING_STRUCTURE, FeatureKind.OBSTACLE, FeatureKind.TRANSMISSION_LINE):
-            g = shape_of(f)
-            shapes.append(g if f.polygon else g.buffer((f.width_m or 1.0) / 2))
-        elif f.kind is FeatureKind.ROAD and f.polyline:
-            shapes.append(shape_of(f).buffer((f.width_m or 1.0) / 2))
-    return unary_union(shapes) if shapes else Polygon()
+    return [("field_inverter" if e.kind == "inverter" else "bess", e.node, e.kind, (e.at.x, e.at.y)) for e in layout.equipment]
 
 
 def targets(project: Project, extra: tuple[Target, ...] = ()) -> tuple[Target, ...]:
@@ -98,10 +150,19 @@ def targets(project: Project, extra: tuple[Target, ...] = ()) -> tuple[Target, .
         for t in layout.table_by_id.values():
             out.append(Target(t.id, "table", table_centre(t)))
             out += [Target(f"{t.id}#{i}", "table_corner", c) for i, c in enumerate(table_corners(t))]
-        out += [Target(f"{b.id}~station", "station", (b.station.x, b.station.y)) for b in layout.blocks if b.station is not None]
-    if is_rooftop(project):
-        for rid, poly in roofs(project):
-            out += [Target(f"{rid}#{i}", "roof", (x, y)) for i, (x, y) in enumerate(poly.exterior.coords[:-1])]
+        for b in layout.blocks:
+            if b.station is not None:
+                out += _footprint_targets(f"{b.id}~station", "station", equipment_footprint("station", (b.station.x, b.station.y)))
+        for cls, node, kind, at in placed_equipment(project):
+            out += _footprint_targets(node, cls, equipment_footprint(kind, at))
+    yard = switchyard_footprint(project)
+    if yard is not None:
+        out += _footprint_targets("switchyard", "switchyard", box(*yard))
+    elif layout is not None and layout.switchyard is not None and not is_rooftop(project):
+        out.append(Target("switchyard", "switchyard", (layout.switchyard.at.x, layout.switchyard.at.y)))
+    kind = "roof" if is_rooftop(project) else "building"
+    for rid, poly in roofs(project):
+        out += [Target(f"{rid}#{i}", kind, (x, y)) for i, (x, y) in enumerate(poly.exterior.coords[:-1])]
     return tuple(out) + extra
 
 
@@ -124,11 +185,17 @@ def _snapped(free, spacing: float) -> np.ndarray:
     return np.unique(np.asarray(out, dtype=float).reshape(-1, 2), axis=0)
 
 
-def candidates(project: Project, radius: float) -> tuple[np.ndarray, list[str | None]]:
-    """Mast positions: free ground inside the boundary away from tables and carved features; on rooftop projects, also free roof area."""
+def candidates(project: Project, radius: float, clear: float = MAST_CLEAR_M) -> tuple[np.ndarray, list[str | None]]:
+    """Mast positions: free ground inside the boundary `clear` m away from tables and clear of carved features, stations, the switchyard grid and
+    placed equipment; on rooftop projects, also free roof area."""
     layout = project.array_layout
     tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
     stations = unary_union([SPoint(b.station.x, b.station.y).buffer(6.0) for b in layout.blocks if b.station is not None]) if layout is not None else Polygon()
+    standing = [equipment_footprint(kind, at).buffer(1.0) for _, _, kind, at in placed_equipment(project)]
+    yard = switchyard_footprint(project)
+    if yard is not None:
+        standing.append(box(*yard).buffer(1.0))
+    stations = unary_union([stations, *standing])
     pts, where = [], []
     spacing = max(3.0, min(radius / 8, 12.0))
     if is_rooftop(project):
@@ -140,7 +207,7 @@ def candidates(project: Project, radius: float) -> tuple[np.ndarray, list[str | 
     site = boundary(project)
     if site is not None:
         roof_union = unary_union([p for _, p in roofs(project)]) if roofs(project) else Polygon()
-        free = site.buffer(-2.0).difference(tables.buffer(0.5)).difference(blocked(project)).difference(roof_union.buffer(1.0)).difference(stations)
+        free = site.buffer(-2.0).difference(tables.buffer(clear)).difference(blocked(project)).difference(roof_union.buffer(1.0)).difference(stations)
         g = _snapped(free, spacing)
         pts.append(g)
         where += [None] * len(g)
@@ -182,10 +249,16 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
         radius = step.value
     tg = targets(project)
     pts = np.asarray([t.at for t in tg], dtype=float).reshape(-1, 2)
-    cand, where = candidates(project, radius)
+    clear = MAST_CLEAR_M
+    cand, where = candidates(project, radius, clear)
+    cover = greedy_cover(pts, cand, radius) if len(pts) and len(cand) else None
+    if len(pts) and (cover is None or cover.uncovered) and clear > MAST_CLEAR_MIN_M:
+        clear = MAST_CLEAR_MIN_M
+        cand, where = candidates(project, radius, clear)
+        cover = greedy_cover(pts, cand, radius) if len(cand) else None
+        assumptions.append(f"no cover at {MAST_CLEAR_M:g} m from the tables: terminals may stand {clear:g} m from a table edge")
     if not len(cand) and len(pts):
         raise CoverageError("no free position for a lightning terminal inside the site")
-    cover = greedy_cover(pts, cand, radius) if len(pts) else None
     terms: list[Terminal] = []
     if cover is not None:
         index = {(float(c[0]), float(c[1])): i for i, c in enumerate(cand)}
@@ -196,6 +269,11 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
     uncovered = tuple(tg[i] for i in cover.uncovered) if cover is not None else ()
     if basis.method == "ese":
         assumptions.append("ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius")
+    if any(t.kind in ("station", "bess", "field_inverter") for t in tg):
+        assumptions.append(ENVELOPE_ASSUMPTION)
+    if any(t.kind == "switchyard" for t in tg) and switchyard_footprint(project) is None:
+        assumptions.append("MV switchyard size unknown (switchyard_m or a marked area): only its location is checked for lightning cover")
+    assumptions.append(MAST_ASSUMPTION if clear == MAST_CLEAR_M else f"terminals stand off stations, the switchyard grid and BESS units and at least {clear:g} m from a table edge (assumed clearance)")
     return LpsDesign(basis.method, basis.level, radius, tuple(steps), tuple(terms), tg, uncovered, mast, tuple(assumptions))
 
 
@@ -209,4 +287,7 @@ def coverage_points(design: LpsDesign, kinds: tuple[str, ...] = ("table",)) -> t
     return ok, len(pts)
 
 
-__all__ = ["LpsDesign", "Target", "Terminal", "coverage_points", "design_lps", "is_rooftop"]
+__all__ = [
+    "ClassCoverage", "LpsDesign", "Target", "Terminal", "class_coverage", "coverage_points", "design_lps", "equipment_footprint", "is_rooftop",
+    "placed_equipment",
+]  # fmt: skip

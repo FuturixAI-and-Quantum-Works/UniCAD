@@ -32,7 +32,7 @@
    "dc_kwp": 9268.56,
    "station": {
     "x": 126.103,
-    "y": 228.626
+    "y": 237.281
    }
   },
   {
@@ -44,7 +44,7 @@
    "dc_kwp": 9238.32,
    "station": {
     "x": 335.759,
-    "y": 319.412
+    "y": 328.066
    }
   },
   {
@@ -56,7 +56,7 @@
    "dc_kwp": 9102.24,
    "station": {
     "x": 167.423,
-    "y": 591.768
+    "y": 583.114
    }
   },
   {
@@ -68,7 +68,7 @@
    "dc_kwp": 9072.0,
    "station": {
     "x": 495.936,
-    "y": 682.554
+    "y": 673.899
    }
   },
   {
@@ -80,7 +80,7 @@
    "dc_kwp": 8497.44,
    "station": {
     "x": 513.237,
-    "y": 228.626
+    "y": 237.281
    }
   },
   {
@@ -92,7 +92,7 @@
    "dc_kwp": 8512.56,
    "station": {
     "x": 811.421,
-    "y": 228.626
+    "y": 237.281
    }
   },
   {
@@ -104,7 +104,7 @@
    "dc_kwp": 8376.48,
    "station": {
     "x": 669.873,
-    "y": 500.983
+    "y": 509.637
    }
   },
   {
@@ -116,7 +116,7 @@
    "dc_kwp": 8391.6,
    "station": {
     "x": 851.392,
-    "y": 591.768
+    "y": 583.114
    }
   },
   {
@@ -128,13 +128,15 @@
    "dc_kwp": 8316.0,
    "station": {
     "x": 424.033,
-    "y": 864.125
+    "y": 855.471
    }
   }
  ],
  "assumptions": [
   "gap between modules on a table: 0.02 (default, not from a cited source)",
   "gap between tables along a row: 1.5 (default, not from a cited source)",
+  "MV switchyard at local (478.2, 788.6): derived: the free spot nearest the transmission line on the site (where the export line leaves), clear of tables, roads and exclusions by 1.5 m (pass switchyard_x/y for the real position); cable routing and earthing use this location",
+  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables, roads, exclusions and water and stands inside the buildable area (assumed clearance for access, not a cited figure).",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [

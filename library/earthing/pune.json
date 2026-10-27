@@ -6,13 +6,17 @@
   "equipment": "25x6",
   "down": "25x3"
  },
+ "array_fault_current_a": 400.0,
+ "conductor_mass_t": 2.3,
  "pits": 9,
  "pits_by_role": {
   "EP": 6,
   "LE": 3
  },
+ "pits_by_practice": 9,
  "pits_needed_by_resistance": 0,
  "pits_needed_by_current": 0,
+ "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
  "electrode_resistance_ohm": 15.13,
  "resistance_ohm": 0.2998,
  "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
@@ -40,19 +44,19 @@
   {
    "item": "flat.25x6.main",
    "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 609.0,
+   "quantity": 780.0,
    "unit": "m"
   },
   {
    "item": "flat.25x6.array",
    "description": "25x6 MM GS FLAT - MMS / TABLE ROW EARTHING",
-   "quantity": 1256.0,
+   "quantity": 1080.0,
    "unit": "m"
   },
   {
    "item": "flat.25x6.equipment",
    "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 33.0,
+   "quantity": 29.0,
    "unit": "m"
   },
   {
@@ -132,6 +136,110 @@
    "assumptions": []
   },
   {
+   "name": "array_fault_current",
+   "value": 400.0,
+   "unit": "A",
+   "formula": "I = min(plant earth fault, max(1.5 x I_ac_max, I_dc_sc)) of the largest inverter",
+   "inputs": [
+    {
+     "name": "inverter",
+     "value": "huawei-sun2000-100ktl-m2",
+     "unit": null,
+     "source": "catalog"
+    },
+    {
+     "name": "I_ac_max",
+     "value": 158.8,
+     "unit": "A",
+     "source": "catalog: maximum AC apparent power 110 kVA at 400 V"
+    },
+    {
+     "name": "I_dc_sc",
+     "value": 400.0,
+     "unit": "A",
+     "source": "catalog: maximum DC short-circuit current"
+    },
+    {
+     "name": "factor",
+     "value": 1.5,
+     "unit": "",
+     "source": "IEA PVPS T5-01:1998 'Utility aspects of grid connected photovoltaic power systems': the short-circuit current of a PV inverter system is restricted to 1.1 to 1.5 times its rated current (upper end used)"
+    },
+    {
+     "name": "plant earth fault",
+     "value": 10000.0,
+     "unit": "A",
+     "source": "design_basis.earthing.fault_current_ka"
+    }
+   ],
+   "source": "IEA PVPS T5-01:1998 'Utility aspects of grid connected photovoltaic power systems': the short-circuit current of a PV inverter system is restricted to 1.1 to 1.5 times its rated current (upper end used)",
+   "assumptions": [
+    "table-row conductors are sized for the inverter fault contribution, not the MV earth fault, which returns through the stations, the main ring and the switchyard grid (design assumption)"
+   ]
+  },
+  {
+   "name": "array_conductor_area",
+   "value": 3.5,
+   "unit": "mm2",
+   "formula": "A = I sqrt(t) / k x (1 + corrosion allowance)",
+   "inputs": [
+    {
+     "name": "I",
+     "value": 400.0,
+     "unit": "A",
+     "source": "design_basis.earthing.fault_current_ka"
+    },
+    {
+     "name": "t",
+     "value": 0.5,
+     "unit": "s",
+     "source": "design_basis.earthing.fault_clearing_s"
+    },
+    {
+     "name": "k",
+     "value": 80.0,
+     "unit": "A s^0.5/mm2",
+     "source": "IS 3043 adiabatic sizing A = I sqrt(t) / k, k = 80 for GI, as quoted in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com"
+    },
+    {
+     "name": "corrosion allowance",
+     "value": 0.0,
+     "unit": "",
+     "source": "design_basis.earthing.corrosion_allowance"
+    }
+   ],
+   "source": "IS 3043 adiabatic sizing A = I sqrt(t) / k, k = 80 for GI, as quoted in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com",
+   "assumptions": []
+  },
+  {
+   "name": "array_ieee80_area",
+   "value": 4.1,
+   "unit": "mm2",
+   "formula": "A = I_kA Kf sqrt(tc) / 1.974",
+   "inputs": [
+    {
+     "name": "I",
+     "value": 0.4,
+     "unit": "kA",
+     "source": null
+    },
+    {
+     "name": "tc",
+     "value": 0.5,
+     "unit": "s",
+     "source": null
+    },
+    {
+     "name": "Kf",
+     "value": 28.96,
+     "unit": "",
+     "source": "IEEE Std 80 simplified sizing A_kcmil = I_kA Kf sqrt(tc), Kf = 28.96 for zinc-coated steel (Tm 419 C, Ta 40 C), A_kcmil = 1.974 A_mm2; IEEE 80 table as reproduced in 'Electrical Safety Practice and Standards', Table 8.3"
+    }
+   ],
+   "source": "IEEE Std 80 simplified sizing A_kcmil = I_kA Kf sqrt(tc), Kf = 28.96 for zinc-coated steel (Tm 419 C, Ta 40 C), A_kcmil = 1.974 A_mm2; IEEE 80 table as reproduced in 'Electrical Safety Practice and Standards', Table 8.3",
+   "assumptions": []
+  },
+  {
    "name": "electrode_current",
    "value": 570.8,
    "unit": "A",
@@ -167,9 +275,9 @@
   },
   {
    "name": "strip_current",
-   "value": 54678.1,
+   "value": 54664.5,
    "unit": "A",
-   "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L",
+   "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
     {
      "name": "rho",
@@ -191,13 +299,13 @@
     },
     {
      "name": "t_flat",
-     "value": 0.006,
+     "value": 0.003,
      "unit": "m",
      "source": null
     },
     {
      "name": "L",
-     "value": 582.5,
+     "value": 1.5,
      "unit": "m",
      "source": null
     }
@@ -275,12 +383,15 @@
   "pits spaced at least two electrode lengths apart are combined as parallel resistances, in parallel with the buried conductor",
   "conductor sized to the larger of the IS 3043 (k = 80) and IEEE 80 (Kf = 28.96) cross-sections",
   "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
+  "table-row (MMS) conductors 25x6 GS flat: the larger of the thermal size for the inverter fault contribution 400 A and the 25x6 rail earthing of the CIL/Refex reference layouts, never above the main conductor; main ring, station and switchyard conductors keep the plant fault size 25x6",
   "25x3 GS flat down conductors (practice; confirm against IS/IEC 62305-3 and NF C 17-102 minimum sections)",
   "target earth resistance 2 ohm (commercial premises 2 ohm; earth resistance practice table in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com); not a cited limit, set target_resistance_ohm to override",
   "buried ring earth conductor laid 1.5 m outside each roof carrying an array, inside the plot, with the extra pits on it",
   "IS 3043 surface current density applied to the whole electrode surface in soil: the pits and the buried flat conductor",
   "earth resistance: Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
-  "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius"
+  "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius",
+  "equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer) is protected as a 8 m square centred on its stored position and each string inverter as a 2 m square (assumed envelopes, not datasheet sizes)",
+  "terminals keep 1.5 m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure) and stand off stations, the switchyard grid and BESS units"
  ],
  "warnings": [],
  "lps": {
@@ -290,6 +401,11 @@
   "terminals": 2,
   "tables_covered": 81,
   "tables": 81,
+  "coverage": {
+   "tables": "81/81",
+   "inverter stations": "1/1",
+   "roofs": "2/2"
+  },
   "uncovered": 0
  }
 }

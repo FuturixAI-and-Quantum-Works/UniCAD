@@ -1,4 +1,4 @@
-"""Lightning protection rule: every table, inverter station and roof lies inside a terminal's protection zone."""
+"""Lightning protection rule: every table, station, MV switchyard, BESS unit, string inverter and building lies inside a terminal's protection zone."""
 
 from collections.abc import Iterator
 
@@ -23,23 +23,28 @@ def lps_for(project: Project) -> LpsDesign | None:
     return d
 
 
-@rule("lps.coverage", "Lightning terminals cover every table, station and roof", clause="IS/IEC 62305; NF C 17-102 for ESE")
+def coverage_text(d: LpsDesign) -> str:
+    return ", ".join(f"{c.label} {c.covered}/{c.total}" for c in d.coverage())
+
+
+@rule("lps.coverage", "Lightning terminals cover every table, station, switchyard, BESS unit and building", clause="IS/IEC 62305; NF C 17-102 for ESE")
 def coverage(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Each table centroid and corner, inverter station and (on rooftop projects) roof corner must lie within the protection radius of
-    a terminal: the ESE radius Rp of NF C 17-102 (a French standard) from the datasheet value or dT and mast height, or for
-    conventional air terminals the rolling-sphere radius of the protection level (IS/IEC 62305). Terminals are placed by a greedy
-    set cover over free positions; points left outside every zone are errors. Projects without a lightning basis are not checked."""
+    """Each table centroid and corner, inverter station, MV switchyard, BESS unit, string inverter and building (roof corners on rooftop projects)
+    must lie within the protection radius of a terminal: the ESE radius Rp of NF C 17-102 (a French standard) from the datasheet value or dT and
+    mast height, or for conventional air terminals the rolling-sphere radius of the protection level (IS/IEC 62305). The switchyard and each piece
+    of placed equipment are covered over an assumed footprint (the catalog has no dimensions); the finding lists covered over total per class.
+    Terminals are placed by a greedy set cover over free positions clear of the tables, stations, switchyard and BESS units; points left outside
+    every zone are errors. Projects without a lightning basis are not checked."""
     d = lps_for(project)
     if d is None:
         return
     inputs = tuple(Quantity(name=v.name, value=v.value, unit=v.unit, source=v.source or STEP_SOURCES.get(v.name, "calculated by the rule (see formula and docs)")) for s in d.steps for v in s.inputs)
     for t in d.uncovered[:200]:
-        yield Finding(rule_id="lps.coverage", severity=Severity.ERROR, subjects=(t.id,), message=f"{t.kind} {t.id} lies outside every protection zone (radius {d.radius_m:g} m)",
+        yield Finding(rule_id="lps.coverage", severity=Severity.ERROR, subjects=(t.group,), message=f"{t.kind.removesuffix('_corner')} {t.group} lies outside every protection zone (radius {d.radius_m:g} m)",
                       measured=None, limit=d.radius_m, unit="m", inputs=inputs, assumptions=d.assumptions)  # fmt: skip
     if not d.uncovered:
-        n = sum(1 for t in d.targets if t.kind == "table")
         yield Finding(
             rule_id="lps.coverage", severity=Severity.INFO, subjects=tuple(t.tag for t in d.terminals[:50]),
-            message=f"{len(d.terminals)} {'ESE terminals' if d.method == 'ese' else 'air terminals'} of radius {d.radius_m:g} m cover all {n} tables and {len(d.targets) - n} other points",
+            message=f"{len(d.terminals)} {'ESE terminals' if d.method == 'ese' else 'air terminals'} of radius {d.radius_m:g} m cover all targets: {coverage_text(d)}",
             measured=len(d.terminals), unit="terminals", formula=d.steps[-1].formula, inputs=inputs, assumptions=d.assumptions,
         )  # fmt: skip

@@ -82,7 +82,7 @@ class Run(_Frozen):
 
 class Item(_Frozen):
     """Equipment or structure to bond. `kind` is a network node kind, 'table', 'switchyard' or 'ese'. `connections` is how many
-    distinct earth connections it needs."""
+    distinct earth connections it needs. `placed` marks equipment the layout stands in the field, at its stored position."""
 
     id: str
     kind: str
@@ -90,6 +90,7 @@ class Item(_Frozen):
     at: Point
     connections: int = 1
     on_roof: bool = False
+    placed: bool = False
 
 
 class Quantity(_Frozen):

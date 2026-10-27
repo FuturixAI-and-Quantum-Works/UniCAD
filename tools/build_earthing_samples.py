@@ -71,7 +71,8 @@ def build(key: str, project, loc: str, earthing_papers: tuple[PaperSize, ...], l
     s = render_lps_sheet(doc, project, catalog, d.lps, spec, profile)
     write(f"{key}-lps-{lps_paper.value}", doc, lps_paper, s.warnings)
     ok, n = coverage_points(d.lps)
-    out = summary(d) | {"lps": {"method": d.lps.method, "level": d.lps.level, "radius_m": d.lps.radius_m, "terminals": len(d.lps.terminals), "tables_covered": ok, "tables": n, "uncovered": len(d.lps.uncovered)}}
+    out = summary(d) | {"lps": {"method": d.lps.method, "level": d.lps.level, "radius_m": d.lps.radius_m, "terminals": len(d.lps.terminals), "tables_covered": ok, "tables": n,
+                                           "coverage": {c.label: f"{c.covered}/{c.total}" for c in d.lps.coverage()}, "uncovered": len(d.lps.uncovered)}}
     out.pop("sources")
     (OUT / f"{key}.json").write_text(json.dumps(out, indent=1) + "\n")
     q = {x["description"]: f"{x['quantity']:g} {x['unit']}" for x in out["quantities"]}

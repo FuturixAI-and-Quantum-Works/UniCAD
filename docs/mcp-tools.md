@@ -578,7 +578,8 @@ Read-only.
 ### `lps_design`
 
 Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
-inverter station and roof corner inside a protection zone, and prove it. ESE follows NF C 17-102, a French standard used in Indian
+inverter station, MV switchyard, BESS unit, string inverter and building inside a protection zone, and prove it with covered / total per
+class. The catalog has no dimensions, so stations and placed equipment are covered over an assumed footprint (stated in the assumptions). ESE follows NF C 17-102, a French standard used in Indian
 EPC practice; rods use the IS/IEC 62305 rolling sphere of the level.
 
 Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=60, mast_height_m=6).

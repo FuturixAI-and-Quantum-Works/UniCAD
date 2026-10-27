@@ -37,7 +37,8 @@
   }
  ],
  "assumptions": [
-  "gap between modules on a table: 0.02 (default, not from a cited source)"
+  "gap between modules on a table: 0.02 (default, not from a cited source)",
+  "Main LT panel / switchyard at local (77.0, 14.0): derived: on the ground 6 m outside the roof edge nearest the BLOCK-01 station (assumed electrical room position; pass switchyard_x/y for the real one); cable routing and earthing use this location"
  ],
  "warnings": [
   "336 modules do not make up a whole string of 24 and are left unstrung"

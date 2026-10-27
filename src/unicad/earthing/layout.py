@@ -14,15 +14,17 @@ import numpy as np
 from shapely import STRtree
 from shapely.geometry import LineString, MultiLineString, Polygon, box
 from shapely.geometry import Point as SPoint
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import nearest_points, unary_union
 
 from unicad.arrays.geometry import frame, plan_depth, plan_length, table_corners, to_site
-from unicad.arrays.siting import free_spot, marked_switchyard
+from unicad.arrays.siting import free_spot
 from unicad.domain.layout import LayoutBlock, Point, Table
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
 from unicad.earthing.model import ConductorRole, Item, Pit, PitRole, Run
-from unicad.lps.design import LpsDesign, blocked, boundary, is_rooftop, roofs
+from unicad.lps.design import LpsDesign
+from unicad.lps.site import blocked, boundary, designated_switchyard, is_rooftop, place_switchyard, roofs
 
 ROW_GAP_SPLIT_M = 8.0
 STATION_PITCH_M = 3.0
@@ -45,6 +47,8 @@ PITS: dict[NodeKind, tuple[PitRole, ...]] = {
     NodeKind.SCB: (PitRole.EP,),
 }
 GROUP_PITS = 2
+BESS_LINK_M = 25.0
+FIELD_BOXES = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 MV_KINDS = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.HT_PANEL, NodeKind.PT, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.LIGHTNING_ARRESTER, NodeKind.CT})
 KIND_ORDER = {k: i for i, k in enumerate((NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.INVERTER, NodeKind.PCS, NodeKind.BATTERY,
               NodeKind.HT_PANEL, NodeKind.RMU, NodeKind.VCB, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.DG, NodeKind.PT, NodeKind.CT,
@@ -81,6 +85,7 @@ class StationGroup:
     ring: tuple[float, float, float, float]
     pits: tuple[str, ...]
     items: tuple[str, ...]
+    kind: str = "station"
 
 
 @dataclass
@@ -365,7 +370,7 @@ def _risers(lay: EarthingLayout, segs: list[tuple[float, float, float, Run]], az
             for v2, a0, a1, _ in by_v[nv]:
                 if a0 - 0.5 <= u <= a1 + 0.5:
                     uu = min(max(u, a0), a1)
-                    lay.run(ConductorRole.ARRAY, size, [(uu * ux + v * vx, uu * uy + v * vy), (uu * ux + v2 * vx, uu * uy + v2 * vy)], buried=buried)
+                    lay.run(ConductorRole.MAIN, size, [(uu * ux + v * vx, uu * uy + v * vy), (uu * ux + v2 * vx, uu * uy + v2 * vy)], buried=buried)
                     break
 
 
@@ -388,34 +393,6 @@ def _scb_positions(block: LayoutBlock, n: int) -> list[tuple[float, float]]:
 
 
 
-def designated_switchyard(project: Project) -> Polygon | None:
-    """A site area marked for the switchyard: kind 'switchyard', attribute use=switchyard, or a name or id that says switchyard, substation or pooling."""
-    marked = marked_switchyard(project.site.geometry)
-    return None if marked is None else marked[1]
-
-
-def place_switchyard(project: Project, size: tuple[float, float], near: tuple[float, float] | None) -> tuple[tuple[float, float, float, float] | None, str | None]:
-    """The switchyard grid rectangle: inside a designated switchyard area if the site has one, else the free area nearest `near` (the layout's
-    switchyard location, so the grid is drawn where cable routing takes the switchyard to be)."""
-    marked = designated_switchyard(project)
-    if marked is not None:
-        x0, y0, x1, y1 = marked.buffer(-2.0).bounds
-        return (x0, y0, x1, y1), None
-    site = boundary(project)
-    if site is None:
-        return None, "no site boundary: the switchyard grid is not placed"
-    layout = project.array_layout
-    tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
-    free = site.buffer(-3.0).difference(tables.buffer(5.0)).difference(blocked(project).buffer(3.0))
-    lx, ly = size
-    room = free.buffer(-math.hypot(lx, ly) / 2)
-    target = SPoint(near) if near is not None else site.centroid
-    if room.is_empty:
-        return None, f"no free area of {lx:g} x {ly:g} m inside the site for the switchyard earth grid; it is not drawn"
-    c = nearest_points(room, target)[0]
-    return (c.x - lx / 2, c.y - ly / 2, c.x + lx / 2, c.y + ly / 2), None
-
-
 def _switchyard(lay: EarthingLayout, rect: tuple[float, float, float, float], spacing: float, items, sizes: Sizes, perimeter_pits: int) -> None:
     x0, y0, x1, y1 = rect
     nx = max(2, round((x1 - x0) / spacing) + 1)
@@ -426,7 +403,7 @@ def _switchyard(lay: EarthingLayout, rect: tuple[float, float, float, float], sp
         lay.run(ConductorRole.GRID, sizes.grid, [(x, y0), (x, y1)], ("switchyard",))
     for y in ys:
         lay.run(ConductorRole.GRID, sizes.grid, [(x0, y), (x1, y)], ("switchyard",))
-    lay.switchyard = Switchyard(x0, y0, x1, y1, float(xs[1] - xs[0]))
+    lay.switchyard = Switchyard(x0, y0, x1, y1, float(max(xs[1] - xs[0], ys[1] - ys[0])))
     items = sorted(items, key=lambda t: (KIND_ORDER.get(t[2], 99), t[0]))
     cells = [((a + b) / 2, (c + d) / 2) for c, d in zip(ys[::-1][:-1], ys[::-1][1:]) for a, b in zip(xs[:-1], xs[1:])]
     if len(items) > len(cells):
@@ -619,7 +596,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
                 continue
             segs = _row_runs(lay, on, sizes.array, None, buried=False)
             array_runs += [s[3] for s in segs]
-            _risers(lay, segs, on[0].azimuth_deg, sizes.array, 1.6 * (pitch or 10), buried=False)
+            _risers(lay, segs, on[0].azimuth_deg, sizes.main, 1.6 * (pitch or 10), buried=False)
             envelope = unary_union([Polygon(table_corners(t)) for t in on])
             x0, y0, x1, y1 = envelope.bounds
             for corner in ((x0, y0), (x1, y1)):
@@ -634,7 +611,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         segs = _row_runs(lay, tables, sizes.array, avoid, buried=True)
         array_runs += [s[3] for s in segs]
         if tables:
-            _risers(lay, segs, tables[0].azimuth_deg, sizes.array, 1.6 * (pitch or 10), buried=True)
+            _risers(lay, segs, tables[0].azimuth_deg, sizes.main, 1.6 * (pitch or 10), buried=True)
     placed = layout.equipment_by_node if layout is not None else {}
     field_items = [it for it in plant if it[0] in placed] + [it for items in per_block.values() for it in items if it[0] in placed]
     plant = [it for it in plant if it[0] not in placed]
@@ -650,8 +627,8 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             if items:
                 lay.warnings.append(f"block {b.id} has no station; its {len(items)} equipment items are not placed")
             continue
-        scbs = [it for it in items if it[2] is NodeKind.SCB]
-        rest = [it for it in items if it[2] is not NodeKind.SCB] + (hosted if i == host else [])
+        scbs = [it for it in items if it[2] in FIELD_BOXES]
+        rest = [it for it in items if it[2] not in FIELD_BOXES] + (hosted if i == host else [])
         if not rest:
             rest = [(f"{b.id}~station", f"{b.name} STATION", NodeKind.INVERTER)]
         at = _xy(b.station)
@@ -668,17 +645,22 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             if not lay.rooftop:
                 lay.pit(PitRole.EP, (p[0] + 1.0, p[1] + 0.6), (iid,))
                 lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (p[0] + 1.0, p[1] + 0.6)], (iid,))
+    bess_items = [it for it in field_items if it[2] is not NodeKind.INVERTER]
     for iid, tag, kind in field_items:
-        _field_item(lay, iid, tag, kind, _xy(placed[iid].at), array_runs, sizes)
+        if kind is NodeKind.INVERTER:
+            _field_item(lay, iid, tag, kind, _xy(placed[iid].at), array_runs, sizes)
     if yard_items:
         _switchyard(lay, switchyard[0], switchyard[1], yard_items, sizes, perimeter_pits)
+    yard_rect = switchyard[0] if yard_items else None
+    for k, group in enumerate(_bess_groups(bess_items, placed), 1):
+        _bess_area(lay, group, placed, sizes, f"BESS AREA {k}", yard_rect, electrode_m)
     if panel_items:
         at = _panel_area(project, lay, site, roof_polys)
         if roof_union is not None:
             at = _free_spot(at, len(panel_items), unary_union([roof_union, *(box(*g.ring).buffer(2.0) for g in lay.stations)]), site)
         _station_area(lay, at, panel_items, "plant", sizes, name="PLANT EQUIPMENT AREA", avoid=roof_union)
     if lps is not None:
-        _lps(lay, lps, sizes, site, dict(roof_polys))
+        _lps(lay, lps, sizes, site, dict(roof_polys), unary_union([Polygon(table_corners(t)) for t in tables]) if tables else None)
     existing = np.asarray([_xy(p.at) for p in lay.pits], dtype=float).reshape(-1, 2)
     buried_array = [r for r in array_runs if r.buried]
     want = (math.ceil(len(tables) / tables_per_pit) + array_pits) if buried_array else 0
@@ -701,7 +683,7 @@ def _field_item(lay: EarthingLayout, iid: str, tag: str, kind: NodeKind, p: tupl
     """Equipment the layout places in the field (string inverters at their rows, BESS units): bonded where it stands, to the nearest array
     conductors, and on the ground to its own pit beside it."""
     on_roof = lay.rooftop and any(r.links and not r.buried for r in array_runs)
-    lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], on_roof=on_roof))
+    lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], on_roof=on_roof, placed=True))
     near = sorted(array_runs, key=lambda r: LineString([_xy(q) for q in r.points]).distance(SPoint(p)))[: CONNECTIONS[kind]]
     for r in near:
         q = nearest_points(LineString([_xy(x) for x in r.points]), SPoint(p))[0]
@@ -711,6 +693,43 @@ def _field_item(lay: EarthingLayout, iid: str, tag: str, kind: NodeKind, p: tupl
         pit = (p[0] + 1.0, p[1] + 0.6)
         lay.pit(PitRole.EP, pit, (iid,))
         lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, pit], (iid,))
+
+
+def _bess_groups(items: list[Instance], placed) -> list[list[Instance]]:
+    """BESS units that stand within BESS_LINK_M of each other, one group per BESS area, in stored order."""
+    groups: list[list[Instance]] = []
+    for it in sorted(items, key=lambda t: (placed[t[0]].at.x, placed[t[0]].at.y, t[0])):
+        at = _xy(placed[it[0]].at)
+        near = [g for g in groups if any(math.dist(at, _xy(placed[o[0]].at)) <= BESS_LINK_M for o in g)]
+        merged = [o for g in near for o in g] + [it]
+        groups = [g for g in groups if g not in near] + [merged]
+    return groups
+
+
+def _bess_area(lay: EarthingLayout, group: list[Instance], placed, sizes: Sizes, name: str, yard: tuple[float, float, float, float] | None, electrode_m: float) -> None:
+    """Earthing of a BESS area, outside the switchyard mat: a buried ring round its units, each unit bonded to the ring at its stored position by
+    its connections, the area's pits on the ring, and the ring bonded to the switchyard grid by the shortest link."""
+    group = sorted(group, key=lambda t: (KIND_ORDER.get(t[2], 99), t[0]))
+    pos = {iid: _xy(placed[iid].at) for iid, _, _ in group}
+    xs, ys = [p[0] for p in pos.values()], [p[1] for p in pos.values()]
+    ring = _ring(min(xs) - 3.0, min(ys) - 3.0, max(xs) + 3.0, max(ys) + 3.0)
+    label = name.lower().replace(" ", "-")
+    lay.run(ConductorRole.MAIN, sizes.main, ring, (label,))
+    roles: list[tuple[PitRole, str]] = [(PitRole.EP, label)] * GROUP_PITS
+    for iid, tag, kind in group:
+        p = pos[iid]
+        lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], placed=True))
+        for q in _two_connections(p, ring)[: CONNECTIONS[kind]]:
+            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, q], (iid,))
+        roles += [(r, iid) for r in PITS.get(kind, ())]
+        if yard is not None and yard[0] <= p[0] <= yard[2] and yard[1] <= p[1] <= yard[3]:
+            lay.warnings.append(f"{tag} stands inside the switchyard earth mat; BESS units belong outside it, bonded to it")
+    pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, _ring_points(ring, len(roles)))]
+    if yard is not None:
+        a, b = nearest_points(LineString(ring), box(*yard))
+        if a.distance(b) > TOL:
+            lay.run(ConductorRole.MAIN, sizes.main, _orthogonal((a.x, a.y), (b.x, b.y)), (label, "switchyard"))
+    lay.stations.append(StationGroup(name, LineString(ring).bounds, tuple(p.tag for p in pits), tuple(i[0] for i in group), kind="bess"))
 
 
 def _perimeter_ring(lay: EarthingLayout, poly: Polygon, site: Polygon | None, sizes: Sizes, offset: float = 1.5) -> None:
@@ -774,7 +793,7 @@ def _panel_area(project: Project, lay: EarthingLayout, site: Polygon | None, roo
     return (site.centroid.x, site.centroid.y) if site is not None else (0.0, 0.0)
 
 
-def _lps(lay: EarthingLayout, lps: LpsDesign, sizes: Sizes, site: Polygon | None, roof_by_id: dict[str, Polygon]) -> None:
+def _lps(lay: EarthingLayout, lps: LpsDesign, sizes: Sizes, site: Polygon | None, roof_by_id: dict[str, Polygon], tables: BaseGeometry | None = None) -> None:
     for t in lps.terminals:
         at = _xy(t.at)
         lay.items.append(Item(id=t.tag, kind="ese" if lps.method == "ese" else "air_terminal", tag=t.tag, at=t.at, connections=1 if not t.on_roof else 2, on_roof=t.on_roof))
@@ -788,6 +807,17 @@ def _lps(lay: EarthingLayout, lps: LpsDesign, sizes: Sizes, site: Polygon | None
                 lay.run(ConductorRole.DOWN, sizes.down, [edge, g], (t.tag,), buried=False, prefix="D")
                 lay.pit(PitRole.LE, g, (t.tag,))
         else:
-            g = (at[0] + 1.5, at[1])
+            g = _mast_pit(at, site, tables)
             lay.run(ConductorRole.DOWN, sizes.down, [at, g], (t.tag,), prefix="D")
             lay.pit(PitRole.LE, g, (t.tag,))
+
+
+def _mast_pit(at: tuple[float, float], site: Polygon | None, tables: BaseGeometry | None, offset: float = 1.5) -> tuple[float, float]:
+    """The lightning earth pit beside a ground mast: `offset` m east if that is off the tables and inside the plot, else the first of west, north
+    and south, else a shorter offset the same way."""
+    for d in (offset, 0.75 * offset, 0.5 * offset):
+        for dx, dy in ((d, 0.0), (-d, 0.0), (0.0, d), (0.0, -d)):
+            g = (at[0] + dx, at[1] + dy)
+            if (tables is None or not tables.intersects(SPoint(g))) and (site is None or site.contains(SPoint(g))):
+                return g
+    return (at[0] + offset, at[1])

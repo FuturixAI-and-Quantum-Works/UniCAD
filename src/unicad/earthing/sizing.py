@@ -21,10 +21,14 @@ SOURCES = {
     "(J. Parmar, part 1, electrical-engineering-portal.com)",
     "ieee80_kf": "IEEE Std 80 simplified sizing A_kcmil = I_kA Kf sqrt(tc), Kf = 28.96 for zinc-coated steel (Tm 419 C, Ta 40 C), "
     "A_kcmil = 1.974 A_mm2; IEEE 80 table as reproduced in 'Electrical Safety Practice and Standards', Table 8.3",
+    "inverter_fault": "IEA PVPS T5-01:1998 'Utility aspects of grid connected photovoltaic power systems': the short-circuit current of a PV inverter "
+    "system is restricted to 1.1 to 1.5 times its rated current (upper end used)",
+    "rail_earthing": "CIL/Refex reference earthing layouts (references/samples/CONVENTIONS.md): 25x6 mm GS flat for rail (MMS) earthing",
     "ieee80_grid": "IEEE Std 80-2013 tolerable touch/step voltage, Cs, Sverak grid resistance, Km, Ki, Ks, mesh and step voltage, "
     "as written out in IECCalc 'Earthing grid: touch voltage decides, not resistance' (ieccalc.com) and windfarmbop.com IEEE 80 step by step",
 }
 
+STEEL_KG_PER_M3 = 7850.0
 GI_K = 80.0
 ZINC_STEEL_KF = 28.96
 KCMIL_PER_MM2 = 1.974
