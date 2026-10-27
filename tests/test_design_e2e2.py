@@ -290,3 +290,31 @@ def test_m18_rooftop_station_is_not_over_a_table(tmp_path):
                 assert min(t.distance(s) for t in tables) >= 0.49, (b.id, min(t.distance(s) for t in tables))
 
     run(go())
+
+
+def test_n3_rooftop_string_inverters_stand_on_their_roof_apart_and_off_tables(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await scenario_a(c)
+            return (await c.call("project_get", project_id="sgt-chakan", full=True))["project"]
+
+    p = asyncio.run(asyncio.wait_for(go(), 300))
+    from shapely.geometry import Point as SPoint
+    from shapely.geometry import Polygon
+
+    from unicad.arrays.geometry import table_corners
+    from unicad.domain.layout import ArrayLayout
+    from unicad.domain.site import FeatureKind, SiteGeometry, shape_of
+
+    site = SiteGeometry.model_validate(p["site"]["geometry"])
+    lay = ArrayLayout.model_validate(p["array_layout"])
+    roofs = [shape_of(f) for f in site.of_kind(FeatureKind.ROOF)]
+    obstacles = [shape_of(f) for f in site.of_kind(FeatureKind.OBSTACLE)]
+    tables = [Polygon(table_corners(t)) for t in lay.table_by_id.values()]
+    inv = [e for e in lay.equipment if e.kind == "inverter"]
+    assert len(inv) == 6
+    for e in inv:
+        q = SPoint(e.at.x, e.at.y)
+        assert any(r.contains(q) for r in roofs) and e.basis.startswith("on the roof"), e
+        assert min(t.distance(q) for t in tables) >= 0.49 and all(not o.contains(q) for o in obstacles), e
+    assert all(SPoint(a.at.x, a.at.y).distance(SPoint(b.at.x, b.at.y)) >= 0.99 for i, a in enumerate(inv) for b in inv[i + 1 :])

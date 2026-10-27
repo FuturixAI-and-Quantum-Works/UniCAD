@@ -3,7 +3,9 @@
 import math
 from collections import defaultdict
 
+from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry import Polygon, box
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from unicad.arrays import siting
@@ -13,15 +15,17 @@ from unicad.domain.catalog import InverterSpec
 from unicad.domain.layout import ArrayLayout, PlacedEquipment, Point
 from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import Project
+from unicad.domain.site import ROOF_CARVE_KINDS, FeatureKind, shape_of
 from unicad.routing import RouteAssumptions
 from unicad.routing.locate import Locator
 
 INVERTER_CLEAR_M = 0.5
+INVERTER_SPACING_M = 1.0
 BESS_PITCH_M = 10.0
 FIELD_INVERTERS = (
-    f"String inverters stand in the field beside the tables they serve: at the free spot (row or table gap, road side) nearest the centre of their strings, "
-    f"{INVERTER_CLEAR_M:g} m clear of tables (structure-mounted practice, which keeps DC string runs short; the clearance is an assumption); their AC cables "
-    "are routed from there to the block's AC combiner at the station."
+    f"String inverters stand in the field beside the tables they serve: at the free spot (row or table gap, road side; on a roof, on that roof) nearest the "
+    f"centre of their strings, {INVERTER_CLEAR_M:g} m clear of tables, roof edges and obstacles and {INVERTER_SPACING_M:g} m from each other (structure-mounted "
+    "practice, which keeps DC string runs short; the clearances are assumptions); their AC cables are routed from there to the block's AC combiner at the station."
 )
 BESS_SPACING = (
     f"BESS units (battery containers, PCS and BESS transformer of each block) stand on a grid {BESS_PITCH_M:g} m centre to centre, one row per BESS block "
@@ -41,16 +45,32 @@ def _field_inverters(net: ElectricalNetwork, catalog: Catalog, loc: Locator, lay
             inverters.append(n)
     if not inverters:
         return []
-    tables = list(layout.table_by_id.values())
-    taken = unary_union([Polygon(table_corners(t)) for t in tables])
-    free = siting.room(project.site.geometry, taken, INVERTER_CLEAR_M) if project.site.geometry is not None else None
+    site = project.site.geometry
+    taken = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()])
+    roofs = _roof_room(site, taken) if site is not None else []
+    ground = siting.room(site, taken, INVERTER_CLEAR_M) if site is not None else None
     out = []
     for n in inverters:
         strings = loc.strings_below(n.id)
         x = sum(loc.strings[s].centre[0] for s in strings) / len(strings)
         y = sum(loc.strings[s].centre[1] for s in strings) / len(strings)
+        on = next((area for r, area in roofs if r.contains(ShapelyPoint(x, y))), None)
+        free, where = (on, "on the roof beside the tables it serves") if on is not None else (ground, "beside the centre of the tables it serves")
+        if free is not None and out:
+            free = free.difference(unary_union([ShapelyPoint(e.at.x, e.at.y).buffer(INVERTER_SPACING_M) for e in out]))
         at = (siting.nearest_in(free, (x, y)) if free is not None else None) or Point(x=round(x, 3), y=round(y, 3))
-        out.append(PlacedEquipment(node=n.id, tag=n.tag, kind=n.kind.value, at=at, basis="beside the centre of the tables it serves"))
+        out.append(PlacedEquipment(node=n.id, tag=n.tag, kind=n.kind.value, at=at, basis=where))
+    return out
+
+
+def _roof_room(site, taken) -> list[tuple[Polygon, BaseGeometry]]:
+    """Per roof that carries tables: the roof area clear of its edge, its obstacles and the tables by INVERTER_CLEAR_M."""
+    blocked = unary_union([shape_of(f) for f in site.features if f.kind in ROOF_CARVE_KINDS and f.polygon])
+    out = []
+    for f in site.of_kind(FeatureKind.ROOF):
+        if not f.polygon or not (roof := shape_of(f)).intersects(taken):
+            continue
+        out.append((roof, roof.buffer(-INVERTER_CLEAR_M).difference(unary_union([taken, blocked]).buffer(INVERTER_CLEAR_M))))
     return out
 
 
