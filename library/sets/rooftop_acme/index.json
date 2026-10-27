@@ -1,7 +1,7 @@
 {
   "project_id": "rooftop-500kwp-acme",
   "set_pdf": "set.pdf",
-  "sheet_count": 11,
+  "sheet_count": 10,
   "sheets": [
     {
       "drawing_scale": "NTS",
@@ -53,7 +53,7 @@
           "number": "ACME/DIPL/R500A/EL/301",
           "paper": "A2",
           "rev": "00",
-          "scale": "1:750",
+          "scale": "1:1000",
           "title": "EARTHING LAYOUT"
         },
         {
@@ -63,7 +63,7 @@
           "number": "ACME/DIPL/R500A/EL/302",
           "paper": "A3",
           "rev": "00",
-          "scale": "1:1000",
+          "scale": "1:1500",
           "title": "LIGHTNING ARRESTER (LA) LAYOUT"
         },
         {
@@ -74,17 +74,7 @@
           "paper": "A3",
           "rev": "00",
           "scale": "NTS",
-          "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (1/2)"
-        },
-        {
-          "date": "26.10.2026",
-          "issued_for": "Approval",
-          "kind": "strings",
-          "number": "ACME/DIPL/R500A/EL/402",
-          "paper": "A3",
-          "rev": "00",
-          "scale": "NTS",
-          "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (2/2)"
+          "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05"
         },
         {
           "date": "26.10.2026",
@@ -131,7 +121,7 @@
       "scope": [],
       "sheet_kind": "register",
       "sheet_no": 1,
-      "sheet_of": "1 of 11",
+      "sheet_of": "1 of 10",
       "title": "DRAWING REGISTER",
       "warnings": []
     },
@@ -173,7 +163,7 @@
       "scope": [],
       "sheet_kind": "sld",
       "sheet_no": 2,
-      "sheet_of": "2 of 11",
+      "sheet_of": "2 of 10",
       "title": "SINGLE LINE DIAGRAM",
       "warnings": []
     },
@@ -193,13 +183,13 @@
       "scope": [],
       "sheet_kind": "layout",
       "sheet_no": 3,
-      "sheet_of": "3 of 11",
+      "sheet_of": "3 of 10",
       "title": "ROOFTOP SOLAR PV MODULE LAYOUT",
       "view": "roofs",
       "warnings": []
     },
     {
-      "drawing_scale": "1:750",
+      "drawing_scale": "1:1000",
       "files": {
         "dwg": null,
         "dxf": "04-ACME_DIPL_R500A_EL_301.dxf",
@@ -216,14 +206,14 @@
       "scope": [],
       "sheet_kind": "earthing",
       "sheet_no": 4,
-      "sheet_of": "4 of 11",
+      "sheet_of": "4 of 10",
       "target_ohm": 2.0,
       "title": "EARTHING LAYOUT",
       "unbonded": 0,
       "warnings": []
     },
     {
-      "drawing_scale": "1:1000",
+      "drawing_scale": "1:1500",
       "files": {
         "dwg": null,
         "dxf": "05-ACME_DIPL_R500A_EL_302.dxf",
@@ -239,7 +229,7 @@
       "scope": [],
       "sheet_kind": "lps",
       "sheet_no": 5,
-      "sheet_of": "5 of 11",
+      "sheet_of": "5 of 10",
       "terminals": 2,
       "title": "LIGHTNING ARRESTER (LA) LAYOUT",
       "uncovered": 0,
@@ -252,20 +242,20 @@
         "dxf": "06-ACME_DIPL_R500A_EL_401.dxf",
         "pdf": "06-ACME_DIPL_R500A_EL_401.pdf"
       },
-      "id": "strings_inv-1",
+      "id": "strings_inv",
       "instances": 5,
       "kind": "strings",
-      "kind_sheet_of": "1 of 2",
+      "kind_sheet_of": "1 of 1",
       "number": "ACME/DIPL/R500A/EL/401",
       "paper": "A3",
       "scale": null,
       "scope": [],
       "sheet_kind": "string_diagram",
       "sheet_no": 6,
-      "sheet_of": "6 of 11",
-      "strings_covered": 25,
-      "strings_drawn": 5,
-      "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (1/2)",
+      "sheet_of": "6 of 10",
+      "strings_covered": 50,
+      "strings_drawn": 10,
+      "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05",
       "type": "inv",
       "warnings": []
     },
@@ -273,32 +263,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "07-ACME_DIPL_R500A_EL_402.dxf",
-        "pdf": "07-ACME_DIPL_R500A_EL_402.pdf"
-      },
-      "id": "strings_inv-2",
-      "instances": 5,
-      "kind": "strings",
-      "kind_sheet_of": "2 of 2",
-      "number": "ACME/DIPL/R500A/EL/402",
-      "paper": "A3",
-      "scale": null,
-      "scope": [],
-      "sheet_kind": "string_diagram",
-      "sheet_no": 7,
-      "sheet_of": "7 of 11",
-      "strings_covered": 25,
-      "strings_drawn": 5,
-      "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (2/2)",
-      "type": "inv",
-      "warnings": []
-    },
-    {
-      "drawing_scale": "NTS",
-      "files": {
-        "dwg": null,
-        "dxf": "08-ACME_DIPL_R500A_EL_501.dxf",
-        "pdf": "08-ACME_DIPL_R500A_EL_501.pdf"
+        "dxf": "07-ACME_DIPL_R500A_EL_501.dxf",
+        "pdf": "07-ACME_DIPL_R500A_EL_501.pdf"
       },
       "gaps": 2,
       "id": "cables_1",
@@ -310,8 +276,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "cable_schedule",
-      "sheet_no": 8,
-      "sheet_of": "8 of 11",
+      "sheet_no": 7,
+      "sheet_of": "7 of 10",
       "title": "DC CABLE SCHEDULE (PART 1 OF 2)",
       "warnings": []
     },
@@ -319,8 +285,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "09-ACME_DIPL_R500A_EL_502.dxf",
-        "pdf": "09-ACME_DIPL_R500A_EL_502.pdf"
+        "dxf": "08-ACME_DIPL_R500A_EL_502.dxf",
+        "pdf": "08-ACME_DIPL_R500A_EL_502.pdf"
       },
       "id": "cables_2",
       "kind": "cable_schedule",
@@ -330,8 +296,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "cable_schedule",
-      "sheet_no": 9,
-      "sheet_of": "9 of 11",
+      "sheet_no": 8,
+      "sheet_of": "8 of 10",
       "title": "DC CABLE SCHEDULE (PART 2 OF 2)",
       "warnings": []
     },
@@ -339,8 +305,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "10-ACME_DIPL_R500A_EL_503.dxf",
-        "pdf": "10-ACME_DIPL_R500A_EL_503.pdf"
+        "dxf": "09-ACME_DIPL_R500A_EL_503.dxf",
+        "pdf": "09-ACME_DIPL_R500A_EL_503.pdf"
       },
       "id": "cables_3",
       "kind": "cable_schedule",
@@ -350,8 +316,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "cable_schedule",
-      "sheet_no": 10,
-      "sheet_of": "10 of 11",
+      "sheet_no": 9,
+      "sheet_of": "9 of 10",
       "title": "AC CABLE SCHEDULE",
       "warnings": []
     },
@@ -359,8 +325,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "11-ACME_DIPL_R500A_EL_601.dxf",
-        "pdf": "11-ACME_DIPL_R500A_EL_601.pdf"
+        "dxf": "10-ACME_DIPL_R500A_EL_601.dxf",
+        "pdf": "10-ACME_DIPL_R500A_EL_601.pdf"
       },
       "id": "bom",
       "kind": "bom",
@@ -371,8 +337,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "bom",
-      "sheet_no": 11,
-      "sheet_of": "11 of 11",
+      "sheet_no": 10,
+      "sheet_of": "10 of 10",
       "title": "BILL OF MATERIALS",
       "warnings": []
     }
