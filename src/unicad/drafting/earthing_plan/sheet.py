@@ -27,7 +27,7 @@ from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
-from unicad.drafting.site_plan.sheet import SCALES, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale
+from unicad.drafting.site_plan.sheet import SCALES, EquipmentArea, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale
 from unicad.earthing import ConductorRole, EarthingDesign, PitRole, pit_text
 from unicad.earthing.design import ROLE_TEXT
 from unicad.earthing.layout import StationGroup
@@ -96,6 +96,12 @@ class EarthingSheet:
     extent: tuple[float, float, float, float] | None = None
 
 
+def _with_boundary(shape, d: LayoutDrawing) -> tuple[float, float, float, float]:
+    """Bounds of `shape` grown to take in the whole plot boundary and the plant areas, so a rooftop plan never cuts them off."""
+    boundary = [shape_of(f) for f in d.site.features if f.kind is FeatureKind.BOUNDARY]
+    return unary_union([shape, *boundary, *(Polygon(a.outline) for a in d.areas)]).bounds
+
+
 def clip_circle(cx: float, cy: float, r: float, rect: Region) -> list[tuple[float, float]]:
     """Counter-clockwise arcs (start, end in degrees) of the circle that lie inside `rect`; [(0, 360)] when it is wholly inside."""
     angs = set()
@@ -160,9 +166,11 @@ def expand_ranges(text: str) -> set[str]:
 
 
 class _Writer(LayoutSheetWriter):
-    def __init__(self, doc: Drawing, project: Project, module: ModuleSpec, sheet: SheetSpec, profile: CompanyProfile, scale: int | None):
+    def __init__(self, doc: Drawing, project: Project, module: ModuleSpec, sheet: SheetSpec, profile: CompanyProfile, scale: int | None,
+                 areas: Sequence[EquipmentArea] = ()):  # fmt: skip
         layout = project.array_layout
-        d = LayoutDrawing(project.site.geometry, layout, module, max(t.cols for t in layout.table_by_id.values()) if layout and layout.table_by_id else 1)
+        d = LayoutDrawing(project.site.geometry, layout, module, max(t.cols for t in layout.table_by_id.values()) if layout and layout.table_by_id else 1,
+                          areas=tuple(areas))  # fmt: skip
         super().__init__(doc, d, sheet, profile, "site", scale)
         self.project = project
 
@@ -275,7 +283,7 @@ class EarthingSheetWriter(_Writer):
         lay = self.e.layout
         pts = [(p.at.x, p.at.y) for p in lay.pits] + [(q.x, q.y) for r in lay.runs for q in r.points]
         shapes = [box(*MultiPoint(pts).bounds)] + [shape_of(f) for f in self.d.site.features if f.kind is FeatureKind.ROOF]
-        return unary_union(shapes).buffer(6.0).bounds
+        return _with_boundary(unary_union(shapes).buffer(6.0), self.d)
 
     def render(self) -> EarthingSheet:
         P, panel, scale = self._start(0)
@@ -324,7 +332,8 @@ class EarthingSheetWriter(_Writer):
         if lay.switchyard is not None:
             sy = lay.switchyard
             x, y = P((sy.x0 + sy.x1) / 2, sy.y0)
-            self._label_text([f"MV SWITCHYARD EARTH MAT, {sy.spacing:.1f} m MESH"], (x, y), 0.6 * th, 0.3 * th, "switchyard", layer=L_PIT_TAG, mask=True)
+            mesh = self.e.grid_spacing_m if self.e.grid_spacing_m is not None else sy.spacing
+            self._label_text(["MV SWITCHYARD EARTH MAT", f"{mesh:g} m MESH"], (x, y), 0.6 * th, 0.3 * th, "switchyard", layer=L_PIT_TAG, mask=True)
         for g in groups:
             cx, cy = P((g.ring[0] + g.ring[2]) / 2, (g.ring[1] + g.ring[3]) / 2)
             ref = ", SEE DETAIL A"
@@ -594,8 +603,8 @@ class EarthingSheetWriter(_Writer):
 
 
 class LpsSheetWriter(_Writer):
-    def __init__(self, doc, project, module, lps: LpsDesign, sheet, profile, scale=None):
-        super().__init__(doc, project, module, sheet, profile, scale)
+    def __init__(self, doc, project, module, lps: LpsDesign, sheet, profile, scale=None, areas: Sequence[EquipmentArea] = ()):
+        super().__init__(doc, project, module, sheet, profile, scale, areas)
         self.lps = lps
 
     def _extent(self) -> tuple[float, float, float, float]:
@@ -603,7 +612,7 @@ class LpsSheetWriter(_Writer):
             return super()._extent()
         shapes = [SPoint(t.at.x, t.at.y) for t in self.lps.terminals] + [Polygon(table_corners(t)) for t in self.d.layout.table_by_id.values()]
         shapes += [shape_of(f) for f in self.d.site.features if f.kind is FeatureKind.ROOF]
-        return unary_union(shapes).buffer(3.0).bounds
+        return _with_boundary(unary_union(shapes).buffer(3.0), self.d)
 
     def render(self) -> EarthingSheet:
         P, panel, scale = self._start(0)
@@ -621,6 +630,7 @@ class LpsSheetWriter(_Writer):
             EarthingSheetWriter._terminal(self, x, y, 0.45 * th)
             self.placer.block(Region(x - 0.99 * th, y - 0.99 * th, x + 0.99 * th, y + 0.99 * th))
             pts.append((t, x, y))
+        self._areas(P)
         for t, x, y in pts:
             self._label_text([t.tag, f"RADIUS COVERED {d.radius_m:g} m"], (x, y), h, 0.99 * th, t.tag, layer=L_LPS, colour=LPS_COLOUR, mask=True, hs=[h, 0.8 * h])
         self._feature_labels(P)
@@ -660,9 +670,10 @@ def render_earthing_sheet(doc: Drawing, project: Project, catalog: Catalog, desi
     return EarthingSheetWriter(doc, project, _module(project, catalog), design, sheet, profile, scale).render()
 
 
-def render_lps_sheet(doc: Drawing, project: Project, catalog: Catalog, lps: LpsDesign, sheet: SheetSpec, profile: CompanyProfile, scale: int | None = None) -> EarthingSheet:
-    """Draw the lightning protection (LA) layout sheet with coverage circles into `doc`'s modelspace."""
-    return LpsSheetWriter(doc, project, _module(project, catalog), lps, sheet, profile, scale).render()
+def render_lps_sheet(doc: Drawing, project: Project, catalog: Catalog, lps: LpsDesign, sheet: SheetSpec, profile: CompanyProfile, scale: int | None = None,
+                     areas: Sequence[EquipmentArea] = ()) -> EarthingSheet:  # fmt: skip
+    """Draw the lightning protection (LA) layout sheet with coverage circles into `doc`'s modelspace; `areas` are the plant areas to show."""
+    return LpsSheetWriter(doc, project, _module(project, catalog), lps, sheet, profile, scale, areas).render()
 
 
 def _module(project: Project, catalog: Catalog) -> ModuleSpec:

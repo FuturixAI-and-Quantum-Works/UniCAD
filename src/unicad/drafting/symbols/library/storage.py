@@ -36,25 +36,22 @@ def battery(b):
 
 @symbol(
     "bat.bess",
-    "BESS container",
+    "BESS battery container",
     C,
-    "UniCAD composite (container + battery + PCS)",
+    "UniCAD composite (container + battery); the PCS is drawn as its own symbol",
     40.0,
     30.0,
-    (pin_s(20.0, "ac"),),
+    (pin_s(20.0, "dc", DC),),
     std_attrs(40.0, 30.0),
     tag_prefix="BESS",
 )
 def bess(b):
     p = Pen(b)
     p.rect(0.0, 2.5, 40.0, 30.0)
-    p.line(20.0, 2.5, 20.0, 0.0)
-    _plates(p, 5.0, 22.5, 3)
-    p.line(5.0, 9.5, 5.0, 8.0)
-    p.line(5.0, 8.0, 14.0, 8.0)
-    p.rect(14.0, 5.0, 26.0, 17.0)
-    p.line(14.0, 5.0, 26.0, 17.0)
-    p.equals(17.2, 14.3, 3.5)
-    p.tilde(22.8, 7.7, 4.2)
-    p.line(20.0, 5.0, 20.0, 2.5)
-    p.text("BESS", 33.0, 16.0, 3.0)
+    bottom = _plates(p, 12.0, 25.0, 3) - 0.35
+    p.line(12.0, bottom, 12.0, 6.0)
+    p.line(12.0, 6.0, 20.0, 6.0)
+    p.line(20.0, 6.0, 20.0, 0.0)
+    p.line(14.2, 26.8, 16.2, 26.8)
+    p.line(15.2, 25.8, 15.2, 27.8)
+    p.text("BESS", 29.0, 16.0, 3.0)

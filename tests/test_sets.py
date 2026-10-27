@@ -6,6 +6,7 @@ import os
 import sys
 from collections import Counter
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -18,12 +19,14 @@ from unicad.domain.network import SIGNAL_PORTS, NodeKind
 from unicad.domain.project import SheetKind
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.sld import SldOptions
+from unicad.drafting.sld.model import MIN_PRINTED_TEXT_MM, SMALLEST_TEXT_MM
 from unicad.drafting.sld.xref import partition
 from unicad.sets import SldBuilder, plan_sld_set, render_set
 from unicad.sets.numbering import Numberer
 from unicad.store import parse_project
 
 ROOT = Path(__file__).resolve().parents[1]
+DRAWN_ON = date(2026, 10, 1)
 LIBRECAD = Path(os.environ.get("LIBRECAD", "/tmp/opencode/proto/squashfs-root/AppRun"))
 PROFILE = CompanyProfile.load(ROOT / "profiles" / "default.json")
 FLOOR = SldOptions().min_scale
@@ -68,9 +71,10 @@ def test_utility_set_is_an_overall_sld_and_a_block_detail_with_the_project_numbe
     assert sheets[1].scope.nodes == ("inv_sec",) and "BLOCK-01..BLOCK-06" in sheets[1].title
 
 
-def test_rooftop_stays_one_a3_sheet(built, projects):
+def test_rooftop_stays_one_sheet_on_the_smallest_paper_that_prints_its_text_at_the_floor(built, projects):
     sheets, done = built["rooftop_500kwp"]
-    assert [(s.id, s.paper, s.number) for s in sheets] == [("sld", "A3", "UDEMO-DIPL-RT500-EE-001")]
+    assert [(s.id, s.paper, s.number) for s in sheets] == [("sld", "A2", "UDEMO-DIPL-RT500-EE-001")]
+    assert done[0].scale * SMALLEST_TEXT_MM >= MIN_PRINTED_TEXT_MM
     assert done[0].meta["cut_edges"] == [] and done[0].meta["cross_refs"] == []
     assert set(done[0].meta["nodes"]) >= _power_nodes(projects["rooftop_500kwp"].network)
 
@@ -143,8 +147,8 @@ def test_a_sheet_unreadable_on_a0_is_split_and_the_pieces_still_pair_up(projects
 
 def test_set_dxf_and_index_are_byte_identical_across_runs(projects, tmp_path):
     p = projects["utility_50mwac"]
-    a = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG)
-    b = render_set(p, tmp_path / "b", formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    a = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
+    b = render_set(p, tmp_path / "b", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     names = sorted(x.name for x in (tmp_path / "a").iterdir())
     assert names == sorted(x.name for x in (tmp_path / "b").iterdir())
     assert names == ["01-UDEMO-DRL-U50-EE-001.dxf", "02-UDEMO-DRL-U50-EE-002.dxf", "index.json"]
@@ -152,7 +156,7 @@ def test_set_dxf_and_index_are_byte_identical_across_runs(projects, tmp_path):
         assert (tmp_path / "a" / n).read_bytes() == (tmp_path / "b" / n).read_bytes(), n
     index = json.loads((tmp_path / "a" / "index.json").read_text())
     assert [s["sheet_of"] for s in index["sheets"]] == ["1 of 2", "2 of 2"] and a.as_dict() == b.as_dict()
-    again = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    again = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     assert again.as_dict() == a.as_dict() and sorted(x.name for x in (tmp_path / "a").iterdir()) == names
 
 

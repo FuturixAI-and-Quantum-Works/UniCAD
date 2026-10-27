@@ -2,14 +2,14 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet, SheetKind
-from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.string_diagram import build_string_diagram_sheets, plan_types
-from unicad.drafting.string_diagram.build import fit_pages
+from unicad.drafting.string_diagram.build import paper_and_pages
 from unicad.sets.common import default_paper, safe_id
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
@@ -31,25 +31,23 @@ class StringsBuilder:
         if catalog is None:
             return ()
         types, _ = plan_types(project, catalog)
-        paper = _paper(project)
-        m = metrics_for(PaperSize(paper))
+        paper, per_type = paper_and_pages(types, PaperSize(_paper(project)))
         out = []
-        for t in types:
-            pages = fit_pages(t, m.drawing_area, m.th)
+        for t, pages in zip(types, per_type, strict=True):
             for k in range(1, len(pages) + 1):
                 old = numbers.reuse(SheetKind.STRING_DIAGRAM.value)
                 suffix = f"-{k}" if len(pages) > 1 else ""
                 title = f"STRING WIRING DIAGRAM : {t.label} {t.tag_range}" + (f" ({k}/{len(pages)})" if len(pages) > 1 else "")
                 out.append(Sheet(id=safe_id(f"strings_{t.sink}{suffix}"), number=old.number if old else numbers.fresh("strings"),
-                                 kind=SheetKind.STRING_DIAGRAM, title=prose(title), paper=paper, revisions=old.revisions if old else ()))  # fmt: skip
+                                 kind=SheetKind.STRING_DIAGRAM, title=prose(title), paper=paper.value, revisions=old.revisions if old else ()))  # fmt: skip
         return tuple(out)
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
-              catalog: Catalog | None) -> list[BuiltSheet]:  # fmt: skip
+              catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
         numbered = project.model_copy(update={"sheets": tuple(sheets)})
-        results = build_string_diagram_sheets(numbered, catalog, profile)
+        results = build_string_diagram_sheets(numbered, catalog, profile, drawn_on=drawn_on)
         if [r.number for r in results] != [s.number for s in sheets]:
             raise RuntimeError(f"string diagram sheets {[r.number for r in results]} differ from the plan {[s.number for s in sheets]}")
         return [

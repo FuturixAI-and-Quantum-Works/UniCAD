@@ -4,6 +4,7 @@ import json
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -20,6 +21,7 @@ from unicad.sets.registry import BuiltSheet, builder
 PROFILES = Path(__file__).resolve().parents[3] / "profiles"
 Format = Literal["dxf", "pdf", "dwg"]
 INDEX = "index.json"
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
 SET_PDF = "set.pdf"
 
 
@@ -30,7 +32,13 @@ def load_profile(name: str, root: Path = PROFILES) -> CompanyProfile:
     return CompanyProfile.load(path)
 
 
-def plan_set(project: Project, kinds: Sequence[str], profile: CompanyProfile, catalog: Catalog | None) -> list[tuple[str, tuple[Sheet, ...]]]:
+def today_ist() -> date:
+    return datetime.now(IST).date()
+
+
+def plan_set(
+    project: Project, kinds: Sequence[str], profile: CompanyProfile, catalog: Catalog | None, drawn_on: date | None = None
+) -> list[tuple[str, tuple[Sheet, ...]]]:
     """Sheets of each kind in `kinds` order. Kinds whose builder summarises the set (the register) are planned last, knowing the rest."""
     numbers = Numberer.for_project(project, profile)
     planned: dict[str, tuple[Sheet, ...]] = {}
@@ -41,7 +49,7 @@ def plan_set(project: Project, kinds: Sequence[str], profile: CompanyProfile, ca
     owner = {s.id: k for k, sheets in planned.items() for s in sheets}
     for k in kinds:
         if getattr(builder(k), "summary", False):
-            planned[k] = builder(k).plan(project, profile, catalog, numbers, others, kinds=owner)
+            planned[k] = builder(k).plan(project, profile, catalog, numbers, others, kinds=owner, drawn_on=drawn_on)
     return [(k, planned[k]) for k in kinds]
 
 
@@ -106,28 +114,31 @@ def render_set(
     catalog: Catalog | None = None,
     renderer: Renderer | None = None,
     converter: DwgConverter | None = None,
+    drawn_on: date | None = None,
 ) -> SetIndex:
     """Plan, draw and file the sheets of `kinds` into `out_dir`. DXF is always written (PDF and DWG are made
     from it). A missing DWG converter is reported as a warning, not an error. The index lists every sheet
-    with its number, 'sheet x of y', paper, drawing scale, files and kind-specific facts (SLD cross-references)."""
+    with its number, 'sheet x of y', paper, drawing scale, files and kind-specific facts (SLD cross-references). A sheet with no issue
+    revision is dated `drawn_on` (default today in IST), the same date on every sheet and register row of the set."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     _clear_previous(out_dir)
     catalog = catalog if catalog is not None else load_catalog()
     profile = profile if profile is not None else load_profile(project.company_profile)
-    planned = plan_set(project, kinds, profile, catalog)
+    drawn_on = drawn_on or today_ist()
+    planned = plan_set(project, kinds, profile, catalog, drawn_on)
     warnings: list[str] = missing_kinds(project, kinds, catalog)
     done: dict[str, list[BuiltSheet]] = {}
     for kind, sheets in planned:
         if not getattr(builder(kind), "summary", False):
-            done[kind] = builder(kind).build(project, sheets, sheets, profile, catalog)
+            done[kind] = builder(kind).build(project, sheets, sheets, profile, catalog, drawn_on=drawn_on)
     for kind, sheets in planned:
         if getattr(builder(kind), "summary", False):
             final: list[Sheet] = []
             for k, s in planned:
                 final += [b.sheet for b in done[k]] if k in done else list(s)
             owner = {s.id: k for k, ss in planned for s in ss}
-            done[kind] = builder(kind).build(project, sheets, final, profile, catalog, kinds=owner)
+            done[kind] = builder(kind).build(project, sheets, final, profile, catalog, kinds=owner, drawn_on=drawn_on)
     built = [(kind, b) for kind, _ in planned for b in done[kind]]
     per_kind = {kind: len(done[kind]) for kind, _ in planned}
     seen: dict[str, int] = {}

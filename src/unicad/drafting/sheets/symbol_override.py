@@ -21,6 +21,7 @@ from ezdxf.path import make_path
 from unicad.drafting.dxfrules import HATCH_PATTERNS, plain
 from unicad.drafting.sheets.model import CompanyProfile, SymbolOverride
 from unicad.drafting.symbols import REGISTRY, install
+from unicad.drafting.symbols.install import refresh_turned
 from unicad.drafting.symbols.library.kit import LAYER, TEXT_STYLE
 from unicad.drafting.symbols.model import SymbolDef
 
@@ -192,6 +193,7 @@ def _install(doc: Drawing, key: str, prepared: Prepared) -> None:
             c.dxf.text = plain(c.dxf.text)
             c.dxf.style = TEXT_STYLE
         block.add_entity(c)
+    refresh_turned(doc, key)
 
 
 def apply_symbol_overrides(doc: Drawing, profile: CompanyProfile) -> list[str]:

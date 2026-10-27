@@ -798,15 +798,14 @@ drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dx
 ```json
 {
   "revision": 11,
-  "sheet_count": 11,
+  "sheet_count": 10,
   "sheets": {
     "ACME/DI/PMFR/EL/000": "register, A3: DRAWING REGISTER",
     "ACME/DI/PMFR/EL/001": "sld, A1: SINGLE LINE DIAGRAM",
     "ACME/DI/PMFR/EL/101": "layout, A3: ROOFTOP SOLAR PV MODULE LAYOUT",
     "ACME/DI/PMFR/EL/301": "earthing, A2: EARTHING LAYOUT",
     "ACME/DI/PMFR/EL/302": "lps, A3: LIGHTNING ARRESTER (LA) LAYOUT",
-    "ACME/DI/PMFR/EL/401": "strings, A3: STRING WIRING DIAGRAM : INVERTER INV-01..INV-02 (1/2)",
-    "ACME/DI/PMFR/EL/402": "strings, A3: STRING WIRING DIAGRAM : INVERTER INV-01..INV-02 (2/2)",
+    "ACME/DI/PMFR/EL/401": "strings, A3: STRING WIRING DIAGRAM : INVERTER INV-01..INV-02",
     "ACME/DI/PMFR/EL/501": "cable_schedule, A3: DC CABLE SCHEDULE",
     "ACME/DI/PMFR/EL/502": "cable_schedule, A3: AC CABLE SCHEDULE",
     "ACME/DI/PMFR/EL/601": "bom, A3: BILL OF MATERIALS (PART 1 OF 2)",

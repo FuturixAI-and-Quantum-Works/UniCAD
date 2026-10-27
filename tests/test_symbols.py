@@ -12,6 +12,7 @@ from ezdxf.path import make_path
 
 from unicad.drafting.symbols import GRID, REGISTRY, Category, PinKind, Side, busbar, insert, install, pin_at
 from unicad.drafting.symbols.catalogue import build_catalogue, manifest
+from unicad.drafting.symbols.install import reads_upside_down
 
 ROOT = Path(__file__).resolve().parents[1]
 LIBRECAD = os.environ.get("LIBRECAD", "/tmp/opencode/proto/squashfs-root/AppRun")
@@ -548,3 +549,29 @@ def test_iec_60617_identifiers_are_confirmed_ones():
         for ident in re.findall(r"S\d{5}", sym.standard):
             assert ident in IEC_60617_IDS, f"{sym.key}: {ident} is not in the confirmed list"
         assert not re.search(r"IEC 60617-\d", sym.standard), f"{sym.key}: part numbers are not confirmed; name the S-number"
+
+
+def misread_texts(doc) -> list[str]:
+    """Every drawn TEXT of the modelspace (inside blocks too, as placed) that reads upside down, top to bottom, or mirrored."""
+    out: list[str] = []
+
+    def visit(entities, mirrored: bool):
+        for e in entities:
+            if e.dxftype() == "INSERT":
+                flip = mirrored != (e.dxf.get("xscale", 1.0) * e.dxf.get("yscale", 1.0) < 0)
+                visit(e.virtual_entities(), flip)
+            elif e.dxftype() == "TEXT" and e.dxf.text.strip():
+                r = e.dxf.get("rotation", 0.0)
+                if mirrored or reads_upside_down(r) or e.dxf.get("text_generation_flag", 0) & 6 or e.dxf.get("width", 1.0) < 0:
+                    out.append(f"{e.dxf.text!r} at {r:g} deg")
+
+    visit(doc.modelspace(), False)
+    return out
+
+
+@pytest.mark.parametrize("rotation", [0, 90, 180, 270])
+def test_symbol_texts_read_upright_at_every_rotation(rotation):
+    doc = ezdxf.new("R2018", setup=False)
+    for i, sym in enumerate(ALL):
+        insert(doc.modelspace(), sym.key, (i * 100.0, 0.0), rotation, upright=True)
+    assert misread_texts(doc) == []

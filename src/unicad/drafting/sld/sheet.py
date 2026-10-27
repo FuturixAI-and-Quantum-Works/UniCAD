@@ -5,6 +5,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import ezdxf
@@ -67,8 +68,11 @@ def _in_group(project: Project, gid: str | None, target: str) -> bool:
     return False
 
 
-def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catalog | None, sheets: Sequence[Sheet] | None = None) -> SheetSpec:
-    """Title block, legend and notes. `sheets` is the drawing set the sheet belongs to (default the project's), for 'sheet x of y'."""
+def sheet_spec(
+    project: Project, sheet: Sheet, layout: SldLayout, catalog: Catalog | None, sheets: Sequence[Sheet] | None = None, drawn_on: date | None = None
+) -> SheetSpec:
+    """Title block, legend and notes. `sheets` is the drawing set the sheet belongs to (default the project's), for 'sheet x of y';
+    `drawn_on` dates a sheet with no revision."""
     paper = PaperSize(sheet.paper)
     revs = sheet.revisions or project.revisions
     latest = revs[-1] if revs else None
@@ -92,7 +96,7 @@ def sheet_spec(project: Project, sheet: Sheet, layout: SldLayout, catalog: Catal
         drawn_by=(latest.drawn or "") if latest else "",
         checked_by=(latest.checked or "") if latest else "",
         approved_by=(latest.approved or "") if latest else "",
-        drawn_date=latest.date if latest else None,
+        drawn_date=latest.date if latest else drawn_on,
         issued_for=issued,
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
@@ -151,6 +155,7 @@ def render_sld(
     sheets: Sequence[Sheet] | None = None,
     nodes: frozenset[str] | None = None,
     xrefs: Mapping[str, str] | None = None,
+    drawn_on: date | None = None,
 ) -> tuple[Drawing, SldSheet]:
     """Render one SLD sheet. `sheets` is the drawing set (default the project's sheets); `nodes`, when given,
     is exactly what the sheet owns (see `sld.xref.partition`) instead of its scope plus what feeds it;
@@ -160,7 +165,7 @@ def render_sld(
     layout, options, _ = fit_layout(project, catalog, sheet.paper, scope, options, xrefs)
     if doc is None:
         doc = ezdxf.new("R2018", setup=["linetypes"])
-    spec = sheet_spec(project, sheet, layout, catalog, sheets)
+    spec = sheet_spec(project, sheet, layout, catalog, sheets, drawn_on)
     n = len(project.design_basis.assumptions)
     kept = NOTES + layout.notes
     fallbacks = (kept + (f"{n} DESIGN BASIS ASSUMPTIONS ARE LISTED IN THE PROJECT RECORD.",) if n else kept, kept)

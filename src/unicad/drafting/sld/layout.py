@@ -213,6 +213,8 @@ class _Rec:
     sats: list[_Sat] = field(default_factory=list)
     earth: bool = False
     mapping: dict[str, str] = field(default_factory=dict)
+    edge_pins: dict[str, str] = field(default_factory=dict)
+    """Edge id -> pin, where edges sharing one port land on different pins (each LV feeder of an inverter-duty transformer on its own winding)."""
     geom: _Geom | None = None
     extent: Box = Box(0, 0, 0, 0)
     earth_geom: _Geom | None = None
@@ -456,6 +458,7 @@ class _Builder:
             up, down = self._ports(nid)
             rot, mapping = _orient(sym, _map_ports(rec.node, sym), up, down)
             rec.mapping = mapping
+            rec.edge_pins = self._winding_pins(nid, rec, sym)
             anchor = mapping.get(next(iter(up))) if up else (mapping.get(sorted(down)[0]) if down else None)
             g = self._anchored(rec.key, rot, self._values(rec.node, rec.key), anchor)
             if not up and anchor is not None:
@@ -621,15 +624,18 @@ class _Builder:
 
     def _down_pin_x(self, nid: str) -> float:
         rec = self.recs[nid]
+        xs = []
         for c in rec.children:
             if self.recs[c].up_branch:
                 continue
             e = self.recs[c].tree_edge
             port = e.dst_port if e.dst_node == nid else e.src_port
-            pin = rec.mapping.get(port)
+            pin = rec.edge_pins.get(e.id, rec.mapping.get(port))
             if rec.geom and pin in rec.geom.pins:
-                return rec.geom.pins[pin][0][0]
-        return 0.0
+                xs.append(rec.geom.pins[pin][0][0])
+                if e.id not in rec.edge_pins:
+                    break
+        return (min(xs) + max(xs)) / 2 if xs else 0.0
 
     def _frames_at(self, nid: str, contour: Contour) -> None:
         o = self.o
@@ -744,7 +750,7 @@ class _Builder:
                 e = rec.tree_edge
                 pport = e.dst_port if e.src_node == nid else e.src_port
                 prec = self.recs[rec.parent]
-                pin = prec.mapping.get(pport)
+                pin = prec.edge_pins.get(e.id, prec.mapping.get(pport))
                 px = prec.x + (prec.geom.pins[pin][0][0] if prec.geom and pin in prec.geom.pins else 0.0)
                 if abs(px - rec.x) > 1e-6:
                     jog[r] = True
@@ -797,7 +803,7 @@ class _Builder:
     def _abs(self, rec: _Rec, p: Point) -> Point:
         return (round(rec.x + p[0], 6) + 0.0, round(rec.y + p[1], 6) + 0.0)
 
-    def _pin(self, nid: str, port: str) -> PinRef | None:
+    def _pin(self, nid: str, port: str, edge: Edge | None = None) -> PinRef | None:
         rec = self.recs.get(nid)
         if rec is None:
             return None
@@ -805,15 +811,15 @@ class _Builder:
         g = rec.geom
         if g is None:
             return None
-        pin = rec.mapping.get(port)
+        pin = rec.edge_pins.get(edge.id, rec.mapping.get(port)) if edge is not None else rec.mapping.get(port)
         if pin is None or pin not in g.pins:
             return None
         base = host if nid in self.sat_of else rec
         return PinRef(nid, pin, self._abs(base, g.pins[pin][0]))
 
-    def _side_of(self, nid: str, port: str) -> Side | None:
+    def _side_of(self, nid: str, port: str, edge: Edge | None = None) -> Side | None:
         rec = self.recs[nid]
-        pin = rec.mapping.get(port)
+        pin = rec.edge_pins.get(edge.id, rec.mapping.get(port)) if edge is not None else rec.mapping.get(port)
         return rec.geom.pins[pin][1] if rec.geom and pin in rec.geom.pins else None
 
     def emit(self) -> SldLayout:
@@ -871,7 +877,7 @@ class _Builder:
             parent = self.recs[rec.parent]
             child_port = e.src_port if e.src_node == nid else e.dst_port
             parent_port = e.dst_port if e.src_node == nid else e.src_port
-            cpin = self._pin(nid, child_port) if not rec.is_bus else None
+            cpin = self._pin(nid, child_port, e) if not rec.is_bus else None
             cx = rec.x if rec.is_bus else (cpin.at[0] if cpin else rec.x)
             cy = rec.y
             start = cpin or PinRef(nid, "bus", (cx, cy))
@@ -879,7 +885,7 @@ class _Builder:
                 end = PinRef(parent.node.id, "bus", (cx, parent.y))
                 pts = [start.at, end.at]
             else:
-                ppin = self._pin(parent.node.id, parent_port)
+                ppin = self._pin(parent.node.id, parent_port, e)
                 if ppin is None:
                     self.warnings.append(f"edge {e.id!r}: port {parent_port!r} has no pin on {parent.key}")
                     continue
@@ -939,15 +945,15 @@ class _Builder:
                 continue
             if e.src_node not in self.recs or e.dst_node not in self.recs:
                 continue
-            a, b = self._pin(e.src_node, e.src_port), self._pin(e.dst_node, e.dst_port)
+            a, b = self._pin(e.src_node, e.src_port, e), self._pin(e.dst_node, e.dst_port, e)
             if a is None or b is None:
                 a = a or self._bus_ref(e.src_node, b)
                 b = b or self._bus_ref(e.dst_node, a)
             if a is None or b is None:
                 self.warnings.append(f"edge {e.id!r} could not be drawn: missing pin")
                 continue
-            sa = self._side_of(e.src_node, e.src_port) if not self.recs[e.src_node].is_bus else Side.S
-            sb = self._side_of(e.dst_node, e.dst_port) if not self.recs[e.dst_node].is_bus else Side.S
+            sa = self._side_of(e.src_node, e.src_port, e) if not self.recs[e.src_node].is_bus else Side.S
+            sb = self._side_of(e.dst_node, e.dst_port, e) if not self.recs[e.dst_node].is_bus else Side.S
             pts = self._route(a, sa, b, sb, bodies)
             late.append((len(wires), a, sa, b, sb))
             wires.append(Wire(e.id, _kind(e), _clean(list(pts)), a, b))
@@ -984,13 +990,29 @@ class _Builder:
             notes=self.notes,
         )
 
+    def _winding_pins(self, nid: str, rec: _Rec, sym: SymbolDef) -> dict[str, str]:
+        """Spread the LV feeders that share one port of an inverter-duty transformer over its LV windings, in drawing order."""
+        if not rec.key.startswith("tx.idt_"):
+            return {}
+        by_port: dict[str, list[Edge]] = defaultdict(list)
+        for c in rec.children:
+            e = self.recs[c].tree_edge
+            if e is not None and not self.recs[c].up_branch:
+                by_port[e.dst_port if e.dst_node == nid else e.src_port].append(e)
+        windings = [p.name for p in sym.pins if p.side is Side.S and p.kind is not PinKind.EARTH]
+        out: dict[str, str] = {}
+        for port, edges in by_port.items():
+            if len(edges) > 1 and rec.mapping.get(port) in windings:
+                out |= {e.id: windings[k * len(windings) // len(edges)] for k, e in enumerate(edges)}
+        return out
+
     def _spare_windings(self, nid: str, rec: _Rec) -> list[tuple[str, tuple[Point, Point], Label]]:
         """Spare LV windings of an inverter-duty transformer, relative to its insertion point: the
         drawn branch hangs off the first; each further one gets a stub naming the instance it feeds."""
         if not rec.key.startswith("tx.idt_"):
             return []
         h = self.o.callout_height
-        used = set(rec.mapping.values())
+        used = set(rec.mapping.values()) | set(rec.edge_pins.values())
         spare = [p for p in _symbol(rec.key).pins if p.side is Side.S and p.name not in used]
         group = next((self.net.group_by_id[self.recs[c].node.group] for c in rec.children
                       if self.recs[c].node.group not in (None, rec.node.group)), None)

@@ -20,6 +20,7 @@ from unicad.domain.catalog import (
 )
 from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
 from unicad.domain.project import DesignBasis, Project
+from unicad.rules.ratio import plant_capacity
 
 _KIND_LABEL = {
     NodeKind.SCB: "STRING COMBINER BOX",
@@ -419,27 +420,29 @@ def system_parameters(project: Project, catalog: Catalog | None) -> tuple[tuple[
             dc_kwp += k * n.modules_in_series * spec.pmax / 1000
             label = f"{spec.pmax:g} Wp"
             modules[label] = modules.get(label, 0) + k * n.modules_in_series
-    ac_kva = 0.0
     inverters: dict[str, int] = {}
+    pcs: dict[str, int] = {}
     for n in net.by_kind(NodeKind.INVERTER, NodeKind.PCS):
         spec = _spec(n, catalog)
-        k = net.instance_count(n.id)
         if isinstance(spec, InverterSpec | PCSSpec):
             kva = spec.ac_rated_kva if isinstance(spec, InverterSpec) else spec.rated_kva
-            ac_kva += k * kva
+            into = inverters if isinstance(spec, InverterSpec) else pcs
             label = prose(f"{_kva(kva)} ({spec.manufacturer} {spec.model})")
-            inverters[label] = inverters.get(label, 0) + k
+            into[label] = into.get(label, 0) + net.instance_count(n.id)
     if dc_kwp:
         rows.append(("DC CAPACITY", _fmt_power(dc_kwp, "Wp")))
-    if ac_kva:
-        rows.append(("AC CAPACITY (INVERTER RATED)", _fmt_power(ac_kva, "VA")))
-    if dc_kwp and ac_kva:
-        rows.append(("DC / AC RATIO", f"{dc_kwp / ac_kva:.2f}"))
+    if catalog is not None:
+        ratio_dc, ac_kva = plant_capacity(project, catalog)
+        if ac_kva:
+            rows.append(("AC CAPACITY (INVERTER RATED)", _fmt_power(ac_kva, "VA")))
+        if ratio_dc and ac_kva:
+            rows.append(("DC / AC RATIO", f"{ratio_dc / ac_kva:.2f}"))
     rows += [("PV MODULES", f"{c:,} x {label}") for label, c in modules.items()]
     if strings:
         series = sorted({n.modules_in_series for n in net.by_kind(NodeKind.PV_STRING) if n.modules_in_series})
         rows.append(("PV STRINGS", f"{strings:,} x {'/'.join(map(str, series))} MODULES"))
     rows += [("INVERTERS", f"{c} x {label}") for label, c in inverters.items()]
+    rows += [("BESS PCS", f"{c} x {label}") for label, c in pcs.items()]
     g = project.design_basis.grid
     rows.append(("GRID CONNECTION", f"{volts(g.voltage_v)}, {g.phases} PH, {g.frequency_hz:g} Hz{', ' + g.utility if g.utility else ''}"))
     return tuple(rows)

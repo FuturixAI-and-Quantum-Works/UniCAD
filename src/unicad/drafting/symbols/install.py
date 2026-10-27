@@ -65,6 +65,59 @@ def install(doc: Drawing, keys: Iterable[str] | None = None) -> None:
                 attdef.dxf.flags |= _ATTRIB_INVISIBLE
 
 
+TURNED_SUFFIX = "_T180"
+_H_FLIP = {"LEFT": "RIGHT", "RIGHT": "LEFT", "CENTER": "CENTER", "MIDDLE": "MIDDLE", "ALIGNED": "ALIGNED", "FIT": "FIT"}
+_V_FLIP = {"TOP": "BOTTOM", "BOTTOM": "TOP", "MIDDLE": "MIDDLE", "": "TOP"}
+
+
+def reads_upside_down(rotation: float) -> bool:
+    """Text turned by `rotation` degrees reads upside down (or top to bottom) unless it is turned back."""
+    r = round(rotation, 6) % 360
+    return 90 < r <= 270
+
+
+def _turned_alignment(align: TextEntityAlignment) -> TextEntityAlignment:
+    """The alignment that keeps a text in the same box once it is turned 180 degrees about its alignment point."""
+    v, _, h = align.name.rpartition("_")
+    if v == "" and h in ("ALIGNED", "FIT", "MIDDLE"):
+        return align
+    v = _V_FLIP[v]
+    return TextEntityAlignment[f"{v}_{_H_FLIP[h]}" if v else _H_FLIP[h]]
+
+
+def block_for(doc: Drawing, key: str, rotation: float) -> str:
+    """The block to insert symbol `key` at `rotation`: its own block, or a copy whose texts are turned so they read upright on the sheet.
+
+    The copy is made from the block as it is in `doc` (a company override included) the first time it is needed."""
+    sym = _symbol(key)
+    install(doc, [key])
+    block = doc.blocks.get(sym.block_name)
+    if not reads_upside_down(rotation) or not any(e.dxftype() == "TEXT" for e in block):
+        return sym.block_name
+    name = sym.block_name + TURNED_SUFFIX
+    if name not in doc.blocks:
+        doc.blocks.new(name, base_point=(0, 0))
+        refresh_turned(doc, key)
+    return name
+
+
+def refresh_turned(doc: Drawing, key: str) -> None:
+    """Redraw the turned copy of `key`'s block (if the doc has one) from the block as it is now."""
+    sym = _symbol(key)
+    if sym.block_name + TURNED_SUFFIX not in doc.blocks:
+        return
+    turned = doc.blocks.get(sym.block_name + TURNED_SUFFIX)
+    for e in list(turned):
+        turned.delete_entity(e)
+    for e in doc.blocks.get(sym.block_name):
+        c = e.copy()
+        if c.dxftype() == "TEXT":
+            align, p1, p2 = c.get_placement()
+            c.dxf.rotation = (c.dxf.get("rotation", 0.0) + 180.0) % 360
+            c.set_placement(p1, p2, align=_turned_alignment(align))
+        turned.add_entity(c)
+
+
 def _rotate(x: float, y: float, rotation: float) -> tuple[float, float]:
     r = math.radians(rotation)
     c, s = math.cos(r), math.sin(r)
@@ -118,8 +171,7 @@ def insert(
     unknown = set(values) - {a.tag for a in sym.attrs}
     if unknown:
         raise ValueError(f"symbol {key!r} has no attribute(s) {sorted(unknown)}; valid: {[a.tag for a in sym.attrs]}")
-    install(layout.doc, [key])
-    ref = layout.add_blockref(sym.block_name, at, dxfattribs={"layer": LAYER, "rotation": rotation})
+    ref = layout.add_blockref(block_for(layout.doc, key, rotation), at, dxfattribs={"layer": LAYER, "rotation": rotation})
     flow = TextEntityAlignment.MIDDLE_LEFT if math.cos(math.radians(rotation)) > -1e-9 else TextEntityAlignment.MIDDLE_RIGHT
     turned = upright and round(rotation) % 360 == 180
     if turned:
