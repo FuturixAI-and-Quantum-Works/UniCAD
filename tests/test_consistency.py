@@ -37,6 +37,7 @@ spec.loader.exec_module(full_samples)
 
 KINDS = ("register", "sld", "strings", "cable_schedule")
 DATE_TEXT = re.compile(r"^\d\d\.\d\d\.\d\d$")
+DRAWN_ON = date(2026, 10, 1)
 NAMES = ["rooftop", "central", "string"]
 WITH_SLD = ["rooftop"]
 
@@ -52,7 +53,7 @@ def texts_of(path: Path) -> list[str]:
 
 def render(project: Project, out: Path, kinds=KINDS):
     """The index of a rendered set and, per sheet kind, the texts of each of its sheets."""
-    index = render_set(project.model_copy(update={"sheets": ()}), out, kinds=kinds, formats=("dxf",), profile=PROFILE, catalog=CATALOG)
+    index = render_set(project.model_copy(update={"sheets": ()}), out, kinds=kinds, formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     by_kind: dict[str, list[list[str]]] = {}
     for s in index.sheets:
         by_kind.setdefault(s["kind"], []).append(texts_of(out / s["files"]["dxf"]))
@@ -215,10 +216,12 @@ def test_each_string_range_the_sld_draws_starts_at_a_tag_the_schedule_lists(proj
 # ---------------- one date for every sheet ----------------
 
 
-def test_a_project_without_revisions_dates_no_sheet_and_the_register_lists_none(projects, tmp_path):
+def test_a_project_without_revisions_dates_every_sheet_and_register_row_with_the_render_date(projects, tmp_path):
     index, by_kind = render(projects["rooftop"].model_copy(update={"revisions": ()}), tmp_path)
-    assert {t for pages in by_kind.values() for page in pages for t in page if DATE_TEXT.match(t)} == set()
-    assert {r["date"] for r in index.sheets[0]["rows"]} == {"-"}
+    stamp = DRAWN_ON.strftime(PROFILE.date_format)
+    assert {t for pages in by_kind.values() for page in pages for t in page if DATE_TEXT.match(t)} == {stamp}
+    assert all(stamp in page for pages in by_kind.values() for page in pages)
+    assert {r["date"] for r in index.sheets[0]["rows"]} == {stamp}
 
 
 def test_the_latest_project_revision_dates_every_sheet_and_the_register_row(projects, tmp_path):

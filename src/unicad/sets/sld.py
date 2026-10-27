@@ -103,10 +103,13 @@ def block_classes(net: ElectricalNetwork) -> list[tuple[tuple[Group, ...], tuple
 
 
 def _class_of(net: ElectricalNetwork, sheet: Sheet) -> tuple[Group, ...]:
-    """The blocks a detail sheet stands for when it is TYPICAL for more than one."""
+    """The blocks a detail sheet stands for when it is TYPICAL for more than one (the block's own sheet or a piece split from it, never a
+    piece of the overall diagram that happens to start in that block)."""
     if sheet.kind is not SheetKind.SLD_DETAIL or not sheet.scope.nodes:
         return ()
     top = _ref_top(net, sheet.scope.nodes[0])
+    if sheet.id != f"sld_{top}" and not sheet.id.startswith(f"sld_{top}_"):
+        return ()
     return next((gs for gs, _ in block_classes(net) if len(gs) > 1 and gs[0].id == top), ())
 
 
@@ -200,11 +203,11 @@ class SldBuilder:
     def _fit(self, project: Project, catalog: Catalog | None, profile: CompanyProfile, sheets: list[Sheet], fixed: set[str],
              numbers: Numberer) -> tuple[Sheet, ...]:
         """Give every sheet the smallest paper it reads well on with room for its notes and legend. A sheet not
-        readable even on A0 is split once along `plan_pages`; its pieces become sheets titled PART k OF n."""
+        readable even on A0 is split along `plan_pages`, and a piece still unreadable is split again; the pieces become sheets titled PART k OF n."""
         net = project.network
         smallest = profile.default_paper.value
         settled: set[str] = set()
-        split: set[str] = set()
+        tried: set[tuple[str, frozenset[str]]] = set()
         origin: dict[str, str] = {}
         while (todo := next((i for i, s in enumerate(sheets) if s.id not in settled), None)) is not None:
             s = sheets[todo]
@@ -222,8 +225,9 @@ class SldBuilder:
             good = [p for p in scales if scales[p] >= target] or [p for p in scales if scales[p] >= self.options.min_scale]
             settled.add(s.id)
             sheets[todo] = s.model_copy(update={"paper": good[0] if good else papers[-1]})
-            if good or s.id in split:
+            if good or (s.id, drawn) in tried:
                 continue
+            tried.add((s.id, drawn))
             area = metrics_for(PaperSize(papers[-1])).drawing_area
             pages = plan_pages(shown.network, catalog, area.width, area.height, self.options, drawn)
             taken = {sid for sid in (x.id for x in sheets)}
@@ -244,7 +248,6 @@ class SldBuilder:
                 continue
             sheets[todo + 1:todo + 1] = extra
             settled.discard(s.id)
-            split.update({s.id, *(x.id for x in extra)})
             for x in extra:
                 origin[x.id] = origin.get(s.id, s.id)
         groups: dict[str, list[int]] = {}

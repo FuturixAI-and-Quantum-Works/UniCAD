@@ -19,6 +19,7 @@ from unicad.domain.network import SIGNAL_PORTS, NodeKind
 from unicad.domain.project import SheetKind
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.sld import SldOptions
+from unicad.drafting.sld.model import MIN_PRINTED_TEXT_MM, SMALLEST_TEXT_MM
 from unicad.drafting.sld.xref import partition
 from unicad.sets import SldBuilder, plan_sld_set, render_set
 from unicad.sets.numbering import Numberer
@@ -70,9 +71,10 @@ def test_utility_set_is_an_overall_sld_and_a_block_detail_with_the_project_numbe
     assert sheets[1].scope.nodes == ("inv_sec",) and "BLOCK-01..BLOCK-06" in sheets[1].title
 
 
-def test_rooftop_stays_one_a3_sheet(built, projects):
+def test_rooftop_stays_one_sheet_on_the_smallest_paper_that_prints_its_text_at_the_floor(built, projects):
     sheets, done = built["rooftop_500kwp"]
-    assert [(s.id, s.paper, s.number) for s in sheets] == [("sld", "A3", "UDEMO-DIPL-RT500-EE-001")]
+    assert [(s.id, s.paper, s.number) for s in sheets] == [("sld", "A2", "UDEMO-DIPL-RT500-EE-001")]
+    assert done[0].scale * SMALLEST_TEXT_MM >= MIN_PRINTED_TEXT_MM
     assert done[0].meta["cut_edges"] == [] and done[0].meta["cross_refs"] == []
     assert set(done[0].meta["nodes"]) >= _power_nodes(projects["rooftop_500kwp"].network)
 

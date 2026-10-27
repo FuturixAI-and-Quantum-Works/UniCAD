@@ -151,6 +151,12 @@ class OffSheet:
     target: str | None = None
 
 
+MIN_PRINTED_TEXT_MM = 1.8
+"""Smallest lettering height on the printed sheet: the smallest nominal height of the ISO 3098 lettering series."""
+SMALLEST_TEXT_MM = 2.0
+"""Smallest text the diagram is drawn with at full size (cable callouts, symbol ratings and descriptions)."""
+
+
 @dataclass(frozen=True)
 class SldOptions:
     h_gap: float = 7.5
@@ -162,7 +168,7 @@ class SldOptions:
     callout_lines: int = 2
     bus_label_height: float = 2.5
     frame_title_height: float = 2.5
-    min_scale: float = 0.75
+    min_scale: float = MIN_PRINTED_TEXT_MM / SMALLEST_TEXT_MM
     max_scale: float = 1.6
     margin: float = 5.0
 

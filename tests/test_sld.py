@@ -198,7 +198,7 @@ def test_sheet_carries_legend_of_used_symbols_and_system_parameters(projects, ca
     assert "900 x 555 Wp" in texts
 
 
-@pytest.mark.parametrize("fixture, paper", [("rooftop_500kwp", "A3"), ("rooftop_500kwp", "A2"), ("utility_50mwac", "A0"), ("utility_50mwac", "A1")])
+@pytest.mark.parametrize("fixture, paper", [("rooftop_500kwp", "A2"), ("rooftop_500kwp", "A1"), ("utility_50mwac", "A0"), ("utility_50mwac", "A1")])
 def test_sheet_is_readable_and_inside_the_drawing_area(projects, catalog, profile, fixture, paper):
     p = projects[fixture]
     p = p.model_copy(update={"sheets": tuple(s.model_copy(update={"paper": paper}) if s.id == "sld" else s for s in p.sheets)})

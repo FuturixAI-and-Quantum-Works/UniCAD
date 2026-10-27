@@ -25,6 +25,7 @@ from unicad.sets.common import sheet_spec
 from unicad.sets.plans import EarthingBuilder, LpsBuilder, plant_areas
 from unicad.domain.project import Project
 from unicad.drafting.sld import SldOptions
+from unicad.drafting.sld.model import MIN_PRINTED_TEXT_MM
 from unicad.drafting.sld.annotate import system_parameters
 from unicad.drafting.sld.layout import layout_sld
 from unicad.drafting.string_diagram import build_string_diagram_sheets
@@ -369,3 +370,20 @@ def test_n7_layout_and_lps_sheets_show_the_switchyard_where_the_earthing_mat_is(
         assert name in texts if s["kind"] != "earthing" else any(t.startswith("MV SWITCHYARD EARTH MAT") for t in texts), s["kind"]
     assert [a.name for a in plant_areas(project)] == [name]
     assert plant_areas(project)[0].outline == ((sy.x0, sy.y0), (sy.x1, sy.y0), (sy.x1, sy.y1), (sy.x0, sy.y1))
+
+
+def printed_heights(doc) -> list[float]:
+    """Height on paper of every TEXT of the diagram blocks (the SLD body is one block inserted at its fit scale)."""
+    out = []
+    for ref in doc.modelspace().query("INSERT"):
+        if ref.dxf.name.startswith("UC_SLD"):
+            out += [t.dxf.height * ref.dxf.xscale for t in doc.blocks[ref.dxf.name].query("TEXT")]
+    return out
+
+
+def test_m23_every_hybrid_sld_sheet_prints_its_smallest_text_at_the_lettering_floor(tmp_path):
+    project, profile = scenario("kutch-hybrid")
+    index = render_set(project, tmp_path, kinds=("sld",), formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=DRAWN_ON)
+    for s in index.sheets:
+        heights = printed_heights(ezdxf.readfile(tmp_path / s["files"]["dxf"]))
+        assert heights and min(heights) >= MIN_PRINTED_TEXT_MM - 1e-6, (s["number"], s["paper"], min(heights))
