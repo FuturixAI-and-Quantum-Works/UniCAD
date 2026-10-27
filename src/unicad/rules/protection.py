@@ -12,7 +12,7 @@ from unicad.rules.model import Finding, Quantity, Severity
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.registry import rule
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR
-from unicad.rules.topology import GENERATORS, design_current, is_dc, label, per_instance, string_feeds, zone_at
+from unicad.rules.topology import GENERATORS, design_current, exports, is_dc, label, per_instance, string_feeds, zone_at
 
 CURRENT_RATED = frozenset({NodeKind.BREAKER, NodeKind.VCB, NodeKind.FUSE, NodeKind.ISOLATOR, NodeKind.DC_ISOLATOR})
 INTERRUPTING = frozenset({"mcb", "mccb", "acb", "vcb", "rccb", "fuse_gpv", "fuse_hrc"})
@@ -251,3 +251,106 @@ def string_fuse_rating(project: Project, catalog: Catalog) -> Iterator[Finding]:
                     formula="In <= max_series_fuse",
                     inputs=(*base, Quantity(name="max_series_fuse", value=f.module.max_series_fuse, unit="A", source=f.module.id)),
                 )
+
+
+MV_PROTECTIVE = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.BREAKER, NodeKind.FUSE})
+PANEL_THROUGH = frozenset({NodeKind.CT, NodeKind.ISOLATOR})
+TRANSFORMERS = frozenset({NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER})
+SOURCE_END = (
+    "On an export path (generator to grid) the grid end of a cable is its downstream end; on an auxiliary or load feeder it is the upstream end. "
+    "Current transformers and isolators in the same panel are passed through; inverter fault contribution is not counted as a source."
+)
+
+
+def _protective(catalog: Catalog, node: Node) -> bool:
+    return node.kind in MV_PROTECTIVE or (node.kind is NodeKind.ISOLATOR and (s := _protection(catalog, node)) is not None and s.device == "sfu")
+
+
+def _protected_end(project: Project, catalog: Catalog, node_id: str, downstream: bool) -> str | None:
+    """The protective device at the grid end of a cable that ends at `node_id`: the node itself, or one reached through CTs and isolators
+    wired to it inside the same panel (no cable between)."""
+    net = project.network
+    seen, todo = set(), [node_id]
+    while todo:
+        n = todo.pop(0)
+        if n in seen:
+            continue
+        seen.add(n)
+        node = net.node(n)
+        if _protective(catalog, node):
+            return n
+        if node.kind not in PANEL_THROUGH:
+            continue
+        for e in net.edges:
+            if e.is_power and e.cable is None and e.laying is None and (e.src_node if downstream else e.dst_node) == n:
+                todo.append(e.dst_node if downstream else e.src_node)
+    return None
+
+
+def _terminal_guarded(project: Project, catalog: Catalog, node_id: str, edge_id: str) -> bool:
+    """A cable tapped off a transformer's HV terminals is supplied through the breaker that feeds those terminals (the block VCB of the transformer)."""
+    net = project.network
+    if net.node(node_id).kind not in TRANSFORMERS:
+        return False
+    return any(
+        _protective(catalog, net.node(e.dst_node if e.src_node == node_id else e.src_node))
+        for e in net.edges
+        if e.id != edge_id and e.service is Service.MV_AC and node_id in (e.src_node, e.dst_node)
+    )
+
+
+@rule("protection.mv_cable", "Every MV cable is protected at the end the fault current comes from")
+def mv_cable(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """An MV cable must have a circuit breaker, RMU breaker or fuse (switch-fuse) at its grid end, so a cable fault is cleared from the side that feeds it:
+    the bus end of a block feeder, the transformer-tap end of an auxiliary transformer feeder. A breaker at the far end only (the block VCB of a feeder that
+    tees straight onto the main bus) leaves the cable unprotected: error."""
+    net = project.network
+    for e in net.edges:
+        if e.service is not Service.MV_AC or e.cable is None:
+            continue
+        export = exports(net, e.dst_node)
+        end = e.dst_node if export else e.src_node
+        if _protected_end(project, catalog, end, export) is not None or (not export and _terminal_guarded(project, catalog, end, e.id)):
+            continue
+        yield Finding(
+            rule_id="protection.mv_cable",
+            severity=Severity.ERROR,
+            subjects=(e.id, end),
+            message=f"MV cable {e.id} ({label(net, e.src_node)} -> {label(net, e.dst_node)}) has no breaker or fuse at its {'grid (bus)' if export else 'supply'} end {label(net, end)}; "
+            "add a feeder panel breaker there",
+            assumptions=(SOURCE_END,),
+        )
+
+
+@rule("protection.transformer_feed", "Every transformer tap is switched and protected")
+def transformer_feed(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """A transformer fed from another transformer's terminals or from a bus (an auxiliary transformer tapped off a block transformer's HV side, a plant
+    auxiliary transformer on the main bus) must be fed through a breaker, RMU breaker or switch-fuse on its supply side: error when the supply reaches it
+    through cables and panel wiring alone. Block transformers on an export path are protected by their block VCB or RMU (protection.mv_cable)."""
+    net = project.network
+    for n in net.by_kind(*TRANSFORMERS):
+        if exports(net, n.id):
+            continue
+        feeders = [e for e in net.edges if e.is_power and e.dst_node == n.id]
+        for e in feeders:
+            seen, todo, found = set(), [e.src_node], False
+            while todo:
+                m = todo.pop(0)
+                if m in seen:
+                    continue
+                seen.add(m)
+                node = net.node(m)
+                if _protective(catalog, node):
+                    found = True
+                    break
+                if node.kind in TRANSFORMERS | {NodeKind.BUSBAR, NodeKind.HT_PANEL, NodeKind.LT_PANEL, NodeKind.ACDB} | GENERATORS:
+                    break
+                todo += [x.src_node for x in net.edges if x.is_power and x.dst_node == m]
+            if found:
+                continue
+            yield Finding(
+                rule_id="protection.transformer_feed",
+                severity=Severity.ERROR,
+                subjects=(n.id, e.id),
+                message=f"{label(net, n.id)} is tapped from {label(net, e.src_node)} with no breaker or switch-fuse on its supply side; add a T-off VCB or fuse-switch",
+            )

@@ -14,6 +14,7 @@ COMBINERS = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 BUSES = frozenset({NodeKind.BUSBAR, NodeKind.HT_PANEL, NodeKind.LT_PANEL, NodeKind.ACDB, NodeKind.POI_GRID})
 CO_LOCATED_M = 1.0
+PANEL_KINDS = frozenset({NodeKind.VCB, NodeKind.CT, NodeKind.BREAKER, NodeKind.RMU, NodeKind.ISOLATOR, NodeKind.FUSE})
 
 
 @dataclass(frozen=True)
@@ -63,12 +64,15 @@ class Locator:
         self._succs: dict[str, list[str]] = {n.id: [] for n in expanded.nodes}
         self.strings = self._string_points()
         self._preds: dict[str, list[str]] = {n.id: [] for n in expanded.nodes}
+        self._wired: dict[str, list[str]] = {n.id: [] for n in expanded.nodes}
         for e in expanded.edges:
             if e.is_power:
                 self._preds[e.dst_node].append(e.src_node)
                 self._succs[e.src_node].append(e.dst_node)
+                if e.cable is None and e.laying is None:
+                    self._wired[e.src_node].append(e.dst_node)
         self.notes: list[str] = []
-        for name in ("strings_below", "generators_below", "switchyard", "location", "placed_near", "fed_generator"):
+        for name in ("strings_below", "generators_below", "switchyard", "location", "placed_near", "fed_generator", "panel_bus"):
             setattr(self, name, lru_cache(maxsize=None)(getattr(self, name)))
 
     def _string_points(self) -> dict[str, StringPoints]:
@@ -158,11 +162,24 @@ class Locator:
                 todo += step[n]
         return None
 
+    def panel_bus(self, node_id: str) -> str | None:
+        """The busbar a switchgear node feeds through bus wiring alone (no cable): the switchboard panel it is part of, so it stands with that bus."""
+        if self.net.node(node_id).kind not in PANEL_KINDS:
+            return None
+        for n in self._wired[node_id]:
+            if self.net.node(n).kind is NodeKind.BUSBAR:
+                return n
+            if (bus := self.panel_bus(n)) is not None:
+                return bus
+        return None
+
     def location(self, node_id: str) -> Place | None:
         kind = self.net.node(node_id).kind
         if node_id in self.placed:
             p = self.placed[node_id]
             return Place(p.at.x, p.at.y, self.block_frame.get(self._block_near(p.at), 180.0), f"{p.tag} ({p.basis})")
+        if (bus := self.panel_bus(node_id)) is not None:
+            return self.location(bus)
         below = self.strings_below(node_id)
         if kind is NodeKind.PV_STRING:
             p = self.strings.get(node_id)

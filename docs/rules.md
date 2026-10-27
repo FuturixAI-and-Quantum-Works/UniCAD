@@ -190,6 +190,22 @@ Standard: IEC 62548. Segments: all.
 
 A gPV fuse carrying n strings must be rated at least n x 1.25 x Isc, and a fuse protecting a single string must not exceed the module's maximum series fuse rating.
 
+### `protection.mv_cable`: Every MV cable is protected at the end the fault current comes from
+
+Standard: none (design practice). Segments: all.
+
+An MV cable must have a circuit breaker, RMU breaker or fuse (switch-fuse) at its grid end, so a cable fault is cleared from the side that feeds it:
+the bus end of a block feeder, the transformer-tap end of an auxiliary transformer feeder. A breaker at the far end only (the block VCB of a feeder that
+tees straight onto the main bus) leaves the cable unprotected: error.
+
+### `protection.transformer_feed`: Every transformer tap is switched and protected
+
+Standard: none (design practice). Segments: all.
+
+A transformer fed from another transformer's terminals or from a bus (an auxiliary transformer tapped off a block transformer's HV side, a plant
+auxiliary transformer on the main bus) must be fed through a breaker, RMU breaker or switch-fuse on its supply side: error when the supply reaches it
+through cables and panel wiring alone. Block transformers on an export path are protected by their block VCB or RMU (protection.mv_cable).
+
 
 ## cables
 

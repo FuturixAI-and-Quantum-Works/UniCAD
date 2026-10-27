@@ -279,17 +279,31 @@ def mv_yard(c: Ctx, kv: float, metering: str, aux: bool, export_limit_kw: float 
     return bus
 
 
+GEM_RMU = "GeM 33 kV outdoor ring main unit specification (2025-12), sec. 3.0 and 4.6: the transformer T-off is a vacuum circuit breaker with 3 O/C + 1 E/F relays"
+FEEDER_PANELS = (
+    "Every block feeder ends at the main HT switchboard in its own feeder panel (VCB-BF-nn with CT-BF-nn and an O/C + E/F relay REL-BF-nn), so the "
+    "feeder cable is switched and protected at the bus end, which is the end the grid's fault current comes from; the block-end VCB/RMU protects the block transformer."
+)
+
+
 def block_feeder(c: Ctx, group: str, sfx: str, tr_id: str, kv: float, switch: str, block_aux: bool, tag: str = "ICOG") -> None:
-    """Transformer HV side of one block: LA, optional block auxiliary transformer, and the VCB or RMU feeding the MV bus."""
+    """Transformer HV side of one block: LA, optional block auxiliary transformer on its own T-off VCB, the block VCB or RMU, the feeder cable and the
+    feeder panel (VCB, CT, relay) at the main HT switchboard bus."""
     b, vv = c.b, kv * 1000
     fam = mv_family(kv)
     if block_aux:
         aux = pick_transformer(c.catalog, BLOCK_AUX_KVA, kv)
+        i_aux = aux.rated_kva / (math.sqrt(3) * kv)
+        b.node(f"blk_aux_vcb{sfx}", f"{tag}-AUX-VCB", NodeKind.VCB, group=group, voltage_v=vv, hint=NodeHint("vcb", nominal_a=i_aux), title="BLOCK AUX TRANSFORMER T-OFF VCB")
         b.node(f"blk_aux{sfx}", "BLK-AUX-TR", NodeKind.AUX_TRANSFORMER, group=group, spec=aux.id)
         b.node(f"blk_aux_load{sfx}", "BLK-AUX-LOAD", NodeKind.LOAD, group=group, voltage_v=415.0, title="BLOCK AUXILIARY ACDB")
-        b.edge(f"e_idt_aux{sfx}", f"{tr_id}:hv", f"blk_aux{sfx}:hv", V.MV_AC, EdgeHint(fam, nominal_a=aux.rated_kva / (math.sqrt(3) * kv)), c.L("aux_mv"), Laying.BURIED_DIRECT)
+        b.edge(f"e_idt_auxvcb{sfx}", f"{tr_id}:hv", f"blk_aux_vcb{sfx}:in", V.MV_AC, EdgeHint(fam, nominal_a=i_aux), c.L("idt_vcb"), Laying.BURIED_DIRECT)
+        b.edge(f"e_idt_aux{sfx}", f"blk_aux_vcb{sfx}:out", f"blk_aux{sfx}:hv", V.MV_AC, EdgeHint(fam, nominal_a=i_aux), c.L("aux_mv"), Laying.BURIED_DIRECT)
         b.edge(f"e_aux_load{sfx}", f"blk_aux{sfx}:lv", f"blk_aux_load{sfx}:in", V.LV_AC, EdgeHint(LV3_FAMILY, nominal_a=aux.rated_kva / (math.sqrt(3) * 0.415)), c.L("aux_lv"), Laying.TRAY)
-        b.assume(f"Block auxiliary transformers are the catalog {aux.id}, fed from the HV side of the block transformer; {BLOCK_AUX_KVA:g} kVA is a design assumption, not a calculated load.")
+        b.assume(
+            f"Block auxiliary transformers are the catalog {aux.id}, fed from the HV side of the block transformer; {BLOCK_AUX_KVA:g} kVA is a design assumption, not a calculated load.",
+            f"Each block auxiliary transformer is fed through its own T-off vacuum breaker with O/C and E/F protection ({GEM_RMU}); no {kv:g} kV fuse-switch is catalogued, so a fuse T-off is not offered.",
+        )
     if switch == "rmu":
         rmu = pick_rated(c.catalog, ["rmu"], 0.0, vv, (3,))
         b.node(f"icog{sfx}", f"{tag}-RMU", NodeKind.RMU, group=group, voltage_v=vv, spec=rmu.id)
@@ -299,7 +313,15 @@ def block_feeder(c: Ctx, group: str, sfx: str, tr_id: str, kv: float, switch: st
     b.node(f"icog_la{sfx}", f"{tag}-LA", NodeKind.LIGHTNING_ARRESTER, group=group, voltage_v=vv, spec=la.id if la else None)
     b.edge(f"e_tr_icog{sfx}", f"{tr_id}:hv", f"icog{sfx}:in", V.MV_AC, EdgeHint(fam), c.L("idt_vcb"), Laying.BURIED_DIRECT)
     b.edge(f"e_icog_la{sfx}", f"{tr_id}:hv", f"icog_la{sfx}:line", V.MV_AC)
-    b.edge(f"e_icog_bus{sfx}", f"icog{sfx}:out", "mv_bus:bus", V.MV_AC, EdgeHint(fam), c.L("vcb_bus"), Laying.BURIED_DIRECT)
+    bf = "BF" if tag == "ICOG" else f"{tag}-BF"
+    b.node(f"bf_ct{sfx}", f"CT-{bf}", NodeKind.CT, group=group, voltage_v=vv, title="FEEDER PANEL CT AT MAIN HT SWITCHBOARD")
+    b.node(f"bf_vcb{sfx}", f"VCB-{bf}", NodeKind.VCB, group=group, voltage_v=vv, hint=NodeHint("vcb"), title="FEEDER PANEL VCB AT MAIN HT SWITCHBOARD")
+    b.node(f"bf_relay{sfx}", f"REL-{bf}", NodeKind.RELAY, group=group, title="FEEDER O/C + E/F RELAY")
+    b.edge(f"e_icog_bus{sfx}", f"icog{sfx}:out", f"bf_ct{sfx}:in", V.MV_AC, EdgeHint(fam), c.L("vcb_bus"), Laying.BURIED_DIRECT)
+    b.edge(f"e_bfct_vcb{sfx}", f"bf_ct{sfx}:out", f"bf_vcb{sfx}:in", V.MV_AC)
+    b.edge(f"e_bf_bus{sfx}", f"bf_vcb{sfx}:out", "mv_bus:bus", V.MV_AC)
+    b.edge(f"c_bf_relay{sfx}", f"bf_ct{sfx}:sec", f"bf_relay{sfx}:sig", V.CONTROL)
+    b.assume(FEEDER_PANELS, "Feeder panel CTs (CT-BF-nn) carry no spec: their ratio follows the block feeder current, set with the relay settings.")
     b.earth(tr_id)
 
 

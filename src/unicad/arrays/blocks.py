@@ -48,8 +48,9 @@ def partition(
     group's longer side unless the other axis offers a gap much wider than its usual table spacing. With `cap`, the slack
     never takes either side's mean block capacity above it.
 
-    With `units` (strings per table) and `quantum` (strings per inverter) every cut leaves a whole number of inverters on its
-    first side, as near the even share of inverters as the tables allow, so only the last block of a group can hold a remainder.
+    With `units` (strings per table) and `quantum` (strings per inverter) every cut gives each side its even share of whole inverters
+    (blocks differ by at most one inverter) where the tables allow, keeping under `cap`; a side may carry a remainder of fewer strings
+    than one inverter, which trimming removes.
     """
     (ux, uy), (vx, vy) = frame(azimuth_deg)
     pts = []
@@ -71,7 +72,8 @@ def partition(
         whole = units is not None and quantum
         if whole:
             total_u = sum(units[i] for i in ordered)
-            want_u = quantum * round(total_u // quantum * k_lo / k)
+            invs = total_u // quantum
+            want_inv = invs // k * k_lo + min(invs % k, k_lo)
             acc_u, near = 0, None
         for pos in range(1, len(ordered)):
             acc += weights[ordered[pos - 1]]
@@ -82,18 +84,15 @@ def partition(
             miss = abs(acc - want)
             within_cap = cap is None or (acc <= cap * k_lo + 1e-9 and total - acc <= cap * (k - k_lo) + 1e-9)
             if whole:
-                if acc_u % quantum:
-                    continue
-                key = (abs(acc_u - want_u), -(coords[pos] - coords[pos - 1]))
+                key = (not within_cap, abs(acc_u // quantum - want_inv) + abs((total_u - acc_u) // quantum - (invs - want_inv)), acc_u % quantum, -(coords[pos] - coords[pos - 1]))
                 if near is None or key < near[0]:
                     near = (key, miss, pos)
-                if acc_u != want_u:
-                    continue
-            gap = coords[pos] - coords[pos - 1] if (miss <= slack or whole) and within_cap else -1.0
+                continue
+            gap = coords[pos] - coords[pos - 1] if miss <= slack and within_cap else -1.0
             if (gap, -miss) > (best[0], -best[1]):
                 best = (gap, miss, pos)
-        if whole and best[0] < 0 and near is not None:
-            best = (0.0, near[1], near[2])
+        if whole and near is not None:
+            best = (max(0.0, -near[0][3]), near[1], near[2])
         ratio = best[0] / typical if typical > 0 and best[0] > 0 else 0.0
         return ratio, best[1], best[2], ordered
 
@@ -113,29 +112,49 @@ def partition(
     return [g for g in split(list(range(len(tables))), n) if g]
 
 
-def _trim(group: list[int], tables: Sequence[Table], kwp: Sequence[float], units: Sequence[int], quantum: int, notes: list[str], bi: int) -> list[int]:
-    """Drop the tables farthest from the block's capacity centre until its strings make whole inverters of `quantum` strings."""
+def _shed(t: Table, mps: int) -> int:
+    """Strings one top row of `t` holds when every row holds whole strings, else 0: such a table can shed rows to drop single strings."""
+    return t.cols // mps if t.rows > 1 and not t.unused and t.cols % mps == 0 else 0
+
+
+def _trim(
+    group: list[int], tables: Sequence[Table], kwp: Sequence[float], units: Sequence[int], quantum: int, notes: list[str], bi: int, mps: int,
+) -> tuple[list[int], dict[int, int]]:  # fmt: skip
+    """Drop the tables farthest from the block's capacity centre until its strings make whole inverters of `quantum` strings. Where whole
+    tables cannot make up the remainder (two-string tables and an odd remainder), the farthest table that holds one string per row sheds its
+    top rows instead, so the block mixes table sizes rather than losing a whole inverter. Returns the kept tables and {table: rows left}."""
     have = sum(units[i] for i in group)
     r = have % quantum
     if not r:
-        return group
+        return group, {}
     total = sum(kwp[i] for i in group) or 1.0
     cx = sum(table_centre(tables[i])[0] * kwp[i] for i in group) / total
     cy = sum(table_centre(tables[i])[1] * kwp[i] for i in group) / total
     far = sorted(group, key=lambda i: (-math.hypot(table_centre(tables[i])[0] - cx, table_centre(tables[i])[1] - cy), tables[i].id))
     for drop in range(r, have + 1, quantum):
-        left, out = drop, set()
+        left, out, shrunk = drop, set(), {}
         for i in far:
             if 0 < units[i] <= left:
                 out.add(i)
                 left -= units[i]
             if not left:
                 break
+        for i in far:
+            if not left:
+                break
+            per_row = _shed(tables[i], mps)
+            if i in out or not per_row or left % per_row:
+                continue
+            rows = min(tables[i].rows - 1, left // per_row)
+            shrunk[i] = tables[i].rows - rows
+            left -= rows * per_row
         if not left:
-            kw = sum(kwp[i] for i in out)
-            notes.append(f"BLOCK-{bi:02d}: {drop} strings on {len(out)} tables ({kw:.1f} kWp) left out so the block holds whole inverters of {quantum} strings; pass whole_inverters=false to keep them")
-            return [i for i in group if i not in out]
-    return group
+            kw = sum(kwp[i] for i in out) + sum(kwp[i] * (1 - shrunk[i] / tables[i].rows) for i in shrunk)
+            what = [f"{len(out)} table(s) left out"] if out else []
+            what += [f"{len(shrunk)} table(s) cut to {', '.join(sorted({f'{shrunk[i]} x {tables[i].cols}' for i in shrunk}))} modules (mixed table sizes)"] if shrunk else []
+            notes.append(f"BLOCK-{bi:02d}: {drop} strings ({kw:.1f} kWp) dropped, {' and '.join(what)}, so the block holds whole inverters of {quantum} strings; pass whole_inverters=false to keep them")
+            return [i for i in group if i not in out], shrunk
+    return group, {}
 
 
 def outline(tables: Sequence[Table], closing_m: float) -> Polygon:
@@ -294,24 +313,62 @@ def _spread(caps: Sequence[float], k: Sequence[int]) -> float:
     return (max(means) - min(means)) / total if total else 0.0
 
 
+def _by_inverter(idx: list[int], tables: Sequence[Table], kwp: Sequence[float], azimuth_deg: float, units: Sequence[int] | None, quantum: int | None) -> list[int]:
+    """The block's tables in string order: with strings per inverter, grouped into compact patches of one inverter each (the same
+    whole-inverter bisection as the blocks), so that each inverter's strings stand together rather than along a strip of rows."""
+    if not units or not quantum:
+        return idx
+    n = sum(units[i] for i in idx) // quantum
+    if n < 2:
+        return idx
+    patches = partition([tables[i] for i in idx], [kwp[i] for i in idx], n, azimuth_deg, None, [units[i] for i in idx], quantum)
+    return [idx[j] for patch in patches for j in sorted(patch)]
+
+
+def _inverter_spread(invs: Sequence[int], k: Sequence[int]) -> int:
+    """Largest minus smallest inverter count per block when each region shares its whole inverters evenly over its blocks."""
+    sizes = [size for i, n in zip(invs, k) for size in {i // n, -(-i // n)}]
+    return max(sizes) - min(sizes) if sizes else 0
+
+
 def build_blocks(
     tables: Sequence[Table], kwp: Sequence[float], n: int, azimuth_deg: float, site: SiteGeometry, internal: Sequence[RoadLine], closing_m: float,
     cap: float | None = None, warnings: list[str] | None = None, flexible: bool = False, on_roofs: bool = False, station: Point | None = None,
-    units: Sequence[int] | None = None, quantum: int | None = None, trim: bool = False,
+    units: Sequence[int] | None = None, quantum: int | None = None, trim: bool = False, mps: int | None = None,
 ) -> list[LayoutBlock]:  # fmt: skip
     """Blocks that keep to one side of every corridor. Each region between corridors gets its share of the blocks; when that leaves
     region means more than REGION_BALANCE apart, a `flexible` count (from block_dc_kwp) may grow until they agree, else the
     smallest region joins its nearest neighbour and those blocks may cross the corridor between them. The count grows to at most
-    MAX_GROWTH times `n`."""
+    MAX_GROWTH times `n`. With whole inverters (`units`, `quantum`, `trim`) a region counts only the capacity of the whole inverters its
+    strings make, and a region too small for one inverter is left out."""
     notes = warnings if warnings is not None else []
     parts = regions(tables, site)
+    whole = bool(units and quantum and trim)
+    if whole and len(parts) > 1:
+        small = [g for g in parts if sum(units[i] for i in g) < quantum]
+        if small and len(small) < len(parts):
+            notes.append(f"{sum(len(g) for g in small)} tables in {len(small)} part(s) of the site cut off by roads or line corridors are left out: each holds fewer strings than one inverter of {quantum}")
+            parts = [g for g in parts if sum(units[i] for i in g) >= quantum]
+
+    def usable(g: list[int]) -> float:
+        kw = sum(kwp[i] for i in g)
+        if not whole:
+            return kw
+        u = sum(units[i] for i in g)
+        return kw * (u // quantum * quantum) / u if u else 0.0
+
     while True:
-        caps = [sum(kwp[i] for i in g) for g in parts]
+        caps = [usable(g) for g in parts]
         if len(parts) == 1:
             k = [n]
             break
         tries = range(n, math.ceil(MAX_GROWTH * n) + 1) if flexible else (n,)
-        k = next((kk for m in tries if sum(kk := allocate(caps, m, cap)) == m and _spread(caps, kk) <= REGION_BALANCE), None)
+        if whole:
+            invs = [sum(units[i] for i in g) // quantum for g in parts]
+            balanced = lambda kk: _inverter_spread(invs, kk) <= 1  # noqa: E731
+        else:
+            balanced = lambda kk: _spread(caps, kk) <= REGION_BALANCE  # noqa: E731
+        k = next((kk for m in tries if sum(kk := allocate(caps, m, cap)) == m and balanced(kk)), None)
         if k is not None:
             if sum(k) != n:
                 notes.append(f"{sum(k)} blocks instead of {n} so that no block crosses a road or line corridor and the blocks stay balanced")
@@ -322,23 +379,32 @@ def build_blocks(
         near = min((j for j in range(len(parts)) if j != small), key=lambda j: (math.hypot(cx[j] - cx[small], cy[j] - cy[small]), j))
         parts[near] = sorted(parts[near] + parts[small])
         del parts[small]
-        notes.append(f"some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than {REGION_BALANCE:.0%}")
+        notes.append(
+            "some blocks cross a road or line corridor: keeping every block to one side would leave blocks more than one inverter apart"
+            if whole
+            else f"some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than {REGION_BALANCE:.0%}"
+        )
     groups: list[list[int]] = []
     for g, kk in zip(parts, k):
         sub = partition([tables[i] for i in g], [kwp[i] for i in g], kk, azimuth_deg, cap, [units[i] for i in g] if units else None, quantum)
         groups += [[g[i] for i in s] for s in sub]
+    shrunk: dict[int, int] = {}
     if units and quantum and trim:
-        groups = [_trim(g, tables, kwp, units, quantum, notes, bi) for bi, g in enumerate(groups, start=1)]
-        groups = [g for g in groups if g]
+        kept = []
+        for bi, g in enumerate(groups, start=1):
+            g, cut = _trim(g, tables, kwp, units, quantum, notes, bi, mps or 1)
+            shrunk |= cut
+            kept.append(g)
+        groups = [g for g in kept if g]
     inner = [LineString([(p.x, p.y) for p in r.points]) for r in internal]
     roads = site_roads(site) + inner
     taken = None
     blocks = []
     for bi, idx in enumerate(groups, start=1):
         bid = f"B{bi:02d}"
-        members = sorted(idx)
-        renamed = [tables[i].model_copy(update={"id": f"{bid}-T{k:03d}"}) for k, i in enumerate(members, start=1)]
-        w = [kwp[i] for i in members]
+        members = _by_inverter(sorted(idx), tables, kwp, azimuth_deg, units, quantum)
+        renamed = [tables[i].model_copy(update={"id": f"{bid}-T{k:03d}", **({"rows": shrunk[i]} if i in shrunk else {})}) for k, i in enumerate(members, start=1)]
+        w = [kwp[i] * (shrunk[i] / tables[i].rows if i in shrunk else 1.0) for i in members]
         hull = outline(renamed, closing_m)
         at = station or (roof_station(renamed, w, site, tables) if on_roofs else None)
         if at is None:

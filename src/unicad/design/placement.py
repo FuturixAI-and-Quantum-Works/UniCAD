@@ -52,10 +52,16 @@ def _field_inverters(net: ElectricalNetwork, catalog: Catalog, loc: Locator, lay
     out = []
     for n in inverters:
         strings = loc.strings_below(n.id)
-        x = sum(loc.strings[s].centre[0] for s in strings) / len(strings)
-        y = sum(loc.strings[s].centre[1] for s in strings) / len(strings)
-        on = next((area for r, area in roofs if r.contains(ShapelyPoint(x, y))), None)
-        free, where = (on, "on the roof beside the tables it serves") if on is not None else (ground, "beside the centre of the tables it serves")
+        centres = [loc.strings[s].centre for s in strings]
+        on, mine = None, centres
+        if roofs:
+            by_roof = [[c for c in centres if r.covers(ShapelyPoint(c))] for r, _ in roofs]
+            best = max(range(len(roofs)), key=lambda i: (len(by_roof[i]), -i))
+            if by_roof[best]:
+                on, mine = roofs[best][1], by_roof[best]
+        x = sum(c[0] for c in mine) / len(mine)
+        y = sum(c[1] for c in mine) / len(mine)
+        free, where = (on, "on the roof that carries most of its strings, beside them") if on is not None else (ground, "beside the centre of the tables it serves")
         if free is not None and out:
             free = free.difference(unary_union([ShapelyPoint(e.at.x, e.at.y).buffer(INVERTER_SPACING_M) for e in out]))
         at = (siting.nearest_in(free, (x, y)) if free is not None else None) or Point(x=round(x, 3), y=round(y, 3))
@@ -75,6 +81,36 @@ def _roof_room(site, taken) -> list[tuple[Polygon, BaseGeometry]]:
 
 
 BESS_KINDS = (NodeKind.TRANSFORMER, NodeKind.PCS, NodeKind.BATTERY)
+BESS_SEPARATION_M = 3.05
+BESS_SEPARATION = (
+    f"BESS units stand outside the MV switchyard earth mat with {BESS_SEPARATION_M:g} m clear of its edge: the 10 ft (3.05 m) clearance of outdoor ESS to "
+    "exposures in IFC 2024 Section 1207.8.3 (as quoted in Mayfield Renewables, 'C&I BESS Outdoor Location per IFC 1207', 2025), applied with the "
+    "switchyard taken as an exposure hazard (design assumption; no Indian code clearance is cited); confirm with the BESS vendor's fire layout and the CEA/CEIG."
+)
+ASSUMED_YARD_M = (60.0, 45.0)
+YARD_UNKNOWN = (
+    f"The switchyard size is not set (switchyard_m): the BESS clearance is kept from an assumed {ASSUMED_YARD_M[0]:g} x {ASSUMED_YARD_M[1]:g} m yard centred on the "
+    "switchyard location (design assumption, not a yard layout). Set switchyard_m (project_design_basis earthing) and re-run network_autobuild."
+)
+
+
+def _yard_size(project: Project) -> tuple[float, float] | None:
+    e = project.design_basis.earthing
+    return e.switchyard_m if e is not None and e.switchyard_m else None
+
+
+def switchyard_area(project: Project) -> BaseGeometry | None:
+    """The MV switchyard footprint: the area marked on the site, else switchyard_m (or the assumed size) centred on the layout's switchyard."""
+    layout = project.array_layout
+    site = project.site.geometry
+    marked = siting.marked_switchyard(site)
+    if marked is not None:
+        return marked[1]
+    if layout is None or layout.switchyard is None:
+        return None
+    sm = _yard_size(project) or ASSUMED_YARD_M
+    sx, sy = layout.switchyard.at.x, layout.switchyard.at.y
+    return box(sx - sm[0] / 2, sy - sm[1] / 2, sx + sm[0] / 2, sy + sm[1] / 2)
 
 
 def _bess_units(net: ElectricalNetwork) -> list[list]:
@@ -139,12 +175,15 @@ def place_equipment(project: Project, catalog: Catalog, bess_at: Point | None = 
             placed += inv
             notes.append(FIELD_INVERTERS)
     extra = []
-    if layout.switchyard is not None:
-        sm = project.design_basis.earthing.switchyard_m if project.design_basis.earthing is not None else None
-        sx, sy = layout.switchyard.at.x, layout.switchyard.at.y
-        extra.append(box(sx - sm[0] / 2, sy - sm[1] / 2, sx + sm[0] / 2, sy + sm[1] / 2) if sm else box(sx - 1, sy - 1, sx + 1, sy + 1).buffer(siting.STATION_CLEAR_M))
+    yard = switchyard_area(project)
+    if yard is not None:
+        extra.append(yard.buffer(BESS_SEPARATION_M, join_style="mitre"))
     extra += [box(p.at.x - 0.5, p.at.y - 0.5, p.at.x + 0.5, p.at.y + 0.5) for p in placed]
     bess, more = _bess(net, layout, project, bess_at, extra)
+    if bess and yard is not None and bess_at is None:
+        more.append(BESS_SEPARATION)
+        if _yard_size(project) is None:
+            more.append(YARD_UNKNOWN)
     placed += bess
     notes += more
     return layout.model_copy(update={"equipment": tuple(placed)}), notes

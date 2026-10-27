@@ -125,12 +125,12 @@ def test_every_template_builds_a_rule_clean_network(built, case):
 def test_bess_and_hybrid_put_storage_behind_its_own_transformer_on_the_mv_bus(built):
     for case in ("bess_ac", "hybrid"):
         net = built[case].project.network
-        assert chain(net, "bat") == ["battery", "pcs", "breaker", "transformer", "vcb", "busbar", "vcb", "ct", "poi_grid"]
+        assert chain(net, "bat") == ["battery", "pcs", "breaker", "transformer", "vcb", "ct", "vcb", "busbar", "vcb", "ct", "poi_grid"]
         tr = net.node("bess_tr").spec
         assert isinstance(tr, TransformerSpec) and tr.lv_kv == (0.69, 0.69) and tr.rated_kva == 2 * 2520
     hybrid = built["hybrid"].project.network
     assert chain(hybrid, "str")[:4] == ["pv_string", "scb", "inverter", "transformer"]
-    assert {e.src_node for e in hybrid.edges if e.dst == "mv_bus:bus"} == {"icog", "icog_bess"}
+    assert {e.src_node for e in hybrid.edges if e.dst == "mv_bus:bus"} == {"bf_vcb", "bf_vcb_bess"}
 
 
 def test_dc_coupled_storage_reaches_the_inverter_through_a_dc_dc_converter(built):
@@ -174,7 +174,7 @@ def test_residential_inverter_is_the_smallest_that_covers_the_load_and_takes_the
 
 def test_ht_rooftop_steps_up_through_a_catalog_transformer_and_rmu(built):
     net = built["ci_rooftop_ht"].project.network
-    assert chain(net, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "ct", "transformer", "rmu", "busbar", "vcb", "ct", "poi_grid"]
+    assert chain(net, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "ct", "transformer", "rmu", "ct", "vcb", "busbar", "vcb", "ct", "poi_grid"]
     assert net.node("tr").spec == "is1180-11kv-2500kva-dyn11"
     assert net.node("net_meter").spec == "generic-meter-net-ct_pt-0.5s"
 
@@ -230,9 +230,14 @@ def test_rooftop_500kw_matches_the_hand_fixture_chain_and_counts(built):
 
 def test_utility_50mwac_matches_the_hand_fixture_chain_and_counts(built):
     hand, auto = fixture("utility_50mwac").network, built["utility_central"].project.network
-    assert chain(auto, "str") == chain(hand, "str")
-    for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.VCB, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER):
+    # autobuild adds the feeder panel (CT + VCB) at the main HT switchboard and a T-off VCB per block aux transformer, which the hand fixture lacks (close-e2e-3 B2, B3)
+    want = chain(hand, "str")
+    at = want.index("busbar")
+    assert chain(auto, "str") == [*want[:at], "ct", "vcb", *want[at:]]
+    blocks = instances(hand, NodeKind.TRANSFORMER)
+    for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER):
         assert instances(auto, kind) == instances(hand, kind), kind
+    assert instances(auto, NodeKind.VCB) == instances(hand, NodeKind.VCB) + 2 * blocks
     assert abs(instances(auto, NodeKind.SCB) - instances(hand, NodeKind.SCB)) <= 0.2 * instances(hand, NodeKind.SCB)
     idt = auto.node("idt").spec
     assert (idt.rated_kva, idt.lv_kv, idt.vector_group) == (8800, (0.66, 0.66), "YNd11d11")
