@@ -16,9 +16,16 @@
   "LE": 37
  },
  "pits_needed_by_resistance": 0,
- "pits_needed_by_current": 31,
+ "pits_needed_by_current": 0,
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 0.0261,
+ "resistance_ohm": 0.0249,
+ "resistance_method": "switchyard grid Rg (Sverak, IEEE 80) in parallel with the rest of the plant earth bonded to it (Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs)",
+ "resistance_parts_ohm": {
+  "switchyard_grid": 0.5433,
+  "rest_of_plant": 0.0261,
+  "rest_pits_and_strip": 0.0022,
+  "rest_network_area_limit": 0.0261
+ },
  "target_ohm": 1.0,
  "tables": 2687,
  "items": 259,
@@ -75,13 +82,13 @@
   {
    "item": "flat.50x6.equipment",
    "description": "50x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 1799.0,
+   "quantity": 1832.0,
    "unit": "m"
   },
   {
    "item": "flat.50x6.grid",
    "description": "50x6 MM GS FLAT - SWITCHYARD EARTH GRID",
-   "quantity": 1425.0,
+   "quantity": 526.0,
    "unit": "m"
   },
   {
@@ -195,6 +202,48 @@
    "assumptions": []
   },
   {
+   "name": "strip_current",
+   "value": 11531476.4,
+   "unit": "A",
+   "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L",
+   "inputs": [
+    {
+     "name": "rho",
+     "value": 50.0,
+     "unit": "ohm m",
+     "source": null
+    },
+    {
+     "name": "t",
+     "value": 1.0,
+     "unit": "s",
+     "source": null
+    },
+    {
+     "name": "w",
+     "value": 0.05,
+     "unit": "m",
+     "source": null
+    },
+    {
+     "name": "t_flat",
+     "value": 0.006,
+     "unit": "m",
+     "source": null
+    },
+    {
+     "name": "L",
+     "value": 96173.63145642665,
+     "unit": "m",
+     "source": null
+    }
+   ],
+   "source": "IS 3043 maximum current density at the electrode surface J = 7.57 x 1000 / sqrt(rho t) A/m2, as quoted in J. Parmar, part 1, electrical-engineering-portal.com",
+   "assumptions": [
+    "the surface current density limit is applied to the buried flat conductor as an electrode as well as to the pits"
+   ]
+  },
+  {
    "name": "pipe_resistance",
    "value": 15.13,
    "unit": "ohm",
@@ -224,7 +273,7 @@
   },
   {
    "name": "strip_resistance",
-   "value": 0.0022,
+   "value": 0.0023,
    "unit": "ohm",
    "formula": "R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm",
    "inputs": [
@@ -236,7 +285,7 @@
     },
     {
      "name": "L",
-     "value": 9703928.145642666,
+     "value": 9559865.645642666,
      "unit": "cm",
      "source": null
     },
@@ -264,22 +313,32 @@
   "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
   "25x3 GS flat down conductors (practice; confirm against IS/IEC 62305-3 and NF C 17-102 minimum sections)",
   "target earth resistance 1 ohm (transformers and substation earthing below 1 ohm; earth resistance practice table in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com); not a cited limit, set target_resistance_ohm to override",
-  "grid current taken as the full earth fault current (split factor 1, decrement factor 1; conservative)",
+  "MV switchyard earth grid 56 x 41 m (inside the switchyard area marked on the site)",
+  "IS 3043 surface current density applied to the whole electrode surface in soil: the pits and the buried flat conductor",
+  "switchyard grid current IG = Sf x 12,500 A with split factor Sf = R_rest / (Rg + R_rest) = 0.046: the earth fault current divides between the switchyard grid (Rg 0.543 ohm) and the rest of the plant earth bonded to it (R_rest 0.0261 ohm); mutual resistance between them neglected, decrement factor 1",
+  "ground potential rise GPR = IG x Rg (the fault current times the combined earth resistance); mesh and step voltages from the same IG",
   "flat strip 50x6 taken as a round conductor of diameter half its width in the IEEE 80 mesh equations",
   "tolerable voltages for a 50 kg body",
-  "earth resistance taken as the larger of the pits-and-strip value and the Sverak (IEEE 80) value for the buried network over its convex hull",
-  "switchyard grid bonded to the plant earth network: ground potential rise from the combined earth resistance",
+  "earth resistance: switchyard grid Rg (Sverak, IEEE 80) in parallel with the rest of the plant earth bonded to it (Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs)",
   "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius"
  ],
  "warnings": [],
  "switchyard_grid": {
-  "spacing_m": 3.5,
-  "rg_ohm": 0.4888,
-  "gpr_v": 326,
+  "size_m": [
+   56.0,
+   41.0
+  ],
+  "spacing_m": 10.25,
+  "rg_ohm": 0.5433,
+  "rest_of_plant_ohm": 0.0261,
+  "split_factor": 0.0458,
+  "fault_current_a": 12500,
+  "grid_current_a": 573.0,
+  "gpr_v": 311,
   "e_touch_tolerable_v": 519.5,
   "e_step_tolerable_v": 1730.2,
-  "e_mesh_v": 467.2,
-  "e_step_v": 704.9,
+  "e_mesh_v": 60.1,
+  "e_step_v": 31.1,
   "safe": true
  },
  "lps": {

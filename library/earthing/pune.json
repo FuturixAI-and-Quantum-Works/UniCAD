@@ -6,15 +6,20 @@
   "equipment": "25x6",
   "down": "25x3"
  },
- "pits": 18,
+ "pits": 11,
  "pits_by_role": {
-  "EP": 15,
+  "EP": 8,
   "LE": 3
  },
  "pits_needed_by_resistance": 0,
- "pits_needed_by_current": 18,
+ "pits_needed_by_current": 5,
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 0.8064,
+ "resistance_ohm": 1.3752,
+ "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
+ "resistance_parts_ohm": {
+  "pits_and_strip": 0.6827,
+  "network_area_limit": 1.3752
+ },
  "target_ohm": 2.0,
  "tables": 81,
  "items": 16,
@@ -23,7 +28,7 @@
   {
    "item": "pit.EP",
    "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
-   "quantity": 15.0,
+   "quantity": 8.0,
    "unit": "nos"
   },
   {
@@ -35,7 +40,7 @@
   {
    "item": "flat.25x6.main",
    "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 123.0,
+   "quantity": 87.0,
    "unit": "m"
   },
   {
@@ -161,6 +166,48 @@
    "assumptions": []
   },
   {
+   "name": "strip_current",
+   "value": 7528.6,
+   "unit": "A",
+   "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L",
+   "inputs": [
+    {
+     "name": "rho",
+     "value": 50.0,
+     "unit": "ohm m",
+     "source": null
+    },
+    {
+     "name": "t",
+     "value": 0.5,
+     "unit": "s",
+     "source": null
+    },
+    {
+     "name": "w",
+     "value": 0.025,
+     "unit": "m",
+     "source": null
+    },
+    {
+     "name": "t_flat",
+     "value": 0.006,
+     "unit": "m",
+     "source": null
+    },
+    {
+     "name": "L",
+     "value": 80.20400000000001,
+     "unit": "m",
+     "source": null
+    }
+   ],
+   "source": "IS 3043 maximum current density at the electrode surface J = 7.57 x 1000 / sqrt(rho t) A/m2, as quoted in J. Parmar, part 1, electrical-engineering-portal.com",
+   "assumptions": [
+    "the surface current density limit is applied to the buried flat conductor as an electrode as well as to the pits"
+   ]
+  },
+  {
    "name": "pipe_resistance",
    "value": 15.13,
    "unit": "ohm",
@@ -190,7 +237,7 @@
   },
   {
    "name": "strip_resistance",
-   "value": 0.9864,
+   "value": 1.3555,
    "unit": "ohm",
    "formula": "R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm",
    "inputs": [
@@ -202,7 +249,7 @@
     },
     {
      "name": "L",
-     "value": 11620.400000000001,
+     "value": 8020.400000000001,
      "unit": "cm",
      "source": null
     },
@@ -230,7 +277,8 @@
   "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
   "25x3 GS flat down conductors (practice; confirm against IS/IEC 62305-3 and NF C 17-102 minimum sections)",
   "target earth resistance 2 ohm (commercial premises 2 ohm; earth resistance practice table in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com); not a cited limit, set target_resistance_ohm to override",
-  "earth resistance taken as the larger of the pits-and-strip value and the Sverak (IEEE 80) value for the buried network over its convex hull",
+  "IS 3043 surface current density applied to the whole electrode surface in soil: the pits and the buried flat conductor",
+  "earth resistance: Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
   "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius"
  ],
  "warnings": [],

@@ -268,7 +268,9 @@ Standard: IEEE 80. Segments: all.
 For a project with an MV switchyard and fault data, the IEEE 80 mesh voltage Em = rho Km Ki IG / LM and step voltage
 Es = rho Ks Ki IG / LS of the switchyard grid are compared with the tolerable touch and step voltages for a 50 kg body,
 (1000 + 1.5 Cs rho_s) 0.116 / sqrt(ts) and (1000 + 6 Cs rho_s) 0.116 / sqrt(ts). A ground potential rise below the tolerable
-touch voltage passes without the mesh check.
+touch voltage passes without the mesh check. The grid current is the earth fault current times the split factor
+Sf = R_rest / (Rg + R_rest) between the grid and the rest of the plant earth; GPR, mesh and step voltage all use it. Without a
+switchyard size (switchyard_m or a marked area) the check is not done and a warning says so.
 
 ### `earthing.every_equipment_bonded`: Every table and equipment item is bonded to the earth network
 

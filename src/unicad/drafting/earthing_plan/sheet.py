@@ -76,6 +76,7 @@ L_DETAIL = "E-DETAIL"
 L_DETAIL_HATCH = "E-DETAIL-HATCH"
 L_LPS = "E-LPS"
 L_LPS_ZONE = "E-LPS-ZONE"
+DETAIL_GROUP_MIN = 4
 GREY_SITE = {"L-BOUNDARY": (UNDERLAY, 50), "L-ROOF": (UNDERLAY, 35), "L-ROAD": (UNDERLAY_LIGHT, 18), "L-ROAD-FILL": (254, MIN_LINEWEIGHT),
              "L-WATER": (UNDERLAY_LIGHT, 18), "L-WATER-FILL": (254, MIN_LINEWEIGHT), "L-EXCLUSION": (UNDERLAY_LIGHT, 18), "L-EXCLUSION-FILL": (254, MIN_LINEWEIGHT),
              "L-TLINE": (UNDERLAY_LIGHT, 18), "L-OBSTACLE": (UNDERLAY_LIGHT, 18), "L-LABEL": (UNDERLAY, 18)}  # fmt: skip
@@ -395,9 +396,18 @@ class EarthingSheetWriter(_Writer):
         th = self.m.th
         lay = self.e.layout
         title_h = 2.2 * th
-        body = Region(r.x0 + th, r.y0 + 2.4 * th, r.x1 - th, r.y1 - title_h - 0.5 * th)
+        items = [it for it in lay.items if it.id in set(g.items)]
+        by_kind: dict[str, list[str]] = defaultdict(list)
+        for it in items:
+            by_kind[it.kind].append(it.tag)
+        many = {k: sorted(v) for k, v in by_kind.items() if len(v) >= DETAIL_GROUP_MIN}
+        lines = [f"{len(v)} x {k.replace('_', ' ').upper()}: {v[0]} TO {v[-1]} (UNLABELLED SQUARES)" for k, v in many.items()]
+        body = Region(r.x0 + th, r.y0 + 2.4 * th + 1.4 * th * len(lines), r.x1 - th, r.y1 - title_h - 0.5 * th)
+        for i, s in enumerate(lines):
+            y = r.y0 + 2.4 * th + 1.4 * th * i
+            self.cv.put(TXT, Region(r.x0 + th, y, r.x1 - th, y + 1.4 * th), s, 0.55 * th, align="center", valign="middle", min_h=0.4 * th)
         x0, y0, x1, y1 = g.ring
-        m = max(3.0, 0.3 * max(x1 - x0, y1 - y0))
+        m = max(3.0, 0.15 * max(x1 - x0, y1 - y0))
         win = (x0 - m, y0 - m, x1 + m, y1 + m)
         fits = [s for s in SCALES if (win[2] - win[0]) * 1000 / s <= 0.9 * body.width and (win[3] - win[1]) * 1000 / s <= 0.85 * body.height]
         scale = fits[0] if fits else SCALES[-1]
@@ -428,7 +438,6 @@ class EarthingSheetWriter(_Writer):
         saved, self.placer = self.placer, placer
         rr = 0.45 * th
         sq = 0.5 * th
-        items = [it for it in lay.items if it.id in set(g.items)]
         for it in items:
             x, y = Q(it.at.x, it.at.y)
             self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
@@ -443,6 +452,8 @@ class EarthingSheetWriter(_Writer):
             x, y = Q(p.at.x, p.at.y)
             self._label_text([p.tag], (x, y), 0.55 * th, rr, p.tag, layer=L_PIT_TAG, colour=PIT_COLOUR[p.role.treated], mask=True)
         for it in items:
+            if it.kind in many:
+                continue
             x, y = Q(it.at.x, it.at.y)
             self._label_text([it.tag], (x, y), 0.5 * th, sq, it.id, layer=L_PIT_TAG, mask=True)
         self.detail_labels = [p.box for p in placer.labels]
@@ -495,12 +506,17 @@ class EarthingSheetWriter(_Writer):
             ]
         rows.append(("CONDUCTOR SELECTED", f"{e.sizes.main} GS FLAT ({FLAT_BY_NAME[e.sizes.main].area_mm2:g} mm2)"))
         rows.append(("R PIT = 100 RHO/(2 PI L) LN(4L/d)", f"{e.electrode.value:g} OHM"))
-        rows.append(("PITS (BY CURRENT DENSITY)", f"{e.pit_count} ({e.pits_by_current} NEEDED)" if e.pits_by_current else f"{e.pit_count}"))
+        if e.pits_by_current is not None:
+            rows.append(("PITS PROVIDED / NEEDED BY CURRENT DENSITY", f"{e.pit_count} / {e.pits_by_current}"))
+        else:
+            rows.append(("PITS PROVIDED", f"{e.pit_count}"))
         rows.append(("EARTH RESISTANCE / TARGET", f"{e.resistance_ohm:.3g} / {e.target_ohm:g} OHM"))
         if e.grid is not None:
             g = e.grid
             rows += [
                 ("SWITCHYARD GRID MESH / Rg", f"{e.grid_spacing_m:.2f} m / {g.rg:.3g} OHM"),
+                ("SPLIT FACTOR Sf / GRID CURRENT IG", f"{e.split_factor:.3f} / {g.gpr / g.rg:,.0f} A"),
+                ("GPR = IG x Rg", f"{g.gpr:,.0f} V"),
                 ("TOUCH: Em / TOLERABLE (50 kg)", f"{g.e_mesh:,.0f} / {g.e_touch:,.0f} V"),
                 ("STEP: Es / TOLERABLE (50 kg)", f"{g.e_s:,.0f} / {g.e_step:,.0f} V"),
             ]

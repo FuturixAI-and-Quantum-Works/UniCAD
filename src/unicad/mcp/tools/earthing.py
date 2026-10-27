@@ -33,7 +33,7 @@ def _lps_json(d) -> dict[str, Any]:
 
 
 def _brief(s: dict[str, Any]) -> dict[str, Any]:
-    return {k: s[k] for k in ("conductor", "pits", "pits_by_role", "resistance_ohm", "target_ohm", "tables", "items", "unbonded", "quantities", "warnings") if k in s} | (
+    return {k: s[k] for k in ("conductor", "pits", "pits_by_role", "resistance_ohm", "resistance_method", "target_ohm", "tables", "items", "unbonded", "quantities", "warnings") if k in s} | (
         {"switchyard_grid": s["switchyard_grid"]} if "switchyard_grid" in s else {}
     )
 
@@ -43,33 +43,42 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def earthing_design(
         project_id: ProjectIdArg,
-        soil_resistivity: Annotated[float, Field(gt=0, description="Soil resistivity in ohm m from the site's Wenner test")],
+        soil_resistivity: Annotated[float | None, Field(gt=0, description="Soil resistivity in ohm m from the site's Wenner test; required unless already in the design basis")] = None,
         fault_ka: Annotated[float | None, Field(gt=0, description="Earth fault current in kA the conductors and electrodes must carry")] = None,
         clearing_s: Annotated[float | None, Field(gt=0, description="Fault clearing time in s (backup protection)")] = None,
         target_ohm: Annotated[float | None, Field(gt=0, description="Target earth resistance; default from practice (1 ohm utility, 2 ohm C&I), reported as an assumption")] = None,
-        electrode_length_m: Annotated[float, Field(gt=0, description="Electrode (pipe) length")] = 3.0,
-        electrode_diameter_mm: Annotated[float, Field(gt=0, description="Electrode (pipe) diameter")] = 40.0,
-        burial_depth_m: Annotated[float, Field(gt=0, description="Burial depth of the earth conductor")] = 0.6,
-        corrosion_allowance: Annotated[float, Field(ge=0, lt=5, description="Extra cross-section for corrosion, e.g. 0.2 for 20 %")] = 0.0,
-        tables_per_pit: Annotated[int, Field(gt=0, description="At least one array pit per this many tables")] = 20,
+        electrode_length_m: Annotated[float | None, Field(gt=0, description="Electrode (pipe) length; default 3 m")] = None,
+        electrode_diameter_mm: Annotated[float | None, Field(gt=0, description="Electrode (pipe) diameter; default 40 mm")] = None,
+        burial_depth_m: Annotated[float | None, Field(gt=0, description="Burial depth of the earth conductor; default 0.6 m")] = None,
+        corrosion_allowance: Annotated[float | None, Field(ge=0, lt=5, description="Extra cross-section for corrosion, e.g. 0.2 for 20 %; default 0")] = None,
+        tables_per_pit: Annotated[int | None, Field(gt=0, description="Ground-mount arrays: at least one array pit per this many tables; default 20")] = None,
         surface_resistivity: Annotated[float | None, Field(gt=0, description="Switchyard surface layer (crushed rock) resistivity, ohm m")] = None,
         surface_layer_m: Annotated[float | None, Field(gt=0, description="Switchyard surface layer thickness")] = None,
+        switchyard_m: Annotated[tuple[float, float] | None, Field(description="MV switchyard earth grid length x width in m, from the substation layout; "
+                                "needed for the IEEE 80 touch and step check unless the site marks a switchyard area")] = None,  # fmt: skip
     ) -> dict[str, Any]:
         """Design the earthing system: store the inputs in the design basis, then size the GS flat conductor (IS 3043 adiabatic, IEEE 80
         cross-check), count pits for the target resistance and the fault current, check the MV switchyard grid's touch and step voltage
-        (IEEE 80) and lay out pits and conductors bonding every table row, station, panel, switchyard item and lightning terminal.
+        (IEEE 80, grid current split between the switchyard grid and the rest of the plant earth) and lay out pits and conductors bonding
+        every table row, station, panel, switchyard item and lightning terminal.
 
-        Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the design summary and quantities.
-        Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1)."""
+        Inputs you leave out keep the values already in the design basis (set with project_design_basis or an earlier call); use
+        project_design_basis to clear one. Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the
+        design summary and quantities.
+        Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1, switchyard_m=[60, 45])."""
 
         def change(p: Project) -> Edit:
-            basis = EarthingBasis(
-                soil_resistivity_ohm_m=soil_resistivity, fault_current_ka=fault_ka, fault_clearing_s=clearing_s, target_resistance_ohm=target_ohm,
-                electrode_length_m=electrode_length_m, electrode_diameter_mm=electrode_diameter_mm, burial_depth_m=burial_depth_m,
-                corrosion_allowance=corrosion_allowance, tables_per_pit=tables_per_pit, surface_resistivity_ohm_m=surface_resistivity,
-                surface_layer_m=surface_layer_m,
-            )  # fmt: skip
-            updated = _with(ws, p, earthing=basis)
+            given = {
+                "soil_resistivity_ohm_m": soil_resistivity, "fault_current_ka": fault_ka, "fault_clearing_s": clearing_s, "target_resistance_ohm": target_ohm,
+                "electrode_length_m": electrode_length_m, "electrode_diameter_mm": electrode_diameter_mm, "burial_depth_m": burial_depth_m,
+                "corrosion_allowance": corrosion_allowance, "tables_per_pit": tables_per_pit, "surface_resistivity_ohm_m": surface_resistivity,
+                "surface_layer_m": surface_layer_m, "switchyard_m": switchyard_m,
+            }  # fmt: skip
+            stored = p.design_basis.earthing.model_dump(exclude_none=True) if p.design_basis.earthing is not None else {}
+            data = stored | {k: v for k, v in given.items() if v is not None}
+            if "soil_resistivity_ohm_m" not in data:
+                raise ValueError("soil_resistivity is required: the design basis has no soil resistivity yet")
+            updated = _with(ws, p, earthing=EarthingBasis(**data))
             s = summary(design_earthing(updated))
             return Edit(updated, ("design_basis.earthing",), {"earthing": _brief(s) | {"assumptions": s["assumptions"]}})
 

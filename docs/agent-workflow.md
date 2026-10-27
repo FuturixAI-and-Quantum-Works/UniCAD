@@ -629,9 +629,10 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
   "revision": 10,
   "earthing": {
     "conductor": {"main": "25x6", "array": "25x6", "equipment": "25x6", "down": "25x3"},
-    "pits": 36,
-    "pits_by_role": {"EP": 36},
-    "resistance_ohm": 1.166,
+    "pits": 6,
+    "pits_by_role": {"EP": 6},
+    "resistance_ohm": 0.8025,
+    "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-st...",
     "target_ohm": 2.0,
     "tables": 22,
     "items": 8,
@@ -640,13 +641,13 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "pit.EP",
         "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
-        "quantity": 36.0,
+        "quantity": 6.0,
         "unit": "nos"
       },
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 244.0,
+        "quantity": 405.0,
         "unit": "m"
       },
       {
@@ -663,15 +664,13 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       },
       "... 1 more"
     ],
-    "warnings": [
-      "the buried network's area limits the earth resistance to about 5.35 ohm, above the 2 ohm target; more pits..."
-    ],
+    "warnings": [],
     "assumptions": [
       "earth electrode 40 mm dia x 3 m long (as on the CIL/Refex earthing layout unless set)",
       "pits spaced at least two electrode lengths apart are combined as parallel resistances, in parallel with the...",
       "conductor sized to the larger of the IS 3043 (k = 80) and IEEE 80 (Kf = 28.96) cross-sections",
       "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
-      "... 3 more"
+      "... 5 more"
     ]
   }
 }
