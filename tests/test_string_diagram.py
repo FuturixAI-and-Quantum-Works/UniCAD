@@ -292,3 +292,16 @@ def test_librecad_prints_the_sheet_at_the_paper_size(built, tmp_path):
     page = pymupdf.open(pdf)[0]
     assert abs(page.rect.width - 420 / 25.4 * 72) < 2 and abs(page.rect.height - 297 / 25.4 * 72) < 2
     assert len(page.get_drawings()) > 5000
+
+
+def test_a_type_that_does_not_fit_its_paper_moves_to_a_larger_one(projects, monkeypatch):
+    real = metrics_for
+    monkeypatch.setattr(build, "metrics_for", lambda paper: real(paper) if paper is PaperSize.A1 else replace(real(paper), drawing_area=Region(0, 0, 60, 60)))
+    (r,) = build_string_diagram_sheets(projects["rooftop"], CATALOG, PROFILE)
+    assert r.paper is PaperSize.A1 and r.warnings == ()
+
+
+def test_a_type_that_fits_no_paper_names_the_diagram_and_what_to_check(projects, monkeypatch):
+    monkeypatch.setattr(build, "metrics_for", lambda paper: replace(metrics_for(paper), drawing_area=Region(0, 0, 60, 60)))
+    with pytest.raises(build.DoesNotFit, match=r"string wiring diagram INVERTER INV-01\.\.INV-05.*even on A0; check the inverter's inputs per MPPT"):
+        build_string_diagram_sheets(projects["rooftop"], CATALOG, PROFILE)

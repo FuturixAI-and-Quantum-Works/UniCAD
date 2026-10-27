@@ -77,6 +77,11 @@ def _choose(t: DiagramType, first: int, lines: tuple[StringLine, ...], area: Reg
             lay = draw.pack_plan(tables, region, u) if tables else None
             if lay or not tables:
                 options.append((lay.cw if lay else 0.0, PagePlan(first, lines, u, "below", region if tables else None, lay, (area.x0, top))))
+            if tables and not lay:
+                region = Region(area.x0, area.y0, area.x1, top - ht - gap)
+                lay = draw.pack_plan(tables, region, u) if region.height > 0 else None
+                if lay:
+                    options.append((lay.cw, PagePlan(first, lines, u, "stacked", region, lay, (area.x0, top))))
         px = area.x0 + wd + gap
         if hd <= area.height and px + wt <= area.x1 and ht <= area.height:
             region = Region(px, area.y0, area.x1, area.y1 - ht - gap)
@@ -88,6 +93,10 @@ def _choose(t: DiagramType, first: int, lines: tuple[StringLine, ...], area: Reg
     return None
 
 
+class DoesNotFit(ValueError):
+    pass
+
+
 def fit_pages(t: DiagramType, area: Region, th: float) -> list[PagePlan]:
     """Split the strings into the fewest pages (halving, whole MPPTs together) that each fit at a readable size."""
     ipm = t.mppt.inputs_per_mppt if t.mppt else 1
@@ -97,7 +106,10 @@ def fit_pages(t: DiagramType, area: Region, th: float) -> list[PagePlan]:
         if plan is not None:
             return [plan]
         if len(lines) <= ipm:
-            raise ValueError(f"{t.sink}: even {len(lines)} string(s) do not fit {area.width:.0f} x {area.height:.0f} mm")
+            raise DoesNotFit(
+                f"string wiring diagram {t.label} {t.tag_range}: {len(lines)} string(s) of one MPPT do not fit the "
+                f"{area.width:.0f} x {area.height:.0f} mm drawing area at the smallest readable text size"
+            )
         half = max(ipm, (len(lines) // 2 // ipm) * ipm) if len(lines) > 2 * ipm else ipm
         return solve(first, lines[:half]) + solve(first + half, lines[half:])
 
@@ -146,12 +158,25 @@ def legend_for(t: DiagramType) -> tuple[tuple[str, str], ...]:
     return tuple((k, REGISTRY[k].title.upper()) for k in keys if k in REGISTRY)
 
 
-def _paper(project: Project, pool: list[Sheet], override: PaperSize | None) -> PaperSize:
-    if override is not None:
-        return override
+GROWTH = (PaperSize.A4, PaperSize.A3, PaperSize.A2, PaperSize.A1, PaperSize.A0)
+
+
+def _start_paper(project: Project, pool: list[Sheet]) -> PaperSize:
     if pool:
         return PaperSize(pool[0].paper)
     return PaperSize.A1 if project.segment in LARGE_SEGMENTS else PaperSize.A3
+
+
+def paper_and_pages(types: list[DiagramType], start: PaperSize) -> tuple[PaperSize, list[list[PagePlan]]]:
+    """The smallest paper from `start` up to A0 on which every type's strings fit (split over pages), with those pages."""
+    error: DoesNotFit | None = None
+    for size in GROWTH[GROWTH.index(start) :]:
+        m = metrics_for(size)
+        try:
+            return size, [fit_pages(t, m.drawing_area, m.th) for t in types]
+        except DoesNotFit as exc:
+            error = exc
+    raise DoesNotFit(f"{error} even on A0; check the inverter's inputs per MPPT in the catalog, or draw this diagram by hand") from error
 
 
 def sheet_spec(project: Project, profile: CompanyProfile, paper: PaperSize, title: str, number: str, sheet_no: int, sheet_count: int, t: DiagramType) -> SheetSpec:
@@ -182,10 +207,12 @@ def build_string_diagram_sheets(
     """
     types, problems = plan_types(project, catalog)
     pool = [s for s in project.sheets if s.kind is SheetKind.STRING_DIAGRAM]
-    size = _paper(project, pool, paper)
-    area = metrics_for(size).drawing_area
-    th = metrics_for(size).th
-    plans = [(t, fit_pages(t, area, th)) for t in types]
+    if paper is not None:
+        size, m = paper, metrics_for(paper)
+        plans = [(t, fit_pages(t, m.drawing_area, m.th)) for t in types]
+    else:
+        size, pages = paper_and_pages(types, _start_paper(project, pool))
+        plans = list(zip(types, pages, strict=True))
     total = sum(len(p) for _, p in plans)
     results: list[SheetResult] = []
     seq = 0
