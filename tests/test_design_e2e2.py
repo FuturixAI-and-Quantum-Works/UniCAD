@@ -77,3 +77,17 @@ def test_n12_autobuild_reads_the_company_thresholds_validate_reads(tmp_path):
             assert built["rules"] == v["counts"]
 
     run(go())
+
+
+def test_n11_lt_cable_short_circuit_uses_the_breaker_instantaneous_trip_not_one_second(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await scenario_a(c)
+            x = await c.call("explain_finding", project_id="sgt-chakan", rule_id="cables.short_circuit", subject="e_brk_ct")
+            (f,) = x["explanations"]
+            t = next(q for q in f["inputs"] if q["name"] == "t")
+            assert t["value"] == 0.1 and t["source"].startswith("assumption: instantaneous trip of"), t
+            assert any("IEC 60364-4-43" in a for a in f["assumptions"])
+            assert f["limit"] == round(25000 * 0.1**0.5 / 94, 2)
+
+    run(go())

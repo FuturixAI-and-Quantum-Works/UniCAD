@@ -146,7 +146,7 @@ def test_m13_fault_levels_added_after_autobuild_ask_for_a_rebuild_and_the_rebuil
         async with connect(tmp_path / "ws") as c:
             await scenario_a(c, table_rows=1, table_cols=19, half_tables=False, n_blocks=1)
             await c.call("network_autobuild", **A_AUTOBUILD)
-            fl = await c.call("project_design_basis", project_id="sgt-chakan", fault_levels=[{"voltage_v": 415, "fault_ka": 25, "clearing_s": 1, "source": "MSEDCL LT fault level (brief)"}])
+            fl = await c.call("project_design_basis", project_id="sgt-chakan", fault_levels=[{"voltage_v": 415, "fault_ka": 50, "clearing_s": 1, "source": "MSEDCL LT fault level (brief, raised to 50 kA so the placeholder breaking capacities fall short)"}])
             assert any("network_autobuild" in p["message"] for p in fl["problems"]), fl["problems"]
             v = await c.call("validate", project_id="sgt-chakan")
             errs = [f for f in v["findings"] if f["severity"] == "error"]

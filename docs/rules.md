@@ -211,21 +211,29 @@ The ampacity column follows the laying: air, tray, trench and overhead use the i
 
 Standard: IS 732 / IEC 60364-4-43. Segments: all.
 
-Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable connected directly to it, so the device trips before the cable overheats. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
+Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
+A device protects the cables connected to it and those reached from it through in-line CTs, meters and isolators (which do not interrupt overload current), up to the next panel, switching device
+or equipment. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
+
+Worked example: an ACB of In 1250 A feeding a CT, an isolator and then a cable of Iz 980 A to the LT panel is an error (1250 A > 980 A), although the cable does not touch the ACB.
 
 ### `cables.short_circuit`: Cable conductor withstands the prospective fault
 
 Standard: IS 732 / IEC 60364-4-43. Segments: all.
 
 The conductor of every AC power cable must carry the prospective fault current for the clearing time without overheating (adiabatic heating): A >= I sqrt(t) / k, where A is the conductor
-area (area x parallel runs), I the three-phase fault level and t the clearing time of the system voltage the cable sits in (design_basis.fault_levels), and k the conductor and insulation constant.
-k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). Without a clearing time on the level,
-design_basis.earthing.fault_clearing_s is used, else 1 s, and the finding says so. The fault is taken at the cable's source end, which is conservative (cable impedance only lowers it), and only
-the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not checked. Where no fault level is declared for a cable's system voltage a single info finding
-lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+area (area x parallel runs), I the three-phase fault current and t its clearing time, and k the conductor and insulation constant.
 
-Worked example (a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE): I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
-(it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA).
+I is the level declared for the cable's system voltage (design_basis.fault_levels) or, in an LT zone (up to 1000 V) fed by a transformer, the transformer-fed current of
+protection.fault_level when that is larger. t depends on the voltage level: an LT cable protected by an MCB, MCCB or ACB (directly, or through in-line CTs, meters and
+isolators as for cables.protection) is cleared by the breaker's instantaneous trip, taken as 0.1 s (a labelled assumption: the shortest duration IEC 60364-4-43 applies the
+adiabatic formula to); every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
+k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). The fault is taken at the
+cable's source end, which is conservative (cable impedance only lowers it), and only the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not
+checked. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+
+Worked examples: a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE: I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
+(it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA). A 415 V cable behind an ACB with a 25 kA level: 25000 x sqrt(0.1) / 94 = 84.1 mm2, so one run of 95 sq.mm passes.
 
 
 ## vdrop

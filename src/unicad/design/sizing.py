@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass, field
 
 from unicad.catalog.store import Catalog
+from unicad.domain.catalog import ProtectionSpec
 from unicad.domain.network import Edge, ElectricalNetwork, NetworkError, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NodeHint
@@ -18,11 +19,11 @@ from unicad.design.select import (
     pick_lv_breaker,
     pick_rated,
 )
-from unicad.rules.cables import K_BY_CABLE, needs_cable, phases, protecting_in
-from unicad.rules.faults import fault_at, prospective_fault
+from unicad.rules.cables import K_BY_CABLE, cable_fault, needs_cable, phases, protectors
+from unicad.rules.faults import prospective_fault
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import CONTINUOUS_FACTOR
-from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, edge_zone, string_feeds, zone_at
+from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, string_feeds, zone_at
 from unicad.rules.vdrop import segment_drop
 
 MAX_VDROP_STEPS = 400
@@ -35,7 +36,7 @@ class Sizing:
     assumptions: list[str] = field(default_factory=list)
     blockers: list[str] = field(default_factory=list)
     chosen: dict[str, CableOption] = field(default_factory=dict)
-    protecting: dict[str, float] | None = None
+    guards: dict[str, list[tuple[str, ProtectionSpec]]] | None = None
 
 
 def _with(project: Project, net: ElectricalNetwork) -> Project:
@@ -119,9 +120,9 @@ def _need(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing
     amps = ib.value if ib is not None else (CONTINUOUS_FACTOR.value * hint.nominal_a if hint.nominal_a else 0.0)
     if ib is None and hint.nominal_a:
         s.assumptions.append(NOMINAL_ASSUMPTION)
-    if s.protecting is None:
-        s.protecting = protecting_in(project, catalog)
-    return max(amps, s.protecting.get(e.id, 0.0))
+    if s.guards is None:
+        s.guards = protectors(project, catalog)
+    return max([amps, *(spec.rated_current for _, spec in s.guards.get(e.id, []))])
 
 
 def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:
@@ -129,13 +130,14 @@ def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Siz
     options = cable_options(catalog, hint.family, e.laying, ph, hint.runs)
     if e.service not in AC_SERVICES:
         return options
-    zone = edge_zone(project.network, e)
-    fault = fault_at(project.design_basis, zone.voltage_v if zone else None)
+    if s.guards is None:
+        s.guards = protectors(project, catalog)
+    fault = cable_fault(project, catalog, e, s.guards)
     if fault is None:
         return options
     s.assumptions.append(
-        f"AC cables in the {fault.voltage_v:g} V zone are sized for conductor area x runs >= I sqrt(t) / k with the {fault.ka:g} kA fault level cleared in {fault.clearing_s:g} s "
-        f"({fault.where}), k from the cited XLPE constants; the fault is taken at the cable's source end and only the conductor is checked."
+        f"AC cables in the {fault.voltage_v:g} V zone are sized for conductor area x runs >= I sqrt(t) / k with the {fault.ka:g} kA fault ({fault.where}) cleared in {fault.clearing_s:g} s, "
+        f"k from the cited XLPE constants; the fault is taken at the cable's source end and only the conductor is checked."
     )
     s.assumptions.extend(fault.assumptions)
 

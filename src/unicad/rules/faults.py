@@ -42,13 +42,24 @@ def fault_at(basis: DesignBasis, voltage_v: float | None) -> Fault | None:
     where = "design_basis.fault_levels" + (f" ({level.source})" if level.source else "")
     if level.clearing_s is not None:
         return Fault(level.voltage_v, level.fault_ka, level.clearing_s, None, where)
+    t, note = default_clearing(basis, level.voltage_v)
+    return Fault(level.voltage_v, level.fault_ka, t, note, where)
+
+
+def default_clearing(basis: DesignBasis, voltage_v: float) -> tuple[float, str]:
+    """Clearing time when the fault level at `voltage_v` gives none: the earthing basis's, else FAULT_CLEARING_DEFAULT; with the note saying which."""
     earthing = basis.earthing
     if earthing is not None and earthing.fault_clearing_s is not None:
-        note = f"No clearing time with the {level.voltage_v:g} V fault level: design_basis.earthing.fault_clearing_s ({earthing.fault_clearing_s:g} s) is used."
-        return Fault(level.voltage_v, level.fault_ka, earthing.fault_clearing_s, note, where)
-    note = f"No clearing time with the {level.voltage_v:g} V fault level: {FAULT_CLEARING_DEFAULT.assumption}"
-    return Fault(level.voltage_v, level.fault_ka, FAULT_CLEARING_DEFAULT.value, note, where)
+        return earthing.fault_clearing_s, f"No clearing time with the {voltage_v:g} V fault level: design_basis.earthing.fault_clearing_s ({earthing.fault_clearing_s:g} s) is used."
+    return FAULT_CLEARING_DEFAULT.value, f"No clearing time with the {voltage_v:g} V fault level: {FAULT_CLEARING_DEFAULT.assumption}"
 
+
+LV_BREAKER_CLEARING_S = 0.1
+LV_BREAKER_CLEARING = (
+    "Assumption: a fault on an LT cable protected by an MCB, MCCB or ACB is cleared by the breaker's instantaneous trip, taken as 0.1 s: the shortest duration for which "
+    "IEC 60364-4-43 uses the adiabatic A >= I sqrt(t) / k (below it the device's let-through I2t from the manufacturer applies). An instantaneous trip clears faster, so this is "
+    "conservative; it is not a datasheet break time. Give the LT level a clearing_s and raise this where an ACB has a short-time delay set for selectivity."
+)
 
 TRANSFORMER_FED = "Inverter and PCS fault contributions are not included (no catalog field gives them); the transformer-fed current is the prospective fault at the LV bus."
 
@@ -77,8 +88,11 @@ def transformer_fault_ka(winding_kva: float, impedance_pct: float, lv_v: float, 
 
 
 def prospective_fault(project: Project, catalog: Catalog, node_id: str) -> Prospective | None:
+    return prospective_in(project, catalog, zone_at(project.network, node_id))
+
+
+def prospective_in(project: Project, catalog: Catalog, zone) -> Prospective | None:
     net, basis = project.network, project.design_basis
-    zone = zone_at(net, node_id)
     if zone is None or zone.voltage_v is None:
         return None
     declared = fault_at(basis, zone.voltage_v)
