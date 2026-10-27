@@ -70,7 +70,7 @@ class RegisterBuilder:
         n = 1
         while (need := self._pages(project, profile, _parts([base] * n), listed)) > n:
             n = need
-        numbers_ = [base.number] + [numbers.fresh("register") for _ in range(n - 1)]
+        numbers_ = [base.number] + [numbers.continuation(base.number, k) for k in range(1, n)]
         return _parts([base.model_copy(update={"number": num}) for num in numbers_])
 
     @staticmethod

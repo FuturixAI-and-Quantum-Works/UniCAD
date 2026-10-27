@@ -210,6 +210,24 @@ def test_the_register_of_a_34_sheet_utility_set_draws_the_pages_it_planned():
         assert [b.sheet.title for b in built] == [f"DRAWING REGISTER (PART {k} OF {len(built)})" for k in range(1, len(built) + 1)]
 
 
+def test_register_continuation_pages_follow_its_number_and_take_none_from_the_sld_block():
+    """close-e2e-1 run 2: the second register page took 011, a number of the SLD block."""
+    project = fixture("utility_50mwac").model_copy(update={"sheets": (), "revisions": ()})
+    numbers = Numberer.for_project(project, PROFILE)
+    sheets = THAR_SHEETS * 3
+    others = [Sheet(id=f"s{i}", number=numbers.fresh(k), kind=SheetKind(sk), title=t, paper=p, scale="NTS") for i, (k, sk, t, p, _) in enumerate(sheets)]
+    owner = {s.id: k for s, (k, *_) in zip(others, sheets)}
+    planned = RegisterBuilder().plan(project, PROFILE, CATALOG, numbers, others, kinds=owner)
+    base = planned[0].number
+    assert base.endswith("-000") and len(planned) >= 2
+    assert [s.number for s in planned] == [base] + [f"{base}{chr(ord('A') + k)}" for k in range(len(planned) - 1)]
+    assert not {s.number for s in planned} & {s.number for s in others}
+    built = RegisterBuilder().build(project, planned, [*planned, *others], PROFILE, CATALOG, kinds=owner | {s.id: "register" for s in planned})
+    assert [b.sheet.number for b in built] == [s.number for s in planned][:len(built)]
+    slash = Numberer(PROFILE.model_copy(update={"drawing_number_pattern": "{seq:03d}/{discipline}"}), "C", "P", [])
+    assert slash.continuation(slash.fresh("register"), 1) == "000A/EE"
+
+
 def test_a_register_planned_on_more_pages_than_it_needs_drops_the_spare_pages():
     project = fixture("utility_50mwac").model_copy(update={"sheets": (), "revisions": ()})
     numbers = Numberer.for_project(project, PROFILE)

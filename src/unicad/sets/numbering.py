@@ -80,5 +80,14 @@ class Numberer:
         self.taken.setdefault(block, []).append(seq)
         return number
 
+    def continuation(self, number: str, k: int) -> str:
+        """Number of the k-th continuation page (k >= 1) of the sheet numbered `number`: its sequence number followed by a letter
+        (000 -> 000A, 000B), so the pages stay together and take no number from another block."""
+        letter = chr(ord("A") + k - 1)
+        m = pattern_regex(self.profile.drawing_number_pattern).match(number)
+        out = f"{number[:m.end('seq')]}{letter}{number[m.end('seq'):]}" if m else f"{number}{letter}"
+        self.issued.append(out)
+        return out
+
     def number(self, block: str, seq: int) -> str:
         return self.profile.drawing_number(client=self.client, project=self.project, discipline=self.discipline(block), seq=seq)
