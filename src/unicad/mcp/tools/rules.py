@@ -8,7 +8,7 @@ from unicad.domain.project import IssuedFor
 from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
-from unicad.rules import Finding, Severity, explain, issue_gate, run_rules
+from unicad.rules import REGISTRY, Finding, Severity, explain, issue_gate, run_rules
 from unicad.rules import families as rule_families
 from unicad.tenants.store import thresholds_of
 
@@ -86,7 +86,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def explain_finding(
         project_id: ProjectIdArg,
-        rule_id: Annotated[str, Field(description="Rule id from validate, e.g. 'cables.ampacity'")],
+        rule_id: Annotated[Literal[tuple(REGISTRY)], Field(description="Rule id from validate, e.g. 'cables.ampacity'")],
         subject: Annotated[str, Field(description="One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb'")],
         revision: RevisionArg = None,
     ) -> dict[str, Any]:
@@ -95,8 +95,6 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Example: explain_finding(project_id="rooftop-500kwp", rule_id="vdrop.ac", subject="inv")."""
         project, _ = ws.load(project_id, revision)
         family = rule_id.split(".", 1)[0]
-        if family not in rule_families():
-            raise KeyError(f"no rule family {family!r}; families: {list(rule_families())}")
         report = run_rules(project, ws.catalog, [family], thresholds_of(project.company_profile, ws.config.workspace))
         if rule_id not in report.rules:
             raise KeyError(f"no rule {rule_id!r} ran for this project; rules: {[r for r in report.rules if r.startswith(family + '.')]}")
