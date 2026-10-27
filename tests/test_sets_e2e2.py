@@ -10,7 +10,9 @@ from datetime import date
 from pathlib import Path
 
 import ezdxf
+import pytest
 from test_design import CATALOG
+from test_symbols import misread_texts
 
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
@@ -25,6 +27,7 @@ from unicad.store import ProjectStore
 from unicad.tenants.store import load_profile
 
 ROOT = Path(__file__).resolve().parents[1]
+DRAWN_ON = date(2026, 10, 1)
 
 CALLS = {'sgt-chakan': [('company_onboard',
                  {'dxf_path': '{root}/profiles/samples/acme/acme-company.dxf', 'answers': '{root}/profiles/samples/acme/answers.yaml'}),
@@ -285,10 +288,18 @@ def test_n5_hybrid_system_parameters_count_pv_inverters_only_as_the_ratio_rule_d
 def test_m24_an_unissued_set_dates_every_sheet_and_register_row_with_the_render_date(tmp_path):
     project, profile = scenario("sgt-chakan")
     assert not project.revisions
-    index = render_set(project, tmp_path, kinds=ALL_KINDS, formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=date(2026, 10, 1))
-    stamp = date(2026, 10, 1).strftime(profile.date_format)
+    index = render_set(project, tmp_path, kinds=ALL_KINDS, formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=DRAWN_ON)
+    stamp = DRAWN_ON.strftime(profile.date_format)
     for s in index.sheets:
         texts = [e.dxf.text for e in ezdxf.readfile(tmp_path / s["files"]["dxf"]).modelspace().query("TEXT")]
         assert stamp in texts, s["number"]
     (register,) = [s for s in index.sheets if s["kind"] == "register"]
     assert {r["date"] for r in register["rows"]} == {stamp}
+
+
+@pytest.mark.parametrize("project_id", ["sgt-chakan", "kutch-hybrid"])
+def test_n13_no_text_on_any_sheet_reads_upside_down_or_mirrored(project_id, tmp_path):
+    project, profile = scenario(project_id)
+    index = render_set(project, tmp_path, kinds=ALL_KINDS, formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=DRAWN_ON)
+    bad = {s["number"]: m for s in index.sheets if (m := misread_texts(ezdxf.readfile(tmp_path / s["files"]["dxf"])))}
+    assert bad == {}

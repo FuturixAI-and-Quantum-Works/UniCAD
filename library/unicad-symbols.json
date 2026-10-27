@@ -3318,9 +3318,9 @@
   },
   {
     "key": "bat.bess",
-    "title": "BESS container",
+    "title": "BESS battery container",
     "category": "storage",
-    "standard": "UniCAD composite (container + battery + PCS)",
+    "standard": "UniCAD composite (container + battery); the PCS is drawn as its own symbol",
     "tag_prefix": "BESS",
     "block_name": "UC_BAT_BESS",
     "size": {
@@ -3329,11 +3329,11 @@
     },
     "pins": [
       {
-        "name": "ac",
+        "name": "dc",
         "x": 20.0,
         "y": 0.0,
         "side": "S",
-        "kind": "ac"
+        "kind": "dc"
       }
     ],
     "attrs": [

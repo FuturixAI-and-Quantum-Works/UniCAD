@@ -46,6 +46,11 @@ TXT = LayerRole.TEXT
 View = Literal["site", "roofs"]
 
 
+def readable(ang: float) -> float:
+    """The direction in (-90, 90] along the same line, so text set on it reads from the bottom or the right of the sheet."""
+    return -((90 - ang) % 180 - 90)
+
+
 @dataclass(frozen=True)
 class _LayerDef:
     name: str
@@ -403,9 +408,7 @@ class LayoutSheetWriter:
         if isinstance(g, LineString):
             mid = g.interpolate(0.5, normalized=True)
             a, b = g.coords[0], g.coords[-1]
-            ang = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
-            if ang > 90 or ang < -90:
-                ang += 180
+            ang = readable(math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])))
             at = P(mid.x, mid.y)
             off = ((f.width_m or 1.0) / 2) * P.k + 0.8 * th
             n = math.radians(ang + 90)
@@ -419,9 +422,7 @@ class LayoutSheetWriter:
         e1 = (cs[1][0] - cs[0][0], cs[1][1] - cs[0][1])
         e2 = (cs[2][0] - cs[1][0], cs[2][1] - cs[1][1])
         long = e1 if math.hypot(*e1) >= math.hypot(*e2) else e2
-        ang = math.degrees(math.atan2(long[1], long[0]))
-        if ang > 90 or ang < -90:
-            ang += 180
+        ang = readable(math.degrees(math.atan2(long[1], long[0])))
         if abs(ang) < 1e-6 or abs(abs(ang) - 90) > 45:
             ang = 0.0 if abs(ang) < 45 else ang
         c = g.representative_point() if not g.centroid.within(g) else g.centroid

@@ -10,7 +10,7 @@ from unicad.drafting.sheets.canvas import Region
 from unicad.drafting.sheets.text import DESCENDER, text_width
 from unicad.drafting.string_diagram.plan import DiagramType, StringLine
 from unicad.drafting.symbols import REGISTRY, pin_at
-from unicad.drafting.symbols.install import install
+from unicad.drafting.symbols.install import block_for
 from unicad.drafting.symbols.library.kit import LAYER as SYMBOL_LAYER
 
 L_MOD = "E-STR-MOD"
@@ -94,8 +94,7 @@ class Ink:
         return r
 
     def symbol(self, key: str, at: tuple[float, float], rotation: float, scale: float) -> None:
-        install(self.doc, [key])
-        self.msp.add_blockref(REGISTRY[key].block_name, (round(at[0], 4), round(at[1], 4)),
+        self.msp.add_blockref(block_for(self.doc, key, rotation), (round(at[0], 4), round(at[1], 4)),
                               dxfattribs={"layer": SYMBOL_LAYER, "rotation": rotation, "xscale": round(scale, 5), "yscale": round(scale, 5)})  # fmt: skip
 
     def symbol_with_pin(self, key: str, pin_name: str, pin_xy: tuple[float, float], rotation: float, scale: float) -> None:
