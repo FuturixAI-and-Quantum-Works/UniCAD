@@ -46,7 +46,8 @@ def test_every_registered_tool_goes_through_the_error_wrapper():
 
 
 def test_utility_string_block_with_an_unmatched_acb_renders_its_sld_over_stdio(tmp_path):
-    """close-e2e-1 B3 from the logged tool calls: 20 x SG350HX per block leaves the block ACB without a catalog match."""
+    """close-e2e-1 B3 from the logged tool calls: 20 x SG350HX per block left the block ACB without a catalog match.
+    Block buses are now capped so the ACB gets a spec; the agent clears it here to keep the spec-less path covered."""
 
     async def run():
         async with connect(tmp_path / "ws") as c:
@@ -54,6 +55,10 @@ def test_utility_string_block_with_an_unmatched_acb_renders_its_sld_over_stdio(t
             built = await c.call("network_autobuild", project_id=pid, template="utility_string", ac_kw=7040, module="waaree-bin-21-635", inverter="sungrow-sg350hx",
                                  modules_per_string=28, inverters_per_block=20)  # fmt: skip
             assert built["changed"]
+            nodes = (await c.call("project_get", project_id=pid, full=True))["project"]["network"]["nodes"]
+            acdb = next(n for n in nodes if n["kind"] == "acdb")
+            acb = next(n for n in nodes if n["kind"] == "breaker" and n.get("group") == acdb.get("group") and n["tag"].startswith("ACB-"))
+            await c.call("network_update", project_id=pid, id=acb["id"], fields={"spec": None})
             r = await c.call("drawings_render", project_id=pid, kinds=["sld"], formats=["dxf"])
             warnings = [w for s in r["sheets"] for w in s["warnings"]]
             assert any("(breaker) has no catalog spec" in w and "RATING TO BE SPECIFIED" in w for w in warnings), warnings

@@ -11,7 +11,7 @@ import pytest
 
 from unicad.catalog.store import load_catalog
 from unicad.domain.catalog import ProtectionSpec
-from unicad.domain.network import SIGNAL_PORTS, NodeKind
+from unicad.domain.network import SIGNAL_PORTS, ElectricalNetwork, NodeKind
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld import SldOptions, annotate, layout_sld, plan_pages, render_sld
@@ -485,22 +485,27 @@ def test_utility_central_with_two_scb_types_per_inverter_lays_out(central_two_sc
 
 
 def test_a_node_left_without_a_catalog_spec_is_drawn_with_its_default_symbol_and_an_open_rating(catalog):
-    """close-e2e-1 B3: the block ACB of a 20 x SG350HX block (~6350 A, above every catalog ACB) had no spec, so no symbol, and the SLD failed."""
+    """close-e2e-1 B3: the block ACB of a 20 x SG350HX block (~6350 A, above every catalog ACB) had no spec, so no symbol, and the SLD failed.
+    Block buses are now capped so the ACB gets a spec; the test strips it to keep the spec-less path covered."""
     from test_design import blank
     from unicad.design import autobuild
 
     r = autobuild(blank("utility_50mwac"), catalog, {"template": "utility_string", "ac_kw": 7040, "module": "waaree-bin-21-635", "inverter": "sungrow-sg350hx",
                                                      "modules_per_string": 28, "inverters_per_block": 20})  # fmt: skip
     net = r.project.network
-    assert net.node("acdb_brk").spec is None and any("ACB-01 (breaker)" in b for b in r.blockers)
+    acdb = net.by_kind(NodeKind.ACDB)[0]
+    acb = next(n for n in net.by_kind(NodeKind.BREAKER) if n.group == acdb.group and n.tag.startswith("ACB-"))
+    spd = next(n for n in net.by_kind(NodeKind.AC_SPD) if n.group == acdb.group)
+    assert spd.spec is None and any(f"{spd.tag} (ac_spd)" in b for b in r.blockers)
+    net = ElectricalNetwork(groups=net.groups, nodes=tuple(n.model_copy(update={"spec": None}) if n.id == acb.id else n for n in net.nodes), edges=net.edges)
     lay = layout_sld(net, catalog)
     sym = {s.node_id: s for s in lay.symbols if s.role == "node"}
-    assert sym["acdb_brk"].key == "sw.acb" and sym["acdb_spd"].key == "prot.spd_ac"
-    for nid in ("acdb_brk", "acdb_spd"):
+    assert sym[acb.id].key == "sw.acb" and sym[spd.id].key == "prot.spd_ac"
+    for nid in (acb.id, spd.id):
         assert dict(sym[nid].values)["RATING"].endswith("RATING TO BE SPECIFIED"), nid
         assert any(w.startswith(f"node {nid!r}") and "has no catalog spec" in w for w in lay.warnings), lay.warnings
-    bare = net.model_copy(update={"nodes": tuple(n.model_copy(update={"tag": "Q-01"}) if n.id == "acdb_brk" else n for n in net.nodes)})
-    assert next(s for s in layout_sld(bare, catalog).symbols if s.node_id == "acdb_brk").key == "sw.mccb"
+    bare = ElectricalNetwork(groups=net.groups, nodes=tuple(n.model_copy(update={"tag": "Q-01"}) if n.id == acb.id else n for n in net.nodes), edges=net.edges)
+    assert next(s for s in layout_sld(bare, catalog).symbols if s.node_id == acb.id).key == "sw.mccb"
 
 
 def test_a_split_main_page_also_carries_the_first_feeders_it_has_room_for(catalog):

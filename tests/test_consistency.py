@@ -122,9 +122,35 @@ def test_the_scheme_names_inverter_and_combiner_tags_not_indices():
     assert "B01-I1-S02" not in SCHEME
 
 
+def _single_section(net: ElectricalNetwork, group_id: str, index: int) -> ElectricalNetwork:
+    """`net` with repeating group `group_id` cut to one section that keeps the tags of its `index`-th copy, as a remainder inverter has."""
+
+    def fix(tag: str) -> str:
+        def sub(m: re.Match) -> str:
+            i, spec = int(m.group(1)), m.group(2) or ""
+            return format(index, spec[1:]) if i == 0 else f"{{{i - 1}{spec}}}"
+
+        return re.sub(r"\{(\d+)(:[^}]*)?\}", sub, tag)
+
+    return ElectricalNetwork(
+        groups=tuple(g.model_copy(update={"count": 1, "tag": fix(g.tag)}) if g.id == group_id else g for g in net.groups),
+        nodes=tuple(n.model_copy(update={"tag": fix(n.tag)}) if n.group == group_id else n for n in net.nodes),
+        edges=net.edges,
+    )
+
+
 def test_inverters_with_a_single_string_index_keep_their_own_tag_in_the_ids(projects):
-    rows = [r for r in build_schedule(projects["string"], CATALOG, LengthMode.NETWORK).rows if r.is_string and r.from_tag.startswith("STR-02-03-")]
-    assert len(rows) >= 2 and all(r.cable_id.startswith("INV-02-03-") for r in rows)
+    """A remainder inverter section (count 1, fixed tag) numbers its strings with one index; its ids carry its own tag, not 01."""
+    p = projects["string"]
+    sections = [g for g in p.network.groups if g.count > 1 and any(n.group == g.id for n in p.network.by_kind(NodeKind.INVERTER))]
+    section = sections[-1]
+    net = _single_section(p.network, section.id, section.count)
+    inverter = next(n for n in net.by_kind(NodeKind.INVERTER) if n.group == section.id)
+    strings = next(n for n in net.by_kind(NodeKind.PV_STRING) if n.group == section.id)
+    assert "{" not in inverter.tag and inverter.tag.endswith(f"-{section.count:02d}")
+    rows = [r for r in build_schedule(p.model_copy(update={"network": net}), CATALOG, LengthMode.NETWORK).rows if r.is_string and r.src.partition("@")[0] == strings.id]
+    assert len(rows) >= 2 and all(r.cable_id.startswith(f"{inverter.tag}-") for r in rows)
+    assert all(r.from_tag.startswith(f"{strings.tag.partition('{')[0]}") for r in rows)
 
 
 # ---------------- the same tags on every sheet ----------------
