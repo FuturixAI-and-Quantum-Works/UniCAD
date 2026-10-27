@@ -3,6 +3,7 @@
 import math
 import re
 from collections import Counter
+from collections.abc import Mapping
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -20,7 +21,7 @@ from unicad.design.sizing import size_network
 from unicad.design.strings import DesignError, StringDesign, size_strings
 from unicad.rules import Finding, Severity, run_rules
 from unicad.rules.ratio import plant_capacity
-from unicad.rules.thresholds import VOLTAGE_TOLERANCE
+from unicad.rules.thresholds import VOLTAGE_TOLERANCE, Setting, using
 
 Template = Literal["residential", "ci_rooftop", "utility_string", "utility_central", "bess_ac", "bess_dc", "hybrid"]
 SEGMENT_TEMPLATE = {
@@ -273,12 +274,19 @@ def summarize(project: Project, catalog: Catalog) -> dict[str, Any]:
     }
 
 
-def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout: PlacementResult | ArrayLayout | None = None) -> AutobuildResult:
+def autobuild(
+    project: Project, catalog: Catalog, intent: Intent | dict, layout: PlacementResult | ArrayLayout | None = None, thresholds: Mapping[str, Setting] | None = None
+) -> AutobuildResult:
     """Replace the project's network with one built from `intent`, sized by the rules, and report what the rules still find.
 
     With a layout (a place_array result or the project's array layout) the PV plan follows its blocks and every layout string becomes
-    exactly one pv_string instance; the returned project's array_layout carries the links."""
-    intent = Intent.model_validate(intent)
+    exactly one pv_string instance; the returned project's array_layout carries the links. `thresholds` are the company's threshold
+    settings, applied to sizing and to the rules exactly as validate applies them."""
+    with using(thresholds):
+        return _autobuild(project, catalog, Intent.model_validate(intent), layout, thresholds)
+
+
+def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: PlacementResult | ArrayLayout | None, thresholds: Mapping[str, Setting] | None) -> AutobuildResult:
     notes: list[str] = []
     project = _with_grid(project, intent.grid_voltage_v)
     template = _template(project, intent, catalog)
@@ -365,7 +373,7 @@ def autobuild(project: Project, catalog: Catalog, intent: Intent | dict, layout:
             draft = draft.model_copy(update={"network": draft.network.model_copy(update={"edges": edges})})
             sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
     sized = Project.model_validate(_breaker_tags(sizing.project, catalog).model_dump(mode="json"), context={"catalog": catalog})
-    report = run_rules(sized, catalog)
+    report = run_rules(sized, catalog, thresholds=thresholds)
     findings = tuple(f for f in report.findings if f.severity is not Severity.INFO)
     summary = summarize(sized, catalog) | {"strings_linked": len(linked), "segment_hint": TEMPLATE_SEGMENT[template].value}
     template_assumptions = list(b.assumptions)

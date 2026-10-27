@@ -194,21 +194,69 @@ def ampacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
             yield Finding(rule_id="cables.ampacity", severity=Severity.INFO, message=f"{where}: derating not specified, {taken}; Ib {ib.value:.1f} A within {working}", **common)
 
 
+IN_LINE = frozenset({NodeKind.CT, NodeKind.METER, NodeKind.ISOLATOR, NodeKind.DC_ISOLATOR})
+
+
+def protected_edges(net: ElectricalNetwork, node_id: str) -> tuple[Edge, ...]:
+    """Power edges in series with an overcurrent device: those at it and those reached through in-line CTs, meters and isolators, up to the
+    next panel, switching device or equipment. An isolator or CT does not interrupt overload current, so the cable beyond it is still the
+    device's to protect."""
+    out: dict[str, Edge] = {}
+    seen, stack = {node_id}, [node_id]
+    while stack:
+        at = stack.pop()
+        for e in net.edges_at(at):
+            if not e.is_power or e.id in out:
+                continue
+            other = e.dst_node if e.src_node == at else e.src_node
+            if net.node(other).kind in TAPS:
+                continue
+            out[e.id] = e
+            if other not in seen and net.node(other).kind in IN_LINE:
+                seen.add(other)
+                stack.append(other)
+    return tuple(out.values())
+
+
+def overload_device(catalog: Catalog, node) -> ProtectionSpec | None:
+    if node.spec is None:
+        return None
+    spec = node.spec if isinstance(node.spec, ProtectionSpec) else catalog.get(node.spec)
+    if not isinstance(spec, ProtectionSpec) or spec.device not in OVERLOAD_DEVICES or spec.rated_current is None:
+        return None
+    return spec
+
+
+def protecting_in(project: Project, catalog: Catalog) -> dict[str, float]:
+    """Largest rated current In of the overcurrent devices protecting each edge (see protected_edges), by edge id."""
+    net = project.network
+    out: dict[str, float] = {}
+    for n in net.nodes:
+        spec = overload_device(catalog, n)
+        if spec is None:
+            continue
+        for e in protected_edges(net, n.id):
+            out[e.id] = max(out.get(e.id, 0.0), spec.rated_current)
+    return out
+
+
 def _protected_cables(project: Project, catalog: Catalog, node_id: str) -> Iterator[tuple[Edge, Ampacity]]:
-    for e in project.network.edges_at(node_id):
-        if e.is_power and (iz := edge_ampacity(project, catalog, e)) is not None:
+    for e in protected_edges(project.network, node_id):
+        if (iz := edge_ampacity(project, catalog, e)) is not None:
             yield e, iz
 
 
 @rule("cables.protection", "Overcurrent device rating does not exceed the cable ampacity", clause=OVERLOAD)
 def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable connected directly to it, so the device trips before the cable overheats. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model."""
+    """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
+    A device protects the cables connected to it and those reached from it through in-line CTs, meters and isolators (which do not interrupt overload current), up to the next panel, switching device
+    or equipment. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
+
+    Worked example: an ACB of In 1250 A feeding a CT, an isolator and then a cable of Iz 980 A to the LT panel is an error (1250 A > 980 A), although the cable does not touch the ACB."""
     net = project.network
     for n in net.nodes:
-        if n.spec is None:
-            continue
-        spec = catalog.get(n.spec)
-        if not isinstance(spec, ProtectionSpec) or spec.device not in OVERLOAD_DEVICES or spec.rated_current is None:
+        spec = overload_device(catalog, n)
+        if spec is None:
             continue
         for e, iz in _protected_cables(project, catalog, n.id):
             z = iz.calc()

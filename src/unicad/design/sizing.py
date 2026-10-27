@@ -4,7 +4,6 @@ import math
 from dataclasses import dataclass, field
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import ProtectionSpec
 from unicad.domain.network import Edge, ElectricalNetwork, NetworkError, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NodeHint
@@ -19,7 +18,7 @@ from unicad.design.select import (
     pick_lv_breaker,
     pick_rated,
 )
-from unicad.rules.cables import K_BY_CABLE, OVERLOAD_DEVICES, needs_cable, phases
+from unicad.rules.cables import K_BY_CABLE, needs_cable, phases, protecting_in
 from unicad.rules.faults import fault_at, prospective_fault
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import CONTINUOUS_FACTOR
@@ -36,6 +35,7 @@ class Sizing:
     assumptions: list[str] = field(default_factory=list)
     blockers: list[str] = field(default_factory=list)
     chosen: dict[str, CableOption] = field(default_factory=dict)
+    protecting: dict[str, float] | None = None
 
 
 def _with(project: Project, net: ElectricalNetwork) -> Project:
@@ -113,22 +113,15 @@ def size_protection(project: Project, catalog: Catalog, hints: dict[str, NodeHin
     return _rebuild(project, nodes=nodes)
 
 
-def _device_in(project: Project, catalog: Catalog, node_id: str) -> float:
-    n = project.network.node(node_id)
-    if n.spec is None or not isinstance(n.spec, str):
-        return 0.0
-    spec = catalog.get(n.spec)
-    if isinstance(spec, ProtectionSpec) and spec.device in OVERLOAD_DEVICES and spec.rated_current is not None:
-        return spec.rated_current
-    return 0.0
-
-
 def _need(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> float:
+    """Iz the cable needs: its design current, and at least the In of every overcurrent device protecting it (In <= Iz)."""
     ib = edge_current(project, catalog, e)
     amps = ib.value if ib is not None else (CONTINUOUS_FACTOR.value * hint.nominal_a if hint.nominal_a else 0.0)
     if ib is None and hint.nominal_a:
         s.assumptions.append(NOMINAL_ASSUMPTION)
-    return max(amps, _device_in(project, catalog, e.src_node), _device_in(project, catalog, e.dst_node))
+    if s.protecting is None:
+        s.protecting = protecting_in(project, catalog)
+    return max(amps, s.protecting.get(e.id, 0.0))
 
 
 def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:

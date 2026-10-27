@@ -12,6 +12,7 @@ from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.tools.rules import compact
 from unicad.mcp.workspace import Edit, Workspace
+from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 LIST_CAP = 40
@@ -88,7 +89,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
 
         def change(p: Project) -> Edit:
             layout = p.array_layout if use_layout and p.array_layout is not None and p.array_layout.blocks else None
-            r = autobuild(p, ws.catalog, intent, layout=layout)
+            company = thresholds_of(p.company_profile, ws.config.workspace)
+            r = autobuild(p, ws.catalog, intent, layout=layout, thresholds=company)
             findings = [compact(f) for f in r.findings]
             extra = {
                 "template": r.template,
@@ -100,6 +102,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 "assumptions": list(r.assumptions),
                 "strings_design": r.strings.model_dump(mode="json") if r.strings else None,
             }
+            if company:
+                extra["company_thresholds"] = {"profile": p.company_profile, "values": {name: s.value for name, s in company.items()}}
             problems = tuple({"severity": "warning", "subject": "autobuild", "message": b} for b in r.blockers)
             return Edit(r.project, tuple(n.id for n in r.project.network.nodes), extra, problems)
 
