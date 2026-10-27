@@ -3,19 +3,19 @@
  "sheets": [
   {
    "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-401",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01 .. INV-01-04",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01..INV-01-03",
    "paper": "A1",
    "file": "utility-50mwac-strings-inv_b01a.dxf",
    "warnings": [],
    "type": "inv_b01a",
-   "typical_for": "INV-01-01 .. INV-01-04 (4 NOS)",
+   "typical_for": "INV-01-01..INV-01-03 (3 NOS)",
    "shown_for": "INV-01-01",
-   "strings_drawn": 24,
-   "strings_covered": 96,
+   "strings_drawn": 22,
+   "strings_covered": 66,
    "instances": [
     {
      "tag": "INV-01-01",
-     "strings": 24,
+     "strings": 22,
      "tables": [
       "B01-T001",
       "B01-T002",
@@ -35,7 +35,7 @@
     },
     {
      "tag": "INV-01-02",
-     "strings": 24,
+     "strings": 22,
      "tables": [
       "B01-T014",
       "B01-T015",
@@ -48,15 +48,15 @@
       "B01-T022",
       "B01-T023",
       "B01-T024",
-      "B01-T025",
-      "B01-T026"
+      "B01-T025"
      ],
      "to": ""
     },
     {
      "tag": "INV-01-03",
-     "strings": 24,
+     "strings": 22,
      "tables": [
+      "B01-T026",
       "B01-T027",
       "B01-T028",
       "B01-T029",
@@ -67,29 +67,7 @@
       "B01-T034",
       "B01-T035",
       "B01-T036",
-      "B01-T037",
-      "B01-T038",
-      "B01-T039"
-     ],
-     "to": ""
-    },
-    {
-     "tag": "INV-01-04",
-     "strings": 24,
-     "tables": [
-      "B01-T040",
-      "B01-T041",
-      "B01-T042",
-      "B01-T043",
-      "B01-T044",
-      "B01-T045",
-      "B01-T046",
-      "B01-T047",
-      "B01-T048",
-      "B01-T049",
-      "B01-T050",
-      "B01-T051",
-      "B01-T052"
+      "B01-T037"
      ],
      "to": ""
     }
@@ -97,19 +75,19 @@
   },
   {
    "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-402",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-02-01 .. INV-02-04",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-02-01..INV-02-02",
    "paper": "A1",
    "file": "utility-50mwac-strings-inv_b02a.dxf",
    "warnings": [],
    "type": "inv_b02a",
-   "typical_for": "INV-02-01 .. INV-02-04 (4 NOS)",
+   "typical_for": "INV-02-01..INV-02-02 (2 NOS)",
    "shown_for": "INV-02-01",
-   "strings_drawn": 20,
-   "strings_covered": 80,
+   "strings_drawn": 23,
+   "strings_covered": 46,
    "instances": [
     {
      "tag": "INV-02-01",
-     "strings": 20,
+     "strings": 23,
      "tables": [
       "B02-T001",
       "B02-T002",
@@ -123,15 +101,15 @@
       "B02-T010",
       "B02-T011",
       "B02-T012",
-      "B02-T013"
+      "B02-T013",
+      "B02-T014"
      ],
      "to": ""
     },
     {
      "tag": "INV-02-02",
-     "strings": 20,
+     "strings": 23,
      "tables": [
-      "B02-T014",
       "B02-T015",
       "B02-T016",
       "B02-T017",
@@ -143,16 +121,29 @@
       "B02-T023",
       "B02-T024",
       "B02-T025",
-      "B02-T026"
+      "B02-T026",
+      "B02-T027"
      ],
      "to": ""
-    },
+    }
+   ]
+  },
+  {
+   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-403",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-02-03",
+   "paper": "A1",
+   "file": "utility-50mwac-strings-inv_b02b.dxf",
+   "warnings": [],
+   "type": "inv_b02b",
+   "typical_for": "INV-02-03",
+   "shown_for": "INV-02-03",
+   "strings_drawn": 22,
+   "strings_covered": 22,
+   "instances": [
     {
      "tag": "INV-02-03",
-     "strings": 20,
+     "strings": 22,
      "tables": [
-      "B02-T026",
-      "B02-T027",
       "B02-T028",
       "B02-T029",
       "B02-T030",
@@ -163,59 +154,9 @@
       "B02-T035",
       "B02-T036",
       "B02-T037",
-      "B02-T038"
-     ],
-     "to": ""
-    },
-    {
-     "tag": "INV-02-04",
-     "strings": 20,
-     "tables": [
       "B02-T038",
       "B02-T039",
-      "B02-T040",
-      "B02-T041",
-      "B02-T042",
-      "B02-T043",
-      "B02-T044",
-      "B02-T045",
-      "B02-T046",
-      "B02-T047",
-      "B02-T048",
-      "B02-T049",
-      "B02-T050"
-     ],
-     "to": ""
-    }
-   ]
-  },
-  {
-   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-403",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-02-05",
-   "paper": "A1",
-   "file": "utility-50mwac-strings-inv_b02b.dxf",
-   "warnings": [],
-   "type": "inv_b02b",
-   "typical_for": "INV-02-05",
-   "shown_for": "INV-02-05",
-   "strings_drawn": 17,
-   "strings_covered": 17,
-   "instances": [
-    {
-     "tag": "INV-02-05",
-     "strings": 17,
-     "tables": [
-      "B02-T050",
-      "B02-T051",
-      "B02-T052",
-      "B02-T053",
-      "B02-T054",
-      "B02-T055",
-      "B02-T056",
-      "B02-T057",
-      "B02-T058",
-      "B02-T059",
-      "B02-T060"
+      "B02-T040"
      ],
      "to": ""
     }
@@ -223,19 +164,19 @@
   },
   {
    "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-404",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-03-01 .. INV-03-04",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-03-01..INV-03-03",
    "paper": "A1",
    "file": "utility-50mwac-strings-inv_b03a.dxf",
    "warnings": [],
    "type": "inv_b03a",
-   "typical_for": "INV-03-01 .. INV-03-04 (4 NOS)",
+   "typical_for": "INV-03-01..INV-03-03 (3 NOS)",
    "shown_for": "INV-03-01",
-   "strings_drawn": 24,
-   "strings_covered": 96,
+   "strings_drawn": 21,
+   "strings_covered": 63,
    "instances": [
     {
      "tag": "INV-03-01",
-     "strings": 24,
+     "strings": 21,
      "tables": [
       "B03-T001",
       "B03-T002",
@@ -248,13 +189,14 @@
       "B03-T009",
       "B03-T010",
       "B03-T011",
-      "B03-T012"
+      "B03-T012",
+      "B03-T013"
      ],
      "to": ""
     },
     {
      "tag": "INV-03-02",
-     "strings": 24,
+     "strings": 21,
      "tables": [
       "B03-T013",
       "B03-T014",
@@ -267,13 +209,14 @@
       "B03-T021",
       "B03-T022",
       "B03-T023",
-      "B03-T024"
+      "B03-T024",
+      "B03-T025"
      ],
      "to": ""
     },
     {
      "tag": "INV-03-03",
-     "strings": 24,
+     "strings": 21,
      "tables": [
       "B03-T025",
       "B03-T026",
@@ -286,26 +229,8 @@
       "B03-T033",
       "B03-T034",
       "B03-T035",
-      "B03-T036"
-     ],
-     "to": ""
-    },
-    {
-     "tag": "INV-03-04",
-     "strings": 24,
-     "tables": [
-      "B03-T037",
-      "B03-T038",
-      "B03-T039",
-      "B03-T040",
-      "B03-T041",
-      "B03-T042",
-      "B03-T043",
-      "B03-T044",
-      "B03-T045",
-      "B03-T046",
-      "B03-T047",
-      "B03-T048"
+      "B03-T036",
+      "B03-T037"
      ],
      "to": ""
     }
@@ -313,19 +238,19 @@
   },
   {
    "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-405",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-04-01 .. INV-04-03",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-04-01..INV-04-02",
    "paper": "A1",
    "file": "utility-50mwac-strings-inv_b04a.dxf",
    "warnings": [],
    "type": "inv_b04a",
-   "typical_for": "INV-04-01 .. INV-04-03 (3 NOS)",
+   "typical_for": "INV-04-01..INV-04-02 (2 NOS)",
    "shown_for": "INV-04-01",
-   "strings_drawn": 24,
-   "strings_covered": 72,
+   "strings_drawn": 21,
+   "strings_covered": 42,
    "instances": [
     {
      "tag": "INV-04-01",
-     "strings": 24,
+     "strings": 21,
      "tables": [
       "B04-T001",
       "B04-T002",
@@ -337,16 +262,16 @@
       "B04-T008",
       "B04-T009",
       "B04-T010",
-      "B04-T011",
-      "B04-T012",
-      "B04-T013"
+      "B04-T011"
      ],
      "to": ""
     },
     {
      "tag": "INV-04-02",
-     "strings": 24,
+     "strings": 21,
      "tables": [
+      "B04-T011",
+      "B04-T012",
       "B04-T013",
       "B04-T014",
       "B04-T015",
@@ -355,31 +280,7 @@
       "B04-T018",
       "B04-T019",
       "B04-T020",
-      "B04-T021",
-      "B04-T022",
-      "B04-T023",
-      "B04-T024",
-      "B04-T025"
-     ],
-     "to": ""
-    },
-    {
-     "tag": "INV-04-03",
-     "strings": 24,
-     "tables": [
-      "B04-T025",
-      "B04-T026",
-      "B04-T027",
-      "B04-T028",
-      "B04-T029",
-      "B04-T030",
-      "B04-T031",
-      "B04-T032",
-      "B04-T033",
-      "B04-T034",
-      "B04-T035",
-      "B04-T036",
-      "B04-T037"
+      "B04-T021"
      ],
      "to": ""
     }
@@ -387,33 +288,180 @@
   },
   {
    "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-406",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-04-04",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-04-03",
    "paper": "A1",
    "file": "utility-50mwac-strings-inv_b04b.dxf",
    "warnings": [],
    "type": "inv_b04b",
-   "typical_for": "INV-04-04",
-   "shown_for": "INV-04-04",
-   "strings_drawn": 23,
-   "strings_covered": 23,
+   "typical_for": "INV-04-03",
+   "shown_for": "INV-04-03",
+   "strings_drawn": 20,
+   "strings_covered": 20,
    "instances": [
     {
-     "tag": "INV-04-04",
-     "strings": 23,
+     "tag": "INV-04-03",
+     "strings": 20,
      "tables": [
-      "B04-T037",
-      "B04-T038",
-      "B04-T039",
-      "B04-T040",
-      "B04-T041",
-      "B04-T042",
-      "B04-T043",
-      "B04-T044",
-      "B04-T045",
-      "B04-T046",
-      "B04-T047",
-      "B04-T048",
-      "B04-T049"
+      "B04-T022",
+      "B04-T023",
+      "B04-T024",
+      "B04-T025",
+      "B04-T026",
+      "B04-T027",
+      "B04-T028",
+      "B04-T029",
+      "B04-T030",
+      "B04-T031"
+     ],
+     "to": ""
+    }
+   ]
+  },
+  {
+   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-407",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-05-01..INV-05-02",
+   "paper": "A1",
+   "file": "utility-50mwac-strings-inv_b05a.dxf",
+   "warnings": [],
+   "type": "inv_b05a",
+   "typical_for": "INV-05-01..INV-05-02 (2 NOS)",
+   "shown_for": "INV-05-01",
+   "strings_drawn": 21,
+   "strings_covered": 42,
+   "instances": [
+    {
+     "tag": "INV-05-01",
+     "strings": 21,
+     "tables": [
+      "B05-T001",
+      "B05-T002",
+      "B05-T003",
+      "B05-T004",
+      "B05-T005",
+      "B05-T006",
+      "B05-T007",
+      "B05-T008",
+      "B05-T009",
+      "B05-T010",
+      "B05-T011"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-05-02",
+     "strings": 21,
+     "tables": [
+      "B05-T011",
+      "B05-T012",
+      "B05-T013",
+      "B05-T014",
+      "B05-T015",
+      "B05-T016",
+      "B05-T017",
+      "B05-T018",
+      "B05-T019",
+      "B05-T020",
+      "B05-T021"
+     ],
+     "to": ""
+    }
+   ]
+  },
+  {
+   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-408",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-05-03",
+   "paper": "A1",
+   "file": "utility-50mwac-strings-inv_b05b.dxf",
+   "warnings": [],
+   "type": "inv_b05b",
+   "typical_for": "INV-05-03",
+   "shown_for": "INV-05-03",
+   "strings_drawn": 20,
+   "strings_covered": 20,
+   "instances": [
+    {
+     "tag": "INV-05-03",
+     "strings": 20,
+     "tables": [
+      "B05-T022",
+      "B05-T023",
+      "B05-T024",
+      "B05-T025",
+      "B05-T026",
+      "B05-T027",
+      "B05-T028",
+      "B05-T029",
+      "B05-T030",
+      "B05-T031"
+     ],
+     "to": ""
+    }
+   ]
+  },
+  {
+   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-409",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-06-01..INV-06-03",
+   "paper": "A1",
+   "file": "utility-50mwac-strings-inv_b06a.dxf",
+   "warnings": [],
+   "type": "inv_b06a",
+   "typical_for": "INV-06-01..INV-06-03 (3 NOS)",
+   "shown_for": "INV-06-01",
+   "strings_drawn": 21,
+   "strings_covered": 63,
+   "instances": [
+    {
+     "tag": "INV-06-01",
+     "strings": 21,
+     "tables": [
+      "B06-T001",
+      "B06-T002",
+      "B06-T003",
+      "B06-T004",
+      "B06-T005",
+      "B06-T006",
+      "B06-T007",
+      "B06-T008",
+      "B06-T009",
+      "B06-T010",
+      "B06-T011"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-06-02",
+     "strings": 21,
+     "tables": [
+      "B06-T012",
+      "B06-T013",
+      "B06-T014",
+      "B06-T015",
+      "B06-T016",
+      "B06-T017",
+      "B06-T018",
+      "B06-T019",
+      "B06-T020",
+      "B06-T021",
+      "B06-T022"
+     ],
+     "to": ""
+    },
+    {
+     "tag": "INV-06-03",
+     "strings": 21,
+     "tables": [
+      "B06-T022",
+      "B06-T023",
+      "B06-T024",
+      "B06-T025",
+      "B06-T026",
+      "B06-T027",
+      "B06-T028",
+      "B06-T029",
+      "B06-T030",
+      "B06-T031",
+      "B06-T032",
+      "B06-T033"
      ],
      "to": ""
     }

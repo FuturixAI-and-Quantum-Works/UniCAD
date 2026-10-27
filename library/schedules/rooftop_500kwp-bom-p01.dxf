@@ -129,7 +129,7 @@ $DIMASZ
   9
 $DIMEXO
  40
-0.625
+0.6
   9
 $DIMDLI
  40
@@ -285,7 +285,7 @@ $DIMTFAC
   9
 $DIMGAP
  40
-0.625
+0.8
   9
 $DIMJUST
  70
@@ -321,7 +321,7 @@ $DIMUPT
   9
 $DIMDEC
  70
-2
+1
   9
 $DIMTDEC
  70

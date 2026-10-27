@@ -129,7 +129,7 @@ $DIMASZ
   9
 $DIMEXO
  40
-0.625
+0.6
   9
 $DIMDLI
  40
@@ -285,7 +285,7 @@ $DIMTFAC
   9
 $DIMGAP
  40
-0.625
+0.8
   9
 $DIMJUST
  70
@@ -321,7 +321,7 @@ $DIMUPT
   9
 $DIMDEC
  70
-2
+1
   9
 $DIMTDEC
  70
@@ -13359,7 +13359,7 @@ AcDbText
  40
 2.25
   1
-meter CT_PT class 0.2S, abt meter,
+meter CT-PT class 0.2S, abt meter,
   7
 standard
 100
@@ -13411,7 +13411,7 @@ AcDbText
  40
 2.25
   1
-generic-meter-abt-ct_pt-0.2s
+generic-meter-abt-ct-pt-0.2s
   7
 standard
 100
@@ -13685,7 +13685,7 @@ AcDbText
  40
 2.25
   1
-meter CT_PT class 0.2S, check meter,
+meter CT-PT class 0.2S, check meter,
   7
 standard
 100
@@ -13737,7 +13737,7 @@ AcDbText
  40
 2.25
   1
-generic-meter-check-ct_pt-0.2s
+generic-meter-check-ct-pt-0.2s
   7
 standard
 100

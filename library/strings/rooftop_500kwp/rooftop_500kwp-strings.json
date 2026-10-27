@@ -3,12 +3,12 @@
  "sheets": [
   {
    "sheet": "UDEMO-DIPL-RT500-EE-002",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05",
    "paper": "A3",
    "file": "rooftop-500kwp-strings-inv.dxf",
    "warnings": [],
    "type": "inv",
-   "typical_for": "INV-01 .. INV-05 (5 NOS)",
+   "typical_for": "INV-01..INV-05 (5 NOS)",
    "shown_for": "INV-01",
    "strings_drawn": 10,
    "strings_covered": 50,
