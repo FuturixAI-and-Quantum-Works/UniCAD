@@ -4,16 +4,20 @@ quantities. A pure function of the project; nothing is stored beyond the design 
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from shapely.geometry import MultiLineString
 
+from unicad.catalog.store import Catalog, load_catalog
+from unicad.domain.catalog import InverterSpec
 from unicad.domain.network import NodeKind
 from unicad.domain.project import EarthingBasis, Project, Segment
-from unicad.earthing.layout import MV_KINDS, EarthingLayout, Sizes, bonding, build_layout, designated_switchyard, equipment, place_switchyard
+from unicad.earthing.layout import MV_KINDS, EarthingLayout, Sizes, bonding, build_layout, equipment
 from unicad.earthing.model import ConductorRole, PitRole, Quantity, Step, Value
 from unicad.earthing.sizing import (
     FLAT_BY_NAME,
     SOURCES,
+    STEEL_KG_PER_M3,
     Grid,
     GridCheck,
     conductor_area,
@@ -29,9 +33,15 @@ from unicad.earthing.sizing import (
     sverak,
 )
 from unicad.lps.design import LpsDesign, design_lps, is_rooftop
+from unicad.lps.site import designated_switchyard, place_switchyard, switchyard_near
 
 DEFAULT_SIZE = "50x6"
 DOWN_SIZE = "25x3"
+ARRAY_MIN_SIZE = "25x6"
+GOVERNING_PRACTICE = "equipment and table-row practice (resistance and current density need no more)"
+GOVERNING_RESISTANCE = "earth resistance target"
+GOVERNING_CURRENT = "IS 3043 current density"
+INVERTER_FAULT_FACTOR = 1.5
 GRID_SPACING_DEFAULT_M = 6.0
 TOL_M = 1e-3
 SWITCHYARD_UNKNOWN = (
@@ -69,6 +79,9 @@ class EarthingDesign:
     target_ohm: float
     pits_by_resistance: int
     pits_by_current: int | None
+    pits_by_practice: int
+    pits_governing: str
+    array_fault: Step | None
     grid: GridCheck | None
     grid_spacing_m: float | None
     layout: EarthingLayout
@@ -91,6 +104,45 @@ class EarthingDesign:
     def unbonded(self) -> tuple[str, ...]:
         need = {it.id: it.connections for it in self.layout.items} | {t: 1 for t in self.layout.tables}
         return tuple(sorted(i for i, n in need.items() if self.bonded.get(i, 0) < n))
+
+
+@lru_cache(maxsize=1)
+def _default_catalog() -> Catalog:
+    return load_catalog()
+
+
+def _array_fault(project: Project, catalog: Catalog, basis: EarthingBasis) -> Step | None:
+    """The earth fault current the table-row conductors can carry: the inverters' own contribution (largest of 1.5 x maximum AC output current and
+    the DC short-circuit current in the plant), never above the plant fault. The MV earth fault returns through the stations, the main ring and
+    the switchyard grid, not along the rows."""
+    best: tuple[float, InverterSpec, float, float | None] | None = None
+    for n in project.network.by_kind(NodeKind.INVERTER):
+        try:
+            spec = catalog.get(n.spec) if isinstance(n.spec, str) else n.spec
+        except KeyError:
+            continue
+        if not isinstance(spec, InverterSpec):
+            continue
+        i_ac = spec.ac_max_kva * 1000 / ((math.sqrt(3) if spec.phases == 3 else 1.0) * spec.ac_voltage)
+        i_dc = spec.max_dc_short_circuit_current
+        if i_dc is None and spec.max_short_circuit_current_per_mppt is not None:
+            i_dc = spec.max_short_circuit_current_per_mppt * spec.mppt_count
+        amps = max(INVERTER_FAULT_FACTOR * i_ac, i_dc or 0.0)
+        if best is None or amps > best[0]:
+            best = (amps, spec, i_ac, i_dc)
+    if best is None:
+        return None
+    amps, spec, i_ac, i_dc = best
+    plant = basis.fault_current_ka * 1000
+    use = min(amps, plant)
+    return Step(
+        name="array_fault_current", value=round(use, 1), unit="A", formula=f"I = min(plant earth fault, max({INVERTER_FAULT_FACTOR:g} x I_ac_max, I_dc_sc)) of the largest inverter",
+        inputs=(Value("inverter", spec.id, None, "catalog"), Value("I_ac_max", round(i_ac, 1), "A", f"catalog: maximum AC apparent power {spec.ac_max_kva:g} kVA at {spec.ac_voltage:g} V"),
+                Value("I_dc_sc", round(i_dc, 1) if i_dc else 0.0, "A", "catalog: maximum DC short-circuit current"),
+                Value("factor", INVERTER_FAULT_FACTOR, "", SOURCES["inverter_fault"]), Value("plant earth fault", plant, "A", "design_basis.earthing.fault_current_ka")),
+        source=SOURCES["inverter_fault"],
+        assumptions=("table-row conductors are sized for the inverter fault contribution, not the MV earth fault, which returns through the stations, the main ring and the switchyard grid (design assumption)",),
+    )  # fmt: skip
 
 
 def _target(project: Project, basis: EarthingBasis) -> tuple[float, str | None]:
@@ -124,7 +176,8 @@ def _measure(lay: EarthingLayout, basis: EarthingBasis, electrode: Step, size: s
     buried = [r for r in lay.runs if r.buried and r.role is not ConductorRole.GRID and not all(in_yard(q) for q in r.points)]
     length = sum(r.length_m for r in buried)
     n = sum(1 for p in lay.pits if p.on_ground and not in_yard(p.at))
-    strip = strip_resistance(rho, length, FLAT_BY_NAME[size].width_mm, basis.burial_depth_m) if length > 1 else None
+    width = sum(r.length_m * FLAT_BY_NAME[r.size].width_mm for r in buried) / length if length > 0 else FLAT_BY_NAME[size].width_mm
+    strip = strip_resistance(rho, length, width, basis.burial_depth_m) if length > 1 else None
     rp = electrode.value / n if n else math.inf
     ps = parallel(rp, strip.value) if strip else rp
     limit = None
@@ -148,6 +201,19 @@ def _with_grid(rest: Resistance, rg: float) -> Resistance:
     return Resistance(parallel(rg, rest.value), method, parts, rest.strip, rest.network_limit)
 
 
+def _strip_capacity(lay: EarthingLayout, rho: float, clearing_s: float) -> Step:
+    """IS 3043 dissipation of the buried conductors, each size over its own surface."""
+    by_size: dict[str, float] = defaultdict(float)
+    for r in lay.runs:
+        if r.buried:
+            by_size[r.size] += r.length_m
+    parts = [strip_current(rho, clearing_s, m, FLAT_BY_NAME[n].width_mm, FLAT_BY_NAME[n].thickness_mm) for n, m in sorted(by_size.items())]
+    if not parts:
+        return strip_current(rho, clearing_s, 0.0, FLAT_BY_NAME[DEFAULT_SIZE].width_mm, FLAT_BY_NAME[DEFAULT_SIZE].thickness_mm)
+    head = parts[0]
+    return head.model_copy(update={"value": round(sum(p.value for p in parts), 1), "formula": head.formula + (", summed over the conductor sizes" if len(parts) > 1 else "")})
+
+
 def _grid(basis: EarthingBasis, size: str, rect: tuple[float, float, float, float], rods: int, spacing: float) -> Grid:
     flat = FLAT_BY_NAME[size]
     return Grid(rect[2] - rect[0], rect[3] - rect[1], spacing, basis.burial_depth_m, flat.width_mm / 2000, rods, basis.electrode_length_m)
@@ -161,16 +227,17 @@ def _grid_check(basis: EarthingBasis, g: Grid, r_rest: float) -> tuple[GridCheck
 
 
 def _grid_spacing(basis: EarthingBasis, size: str, rect: tuple[float, float, float, float], rods: int, r_rest: float) -> float:
-    """The widest mesh (10 m down to 2 m) whose touch and step voltages are tolerable; the finest tried if none is."""
+    """The widest conductor spacing (10 m down to 2 m) whose grid has tolerable touch and step voltages; the finest tried if none has. The grid
+    laid, checked and reported is the one this spacing gives (`Grid.mesh` is its widest mesh)."""
     spacing = 10.0
     for tenths in range(100, 19, -5):
         spacing = tenths / 10
         if _grid_check(basis, _grid(basis, size, rect, rods, spacing), r_rest)[0].safe:
             break
-    return _grid(basis, size, rect, rods, spacing).mesh
+    return spacing
 
 
-def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: LpsDesign | None = None) -> EarthingDesign:
+def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: LpsDesign | None = None, catalog: Catalog | None = None) -> EarthingDesign:
     basis = basis or project.design_basis.earthing
     if basis is None:
         raise EarthingError("no earthing basis: set design_basis.earthing (earthing_design does)")
@@ -195,7 +262,26 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
     else:
         main = DEFAULT_SIZE
         assumptions.append(f"conductor {DEFAULT_SIZE} GS flat: no fault current and clearing time given, so the size is not verified")
-    sizes = Sizes(main=main, array=main, equipment=main, grid=main, down=DOWN_SIZE)
+    array = main
+    array_fault = None
+    if fault:
+        array_fault = _array_fault(project, catalog or _default_catalog(), basis)
+        if array_fault is not None:
+            a_area = conductor_area(array_fault.value / 1000, basis.fault_clearing_s, basis.corrosion_allowance).model_copy(update={"name": "array_conductor_area"})
+            a_cross = ieee80_area(array_fault.value / 1000, basis.fault_clearing_s).model_copy(update={"name": "array_ieee80_area"})
+            thermal = select_flat(max(a_area.value, a_cross.value))
+            floor = FLAT_BY_NAME[ARRAY_MIN_SIZE]
+            array = max((thermal, floor), key=lambda f: (f.area_mm2, f.width_mm)).name
+            array = min(array, main, key=lambda n: FLAT_BY_NAME[n].area_mm2)
+            steps += [array_fault, a_area, a_cross]
+            assumptions.append(
+                f"table-row (MMS) conductors {array} GS flat: the larger of the thermal size for the inverter fault contribution {array_fault.value:,.0f} A and the "
+                f"{ARRAY_MIN_SIZE} rail earthing of the CIL/Refex reference layouts, never above the main conductor; main ring, station and switchyard conductors keep "
+                f"the plant fault size {main}"
+            )
+        else:
+            assumptions.append("no inverter in the network: table-row conductors are sized for the plant earth fault like the main conductor")
+    sizes = Sizes(main=main, array=array, equipment=main, grid=main, down=DOWN_SIZE)
     assumptions.append(f"{DOWN_SIZE} GS flat down conductors (practice; confirm against IS/IEC 62305-3 and NF C 17-102 minimum sections)")
     rooftop = is_rooftop(project)
     if lps is None and project.design_basis.lps is not None:
@@ -214,10 +300,8 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
             warnings.append(SWITCHYARD_UNKNOWN)
         else:
             layout = project.array_layout
-            stations = [(b.station.x, b.station.y) for b in layout.blocks if b.station is not None] if layout is not None else []
-            near = (sum(p[0] for p in stations) / len(stations), sum(p[1] for p in stations) / len(stations)) if stations else None
+            near = switchyard_near(project)
             if layout is not None and layout.switchyard is not None:
-                near = (layout.switchyard.at.x, layout.switchyard.at.y)
                 assumptions.append(f"MV switchyard earth grid centred on the layout's switchyard location ({layout.switchyard.basis})")
             yard, problem = place_switchyard(project, basis.switchyard_m or (0.0, 0.0), near)
             if problem:
@@ -244,8 +328,7 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
         need_r = 0 if g_need <= 0 else math.ceil(electrode.value * g_need)
         cap, need_i = None, 0
         if fault:
-            buried = sum(r.length_m for r in lay.runs if r.buried)
-            cap = strip_current(rho, basis.fault_clearing_s, buried, FLAT_BY_NAME[main].width_mm, FLAT_BY_NAME[main].thickness_mm)
+            cap = _strip_capacity(lay, rho, basis.fault_clearing_s)
             need_i = math.ceil(max(0.0, basis.fault_current_ka * 1000 - cap.value) / per.value)
         return rest, gov, rg, n, need_r, need_i, cap
 
@@ -284,19 +367,22 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
         if grid.e_s > grid.gpr or grid.e_mesh > grid.gpr:
             warnings.append(f"IEEE 80 step {grid.e_s:,.0f} V or mesh {grid.e_mesh:,.0f} V exceeds the GPR {grid.gpr:,.0f} V: the grid geometry is outside the equations' range")
     elif yard is not None:
-        spacing = GRID_SPACING_DEFAULT_M
-        assumptions.append(f"switchyard grid mesh {spacing:g} m (typical spacing on the CIL/Refex earthmat layout; no fault data to check touch and step voltage)")
+        assumptions.append(f"switchyard grid conductors {spacing:g} m apart (typical spacing on the CIL/Refex earthmat layout; no fault data to check touch and step voltage)")
+    mesh = _grid(basis, main, yard, rods(lay), spacing).mesh if yard is not None else None
     assumptions.append(f"earth resistance: {gov.method}")
     if yard is None and rest.network_limit is not None and rest.network_limit > target:
         warnings.append(f"the buried network's area limits the earth resistance to about {rest.network_limit:.3g} ohm, above the {target:g} ohm target; more pits barely help")
     on_ground = sum(1 for p in lay.pits if p.on_ground)
+    needed = max(need_r, need_i)
+    governing = GOVERNING_PRACTICE if needed <= n0 else GOVERNING_CURRENT if need_i >= need_r else GOVERNING_RESISTANCE
     if on_ground < max(need_r, need_i):
         warnings.append(f"only {on_ground} pits fit at two electrode lengths apart; {max(need_r, need_i)} are needed")
     warnings += lay.warnings
     bonded = bonding(lay)
     return EarthingDesign(
         basis=basis, rooftop=rooftop, sizes=sizes, steps=tuple(steps), electrode=electrode, strip=gov.strip, resistance_ohm=round(gov.value, 4), target_ohm=target,
-        pits_by_resistance=need_r, pits_by_current=need_i if fault else None, grid=grid, grid_spacing_m=spacing, layout=lay, lps=lps,
+        pits_by_resistance=need_r, pits_by_current=need_i if fault else None, pits_by_practice=n0, pits_governing=governing, array_fault=array_fault, grid=grid, grid_spacing_m=mesh,
+        layout=lay, lps=lps,
         quantities=quantities(lay, basis, sizes, lps), bonded=bonded, assumptions=tuple(assumptions + list(lps.assumptions if lps else ())), warnings=tuple(warnings),
         resistance_method=gov.method, resistance_parts=gov.parts, split_factor=sf, rest_ohm=round(rest.value, 4) if yard is not None else None,
         switchyard_unsized=unsized,
@@ -332,15 +418,24 @@ def quantities(lay: EarthingLayout, basis: EarthingBasis, sizes: Sizes, lps: Lps
     return tuple(out)
 
 
+def conductor_mass_kg(lay: EarthingLayout) -> float:
+    """Steel mass of all conductors from their cross-sections (galvanising ignored)."""
+    return sum(r.length_m * FLAT_BY_NAME[r.size].area_mm2 * 1e-6 * STEEL_KG_PER_M3 for r in lay.runs)
+
+
 def summary(d: EarthingDesign) -> dict:
     lay = d.layout
     out = {
         "rooftop": d.rooftop,
         "conductor": {"main": d.sizes.main, "array": d.sizes.array, "equipment": d.sizes.equipment, "down": d.sizes.down},
+        "array_fault_current_a": d.array_fault.value if d.array_fault is not None else None,
+        "conductor_mass_t": round(conductor_mass_kg(lay) / 1000, 1),
         "pits": len(lay.pits),
         "pits_by_role": {r.value: sum(1 for p in lay.pits if p.role is r) for r in PitRole if any(p.role is r for p in lay.pits)},
+        "pits_by_practice": d.pits_by_practice,
         "pits_needed_by_resistance": d.pits_by_resistance,
         "pits_needed_by_current": d.pits_by_current,
+        "pits_governing_criterion": d.pits_governing,
         "electrode_resistance_ohm": d.electrode.value,
         "resistance_ohm": d.resistance_ohm,
         "resistance_method": d.resistance_method,
@@ -370,4 +465,4 @@ def summary(d: EarthingDesign) -> dict:
     return out
 
 
-__all__ = ["EarthingDesign", "EarthingError", "Value", "design_earthing", "pit_text", "summary"]
+__all__ = ["EarthingDesign", "EarthingError", "Value", "conductor_mass_kg", "design_earthing", "pit_text", "summary"]

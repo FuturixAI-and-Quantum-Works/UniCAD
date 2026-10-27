@@ -28,13 +28,14 @@ def _lps_json(d) -> dict[str, Any]:
     return {
         "method": d.method, "level": d.level, "radius_m": d.radius_m, "mast_height_m": d.mast_height_m,
         "terminals": [{"tag": t.tag, "x": t.at.x, "y": t.at.y, "on_roof": t.on_roof} for t in d.terminals[:LIST_CAP]],
-        "terminal_count": len(d.terminals), "tables_covered": ok, "tables": n, "uncovered": [t.id for t in d.uncovered[:LIST_CAP]],
+        "terminal_count": len(d.terminals), "tables_covered": ok, "tables": n, "coverage": [{"class": c.label, "covered": c.covered, "total": c.total} for c in d.coverage()],
+        "uncovered": [t.id for t in d.uncovered[:LIST_CAP]],
         "uncovered_count": len(d.uncovered), "steps": [s.model_dump() for s in d.steps], "assumptions": list(d.assumptions),
     }  # fmt: skip
 
 
 def _brief(s: dict[str, Any]) -> dict[str, Any]:
-    return {k: s[k] for k in ("conductor", "pits", "pits_by_role", "resistance_ohm", "resistance_method", "target_ohm", "tables", "items", "unbonded", "quantities", "warnings") if k in s} | (
+    return {k: s[k] for k in ("conductor", "array_fault_current_a", "conductor_mass_t", "pits", "pits_by_role", "pits_by_practice", "pits_needed_by_resistance", "pits_needed_by_current", "pits_governing_criterion", "resistance_ohm", "resistance_method", "target_ohm", "tables", "items", "unbonded", "quantities", "warnings") if k in s} | (
         {"switchyard_grid": s["switchyard_grid"]} if "switchyard_grid" in s else {}
     )
 
@@ -80,7 +81,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             if "soil_resistivity_ohm_m" not in data:
                 raise ValueError("soil_resistivity is required: the design basis has no soil resistivity yet")
             updated = _with(ws, p, earthing=EarthingBasis(**data))
-            s = summary(design_earthing(updated))
+            s = summary(design_earthing(updated, catalog=ws.catalog))
             return Edit(updated, ("design_basis.earthing",), {"earthing": _brief(s) | {"assumptions": s["assumptions"]}})
 
         return ws.mutate(project_id, change)
@@ -97,7 +98,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         protected_height_m: Annotated[float | None, Field(ge=0, description="Height in metres to protect for rods (table top or roof plant)")] = None,
     ) -> dict[str, Any]:
         """Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
-        inverter station and roof corner inside a protection zone, and prove it. ESE follows NF C 17-102, a French standard used in Indian
+        inverter station, MV switchyard, BESS unit, string inverter and building inside a protection zone, and prove it with covered / total per
+        class. The catalog has no dimensions, so stations and placed equipment are covered over an assumed footprint (stated in the assumptions). ESE follows NF C 17-102, a French standard used in Indian
         EPC practice; rods use the IS/IEC 62305 rolling sphere of the level.
 
         Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=60, mast_height_m=6)."""
@@ -124,5 +126,5 @@ def register(server: MCPServer, ws: Workspace) -> None:
         if p.design_basis.lps is not None:
             out["lps"] = _lps_json(design_lps(p))
         if p.design_basis.earthing is not None:
-            out["earthing"] = summary(design_earthing(p))
+            out["earthing"] = summary(design_earthing(p, catalog=ws.catalog))
         return out

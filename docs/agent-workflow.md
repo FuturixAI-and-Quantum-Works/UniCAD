@@ -632,9 +632,15 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
   "revision": 10,
   "earthing": {
     "conductor": {"main": "25x6", "array": "25x6", "equipment": "25x6", "down": "25x3"},
+    "array_fault_current_a": 400.0,
+    "conductor_mass_t": 0.8,
     "pits": 4,
     "pits_by_role": {"EP": 4},
-    "resistance_ohm": 0.6924,
+    "pits_by_practice": 4,
+    "pits_needed_by_resistance": 0,
+    "pits_needed_by_current": 0,
+    "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
+    "resistance_ohm": 0.6957,
     "resistance_method": "pits in parallel with each other and with the buried conductor (IS 3043)",
     "target_ohm": 2.0,
     "tables": 22,
@@ -650,19 +656,19 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 366.0,
+        "quantity": 428.0,
         "unit": "m"
       },
       {
         "item": "flat.25x6.array",
         "description": "25x6 MM GS FLAT - MMS / TABLE ROW EARTHING",
-        "quantity": 322.0,
+        "quantity": 254.0,
         "unit": "m"
       },
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 20.0,
+        "quantity": 23.0,
         "unit": "m"
       },
       "... 1 more"
@@ -673,7 +679,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       "pits spaced at least two electrode lengths apart are combined as parallel resistances, in parallel with the...",
       "conductor sized to the larger of the IS 3043 (k = 80) and IEEE 80 (Kf = 28.96) cross-sections",
       "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
-      "... 5 more"
+      "... 6 more"
     ]
   }
 }
@@ -705,10 +711,18 @@ lps_design(
     "terminal_count": 1,
     "tables_covered": 22,
     "tables": 22,
+    "coverage": [
+      {"class": "tables", "covered": 22, "total": 22},
+      {"class": "inverter stations", "covered": 1, "total": 1},
+      {"class": "string inverters", "covered": 2, "total": 2},
+      {"class": "roofs", "covered": 2, "total": 2}
+    ],
     "uncovered": [],
     "uncovered_count": 0,
     "assumptions": [
-      "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise a..."
+      "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise a...",
+      "equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer)...",
+      "terminals keep 1.5 m clear of every table (room for the mast foundation and its lightning earth pit; assume..."
     ]
   },
   "problems": []

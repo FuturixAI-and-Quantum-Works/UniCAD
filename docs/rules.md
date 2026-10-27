@@ -291,11 +291,13 @@ that reaches an earth pit. Projects without an earthing basis are not checked. N
 
 ## lps
 
-### `lps.coverage`: Lightning terminals cover every table, station and roof
+### `lps.coverage`: Lightning terminals cover every table, station, switchyard, BESS unit and building
 
 Standard: IS/IEC 62305; NF C 17-102 for ESE. Segments: all.
 
-Each table centroid and corner, inverter station and (on rooftop projects) roof corner must lie within the protection radius of
-a terminal: the ESE radius Rp of NF C 17-102 (a French standard) from the datasheet value or dT and mast height, or for
-conventional air terminals the rolling-sphere radius of the protection level (IS/IEC 62305). Terminals are placed by a greedy
-set cover over free positions; points left outside every zone are errors. Projects without a lightning basis are not checked.
+Each table centroid and corner, inverter station, MV switchyard, BESS unit, string inverter and building (roof corners on rooftop projects)
+must lie within the protection radius of a terminal: the ESE radius Rp of NF C 17-102 (a French standard) from the datasheet value or dT and
+mast height, or for conventional air terminals the rolling-sphere radius of the protection level (IS/IEC 62305). The switchyard and each piece
+of placed equipment are covered over an assumed footprint (the catalog has no dimensions); the finding lists covered over total per class.
+Terminals are placed by a greedy set cover over free positions clear of the tables, stations, switchyard and BESS units; points left outside
+every zone are errors. Projects without a lightning basis are not checked.

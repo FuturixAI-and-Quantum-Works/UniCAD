@@ -29,7 +29,7 @@ from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
 from unicad.drafting.site_plan.sheet import SCALES, EquipmentArea, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale
 from unicad.earthing import ConductorRole, EarthingDesign, PitRole, pit_text
-from unicad.earthing.design import ROLE_TEXT
+from unicad.earthing.design import GOVERNING_CURRENT, GOVERNING_PRACTICE, GOVERNING_RESISTANCE, ROLE_TEXT
 from unicad.earthing.layout import StationGroup
 from unicad.earthing.sizing import FLAT_BY_NAME
 from unicad.lps import LpsDesign
@@ -67,6 +67,7 @@ PIT_DESC = {
     PitRole.ELA: "LIGHTNING / SURGE ARRESTER (UNTREATED)",
     PitRole.LE: "LIGHTNING PROTECTION (UNTREATED)",
 }
+GOVERNING_SHORT = {GOVERNING_PRACTICE: "EQUIPMENT / ROW PRACTICE", GOVERNING_RESISTANCE: "EARTH RESISTANCE TARGET", GOVERNING_CURRENT: "IS 3043 CURRENT DENSITY"}
 L_PIT = "E-PIT"
 L_PIT_TAG = "E-PIT-TAG"
 L_EQUIP = "E-EQUIPMENT"
@@ -301,6 +302,7 @@ class EarthingSheetWriter(_Writer):
         grouped = {t for g in groups for t in g.pits}
         sq = max(0.25 * th, 1.2 * P.k)
         terminals: dict[str, tuple[float, float]] = {}
+        placed: dict[str, tuple[float, float, str]] = {}
         for it in lay.items:
             x, y = P(it.at.x, it.at.y)
             if it.kind in ("ese", "air_terminal"):
@@ -309,7 +311,10 @@ class EarthingSheetWriter(_Writer):
                 terminals[it.tag] = (x, y)
                 continue
             self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
+            if it.placed:
+                placed[it.id] = (x, y, it.tag)
         at_mast: dict[str, str] = {}
+        at_item: dict[str, list[str]] = defaultdict(list)
         drawn = []
         for p in lay.pits:
             if p.tag in grouped:
@@ -321,6 +326,10 @@ class EarthingSheetWriter(_Writer):
                 continue
             self._pit_symbol(x, y, r, p.role)
             self.placer.block(Region(x - r, y - r, x + r, y + r))
+            own = placed.get(p.serves[0]) if p.serves else None
+            if own is not None and math.dist(own[:2], (x, y)) < 1.2 * th:
+                at_item[p.serves[0]].append(p.tag)
+                continue
             drawn.append((p, x, y))
         tag_h = 0.5 * th
         for g in groups:
@@ -343,6 +352,9 @@ class EarthingSheetWriter(_Writer):
         for tag, (x, y) in terminals.items():
             text = f"{tag} ({at_mast[tag]})" if tag in at_mast else tag
             self._label_text([text], (x, y), 0.55 * th, 0.99 * th, tag, layer=L_PIT_TAG, colour=LPS_COLOUR, mask=True)
+        for iid, (x, y, tag) in placed.items():
+            text = f"{tag} ({', '.join(at_item[iid])})" if iid in at_item else tag
+            self._label_text([text], (x, y), 0.5 * th, sq, iid, layer=L_PIT_TAG, mask=True)
         for p, x, y in drawn:
             colour = LE_COLOUR if p.role is PitRole.LE else PIT_COLOUR[p.role.treated]
             self._label_text([p.tag], (x, y), tag_h, r, p.tag, layer=L_PIT_TAG, colour=colour, mask=True)
@@ -366,6 +378,8 @@ class EarthingSheetWriter(_Writer):
         by_tag = {p.tag: p for p in self.e.layout.pits}
         out = []
         for g in self.e.layout.stations:
+            if g.kind != "station":
+                continue
             pts = [(by_tag[t].at.x, by_tag[t].at.y) for t in g.pits]
             if len(pts) < 2:
                 continue
@@ -513,12 +527,15 @@ class EarthingSheetWriter(_Writer):
                 ("A = I x SQRT(t) / k, k = 80 (GI, IS 3043)", f"{area.value:g} mm2"),
                 ("IEEE 80 CROSS-CHECK (Kf 28.96)", f"{cross.value:g} mm2"),
             ]
-        rows.append(("CONDUCTOR SELECTED", f"{e.sizes.main} GS FLAT ({FLAT_BY_NAME[e.sizes.main].area_mm2:g} mm2)"))
-        rows.append(("R PIT = 100 RHO/(2 PI L) LN(4L/d)", f"{e.electrode.value:g} OHM"))
-        if e.pits_by_current is not None:
-            rows.append(("PITS PROVIDED / NEEDED BY CURRENT DENSITY", f"{e.pit_count} / {e.pits_by_current}"))
+        if e.sizes.array != e.sizes.main:
+            rows.append(("CONDUCTOR: MAIN / TABLE ROWS (INVERTER FAULT)", f"{e.sizes.main} / {e.sizes.array} GS FLAT"))
         else:
-            rows.append(("PITS PROVIDED", f"{e.pit_count}"))
+            rows.append(("CONDUCTOR SELECTED", f"{e.sizes.main} GS FLAT ({FLAT_BY_NAME[e.sizes.main].area_mm2:g} mm2)"))
+        rows.append(("R PIT = 100 RHO/(2 PI L) LN(4L/d)", f"{e.electrode.value:g} OHM"))
+        need = max(e.pits_by_practice, e.pits_by_resistance, e.pits_by_current or 0)
+        by = f"{e.pits_by_resistance}" if e.pits_by_current is None else f"{e.pits_by_resistance} / {e.pits_by_current}"
+        rows.append((f"PITS PROVIDED / REQUIRED BY {GOVERNING_SHORT[e.pits_governing]}", f"{e.pit_count} / {need}"))
+        rows.append(("PITS BY RESISTANCE" + ("" if e.pits_by_current is None else " / CURRENT DENSITY"), by))
         rows.append(("EARTH RESISTANCE / TARGET", f"{e.resistance_ohm:.3g} / {e.target_ohm:g} OHM"))
         if e.grid is not None:
             g = e.grid
@@ -653,15 +670,15 @@ class LpsSheetWriter(_Writer):
             self.cv.put(TXT, Region(panel.x0, y - 1.8 * th, panel.x1, y), f"... AND {len(rows) - len(shown)} MORE (SEE MODEL / earthing_summary)", 0.6 * th, valign="middle")
             y -= 1.8 * th
         y -= 1.5 * th
-        n_tab = sum(1 for t in d.targets if t.kind == "table")
         step = d.steps[-1]
         rows2 = [("METHOD", "ESE, NF C 17-102 (FRENCH STANDARD)" if d.method == "ese" else "ROLLING SPHERE, IS/IEC 62305-3"),
                  ("PROTECTION LEVEL / SPHERE RADIUS", f"LPL {d.level} / {d.steps[0].value:g} m"),
                  ("PROTECTION RADIUS", f"{d.radius_m:g} m ({step.formula})" if len(d.steps) > 1 else f"{d.radius_m:g} m (DATASHEET)")]
         if d.mast_height_m is not None:
             rows2.append(("TERMINAL HEIGHT ABOVE PROTECTED PLANE", f"{d.mast_height_m:g} m"))
-        rows2 += [("TERMINALS", f"{len(d.terminals)} NOS."), ("TABLES COVERED", f"{n_tab - sum(1 for t in d.uncovered if t.kind == 'table')} OF {n_tab}"),
-                  ("ALL POINTS COVERED (TABLE CENTRES, CORNERS, STATIONS, ROOFS)", "YES" if d.covered_all else f"NO, {len(d.uncovered)} OUTSIDE")]  # fmt: skip
+        rows2 += [("TERMINALS", f"{len(d.terminals)} NOS.")]
+        rows2 += [(f"{c.label.upper()} COVERED", f"{c.covered} OF {c.total}") for c in d.coverage()]
+        rows2.append(("ALL TARGETS COVERED", "YES" if d.covered_all else f"NO, {len({t.group for t in d.uncovered})} OUTSIDE"))
         self._table(Region(panel.x0, panel.y0, panel.x1, y), "LIGHTNING PROTECTION COVERAGE", ("PARAMETER", "VALUE"), (0.55, 0.45), rows2, 0.62 * th, row_h=2.4 * th, head_h=2.0 * th)
 
 
@@ -708,7 +725,7 @@ def lps_notes(lps: LpsDesign) -> tuple[str, ...]:
         "THE CIRCLES SHOW THE PROTECTION RADIUS OF EACH TERMINAL AT THE PROTECTED PLANE.",
         "TERMINAL POSITIONS ARE INDICATIVE; KEEP THEM IN ROW GAPS, ROADS OR FREE ROOF AREA.",
         "EACH TERMINAL HAS ITS OWN DOWN CONDUCTOR AND LIGHTNING EARTH PIT (LE), BONDED TO THE MAIN EARTH NETWORK.",
-        "EVERY TABLE CENTRE AND CORNER, INVERTER STATION AND ROOF CORNER LIES INSIDE A PROTECTION CIRCLE (CHECKED BY RULE lps.coverage).",
+        "EVERY TABLE CENTRE AND CORNER, STATION, MV SWITCHYARD, BESS UNIT, STRING INVERTER AND BUILDING LIES INSIDE A PROTECTION CIRCLE (CHECKED BY RULE lps.coverage).",
     ]
     notes += [f"ASSUMPTION: {a.upper()}." for a in lps.assumptions]
     return tuple(notes)

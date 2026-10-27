@@ -19,14 +19,14 @@ CLAUSE = "IS 3043"
 _CACHE: list[tuple[Project, EarthingDesign]] = []
 
 
-def design_for(project: Project) -> EarthingDesign | None:
+def design_for(project: Project, catalog: Catalog | None = None) -> EarthingDesign | None:
     """The project's earthing design, computed once per project object across the rules of one run."""
     if project.design_basis.earthing is None:
         return None
     for p, d in _CACHE:
         if p is project:
             return d
-    d = design_earthing(project)
+    d = design_earthing(project, catalog=catalog)
     _CACHE[:] = [*_CACHE[-3:], (project, d)]
     return d
 
@@ -53,7 +53,7 @@ def conductor_size(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """The adiabatic minimum cross-section A = I sqrt(t) / k (k = 80 for galvanised steel, IS 3043) for the design earth fault current and
     clearing time, raised by any corrosion allowance, is compared with the GS flat chosen for each conductor role. The IEEE 80 Kf value
     for zinc-coated steel is reported as a cross-check. Without fault data the size is reported as unverified."""
-    d = design_for(project)
+    d = design_for(project, catalog)
     if d is None:
         return
     area = next((s for s in d.steps if s.name == "conductor_area"), None)
@@ -61,13 +61,17 @@ def conductor_size(project: Project, catalog: Catalog) -> Iterator[Finding]:
         yield Finding(rule_id="earthing.conductor_size", severity=Severity.WARNING, subjects=(), message=f"no earth fault current and clearing time: the {d.sizes.main} GS flat is not verified")
         return
     cross = next(s for s in d.steps if s.name == "ieee80_area")
+    arr_area = next((s for s in d.steps if s.name == "array_conductor_area"), None)
+    arr_cross = next((s for s in d.steps if s.name == "array_ieee80_area"), None)
     for role, size in (("main", d.sizes.main), ("array", d.sizes.array), ("equipment", d.sizes.equipment)):
+        need, check = (arr_area, arr_cross) if role == "array" and arr_area is not None and arr_cross is not None else (area, cross)
         have = FLAT_BY_NAME[size].area_mm2
-        ok = have >= area.value
+        ok = have >= need.value
+        on = f" for the inverter fault contribution {d.array_fault.value:,.0f} A" if need is arr_area and d.array_fault is not None else ""
         yield Finding(
             rule_id="earthing.conductor_size", severity=Severity.INFO if ok else Severity.ERROR, subjects=(f"conductor.{role}",),
-            message=f"{role} conductor {size} GS flat {have:g} mm2 {'covers' if ok else 'is below'} the {area.value:g} mm2 needed (IEEE 80 cross-check {cross.value:g} mm2)",
-            measured=area.value, limit=have, unit="mm2", formula=area.formula, inputs=_inputs(area), assumptions=area.assumptions,
+            message=f"{role} conductor {size} GS flat {have:g} mm2 {'covers' if ok else 'is below'} the {need.value:g} mm2 needed{on} (IEEE 80 cross-check {check.value:g} mm2)",
+            measured=need.value, limit=have, unit="mm2", formula=need.formula, inputs=_inputs(need), assumptions=need.assumptions,
         )  # fmt: skip
 
 
@@ -76,7 +80,7 @@ def electrode_resistance(project: Project, catalog: Catalog) -> Iterator[Finding
     """Each pit's resistance R = 100 rho / (2 pi L) ln(4 L / d) (IS 3043, L and d in cm); pits two electrode lengths apart combine in
     parallel, and in parallel with the buried conductor R = 100 rho / (2 pi L) ln(2 L^2 / (w t)). The total is compared with the
     target resistance, and the pit count with the count the IS 3043 surface current density needs for the fault current."""
-    d = design_for(project)
+    d = design_for(project, catalog)
     if d is None:
         return
     ok = d.resistance_ohm <= d.target_ohm
@@ -107,7 +111,7 @@ def touch_step(project: Project, catalog: Catalog) -> Iterator[Finding]:
     touch voltage passes without the mesh check. The grid current is the earth fault current times the split factor
     Sf = R_rest / (Rg + R_rest) between the grid and the rest of the plant earth; GPR, mesh and step voltage all use it. Without a
     switchyard size (switchyard_m or a marked area) the check is not done and a warning says so."""
-    d = design_for(project)
+    d = design_for(project, catalog)
     if d is not None and d.switchyard_unsized:
         yield Finding(rule_id="earthing.touch_step", severity=Severity.WARNING, subjects=("switchyard",), message=SWITCHYARD_UNKNOWN)
         return
@@ -118,7 +122,8 @@ def touch_step(project: Project, catalog: Catalog) -> Iterator[Finding]:
         ok = g.gpr <= g.e_touch or got <= lim
         yield Finding(
             rule_id="earthing.touch_step", severity=Severity.INFO if ok else Severity.ERROR, subjects=("switchyard",),
-            message=f"switchyard grid {d.grid_spacing_m:g} m mesh: {what} voltage {got:,.0f} V against {lim:,.0f} V tolerable (GPR {g.gpr:,.0f} V)",
+            message=f"switchyard grid {d.grid_spacing_m:g} m mesh: {what} voltage {got:,.0f} V against {lim:,.0f} V tolerable (GPR {g.gpr:,.0f} V)"
+            + ("" if ok or d.grid_spacing_m > 2.5 else f"; {d.grid_spacing_m:g} m is the finest mesh tried: add a surface layer (surface_resistivity, surface_layer_m), more rods or a larger grid"),
             measured=round(got, 1), limit=round(lim, 1), unit="V", formula="Em = rho Km Ki IG / LM; Es = rho Ks Ki IG / LS",
             inputs=(
                 Quantity(name="rho", value=d.basis.soil_resistivity_ohm_m, unit="ohm m", source=BASIS + "soil_resistivity_ohm_m"),
@@ -139,7 +144,7 @@ def every_equipment_bonded(project: Project, catalog: Catalog) -> Iterator[Findi
     """Every table (MMS) must be crossed by a row conductor, and every inverter, SCB, transformer, panel, switchgear item, arrester and
     lightning terminal must end the number of conductors it needs (two distinct connections for equipment) on a conductor network
     that reaches an earth pit. Projects without an earthing basis are not checked. Network equipment without an earth (pe) connection in the electrical model is reported as a warning."""
-    d = design_for(project)
+    d = design_for(project, catalog)
     if d is None:
         return
     need = {it.id: (it.connections, it.tag) for it in d.layout.items} | {t: (1, t) for t in d.layout.tables}

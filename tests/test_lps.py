@@ -77,7 +77,7 @@ def test_ground_terminals_stand_off_the_tables():
     d = design_lps(p)
     tables = [Polygon(table_corners(t)) for t in p.array_layout.table_by_id.values()]
     assert not any(poly.contains(Point(t.at.x, t.at.y)) for t in d.terminals for poly in tables)
-    assert len(d.terminals) <= 37  # 44 with greedy cover alone on the 24 m grid before the local search
+    assert len(d.terminals) <= 40  # 44 with greedy cover alone on the 24 m grid before the local search; 37 before the 1.5 m mast clearance and the pooling switchyard cover
 
 
 def test_rooftop_terminals_sit_on_the_roofs():
