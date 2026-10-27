@@ -6,6 +6,7 @@
     {
       "cross_refs": [],
       "cut_edges": [],
+      "drawing_scale": "NTS",
       "files": {
         "dwg": null,
         "dxf": "01-UDEMO-DIPL-RT500-EE-001.dxf",
@@ -13,6 +14,7 @@
       },
       "id": "sld",
       "kind": "sld",
+      "kind_sheet_of": "1 of 1",
       "nodes": [
         "ac_iso",
         "ac_spd",
