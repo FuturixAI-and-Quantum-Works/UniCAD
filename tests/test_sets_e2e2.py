@@ -12,7 +12,9 @@ from test_design import CATALOG
 
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project
+from unicad.drafting.sld.annotate import system_parameters
 from unicad.drafting.string_diagram import build_string_diagram_sheets
+from unicad.rules.ratio import plant_capacity
 from unicad.mcp import Config, build_server
 from unicad.sets.numbering import Numberer
 from unicad.sets.strings import StringsBuilder
@@ -265,3 +267,13 @@ def test_n1_strings_render_for_a_rooftop_with_one_inverter_per_block():
     assert max(drawn.values()) == 1
     planned = StringsBuilder().plan(project, profile, CATALOG, Numberer.for_project(project, profile))
     assert [s.paper for s in planned] == [r.paper.value for r in sheets]
+
+
+def test_n5_hybrid_system_parameters_count_pv_inverters_only_as_the_ratio_rule_does():
+    project, _ = scenario("kutch-hybrid")
+    rows = dict(system_parameters(project, CATALOG))
+    dc, ac = plant_capacity(project, CATALOG)
+    assert rows["DC / AC RATIO"] == f"{dc / ac:.2f}" == "1.09"
+    assert rows["AC CAPACITY (INVERTER RATED)"] == "20.064 MVA"
+    assert rows["INVERTERS"] == "57 x 352 kVA (SUNGROW SG350HX)"
+    assert rows["BESS PCS"].startswith("4 x 2.52 MVA (SUNGROW ST5015")
