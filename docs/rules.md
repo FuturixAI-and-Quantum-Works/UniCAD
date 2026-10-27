@@ -53,6 +53,14 @@ Standard: none (design practice). Segments: all.
 
 Strings, inverters, PCS, batteries and transformers need a catalog spec (and strings a module count) for the engineering rules to run, and breakers, vacuum breakers and fuses one so their current and breaking capacity can be checked against the design current and the prospective fault: missing ones are errors. Isolators, SPDs and meters without a spec cannot be rating-checked: warnings.
 
+### `structure.bess_separation`: BESS units stand outside the switchyard with a fire separation
+
+Standard: none (design practice). Segments: all.
+
+Battery containers, PCS and BESS transformers placed on the layout must stand outside the MV switchyard earth mat and at least BESS_SEPARATION_M from
+its edge (see the assumption for the source). Checked when the switchyard size is known (switchyard_m or a marked area): error when closer, with the
+re-run that moves them (network_autobuild places BESS units clear of the switchyard).
+
 
 ## pv_strings
 

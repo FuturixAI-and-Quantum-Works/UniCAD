@@ -96,6 +96,8 @@ class PlacementSpec(_Frozen):
     road_every_rows: int | None = Field(default=None, gt=0)
     road_width_m: float = Field(default=6.0, gt=0)
     walkway_every_tables: int | None = Field(default=None, gt=0)
+    row_walkway_every_rows: int | None = Field(default=None, gt=0, description="leave a maintenance walkway after every N rows; on roofs default 2 when the row gap is narrower than a walkway")
+    row_walkway_m: float = Field(default=0.6, gt=0, description="clear width of the walkway between rows")
     walkway_width_m: float = Field(default=4.0, gt=0)
     setbacks: Setbacks | None = None
     regions: Literal["auto", "ground", "roofs"] = "auto"

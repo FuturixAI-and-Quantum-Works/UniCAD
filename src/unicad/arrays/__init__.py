@@ -159,7 +159,7 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
         area_used_m2=round(used, 1), strings=len(strings), unstrung_modules=unstrung,
         block_balance=round((max(caps) - min(caps)) / mean, 5) if mean else 0.0,
     )  # fmt: skip
-    assumptions = spec.assumptions()
+    assumptions = spec.assumptions() + list(placed.assumptions)
     if yard is not None:
         assumptions.append(f"{'MV switchyard' if not on_roofs else 'Main LT panel / switchyard'} at local ({yard.at.x:.1f}, {yard.at.y:.1f}): {yard.basis}; cable routing and earthing use this location")
     if any(b.station is not None for b in blocks) and spec.station is None and not on_roofs:

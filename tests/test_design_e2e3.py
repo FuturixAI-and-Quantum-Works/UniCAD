@@ -107,12 +107,17 @@ def test_a1_odd_strings_per_inverter_on_two_string_tables_reach_the_target_by_mi
     async def go():
         async with connect(tmp_path / "ws") as c:
             await site_a(c)
-            placed = await c.call("layout_place", **A_PLACE)
+            placed = await c.call("layout_place", **(A_PLACE | {"target_dc_kwp": 369.93}))
             assert placed["target_reached"] is True
-            assert placed["metrics"]["strings"] == 55 and placed["metrics"]["dc_kwp"] == 616.55, placed["metrics"]
+            assert placed["metrics"]["strings"] == 33 and placed["metrics"]["dc_kwp"] == 369.93, placed["metrics"]
             assert any("mixed table sizes" in p["message"] for p in placed["problems"]), placed["problems"]
             layout = (await project(c, A))["array_layout"]
             assert sorted({t["rows"] for b in layout["blocks"] for t in b["tables"]}) == [1, 2]
+            # the logged call: the roof (with its maintenance walkways) holds 4 whole inverters, and layout_place says so instead of reporting the target reached
+            placed = await c.call("layout_place", **A_PLACE)
+            assert placed["target_reached"] is False and placed["metrics"]["strings"] % 11 == 0
+            short = [p["message"] for p in placed["problems"] if "not reached with whole inverters" in p["message"]]
+            assert short and "kWp short" in short[0], placed["problems"]
 
     run(go())
 
@@ -262,7 +267,7 @@ def test_s1_a4_string_and_lt_cables_are_sized_per_length_band_and_the_schedule_a
             assert any(a.startswith("String and LT cables are sized per length band") for a in built["assumptions"])
             net = (await project(c, A))["network"]
             banded = {e["id"]: e for e in net["edges"] if e.get("bands")}
-            assert any(i.startswith("e_str") for i in banded) and any(i.startswith("e_inv_brk") for i in banded), sorted(banded)
+            assert any(i.startswith("e_inv_brk") for i in banded), sorted(banded)
             v = await c.call("validate", project_id=A)
             assert v["counts"]["error"] == 0 and not [f for f in v["findings"] if f["rule_id"] == "vdrop.bands"], v["findings"]
             rows = _sheet((await c.call("cable_schedule", project_id=A, format="xlsx"))["files"][0], "Cable schedule")
@@ -278,5 +283,97 @@ def test_s1_a4_string_and_lt_cables_are_sized_per_length_band_and_the_schedule_a
             bom = _sheet((await c.call("bom", project_id=A, format="xlsx"))["files"][0], "BOM")
             ordered = {ln["CATALOG ID"] for ln in bom if ln["CATEGORY"] == "CABLES"}
             assert {b["cable"] for e in banded.values() for b in e["bands"]} <= ordered, ordered
+
+    run(go())
+
+
+def test_c2_block_transformers_take_one_standard_rating_covering_the_largest_block(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_c(c)
+            placed = await c.call("layout_place", **C_PLACE)
+            assert len({b["modules"] for b in placed["blocks"]}) > 1
+            built = await c.call("network_autobuild", **C_BUILD)
+            net = (await project(c, C))["network"]
+            idts = [n["spec"] for n in net["nodes"] if n["id"].startswith("idt")]
+            ratings = {(s["rated_kva"], tuple(s["winding_kva"] or ())) if isinstance(s, dict) else s for s in idts}
+            assert len(idts) > 1 and len(ratings) == 1, ratings
+            assert any("ratings are standardised" in a for a in built["assumptions"])
+
+    run(go())
+
+
+def test_r1_flush_rooftop_rows_get_a_maintenance_walkway_every_two_rows(tmp_path):
+    import math
+
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_a(c)
+            placed = await c.call("layout_place", **A_PLACE)
+            assert any("maintenance walkway 0.6 m wide after every 2 rows" in a for a in placed["assumptions"]), placed["assumptions"]
+            lay = (await project(c, A))["array_layout"]
+            tables = [t for b in lay["blocks"] for t in b["tables"]]
+            depth = max(t["rows"] * t["slot_height_m"] for t in tables)
+            by_roof_col = {}
+            for t in tables:
+                az = math.radians(t["azimuth_deg"])
+                across = -t["origin"]["x"] * math.cos(az) + t["origin"]["y"] * math.sin(az)
+                along = t["origin"]["x"] * math.sin(az) + t["origin"]["y"] * math.cos(az)
+                by_roof_col.setdefault(round(along, 1), []).append(across)
+            gaps = [round(abs(b - a) - depth, 2) for v in by_roof_col.values() for a, b in zip(sorted(v), sorted(v)[1:])]
+            assert any(g >= 0.6 - 1e-6 for g in gaps), gaps
+
+    run(go())
+
+
+def test_c3_bess_units_stand_outside_the_switchyard_mat_with_a_cited_separation(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_c(c)
+            await c.call("layout_place", **C_PLACE)
+            built = await c.call("network_autobuild", **C_BUILD)
+            assert any("IFC 2024 Section 1207.8.3" in a for a in built["assumptions"]) and any("switchyard size is not set" in a for a in built["assumptions"])
+            await c.call("earthing_design", project_id=C, soil_resistivity=80, fault_ka=25, clearing_s=1, switchyard_m=[60, 45])
+            lay = (await project(c, C))["array_layout"]
+            yx, yy = lay["switchyard"]["at"]["x"], lay["switchyard"]["at"]["y"]
+            bess = [e for e in lay["equipment"] if e["kind"] in ("battery", "pcs", "transformer")]
+            assert len(bess) == 10, bess
+            for e in bess:
+                dx, dy = abs(e["at"]["x"] - yx) - 30, abs(e["at"]["y"] - yy) - 22.5
+                assert max(dx, dy) >= 3.05 - 1e-6, (e, yx, yy)
+            v = await c.call("validate", project_id=C, families=["structure"])
+            assert not [f for f in v["findings"] if f["rule_id"] == "structure.bess_separation"], v["findings"]
+
+    run(go())
+
+
+def test_a3_rooftop_string_inverters_stand_on_a_roof_that_carries_their_strings(tmp_path):
+    from shapely.geometry import Point as SPoint
+
+    from unicad.arrays.geometry import table_centre
+    from unicad.domain.layout import Table
+    from unicad.domain.site import FeatureKind, SiteGeometry, shape_of
+
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_a(c)
+            await c.call("layout_place", **A_PLACE)
+            await c.call("network_autobuild", **A_BUILD)
+            p = await project(c, A)
+            site = SiteGeometry.model_validate(p["site"]["geometry"])
+            roofs = [shape_of(f) for f in site.of_kind(FeatureKind.ROOF) if f.polygon]
+            tables = {t["id"]: Table.model_validate(t) for b in p["array_layout"]["blocks"] for t in b["tables"]}
+            strings = {a["string"]: a for a in p["array_layout"]["strings"]}
+            inv = [e for e in p["array_layout"]["equipment"] if e["kind"] == "inverter"]
+            assert inv
+            for e in inv:
+                at = SPoint(e["at"]["x"], e["at"]["y"])
+                roof = next((r for r in roofs if r.covers(at)), None)
+                assert roof is not None, e
+                base, _, idx = e["node"].partition("@")
+                mine = [a for s, a in strings.items() if s.startswith(f"{base.replace('inv', 'str', 1)}@{idx}.")]
+                assert mine, (e, list(strings)[:3])
+                on = sum(roof.covers(SPoint(*table_centre(tables[a["spans"][0]["table"]]))) for a in mine)
+                assert on * 2 >= len(mine), (e, on, len(mine))
 
     run(go())

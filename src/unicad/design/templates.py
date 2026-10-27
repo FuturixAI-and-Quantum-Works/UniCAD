@@ -503,9 +503,17 @@ def string_blocks(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSp
     v = inverter.ac_voltage if inverter.ac_voltage > 440 else 415.0
     inline = v != 415.0
     cap, windings, why = string_block_limits(c.catalog, c.project.design_basis, inverter, kv)
+    split = {id(blk): sections(blk, cap, plan.from_layout) if blk.inverters > cap else [blk] for blk in plan.blocks}
+    std_w = {len(secs): max(max(sec.inverters for sec in o) for o in split.values() if len(o) == len(secs)) for secs in split.values()}
+    std_n = max(blk.inverters for blk in plan.blocks)
+    if len({blk.inverters for blk in plan.blocks}) > 1:
+        b.assume(
+            f"Block transformer ratings are standardised: every block takes the rating that covers the largest block ({std_n} x {inverter.ac_max_kva:g} kVA"
+            f"{', ' + str(max(sec.inverters for o in split.values() for sec in o)) + ' per LV winding' if inline else ''}), so the blocks are interchangeable and one spare serves all."
+        )
     for blk in plan.blocks:
         n = blk.inverters
-        secs = sections(blk, cap, plan.from_layout) if n > cap else [blk]
+        secs = split[id(blk)]
         if len(secs) > windings:
             raise DesignError(
                 f"block {blk.part or blk.sfx or ''} has {n} inverters; a block takes at most {cap * windings} ({windings} LV bus(es) of {cap}: beyond that {why}). "
@@ -520,8 +528,8 @@ def string_blocks(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSp
         if len(secs) > 1:
             b.assume(f"Blocks above {cap} inverters split into LV sections on separate IDT LV windings, {cap} inverters at most per bus: beyond that {why}.")
         if inline:
-            w_kva = max(sec.inverters for sec in secs) * inverter.ac_max_kva
             k = len(secs)
+            w_kva = std_w[k] * inverter.ac_max_kva
             lv = "-".join([f"{v / 1000:g}"] * k)
             spec = inline_transformer(
                 f"idt-{k * w_kva:g}kva-{kv:g}-{lv}-yn{'d11' * k}-project", f"{k * w_kva:g} kVA {kv:g}/{lv} kV inverter-duty transformer", v, k, w_kva, kv, f"ac_voltage of catalog {inverter.id}"
@@ -529,7 +537,7 @@ def string_blocks(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSp
             b.assume(inline_assumption("IDT-nn", spec, k))
         else:
             try:
-                spec = pick_transformer(c.catalog, n * inverter.ac_max_kva, kv).id
+                spec = pick_transformer(c.catalog, std_n * inverter.ac_max_kva, kv).id
             except NoFit as e:
                 raise DesignError(f"block of {n} inverters: {e}") from None
         idt = b.node(f"idt{blk.sfx}", "IDT", NodeKind.TRANSFORMER, group=g, spec=spec)

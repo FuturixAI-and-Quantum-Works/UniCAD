@@ -18,6 +18,7 @@ from unicad.domain.project import Project
 from unicad.domain.site import ROOF_CARVE_KINDS, FeatureKind, shape_of
 from unicad.routing import RouteAssumptions
 from unicad.routing.locate import Locator
+from unicad.rules.structure import BESS_SEPARATION_M, BESS_SEPARATION_SOURCE
 
 INVERTER_CLEAR_M = 0.5
 INVERTER_SPACING_M = 1.0
@@ -81,12 +82,7 @@ def _roof_room(site, taken) -> list[tuple[Polygon, BaseGeometry]]:
 
 
 BESS_KINDS = (NodeKind.TRANSFORMER, NodeKind.PCS, NodeKind.BATTERY)
-BESS_SEPARATION_M = 3.05
-BESS_SEPARATION = (
-    f"BESS units stand outside the MV switchyard earth mat with {BESS_SEPARATION_M:g} m clear of its edge: the 10 ft (3.05 m) clearance of outdoor ESS to "
-    "exposures in IFC 2024 Section 1207.8.3 (as quoted in Mayfield Renewables, 'C&I BESS Outdoor Location per IFC 1207', 2025), applied with the "
-    "switchyard taken as an exposure hazard (design assumption; no Indian code clearance is cited); confirm with the BESS vendor's fire layout and the CEA/CEIG."
-)
+BESS_SEPARATION = f"BESS units stand outside the MV switchyard earth mat, clear of its edge by {BESS_SEPARATION_SOURCE} Confirm with the BESS vendor's fire layout and the CEIG."
 ASSUMED_YARD_M = (60.0, 45.0)
 YARD_UNKNOWN = (
     f"The switchyard size is not set (switchyard_m): the BESS clearance is kept from an assumed {ASSUMED_YARD_M[0]:g} x {ASSUMED_YARD_M[1]:g} m yard centred on the "

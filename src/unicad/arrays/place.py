@@ -42,6 +42,7 @@ class Placed:
     buildable_m2: float
     target_reached: bool | None
     warnings: list[str]
+    assumptions: tuple[str, ...] = ()
 
 
 def slot_size(spec: PlacementSpec, module: ModuleSpec) -> tuple[float, float]:
@@ -129,12 +130,30 @@ def _road_gap(spec: PlacementSpec, depth: float, pitch: float) -> float:
     return max(pitch, depth + spec.road_width_m)
 
 
+ROOF_ROW_WALKWAY_EVERY = 2
+
+
+def row_walkway(spec: PlacementSpec, depth: float, pitch: float) -> int | None:
+    """Rows between maintenance walkways: as given, else on a roof ROOF_ROW_WALKWAY_EVERY when the gap between rows is narrower than a walkway."""
+    if spec.row_walkway_every_rows:
+        return spec.row_walkway_every_rows
+    if spec.mounting.on_roof and not spec.road_every_rows and pitch - depth < spec.row_walkway_m - EPS:
+        return ROOF_ROW_WALKWAY_EVERY
+    return None
+
+
 def _row_starts(spec: PlacementSpec, b_min: float, b_max: float, depth: float, pitch: float) -> list[float]:
     out, b, k = [], b_min, 0
+    walk = row_walkway(spec, depth, pitch)
     while b + depth <= b_max + EPS:
         out.append(b)
         k += 1
-        b += _road_gap(spec, depth, pitch) if spec.road_every_rows and k % spec.road_every_rows == 0 else pitch
+        if spec.road_every_rows and k % spec.road_every_rows == 0:
+            b += _road_gap(spec, depth, pitch)
+        elif walk and k % walk == 0:
+            b += max(pitch, depth + spec.row_walkway_m)
+        else:
+            b += pitch
     return out
 
 
@@ -213,7 +232,14 @@ def place_tables(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) ->
         got = sum(t.slot_count for t in tables) * module.pmax / 1000
         warnings.append(f"target {spec.target_dc_kwp} kWp not reached: the buildable area holds {got:.1f} kWp")
     buildable = sum(r.geom.area for r in regions)
-    return Placed(tables, pitch, full, half, roads, buildable, reached, warnings)
+    notes = ()
+    if (walk := row_walkway(spec, depth, pitch.pitch_m)) and not spec.row_walkway_every_rows:
+        notes = (
+            f"maintenance walkway {spec.row_walkway_m:g} m wide after every {walk} rows: the rows stand {max(0.0, pitch.pitch_m - depth):.2f} m apart, too close to walk between, "
+            f"so every row is reached from a walkway on one side (design assumption for cleaning and maintenance access, not a cited figure; set row_walkway_every_rows "
+            "and row_walkway_m to change it)",
+        )
+    return Placed(tables, pitch, full, half, roads, buildable, reached, warnings, notes)
 
 
 def _select(
