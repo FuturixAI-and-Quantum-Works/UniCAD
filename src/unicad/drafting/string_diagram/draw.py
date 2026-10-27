@@ -108,7 +108,7 @@ def string_label(t: DiagramType, ln: StringLine) -> str:
 
 
 def callout(t: DiagramType, ln: StringLine) -> str:
-    return t.string_callout + (f", {ln.length_text}" if ln.length_text else "")
+    return (ln.callout or t.string_callout) + (f", {ln.length_text}" if ln.length_text else "")
 
 
 def shown_modules(n: int) -> list[int]:

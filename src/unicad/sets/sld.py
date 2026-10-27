@@ -9,7 +9,6 @@ from datetime import date
 from pydantic import BaseModel
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import CableSpec
 from unicad.domain.network import Edge, ElectricalNetwork, Group, NodeKind
 from unicad.domain.project import Project, Sheet, SheetKind, SheetScope
 from unicad.drafting.sheets.layout import metrics_for
@@ -139,8 +138,10 @@ def _routed_lengths(project: Project, catalog: Catalog | None) -> dict[str, list
 
 
 def _cable_text(e: Edge, catalog: Catalog | None) -> str:
-    cable = catalog.get(e.cable) if isinstance(e.cable, str) and catalog is not None else e.cable
-    return f"{e.runs}R x {cable.callout()}" if isinstance(cable, CableSpec) else ""
+    cables = annotate.band_cables(e, catalog)
+    if len(cables) > 1:
+        return annotate.banded_text(cables, "")
+    return f"{e.runs}R x {cables[0][0].callout()}" if cables else ""
 
 
 def _shown(project: Project, sheet: Sheet, catalog: Catalog | None = None) -> Project:

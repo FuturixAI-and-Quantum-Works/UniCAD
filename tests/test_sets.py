@@ -271,3 +271,23 @@ def test_identical_blocks_share_one_typical_detail_sheet():
     assert cut and {r["to_sheet"] for r in cut} <= {s.number for s in sheets if s.id.startswith(typical.id)}
     texts = " ".join(t for b in (done[s.id] for s in sheets if s.id.startswith(typical.id)) for t in (e.dxf.text for e in b.doc.modelspace().query("TEXT")))
     assert "(SEE CABLE SCHEDULE)" in texts.upper()
+
+
+def test_a_banded_cable_is_called_out_on_the_sld_with_every_band_size_the_schedule_gives_it():
+    """k1 follow-up: an edge sized per length band reads '1R x 1C x 4 / 6 / 10 sq.mm ...' on its SLD, with the sizes the cable schedule
+    lists for its instances and a pointer to the schedule, not the worst band's cable alone."""
+    from test_string_diagram import samples
+
+    from unicad.schedules import build_schedule
+
+    p = samples.ground_central(CATALOG)
+    rows = build_schedule(p, CATALOG).rows
+    sheets = plan_sld_set(p, PROFILE, CATALOG)
+    texts = [t.dxf.text for b in SldBuilder().build(p, sheets, sheets, PROFILE, CATALOG) for blk in b.doc.blocks for t in blk.query("TEXT")]
+    banded = [e for e in p.network.edges if e.bands]
+    assert banded
+    for e in banded:
+        sizes = sorted({r.size_mm2 for r in rows if r.edge == e.id and r.runs == 1})
+        want = f"1R x 1C x {' / '.join(f'{z:g}' for z in sizes)} sq.mm"
+        i = next(i for i, t in enumerate(texts) if t.startswith(want))
+        assert "CABLE SCHEDULE" in texts[i + 1].upper() and texts[i + 1].upper().count("CABLE SCHEDULE") == 1

@@ -120,7 +120,8 @@ def build_schedule(
     kinds = [(kind_label(net, e.src_node), kind_label(net, e.dst_node)) for e in net.edges]
     position = {e.id: (kinds.index(k), i) for i, (e, k) in enumerate(zip(net.edges, kinds, strict=True))}
     ordered = sorted(cabled, key=lambda e: (SERVICE_ORDER[e.service], *position[e.id]))
-    sections: list[Section] = []
+    pending: list[tuple[Edge, CableSpec, tuple[CableRow, ...]]] = []
+    pair_sizes: dict[tuple, set[float]] = defaultdict(set)
     gaps: list[str] = []
     seen_ids: set[str] = set()
     sl = 0
@@ -170,9 +171,11 @@ def build_schedule(
                 )
             )  # fmt: skip
         if rows:
-            sections.append(Section(section_title(net, e, cable, sizes), e.id, e.service, tuple(rows)))
+            pair_sizes[(e.service, kinds[position[e.id][1]])] |= sizes
+            pending.append((e, cable, tuple(rows)))
         if e.length_m is None and any(r.length_pos_m is None for r in rows):
             gaps.append(f"{edge_label(net, e)}: no length stated and none estimated ({estimate.unresolved.get(e.id, 'no array layout')}); its {len(rows)} row(s) carry no length, voltage drop or loss")
+    sections = [Section(section_title(net, e, cable, pair_sizes[(e.service, kinds[position[e.id][1]])]), e.id, e.service, rows) for e, cable, rows in pending]
     gaps += _missing_cables(project, catalog)
 
     schedule_rows = [r for s in sections for r in s.rows]

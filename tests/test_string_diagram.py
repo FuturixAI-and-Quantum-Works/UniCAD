@@ -165,7 +165,7 @@ def test_pages_of_a_split_type_cover_every_string_once(projects, monkeypatch):
 
 @pytest.mark.parametrize("name", ["rooftop", "central", "string"])
 def test_drawn_cable_ids_are_the_schedule_ids(projects, built, name):
-    rows = {r.src: r for r in build_schedule(projects[name], CATALOG, LengthMode.NETWORK).rows if r.is_string}
+    rows = {r.src: r for r in build_schedule(projects[name], CATALOG, LengthMode.AUTO).rows if r.is_string}
     types, _ = plan_types(projects[name], CATALOG)
     sheet_texts = {t for r in built[name] for t in drawn_texts(r)}
     checked = 0
@@ -175,6 +175,25 @@ def test_drawn_cable_ids_are_the_schedule_ids(projects, built, name):
             assert ln.cable_id == rows[ln.instance].cable_id and ln.cable_id in sheet_texts
             checked += 1
     assert checked >= 10
+
+
+@pytest.mark.parametrize("name", ["central", "string"])
+def test_each_drawn_string_cable_names_the_band_sizes_the_schedule_gives_its_instances(projects, built, name):
+    """k1 follow-up: a banded string edge is drawn with the cables the schedule gives the instances a line stands for, not the worst-band cable."""
+    rows = {r.src: r for r in build_schedule(projects[name], CATALOG).rows if r.service.value == "dc"}
+    types, _ = plan_types(projects[name], CATALOG)
+    sheet_texts = {t for r in built[name] for t in drawn_texts(r)}
+    banded = 0
+    for t in types:
+        for i, ln in enumerate(t.lines):
+            sizes = sorted({rows[m.strings[i]].size_mm2 for m in t.members})
+            assert f"x {' / '.join(f'{z:g}' for z in sizes)} sq.mm" in ln.callout
+            assert draw.callout(t, ln) in sheet_texts
+            banded += len(sizes) > 1
+        if t.output is not None:
+            for z in {rows[m.instance].size_mm2 for m in t.members}:
+                assert re.search(rf"(^| ){z:g}( /| sq)", t.output.callout), (z, t.output.callout)
+    assert banded
 
 
 def test_the_string_cable_label_is_the_schedule_callout(projects, built):
