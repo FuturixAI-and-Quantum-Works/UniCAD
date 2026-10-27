@@ -242,7 +242,7 @@ def test_identical_blocks_share_one_typical_detail_sheet():
     sheets = plan_sld_set(p, PROFILE, CATALOG)
     done = {b.sheet.id: b for b in SldBuilder().build(p, sheets, sheets, PROFILE, CATALOG)}
     typical = next(s for s in sheets if s.id == f"sld_{shared[0].id}")
-    assert typical.title.endswith("SLD FOR " + ", ".join(g.tag for g in shared))
+    assert typical.title.endswith("SLD FOR " + ", ".join(g.tag for g in shared) + f" (SHOWN FOR {shared[0].tag})")
     assert not any(s.id == f"sld_{g.id}" for g in shared[1:] for s in sheets)
     subs = {g.id: refs for g, refs in block_types(net)}
 

@@ -173,7 +173,7 @@ class SldBuilder:
             span = annotate.group_label(net, g)
             sid = f"sld_{g.id}"
             if len(members) > 1:
-                title = f"TYPICAL {name} SLD FOR {', '.join(annotate.group_label(net, m) for m in members)}"
+                title = f"TYPICAL {name} SLD FOR {', '.join(annotate.group_label(net, m) for m in members)} (SHOWN FOR {span})"
             else:
                 title = f"TYPICAL {name} SLD ({span})" if span != name else f"TYPICAL {name} SLD"
             sheets.append(Sheet(
