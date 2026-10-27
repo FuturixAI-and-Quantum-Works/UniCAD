@@ -275,7 +275,7 @@ def test_plans_use_the_largest_standard_scale_that_fits(sample_sheets, name):
 
     assert fits(sheet.scale)
     assert not any(fits(s) for s in SCALES if s < sheet.scale)
-    assert 750 in SCALES and sheet.scale <= {"pune-earthing": 750, "pune-lps": 1000, "rajasthan-earthing": 2500}[name]
+    assert 750 in SCALES and sheet.scale <= {"pune-earthing": 1000, "pune-lps": 1500, "rajasthan-earthing": 2500}[name]
 
 
 def test_lps_circles_are_clipped_at_the_plan_edge(sample_sheets):

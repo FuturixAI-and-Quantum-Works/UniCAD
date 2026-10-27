@@ -22,7 +22,7 @@ from unicad.drafting.earthing_plan.sheet import render_earthing_sheet, render_lp
 from unicad.earthing import design_earthing
 from unicad.lps import design_lps
 from unicad.sets.common import sheet_spec
-from unicad.sets.plans import EarthingBuilder, LpsBuilder
+from unicad.sets.plans import EarthingBuilder, LpsBuilder, plant_areas
 from unicad.domain.project import Project
 from unicad.drafting.sld import SldOptions
 from unicad.drafting.sld.annotate import system_parameters
@@ -353,6 +353,19 @@ def test_n15_the_switchyard_mesh_label_is_the_mesh_the_calculation_used():
     doc = ezdxf.new("R2018", setup=True)
     render_earthing_sheet(doc, project, CATALOG, d, sheet_spec(project, earth, 1, 1), profile)
     texts = [e.dxf.text for e in doc.modelspace().query("TEXT")]
-    (mat,) = [t for t in texts if t.startswith("MV SWITCHYARD EARTH MAT")]
-    assert mat == f"MV SWITCHYARD EARTH MAT, {d.grid_spacing_m:g} m MESH"
+    i = texts.index("MV SWITCHYARD EARTH MAT")
+    assert texts[i + 1] == f"{d.grid_spacing_m:g} m MESH" and not any(t.endswith("m MESH") for t in texts[i + 2 :])
     assert any(t.startswith(f"{d.grid_spacing_m:.2f} m / ") for t in texts)
+
+
+def test_n7_layout_and_lps_sheets_show_the_switchyard_where_the_earthing_mat_is(tmp_path):
+    project, profile = scenario("kutch-hybrid")
+    sy = design_earthing(project).layout.switchyard
+    name = f"MV SWITCHYARD ({sy.x1 - sy.x0:g} x {sy.y1 - sy.y0:g} m)"
+    index = render_set(project, tmp_path, kinds=("layout", "earthing", "lps"), formats=("dxf",), profile=profile, catalog=CATALOG, drawn_on=DRAWN_ON)
+    for s in index.sheets:
+        msp = ezdxf.readfile(tmp_path / s["files"]["dxf"]).modelspace()
+        texts = [e.dxf.text for e in msp.query("TEXT")]
+        assert name in texts if s["kind"] != "earthing" else any(t.startswith("MV SWITCHYARD EARTH MAT") for t in texts), s["kind"]
+    assert [a.name for a in plant_areas(project)] == [name]
+    assert plant_areas(project)[0].outline == ((sy.x0, sy.y0), (sy.x1, sy.y0), (sy.x1, sy.y1), (sy.x0, sy.y1))

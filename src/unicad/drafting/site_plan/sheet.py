@@ -80,6 +80,14 @@ LAYERS = (L_BOUNDARY, L_ROOF, L_ROAD, L_ROAD_FILL, L_WATER, L_WATER_FILL, L_EXCL
 
 
 @dataclass(frozen=True)
+class EquipmentArea:
+    """A plant area drawn on the plan sheets at the place the design put it (the MV switchyard, the main LT panel area): outline in site metres."""
+
+    name: str
+    outline: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True)
 class LayoutDrawing:
     """What the sheet shows. `full_cols` tells full tables from half ones; `pitch_m` and `table_gap_m` dimension the inset."""
 
@@ -91,6 +99,7 @@ class LayoutDrawing:
     table_gap_m: float | None = None
     roads: tuple[RoadLine, ...] = ()
     notes: tuple[str, ...] = ()
+    areas: tuple[EquipmentArea, ...] = ()
 
     @classmethod
     def from_result(cls, site: SiteGeometry, result: PlacementResult, module: ModuleSpec, table_gap_m: float | None = None, notes: Sequence[str] = ()) -> "LayoutDrawing":
@@ -139,6 +148,7 @@ def _polygons(g: BaseGeometry) -> list[Polygon]:
 def _view_extent(d: LayoutDrawing, view: View) -> tuple[float, float, float, float]:
     shapes = [shape_of(f) for f in d.site.features if view == "site" or f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)]
     shapes += [Polygon(table_corners(t)) for t in d.layout.table_by_id.values()]
+    shapes += [Polygon(a.outline) for a in d.areas]
     if not shapes:
         raise ValueError("nothing to draw: the site has no features and the layout no tables")
     return unary_union(shapes).bounds
@@ -300,6 +310,7 @@ class LayoutSheetWriter:
         self._site(P)
         self._tables(P)
         self._blocks(P)
+        self._areas(P)
         self._feature_labels(P, compact=False)
         self._block_drawing(P)
         self._feature_labels(P, compact=True)
@@ -518,6 +529,15 @@ class LayoutSheetWriter:
             tx, cy = label.x0 + 0.4 * th, label.centre[1]
             self._text(lines[0], (tx, cy + 0.6 * th), hs[0], align="ML")
             self._text(lines[1], (tx, cy - 0.65 * th), hs[1], align="ML")
+
+    def _areas(self, P: _Plan) -> None:
+        th = self.m.th
+        for a in self.d.areas:
+            ring = P.ring(a.outline)
+            self._poly(ring, L_STATION.name, lineweight=35)
+            xs, ys = [x for x, _ in ring], [y for _, y in ring]
+            self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
+            self._label_text([a.name], ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2), 0.7 * th, (max(xs) - min(xs)) / 2, f"area {a.name}", mask=True)
 
     def _panel(self, panel: Region) -> None:
         th = self.m.th
