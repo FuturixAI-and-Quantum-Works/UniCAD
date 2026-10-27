@@ -42,9 +42,7 @@
    "drawing_scale": "1:1000",
    "sheet_of": "3 of 11",
    "kind_sheet_of": "1 of 1",
-   "warnings": [
-    "label rooftop-ahu-2 found no room on the plan"
-   ]
+   "warnings": []
   },
   {
    "number": "ACME/DIPL/R500A/EL/301",
@@ -69,28 +67,22 @@
   {
    "number": "ACME/DIPL/R500A/EL/401",
    "kind": "strings",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (1/2)",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (1/2)",
    "paper": "A3",
    "drawing_scale": "NTS",
    "sheet_of": "6 of 11",
    "kind_sheet_of": "1 of 2",
-   "warnings": [
-    "text 'plan key' leaves the drawing area",
-    "text 'plan key 2' leaves the drawing area"
-   ]
+   "warnings": []
   },
   {
    "number": "ACME/DIPL/R500A/EL/402",
    "kind": "strings",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (2/2)",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (2/2)",
    "paper": "A3",
    "drawing_scale": "NTS",
    "sheet_of": "7 of 11",
    "kind_sheet_of": "2 of 2",
-   "warnings": [
-    "text 'plan key' leaves the drawing area",
-    "text 'plan key 2' leaves the drawing area"
-   ]
+   "warnings": []
   },
   {
    "number": "ACME/DIPL/R500A/EL/501",

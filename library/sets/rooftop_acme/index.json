@@ -74,7 +74,7 @@
           "paper": "A3",
           "rev": "00",
           "scale": "NTS",
-          "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (1/2)"
+          "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (1/2)"
         },
         {
           "date": "26.10.2026",
@@ -84,7 +84,7 @@
           "paper": "A3",
           "rev": "00",
           "scale": "NTS",
-          "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (2/2)"
+          "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (2/2)"
         },
         {
           "date": "26.10.2026",
@@ -196,9 +196,7 @@
       "sheet_of": "3 of 11",
       "title": "ROOFTOP SOLAR PV MODULE LAYOUT",
       "view": "roofs",
-      "warnings": [
-        "label rooftop-ahu-2 found no room on the plan"
-      ]
+      "warnings": []
     },
     {
       "drawing_scale": "1:750",
@@ -212,8 +210,8 @@
       "kind_sheet_of": "1 of 1",
       "number": "ACME/DIPL/R500A/EL/301",
       "paper": "A2",
-      "pits": 18,
-      "resistance_ohm": 0.771,
+      "pits": 8,
+      "resistance_ohm": 0.321,
       "scale": null,
       "scope": [],
       "sheet_kind": "earthing",
@@ -267,12 +265,9 @@
       "sheet_of": "6 of 11",
       "strings_covered": 25,
       "strings_drawn": 5,
-      "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (1/2)",
+      "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (1/2)",
       "type": "inv",
-      "warnings": [
-        "text 'plan key' leaves the drawing area",
-        "text 'plan key 2' leaves the drawing area"
-      ]
+      "warnings": []
     },
     {
       "drawing_scale": "NTS",
@@ -294,12 +289,9 @@
       "sheet_of": "7 of 11",
       "strings_covered": 25,
       "strings_drawn": 5,
-      "title": "STRING WIRING DIAGRAM : INVERTER INV-01 .. INV-05 (2/2)",
+      "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05 (2/2)",
       "type": "inv",
-      "warnings": [
-        "text 'plan key' leaves the drawing area",
-        "text 'plan key 2' leaves the drawing area"
-      ]
+      "warnings": []
     },
     {
       "drawing_scale": "NTS",
