@@ -629,10 +629,10 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
   "revision": 10,
   "earthing": {
     "conductor": {"main": "25x6", "array": "25x6", "equipment": "25x6", "down": "25x3"},
-    "pits": 6,
-    "pits_by_role": {"EP": 6},
-    "resistance_ohm": 0.8025,
-    "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-st...",
+    "pits": 4,
+    "pits_by_role": {"EP": 4},
+    "resistance_ohm": 0.6924,
+    "resistance_method": "pits in parallel with each other and with the buried conductor (IS 3043)",
     "target_ohm": 2.0,
     "tables": 22,
     "items": 8,
@@ -641,13 +641,13 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "pit.EP",
         "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
-        "quantity": 6.0,
+        "quantity": 4.0,
         "unit": "nos"
       },
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 405.0,
+        "quantity": 366.0,
         "unit": "m"
       },
       {
@@ -659,7 +659,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 23.0,
+        "quantity": 12.0,
         "unit": "m"
       },
       "... 1 more"
