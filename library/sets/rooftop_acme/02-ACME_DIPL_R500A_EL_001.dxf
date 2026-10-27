@@ -10111,11 +10111,11 @@ AcDbPolyline
  20
 -384.85
  10
-50.65602
+52.80646
  20
 -384.85
  10
-50.65602
+52.80646
  20
 -215.0
  10
@@ -12631,7 +12631,7 @@ AcDbText
  40
 2.0
   1
-MCCB
+LAURITZ KNUDSEN DSINE DN1-250 C 200A 4P
   7
 standard
  11
@@ -12757,7 +12757,7 @@ AcDbText
  40
 2.0
   1
-MCCB
+LAURITZ KNUDSEN DSINE DN1-250 C 200A 4P
   7
 standard
  11
@@ -12909,7 +12909,7 @@ AcDbText
  40
 2.0
   1
-ACB
+SCHNEIDER ELECTRIC MASTERPACT MTZ2 N1 1000A 4P
   7
 standard
  11
@@ -13035,7 +13035,7 @@ AcDbText
  40
 2.0
   1
-ACB
+SCHNEIDER ELECTRIC MASTERPACT MTZ2 N1 1000A 4P
   7
 standard
  11
@@ -16083,7 +16083,7 @@ AcDbText
  40
 2.0
   1
-3R x 1C x 400 sq.mm Al XLPE ARM
+3R x 3 x 1C x 400 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -16185,7 +16185,7 @@ AcDbText
  40
 2.0
   1
-3R x 1C x 400 sq.mm Al XLPE ARM
+3R x 3 x 1C x 400 sq.mm Al XLPE ARM
   7
 standard
  72

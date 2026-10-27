@@ -553,7 +553,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-35A
+38B
   9
 $SURFTAB1
  70
@@ -2363,7 +2363,7 @@ CONTINUOUS
   0
 LAYER
   5
-FB
+FD
 330
 1
 100
@@ -2387,7 +2387,7 @@ Continuous
   0
 LAYER
   5
-FC
+FE
 330
 1
 100
@@ -2411,7 +2411,7 @@ Continuous
   0
 LAYER
   5
-243
+24D
 330
 1
 100
@@ -2435,7 +2435,7 @@ CONTINUOUS
   0
 LAYER
   5
-244
+24E
 330
 1
 100
@@ -2459,7 +2459,7 @@ CONTINUOUS
   0
 LAYER
   5
-245
+24F
 330
 1
 100
@@ -2483,7 +2483,7 @@ DASHED2
   0
 LAYER
   5
-246
+250
 330
 1
 100
@@ -2507,7 +2507,7 @@ CONTINUOUS
   0
 LAYER
   5
-247
+251
 330
 1
 100
@@ -2531,7 +2531,7 @@ CONTINUOUS
   0
 LAYER
   5
-248
+252
 330
 1
 100
@@ -2555,7 +2555,7 @@ DASHED
   0
 LAYER
   5
-249
+253
 330
 1
 100
@@ -2621,7 +2621,7 @@ standard.shx
   0
 STYLE
   5
-2B5
+2EA
 330
 5
 100
@@ -2705,7 +2705,7 @@ ACAD
   0
 APPID
   5
-357
+388
 330
 3
 100
@@ -2719,7 +2719,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-358
+389
 330
 3
 100
@@ -2959,7 +2959,7 @@ LOGO_UDEMO
   0
 BLOCK_RECORD
   5
-FD
+FF
 330
 9
 100
@@ -2979,7 +2979,7 @@ UC_PROT_SPD_AC
   0
 BLOCK_RECORD
   5
-111
+113
 330
 9
 100
@@ -2999,7 +2999,7 @@ UC_SW_ACB
   0
 BLOCK_RECORD
   5
-129
+12B
 330
 9
 100
@@ -3019,7 +3019,7 @@ UC_TX_POWER_2W
   0
 BLOCK_RECORD
   5
-138
+13A
 330
 9
 100
@@ -3039,47 +3039,7 @@ UC_EARTH_EARTH
   0
 BLOCK_RECORD
   5
-147
-330
-9
-100
-AcDbSymbolTableRecord
-100
-AcDbBlockTableRecord
-  2
-UC_TX_AUX
-340
-0
- 70
-0
-280
-1
-281
-0
-  0
-BLOCK_RECORD
-  5
-156
-330
-9
-100
-AcDbSymbolTableRecord
-100
-AcDbBlockTableRecord
-  2
-UC_GRID_LOAD
-340
-0
- 70
-0
-280
-1
-281
-0
-  0
-BLOCK_RECORD
-  5
-164
+149
 330
 9
 100
@@ -3099,7 +3059,47 @@ UC_SW_VCB
   0
 BLOCK_RECORD
   5
-178
+15B
+330
+9
+100
+AcDbSymbolTableRecord
+100
+AcDbBlockTableRecord
+  2
+UC_TX_AUX
+340
+0
+ 70
+0
+280
+1
+281
+0
+  0
+BLOCK_RECORD
+  5
+16A
+330
+9
+100
+AcDbSymbolTableRecord
+100
+AcDbBlockTableRecord
+  2
+UC_GRID_LOAD
+340
+0
+ 70
+0
+280
+1
+281
+0
+  0
+BLOCK_RECORD
+  5
+17A
 330
 9
 100
@@ -3119,27 +3119,7 @@ UC_PROT_LIGHTNING_ARRESTER
   0
 BLOCK_RECORD
   5
-18C
-330
-9
-100
-AcDbSymbolTableRecord
-100
-AcDbBlockTableRecord
-  2
-UC_TX_PT
-340
-0
- 70
-0
-280
-1
-281
-0
-  0
-BLOCK_RECORD
-  5
-19A
+18E
 330
 9
 100
@@ -3159,7 +3139,7 @@ UC_TX_CT
   0
 BLOCK_RECORD
   5
-1AD
+1A1
 330
 9
 100
@@ -3179,7 +3159,27 @@ UC_PROT_RELAY
   0
 BLOCK_RECORD
   5
-1BC
+1B0
+330
+9
+100
+AcDbSymbolTableRecord
+100
+AcDbBlockTableRecord
+  2
+UC_TX_PT
+340
+0
+ 70
+0
+280
+1
+281
+0
+  0
+BLOCK_RECORD
+  5
+1BE
 330
 9
 100
@@ -3199,7 +3199,7 @@ UC_INST_ABT
   0
 BLOCK_RECORD
   5
-1CB
+1CD
 330
 9
 100
@@ -3219,7 +3219,7 @@ UC_INST_KWH
   0
 BLOCK_RECORD
   5
-1DA
+1DC
 330
 9
 100
@@ -3239,7 +3239,7 @@ UC_GRID_UTILITY
   0
 BLOCK_RECORD
   5
-24A
+254
 330
 9
 100
@@ -3247,7 +3247,7 @@ AcDbSymbolTableRecord
 100
 AcDbBlockTableRecord
   2
-UC_SLD_SLD
+UC_ANN_OFFSHEET
 340
 0
  70
@@ -3259,7 +3259,7 @@ UC_SLD_SLD
   0
 BLOCK_RECORD
   5
-30C
+25B
 330
 9
 100
@@ -3267,7 +3267,7 @@ AcDbSymbolTableRecord
 100
 AcDbBlockTableRecord
   2
-UC_ANN_OFFSHEET
+UC_SLD_SLD
 340
 0
  70
@@ -3729,9 +3729,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-FE
+100
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3755,9 +3755,9 @@ UC_PROT_SPD_AC
   0
 LINE
   5
-100
+102
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3779,9 +3779,9 @@ AcDbLine
   0
 LWPOLYLINE
   5
-101
+103
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3811,9 +3811,9 @@ AcDbPolyline
   0
 LINE
   5
-102
+104
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3835,9 +3835,9 @@ AcDbLine
   0
 SOLID
   5
-103
+105
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3871,9 +3871,9 @@ AcDbTrace
   0
 LINE
   5
-104
+106
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3895,9 +3895,9 @@ AcDbLine
   0
 LINE
   5
-105
+107
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3919,9 +3919,9 @@ AcDbLine
   0
 LINE
   5
-106
+108
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3943,9 +3943,9 @@ AcDbLine
   0
 LINE
   5
-107
+109
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -3967,9 +3967,9 @@ AcDbLine
   0
 ATTDEF
   5
-108
+10A
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -4017,9 +4017,9 @@ TAG
   0
 ATTDEF
   5
-109
+10B
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -4067,9 +4067,9 @@ RATING
   0
 ATTDEF
   5
-10A
+10C
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -4117,9 +4117,9 @@ DESC
   0
 ENDBLK
   5
-FF
+101
 330
-FD
+FF
 100
 AcDbEntity
   8
@@ -4129,9 +4129,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-112
+114
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4155,9 +4155,9 @@ UC_SW_ACB
   0
 LINE
   5
-114
+116
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4179,9 +4179,9 @@ AcDbLine
   0
 LINE
   5
-115
+117
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4203,9 +4203,9 @@ AcDbLine
   0
 LINE
   5
-116
+118
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4227,9 +4227,9 @@ AcDbLine
   0
 LINE
   5
-117
+119
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4251,9 +4251,9 @@ AcDbLine
   0
 LINE
   5
-118
+11A
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4275,9 +4275,9 @@ AcDbLine
   0
 LWPOLYLINE
   5
-119
+11B
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4307,9 +4307,9 @@ AcDbPolyline
   0
 SOLID
   5
-11A
+11C
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4343,9 +4343,9 @@ AcDbTrace
   0
 SOLID
   5
-11B
+11D
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4379,9 +4379,9 @@ AcDbTrace
   0
 SOLID
   5
-11C
+11E
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4415,9 +4415,9 @@ AcDbTrace
   0
 SOLID
   5
-11D
+11F
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4451,9 +4451,9 @@ AcDbTrace
   0
 SOLID
   5
-11E
+120
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4487,9 +4487,9 @@ AcDbTrace
   0
 TEXT
   5
-11F
+121
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4521,9 +4521,9 @@ AcDbText
   0
 ATTDEF
   5
-120
+122
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4571,9 +4571,9 @@ TAG
   0
 ATTDEF
   5
-121
+123
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4621,9 +4621,9 @@ RATING
   0
 ATTDEF
   5
-122
+124
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4671,9 +4671,9 @@ DESC
   0
 ENDBLK
   5
-113
+115
 330
-111
+113
 100
 AcDbEntity
   8
@@ -4683,9 +4683,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-12A
+12C
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4709,9 +4709,9 @@ UC_TX_POWER_2W
   0
 CIRCLE
   5
-12C
+12E
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4729,9 +4729,9 @@ AcDbCircle
   0
 CIRCLE
   5
-12D
+12F
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4749,9 +4749,9 @@ AcDbCircle
   0
 ATTDEF
   5
-12E
+130
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4799,9 +4799,9 @@ TAG
   0
 ATTDEF
   5
-12F
+131
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4849,9 +4849,9 @@ RATING
   0
 ATTDEF
   5
-130
+132
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4899,9 +4899,9 @@ VECTOR
   0
 ATTDEF
   5
-131
+133
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4949,9 +4949,9 @@ DESC
   0
 ENDBLK
   5
-12B
+12D
 330
-129
+12B
 100
 AcDbEntity
   8
@@ -4961,9 +4961,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-139
+13B
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -4987,9 +4987,9 @@ UC_EARTH_EARTH
   0
 LINE
   5
-13B
+13D
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5011,9 +5011,9 @@ AcDbLine
   0
 LINE
   5
-13C
+13E
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5035,9 +5035,9 @@ AcDbLine
   0
 LINE
   5
-13D
+13F
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5059,9 +5059,9 @@ AcDbLine
   0
 LINE
   5
-13E
+140
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5083,9 +5083,9 @@ AcDbLine
   0
 ATTDEF
   5
-13F
+141
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5133,9 +5133,9 @@ TAG
   0
 ATTDEF
   5
-140
+142
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5183,9 +5183,9 @@ RATING
   0
 ATTDEF
   5
-141
+143
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5233,9 +5233,9 @@ DESC
   0
 ENDBLK
   5
-13A
+13C
 330
-138
+13A
 100
 AcDbEntity
   8
@@ -5245,9 +5245,337 @@ AcDbBlockEnd
   0
 BLOCK
   5
-148
+14A
 330
-147
+149
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockBegin
+  2
+UC_SW_VCB
+ 70
+2
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  3
+UC_SW_VCB
+  1
+
+  0
+LINE
+  5
+14C
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbLine
+ 10
+7.5
+ 20
+0.0
+ 30
+0.0
+ 11
+7.5
+ 21
+7.5
+ 31
+0.0
+  0
+LINE
+  5
+14D
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbLine
+ 10
+7.5
+ 20
+7.5
+ 30
+0.0
+ 11
+4.3
+ 21
+18.5
+ 31
+0.0
+  0
+LINE
+  5
+14E
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbLine
+ 10
+7.5
+ 20
+25.0
+ 30
+0.0
+ 11
+7.5
+ 21
+17.5
+ 31
+0.0
+  0
+LINE
+  5
+14F
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbLine
+ 10
+6.25
+ 20
+16.25
+ 30
+0.0
+ 11
+8.75
+ 21
+18.75
+ 31
+0.0
+  0
+LINE
+  5
+150
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbLine
+ 10
+6.25
+ 20
+18.75
+ 30
+0.0
+ 11
+8.75
+ 21
+16.25
+ 31
+0.0
+  0
+CIRCLE
+  5
+151
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbCircle
+ 10
+7.5
+ 20
+12.5
+ 30
+0.0
+ 40
+7.0
+  0
+ATTDEF
+  5
+152
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+17.5
+ 20
+15.25
+ 30
+0.0
+ 40
+2.5
+  1
+
+  7
+standard
+ 11
+17.5
+ 21
+15.25
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+TAG
+  2
+TAG
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+17.5
+ 21
+15.25
+ 31
+0.0
+  0
+ATTDEF
+  5
+153
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+17.5
+ 20
+11.5
+ 30
+0.0
+ 40
+2.0
+  1
+
+  7
+standard
+ 11
+17.5
+ 21
+11.5
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+RATING
+  2
+RATING
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+17.5
+ 21
+11.5
+ 31
+0.0
+  0
+ATTDEF
+  5
+154
+330
+149
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+17.5
+ 20
+7.5
+ 30
+0.0
+ 40
+2.0
+  1
+
+  7
+standard
+ 11
+17.5
+ 21
+7.5
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+DESC
+  2
+DESC
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+17.5
+ 21
+7.5
+ 31
+0.0
+  0
+ENDBLK
+  5
+14B
+330
+149
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockEnd
+  0
+BLOCK
+  5
+15C
+330
+15B
 100
 AcDbEntity
   8
@@ -5271,9 +5599,9 @@ UC_TX_AUX
   0
 CIRCLE
   5
-14A
+15E
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5291,9 +5619,9 @@ AcDbCircle
   0
 CIRCLE
   5
-14B
+15F
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5311,9 +5639,9 @@ AcDbCircle
   0
 ATTDEF
   5
-14C
+160
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5361,9 +5689,9 @@ TAG
   0
 ATTDEF
   5
-14D
+161
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5411,9 +5739,9 @@ RATING
   0
 ATTDEF
   5
-14E
+162
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5461,9 +5789,9 @@ VECTOR
   0
 ATTDEF
   5
-14F
+163
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5511,9 +5839,9 @@ DESC
   0
 ENDBLK
   5
-149
+15D
 330
-147
+15B
 100
 AcDbEntity
   8
@@ -5523,9 +5851,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-157
+16B
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5549,9 +5877,9 @@ UC_GRID_LOAD
   0
 LINE
   5
-159
+16D
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5573,9 +5901,9 @@ AcDbLine
   0
 LWPOLYLINE
   5
-15A
+16E
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5605,9 +5933,9 @@ AcDbPolyline
   0
 TEXT
   5
-15B
+16F
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5641,9 +5969,9 @@ AcDbText
   0
 ATTDEF
   5
-15C
+170
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5691,9 +6019,9 @@ TAG
   0
 ATTDEF
   5
-15D
+171
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5741,9 +6069,9 @@ RATING
   0
 ATTDEF
   5
-15E
+172
 330
-156
+16A
 100
 AcDbEntity
   8
@@ -5790,338 +6118,10 @@ DESC
 0.0
   0
 ENDBLK
-  5
-158
-330
-156
-100
-AcDbEntity
-  8
-0
-100
-AcDbBlockEnd
-  0
-BLOCK
-  5
-165
-330
-164
-100
-AcDbEntity
-  8
-0
-100
-AcDbBlockBegin
-  2
-UC_SW_VCB
- 70
-2
- 10
-0.0
- 20
-0.0
- 30
-0.0
-  3
-UC_SW_VCB
-  1
-
-  0
-LINE
-  5
-167
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbLine
- 10
-7.5
- 20
-0.0
- 30
-0.0
- 11
-7.5
- 21
-7.5
- 31
-0.0
-  0
-LINE
-  5
-168
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbLine
- 10
-7.5
- 20
-7.5
- 30
-0.0
- 11
-4.3
- 21
-18.5
- 31
-0.0
-  0
-LINE
-  5
-169
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbLine
- 10
-7.5
- 20
-25.0
- 30
-0.0
- 11
-7.5
- 21
-17.5
- 31
-0.0
-  0
-LINE
-  5
-16A
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbLine
- 10
-6.25
- 20
-16.25
- 30
-0.0
- 11
-8.75
- 21
-18.75
- 31
-0.0
-  0
-LINE
-  5
-16B
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbLine
- 10
-6.25
- 20
-18.75
- 30
-0.0
- 11
-8.75
- 21
-16.25
- 31
-0.0
-  0
-CIRCLE
   5
 16C
 330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbCircle
- 10
-7.5
- 20
-12.5
- 30
-0.0
- 40
-7.0
-  0
-ATTDEF
-  5
-16D
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-17.5
- 20
-15.25
- 30
-0.0
- 40
-2.5
-  1
-
-  7
-standard
- 11
-17.5
- 21
-15.25
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-TAG
-  2
-TAG
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-17.5
- 21
-15.25
- 31
-0.0
-  0
-ATTDEF
-  5
-16E
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-17.5
- 20
-11.5
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
-17.5
- 21
-11.5
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-RATING
-  2
-RATING
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-17.5
- 21
-11.5
- 31
-0.0
-  0
-ATTDEF
-  5
-16F
-330
-164
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-17.5
- 20
-7.5
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
-17.5
- 21
-7.5
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-DESC
-  2
-DESC
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-17.5
- 21
-7.5
- 31
-0.0
-  0
-ENDBLK
-  5
-166
-330
-164
+16A
 100
 AcDbEntity
   8
@@ -6131,9 +6131,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-179
+17B
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6157,9 +6157,9 @@ UC_PROT_LIGHTNING_ARRESTER
   0
 LINE
   5
-17B
+17D
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6181,9 +6181,9 @@ AcDbLine
   0
 LWPOLYLINE
   5
-17C
+17E
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6213,9 +6213,9 @@ AcDbPolyline
   0
 LINE
   5
-17D
+17F
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6237,9 +6237,9 @@ AcDbLine
   0
 SOLID
   5
-17E
+180
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6273,9 +6273,9 @@ AcDbTrace
   0
 LINE
   5
-17F
+181
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6297,9 +6297,9 @@ AcDbLine
   0
 LINE
   5
-180
+182
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6321,9 +6321,9 @@ AcDbLine
   0
 LINE
   5
-181
+183
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6345,9 +6345,9 @@ AcDbLine
   0
 LINE
   5
-182
+184
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6369,9 +6369,9 @@ AcDbLine
   0
 ATTDEF
   5
-183
+185
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6419,9 +6419,9 @@ TAG
   0
 ATTDEF
   5
-184
+186
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6469,9 +6469,9 @@ RATING
   0
 ATTDEF
   5
-185
+187
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6519,9 +6519,9 @@ DESC
   0
 ENDBLK
   5
-17A
+17C
 330
-178
+17A
 100
 AcDbEntity
   8
@@ -6530,238 +6530,10 @@ AcDbEntity
 AcDbBlockEnd
   0
 BLOCK
-  5
-18D
-330
-18C
-100
-AcDbEntity
-  8
-0
-100
-AcDbBlockBegin
-  2
-UC_TX_PT
- 70
-2
- 10
-0.0
- 20
-0.0
- 30
-0.0
-  3
-UC_TX_PT
-  1
-
-  0
-CIRCLE
   5
 18F
 330
-18C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbCircle
- 10
-5.0
- 20
-8.75
- 30
-0.0
- 40
-3.75
-  0
-CIRCLE
-  5
-190
-330
-18C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbCircle
- 10
-5.0
- 20
-3.75
- 30
-0.0
- 40
-3.75
-  0
-ATTDEF
-  5
-191
-330
-18C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-12.5
- 20
-9.0
- 30
-0.0
- 40
-2.5
-  1
-
-  7
-standard
- 11
-12.5
- 21
-9.0
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-TAG
-  2
-TAG
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-12.5
- 21
-9.0
- 31
-0.0
-  0
-ATTDEF
-  5
-192
-330
-18C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-12.5
- 20
-5.25
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
-12.5
- 21
-5.25
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-RATING
-  2
-RATING
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-12.5
- 21
-5.25
- 31
-0.0
-  0
-ATTDEF
-  5
-193
-330
-18C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-12.5
- 20
-1.25
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
-12.5
- 21
-1.25
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-DESC
-  2
-DESC
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-12.5
- 21
-1.25
- 31
-0.0
-  0
-ENDBLK
-  5
 18E
-330
-18C
-100
-AcDbEntity
-  8
-0
-100
-AcDbBlockEnd
-  0
-BLOCK
-  5
-19B
-330
-19A
 100
 AcDbEntity
   8
@@ -6785,9 +6557,9 @@ UC_TX_CT
   0
 LINE
   5
-19D
+191
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6809,9 +6581,9 @@ AcDbLine
   0
 CIRCLE
   5
-19E
+192
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6829,9 +6601,9 @@ AcDbCircle
   0
 LINE
   5
-19F
+193
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6853,9 +6625,9 @@ AcDbLine
   0
 SOLID
   5
-1A0
+194
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6889,9 +6661,9 @@ AcDbTrace
   0
 SOLID
   5
-1A1
+195
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6925,9 +6697,9 @@ AcDbTrace
   0
 SOLID
   5
-1A2
+196
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6961,9 +6733,9 @@ AcDbTrace
   0
 SOLID
   5
-1A3
+197
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -6997,9 +6769,9 @@ AcDbTrace
   0
 ATTDEF
   5
-1A4
+198
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -7047,9 +6819,9 @@ TAG
   0
 ATTDEF
   5
-1A5
+199
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -7097,9 +6869,9 @@ DESC
   0
 ATTDEF
   5
-1A6
-330
 19A
+330
+18E
 100
 AcDbEntity
   8
@@ -7147,9 +6919,9 @@ RATING
   0
 ENDBLK
   5
-19C
+190
 330
-19A
+18E
 100
 AcDbEntity
   8
@@ -7159,9 +6931,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-1AE
+1A2
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7185,9 +6957,9 @@ UC_PROT_RELAY
   0
 CIRCLE
   5
-1B0
+1A4
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7205,9 +6977,9 @@ AcDbCircle
   0
 ATTDEF
   5
-1B1
+1A5
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7255,9 +7027,9 @@ TAG
   0
 ATTDEF
   5
-1B2
+1A6
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7305,9 +7077,9 @@ DESC
   0
 ATTDEF
   5
-1B3
+1A7
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7357,9 +7129,9 @@ ANSI
   0
 ATTDEF
   5
-1B4
+1A8
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7407,9 +7179,9 @@ RATING
   0
 ENDBLK
   5
-1AF
+1A3
 330
-1AD
+1A1
 100
 AcDbEntity
   8
@@ -7419,9 +7191,237 @@ AcDbBlockEnd
   0
 BLOCK
   5
-1BD
+1B1
 330
-1BC
+1B0
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockBegin
+  2
+UC_TX_PT
+ 70
+2
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  3
+UC_TX_PT
+  1
+
+  0
+CIRCLE
+  5
+1B3
+330
+1B0
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbCircle
+ 10
+5.0
+ 20
+8.75
+ 30
+0.0
+ 40
+3.75
+  0
+CIRCLE
+  5
+1B4
+330
+1B0
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbCircle
+ 10
+5.0
+ 20
+3.75
+ 30
+0.0
+ 40
+3.75
+  0
+ATTDEF
+  5
+1B5
+330
+1B0
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+12.5
+ 20
+9.0
+ 30
+0.0
+ 40
+2.5
+  1
+
+  7
+standard
+ 11
+12.5
+ 21
+9.0
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+TAG
+  2
+TAG
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+12.5
+ 21
+9.0
+ 31
+0.0
+  0
+ATTDEF
+  5
+1B6
+330
+1B0
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+12.5
+ 20
+5.25
+ 30
+0.0
+ 40
+2.0
+  1
+
+  7
+standard
+ 11
+12.5
+ 21
+5.25
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+RATING
+  2
+RATING
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+12.5
+ 21
+5.25
+ 31
+0.0
+  0
+ATTDEF
+  5
+1B7
+330
+1B0
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+12.5
+ 20
+1.25
+ 30
+0.0
+ 40
+2.0
+  1
+
+  7
+standard
+ 11
+12.5
+ 21
+1.25
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+DESC
+  2
+DESC
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+12.5
+ 21
+1.25
+ 31
+0.0
+  0
+ENDBLK
+  5
+1B2
+330
+1B0
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockEnd
+  0
+BLOCK
+  5
+1BF
+330
+1BE
 100
 AcDbEntity
   8
@@ -7445,9 +7445,9 @@ UC_INST_ABT
   0
 LINE
   5
-1BF
+1C1
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7469,9 +7469,9 @@ AcDbLine
   0
 LWPOLYLINE
   5
-1C0
+1C2
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7501,9 +7501,9 @@ AcDbPolyline
   0
 LINE
   5
-1C1
+1C3
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7525,9 +7525,9 @@ AcDbLine
   0
 TEXT
   5
-1C2
+1C4
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7561,9 +7561,9 @@ AcDbText
   0
 ATTDEF
   5
-1C3
+1C5
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7611,9 +7611,9 @@ TAG
   0
 ATTDEF
   5
-1C4
+1C6
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7661,9 +7661,9 @@ RATING
   0
 ATTDEF
   5
-1C5
+1C7
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7711,9 +7711,9 @@ DESC
   0
 ENDBLK
   5
-1BE
+1C0
 330
-1BC
+1BE
 100
 AcDbEntity
   8
@@ -7723,9 +7723,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-1CC
+1CE
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7749,9 +7749,9 @@ UC_INST_KWH
   0
 LINE
   5
-1CE
+1D0
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7773,9 +7773,9 @@ AcDbLine
   0
 CIRCLE
   5
-1CF
+1D1
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7793,9 +7793,9 @@ AcDbCircle
   0
 LINE
   5
-1D0
+1D2
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7817,9 +7817,9 @@ AcDbLine
   0
 TEXT
   5
-1D1
+1D3
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7853,9 +7853,9 @@ AcDbText
   0
 ATTDEF
   5
-1D2
+1D4
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7903,9 +7903,9 @@ TAG
   0
 ATTDEF
   5
-1D3
+1D5
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -7953,9 +7953,9 @@ RATING
   0
 ATTDEF
   5
-1D4
+1D6
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -8003,9 +8003,9 @@ DESC
   0
 ENDBLK
   5
-1CD
+1CF
 330
-1CB
+1CD
 100
 AcDbEntity
   8
@@ -8015,9 +8015,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-1DB
+1DD
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8041,9 +8041,9 @@ UC_GRID_UTILITY
   0
 LWPOLYLINE
   5
-1DD
+1DF
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8073,9 +8073,9 @@ AcDbPolyline
   0
 LINE
   5
-1DE
+1E0
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8097,9 +8097,9 @@ AcDbLine
   0
 LINE
   5
-1DF
+1E1
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8121,9 +8121,9 @@ AcDbLine
   0
 LINE
   5
-1E0
+1E2
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8145,9 +8145,9 @@ AcDbLine
   0
 LINE
   5
-1E1
+1E3
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8169,9 +8169,9 @@ AcDbLine
   0
 SOLID
   5
-1E2
+1E4
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8205,9 +8205,9 @@ AcDbTrace
   0
 ATTDEF
   5
-1E3
+1E5
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8255,9 +8255,9 @@ TAG
   0
 ATTDEF
   5
-1E4
+1E6
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8305,9 +8305,9 @@ RATING
   0
 ATTDEF
   5
-1E5
+1E7
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8355,9 +8355,9 @@ DESC
   0
 ENDBLK
   5
-1DC
+1DE
 330
-1DA
+1DC
 100
 AcDbEntity
   8
@@ -8367,9 +8367,207 @@ AcDbBlockEnd
   0
 BLOCK
   5
-24B
+255
 330
-24A
+254
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockBegin
+  2
+UC_ANN_OFFSHEET
+ 70
+2
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  3
+UC_ANN_OFFSHEET
+  1
+
+  0
+LINE
+  5
+257
+330
+254
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbLine
+ 10
+5.0
+ 20
+15.0
+ 30
+0.0
+ 11
+5.0
+ 21
+12.5
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+258
+330
+254
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+12.5
+ 10
+10.0
+ 20
+12.5
+ 10
+10.0
+ 20
+5.0
+ 10
+5.0
+ 20
+0.0
+ 10
+0.0
+ 20
+5.0
+  0
+ATTDEF
+  5
+259
+330
+254
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+12.5
+ 20
+8.5
+ 30
+0.0
+ 40
+2.5
+  1
+
+  7
+standard
+ 11
+12.5
+ 21
+8.5
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+SHEET
+  2
+SHEET
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+12.5
+ 21
+8.5
+ 31
+0.0
+  0
+ATTDEF
+  5
+25A
+330
+254
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+12.5
+ 20
+4.0
+ 30
+0.0
+ 40
+2.0
+  1
+
+  7
+standard
+ 11
+12.5
+ 21
+4.0
+ 31
+0.0
+100
+AcDbAttributeDefinition
+  3
+DESC
+  2
+DESC
+ 70
+0
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+12.5
+ 21
+4.0
+ 31
+0.0
+  0
+ENDBLK
+  5
+256
+330
+254
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockEnd
+  0
+BLOCK
+  5
+25C
+330
+25B
 100
 AcDbEntity
   8
@@ -8393,9 +8591,9 @@ UC_SLD_SLD
   0
 LWPOLYLINE
   5
-24D
+25E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8407,27 +8605,27 @@ AcDbPolyline
  70
 1
  10
--253.75
+-233.75
  20
--288.75
+-368.75
  10
-42.55022
+84.9174
  20
--288.75
+-368.75
  10
-42.55022
+84.9174
  20
--119.5
+-185.6
  10
--253.75
+-233.75
  20
--119.5
+-185.6
   0
 TEXT
   5
-24E
+25F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8435,9 +8633,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--251.25
+-231.25
  20
--291.625
+-371.625
  30
 0.0
  40
@@ -8447,9 +8645,9 @@ STRING INVERTER BLOCK (19 X 110 kVA)
   7
 standard
  11
--251.25
+-231.25
  21
--291.625
+-371.625
  31
 0.0
 100
@@ -8459,9 +8657,9 @@ AcDbText
   0
 TEXT
   5
-24F
+260
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8469,9 +8667,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--251.25
+-231.25
  20
--295.375
+-375.375
  30
 0.0
  40
@@ -8481,9 +8679,9 @@ BLOCK-01..BLOCK-10  (x 10)
   7
 standard
  11
--251.25
+-231.25
  21
--295.375
+-375.375
  31
 0.0
 100
@@ -8493,9 +8691,9 @@ AcDbText
   0
 LWPOLYLINE
   5
-250
+261
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8503,35 +8701,19 @@ E-SLD-FRAME
 100
 AcDbPolyline
  90
-12
+8
  70
 1
  10
--180.0
+-162.5
  20
--109.125
+-175.0
  10
--170.625
+215.0
  20
--109.125
+-175.0
  10
--170.625
- 20
--115.0
- 10
-47.5
- 20
--115.0
- 10
-47.5
- 20
--192.5
- 10
-220.0
- 20
--192.5
- 10
-220.0
+215.0
  20
 -62.5
  10
@@ -8543,23 +8725,23 @@ AcDbPolyline
  20
 -37.5
  10
-220.0
+215.0
  20
 -37.5
  10
-220.0
+215.0
  20
 -32.5
  10
--180.0
+-162.5
  20
 -32.5
   0
 TEXT
   5
-251
+262
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8567,7 +8749,7 @@ E-SLD-TEXT
 100
 AcDbText
  10
--177.5
+-160.0
  20
 -35.625
  30
@@ -8579,7 +8761,7 @@ AcDbText
   7
 standard
  11
--177.5
+-160.0
  21
 -35.625
  31
@@ -8591,9 +8773,9 @@ AcDbText
   0
 LWPOLYLINE
   5
-252
+263
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8605,23 +8787,23 @@ AcDbPolyline
  70
 0
  10
--177.5
+-157.5
  20
--183.75
+-248.75
  10
--185.0
+-165.0
  20
--183.75
+-248.75
  10
--185.0
+-165.0
  20
--186.25
+-251.25
   0
 LWPOLYLINE
   5
-253
+264
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8633,19 +8815,19 @@ AcDbPolyline
  70
 0
  10
--127.5
+-107.5
  20
--250.0
+-322.5
  10
--122.5
+-102.5
  20
--250.0
+-322.5
   0
 LWPOLYLINE
   5
-254
+265
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8657,91 +8839,91 @@ AcDbPolyline
  70
 0
  10
--170.0
- 20
--250.0
- 10
--170.0
- 20
--235.0
-  0
-LWPOLYLINE
-  5
-255
-330
-24A
-100
-AcDbEntity
-  8
-E-SLD-AC
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
--132.5
- 20
--250.0
- 10
--132.5
- 20
--265.0
-  0
-LWPOLYLINE
-  5
-256
-330
-24A
-100
-AcDbEntity
-  8
-E-SLD-AC
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
--170.0
- 20
--210.0
- 10
--170.0
- 20
--195.0
-  0
-LWPOLYLINE
-  5
-257
-330
-24A
-100
-AcDbEntity
-  8
-E-SLD-AC
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
--170.0
- 20
--172.5
- 10
--170.0
- 20
 -150.0
+ 20
+-322.5
+ 10
+-150.0
+ 20
+-300.0
   0
 LWPOLYLINE
   5
-258
+266
 330
-24A
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-112.5
+ 20
+-322.5
+ 10
+-112.5
+ 20
+-345.0
+  0
+LWPOLYLINE
+  5
+267
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-150.0
+ 20
+-275.0
+ 10
+-150.0
+ 20
+-260.0
+  0
+LWPOLYLINE
+  5
+268
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-150.0
+ 20
+-237.5
+ 10
+-150.0
+ 20
+-215.0
+  0
+LWPOLYLINE
+  5
+269
+330
+25B
 100
 AcDbEntity
   8
@@ -8753,27 +8935,27 @@ AcDbPolyline
  70
 0
  10
--170.0
+-150.0
  20
--172.5
+-237.5
  10
--170.0
+-150.0
  20
--155.0
+-220.0
  10
--7.5
+12.5
  20
--155.0
+-220.0
  10
--7.5
+12.5
  20
--172.5
+-237.5
   0
 LWPOLYLINE
   5
-259
+26A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8785,19 +8967,19 @@ AcDbPolyline
  70
 0
  10
--7.5
+12.5
  20
--187.5
+-262.5
  10
--7.5
+12.5
  20
--210.0
+-275.0
   0
 LWPOLYLINE
   5
-25A
+26B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8809,19 +8991,91 @@ AcDbPolyline
  70
 0
  10
--170.0
+12.5
  20
--125.0
+-290.0
  10
--170.0
+12.5
+ 20
+-322.5
+  0
+LWPOLYLINE
+  5
+26C
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-150.0
+ 20
+-190.0
+ 10
+-150.0
+ 20
+-172.5
+  0
+LWPOLYLINE
+  5
+26D
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-150.0
+ 20
+-157.5
+ 10
+-150.0
+ 20
+-137.5
+  0
+LWPOLYLINE
+  5
+26E
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-150.0
+ 20
+-112.5
+ 10
+-150.0
  20
 -107.5
   0
 LWPOLYLINE
   5
-25B
+26F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8843,9 +9097,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-25C
+270
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8857,19 +9111,19 @@ AcDbPolyline
  70
 0
  10
-57.5
+-55.0
  20
 -107.5
  10
-57.5
+-55.0
  20
--125.0
+-112.5
   0
 LWPOLYLINE
   5
-25D
+271
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8881,19 +9135,19 @@ AcDbPolyline
  70
 0
  10
-167.5
+147.5
  20
 -107.5
  10
-167.5
+147.5
  20
--125.0
+-112.5
   0
 LWPOLYLINE
   5
-25E
+272
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8905,43 +9159,43 @@ AcDbPolyline
  70
 0
  10
-167.5
+147.5
  20
--150.0
+-137.5
  10
-167.5
+147.5
+ 20
+-157.5
+  0
+LWPOLYLINE
+  5
+273
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-AC
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+147.5
  20
 -172.5
+ 10
+147.5
+ 20
+-190.0
   0
 LWPOLYLINE
   5
-25F
+274
 330
-24A
-100
-AcDbEntity
-  8
-E-SLD-AC
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
-167.5
- 20
--187.5
- 10
-167.5
- 20
--210.0
-  0
-LWPOLYLINE
-  5
-260
-330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8963,9 +9217,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-261
+275
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -8987,9 +9241,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-262
+276
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9001,19 +9255,19 @@ AcDbPolyline
  70
 0
  10
--207.5
+-187.5
  20
--265.0
+-345.0
  10
--207.5
+-187.5
  20
--250.0
+-322.5
   0
 LWPOLYLINE
   5
-263
+277
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9025,27 +9279,51 @@ AcDbPolyline
  70
 0
  10
--170.0
+-150.0
  20
--172.5
+-237.5
  10
--170.0
+-150.0
  20
--170.0
+-235.0
  10
--115.0
+-95.0
  20
--170.0
+-235.0
  10
--115.0
+-95.0
  20
--172.5
+-237.5
   0
 LWPOLYLINE
   5
-264
+278
 330
-24A
+25B
+100
+AcDbEntity
+  8
+E-SLD-CTRL
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+-145.0
+ 20
+-165.0
+ 10
+-62.5
+ 20
+-165.0
+  0
+LWPOLYLINE
+  5
+279
+330
+25B
 100
 AcDbEntity
   8
@@ -9067,9 +9345,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-265
+27A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9103,9 +9381,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-266
+27B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9139,9 +9417,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-267
+27C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9171,9 +9449,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-268
+27D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9185,19 +9463,19 @@ AcDbPolyline
  70
 0
  10
-57.5
+-55.0
  20
--137.5
+-125.0
  10
-57.5
+-55.0
  20
--140.0
+-127.5
  10
-65.0
+87.4174
  20
--140.0
+-127.5
  10
-65.0
+87.4174
  20
 -37.5
  10
@@ -9211,9 +9489,9 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-269
+27E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9225,19 +9503,19 @@ AcDbPolyline
  70
 0
  10
-57.5
+-55.0
  20
--137.5
+-125.0
  10
-57.5
+-55.0
  20
--140.0
+-127.5
  10
-154.584415
+112.056075
  20
--140.0
+-127.5
  10
-154.584415
+112.056075
  20
 -37.5
  10
@@ -9251,9 +9529,9 @@ AcDbPolyline
   0
 LINE
   5
-26A
+27F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9261,23 +9539,23 @@ E-SLD-BUS
 100
 AcDbLine
  10
--250.0
+-230.0
  20
--250.0
+-322.5
  30
 0.0
  11
--127.5
+-107.5
  21
--250.0
+-322.5
  31
 0.0
   0
 TEXT
   5
-26B
+280
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9285,9 +9563,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--247.5
+-227.5
  20
--242.5
+-315.0
  30
 0.0
  40
@@ -9297,9 +9575,9 @@ ACCB-01  LT AC COMBINER BOX (ACCB)
   7
 standard
  11
--247.5
+-227.5
  21
--242.5
+-315.0
  31
 0.0
 100
@@ -9309,9 +9587,9 @@ AcDbText
   0
 TEXT
   5
-26C
+281
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9319,9 +9597,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--247.5
+-227.5
  20
--246.25
+-318.75
  30
 0.0
  40
@@ -9331,9 +9609,9 @@ AcDbText
   7
 standard
  11
--247.5
+-227.5
  21
--246.25
+-318.75
  31
 0.0
 100
@@ -9343,9 +9621,9 @@ AcDbText
   0
 LINE
   5
-26D
+282
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9353,13 +9631,13 @@ E-SLD-BUS
 100
 AcDbLine
  10
--175.0
+-155.0
  20
 -107.5
  30
 0.0
  11
-172.5
+152.5
  21
 -107.5
  31
@@ -9367,9 +9645,9 @@ AcDbLine
   0
 TEXT
   5
-26E
+283
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9377,7 +9655,7 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
 -100.0
  30
@@ -9389,7 +9667,7 @@ MV-BUS-01  33 kV MAIN HT SWITCHBOARD BUS
   7
 standard
  11
--172.5
+-152.5
  21
 -100.0
  31
@@ -9401,9 +9679,9 @@ AcDbText
   0
 TEXT
   5
-26F
+284
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9411,7 +9689,7 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
 -103.75
  30
@@ -9423,7 +9701,7 @@ AcDbText
   7
 standard
  11
--172.5
+-152.5
  21
 -103.75
  31
@@ -9435,9 +9713,9 @@ AcDbText
   0
 INSERT
   5
-270
+285
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9449,17 +9727,17 @@ AcDbBlockReference
   2
 UC_PROT_SPD_AC
  10
--137.5
+-117.5
  20
--285.0
+-365.0
  30
 0.0
   0
 ATTRIB
   5
-272
+287
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9467,9 +9745,9 @@ G-SYMBOL
 100
 AcDbText
  10
--125.0
+-105.0
  20
--272.25
+-352.25
  30
 0.0
  40
@@ -9479,9 +9757,9 @@ ACCB-SPD-01
   7
 standard
  11
--125.0
+-105.0
  21
--272.25
+-352.25
  31
 0.0
 100
@@ -9497,17 +9775,17 @@ TAG
  72
 0
  11
--125.0
+-105.0
  21
--272.25
+-352.25
  31
 0.0
   0
 ATTRIB
   5
-274
+289
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9515,9 +9793,9 @@ G-SYMBOL
 100
 AcDbText
  10
--125.0
+-105.0
  20
--276.0
+-356.0
  30
 0.0
  40
@@ -9527,9 +9805,9 @@ AcDbText
   7
 standard
  11
--125.0
+-105.0
  21
--276.0
+-356.0
  31
 0.0
 100
@@ -9545,17 +9823,17 @@ RATING
  72
 0
  11
--125.0
+-105.0
  21
--276.0
+-356.0
  31
 0.0
   0
 ATTRIB
   5
-276
+28B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9563,9 +9841,9 @@ G-SYMBOL
 100
 AcDbText
  10
--125.0
+-105.0
  20
--280.0
+-360.0
  30
 0.0
  40
@@ -9575,9 +9853,9 @@ AC SPD
   7
 standard
  11
--125.0
+-105.0
  21
--280.0
+-360.0
  31
 0.0
 100
@@ -9593,17 +9871,17 @@ DESC
  72
 0
  11
--125.0
+-105.0
  21
--280.0
+-360.0
  31
 0.0
   0
 SEQEND
   5
-271
+286
 330
-270
+285
 100
 AcDbEntity
   8
@@ -9611,9 +9889,9 @@ G-SYMBOL
   0
 TEXT
   5
-273
+288
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9621,9 +9899,9 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
--125.0
+-105.0
  20
--272.25
+-352.25
  30
 0.0
  40
@@ -9633,9 +9911,9 @@ ACCB-SPD-01
   7
 standard
  11
--125.0
+-105.0
  21
--272.25
+-352.25
  31
 0.0
 100
@@ -9645,9 +9923,9 @@ AcDbText
   0
 TEXT
   5
-275
+28A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9655,9 +9933,9 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
--125.0
+-105.0
  20
--276.0
+-356.0
  30
 0.0
  40
@@ -9667,9 +9945,9 @@ AcDbText
   7
 standard
  11
--125.0
+-105.0
  21
--276.0
+-356.0
  31
 0.0
 100
@@ -9679,9 +9957,9 @@ AcDbText
   0
 TEXT
   5
-277
+28C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9689,9 +9967,9 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
--125.0
+-105.0
  20
--280.0
+-360.0
  30
 0.0
  40
@@ -9701,9 +9979,9 @@ AC SPD
   7
 standard
  11
--125.0
+-105.0
  21
--280.0
+-360.0
  31
 0.0
 100
@@ -9713,9 +9991,9 @@ AcDbText
   0
 INSERT
   5
-278
+28D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -9727,831 +10005,65 @@ AcDbBlockReference
   2
 UC_SW_ACB
  10
--175.0
+-155.0
  20
--235.0
+-300.0
  30
 0.0
   0
 ATTRIB
-  5
-27A
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--150.0
- 20
--219.75
- 30
-0.0
- 40
-2.5
-  1
-ACB-01
-  7
-standard
- 11
--150.0
- 21
--219.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--150.0
- 21
--219.75
- 31
-0.0
-  0
-ATTRIB
-  5
-27C
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--150.0
- 20
--223.5
- 30
-0.0
- 40
-2.0
-  1
-4000 A, 4P, 65 kA, 440 V
-  7
-standard
- 11
--150.0
- 21
--223.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--150.0
- 21
--223.5
- 31
-0.0
-  0
-ATTRIB
-  5
-27E
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--150.0
- 20
--227.5
- 30
-0.0
- 40
-2.0
-  1
-ACB
-  7
-standard
- 11
--150.0
- 21
--227.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--150.0
- 21
--227.5
- 31
-0.0
-  0
-SEQEND
-  5
-279
-330
-278
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-27B
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--150.0
- 20
--219.75
- 30
-0.0
- 40
-2.5
-  1
-ACB-01
-  7
-standard
- 11
--150.0
- 21
--219.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-27D
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--150.0
- 20
--223.5
- 30
-0.0
- 40
-2.0
-  1
-4000 A, 4P, 65 kA, 440 V
-  7
-standard
- 11
--150.0
- 21
--223.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-27F
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--150.0
- 20
--227.5
- 30
-0.0
- 40
-2.0
-  1
-ACB
-  7
-standard
- 11
--150.0
- 21
--227.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-280
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_TX_POWER_2W
- 10
--177.5
- 20
--195.0
- 30
-0.0
-  0
-ATTRIB
-  5
-282
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--179.0
- 30
-0.0
- 40
-2.5
-  1
-IDT-01
-  7
-standard
- 11
--160.0
- 21
--179.0
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--179.0
- 31
-0.0
-  0
-ATTRIB
-  5
-284
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--182.75
- 30
-0.0
- 40
-2.0
-  1
-2.5 MVA, 33/0.433 kV
-  7
-standard
- 11
--160.0
- 21
--182.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--182.75
- 31
-0.0
-  0
-ATTRIB
-  5
-286
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--186.75
- 30
-0.0
- 40
-2.0
-  1
-Dyn11
-  7
-standard
- 11
--160.0
- 21
--186.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-VECTOR
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--186.75
- 31
-0.0
-  0
-ATTRIB
-  5
-288
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--190.75
- 30
-0.0
- 40
-2.0
-  1
-ONAN, Z = 6.25 %
-  7
-standard
- 11
--160.0
- 21
--190.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--190.75
- 31
-0.0
-  0
-SEQEND
-  5
-281
-330
-280
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-283
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--179.0
- 30
-0.0
- 40
-2.5
-  1
-IDT-01
-  7
-standard
- 11
--160.0
- 21
--179.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-285
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--182.75
- 30
-0.0
- 40
-2.0
-  1
-2.5 MVA, 33/0.433 kV
-  7
-standard
- 11
--160.0
- 21
--182.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-287
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--186.75
- 30
-0.0
- 40
-2.0
-  1
-Dyn11
-  7
-standard
- 11
--160.0
- 21
--186.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-289
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--190.75
- 30
-0.0
- 40
-2.0
-  1
-ONAN, Z = 6.25 %
-  7
-standard
- 11
--160.0
- 21
--190.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-28A
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_EARTH_EARTH
- 10
--190.0
- 20
--196.25
- 30
-0.0
-  0
-ATTRIB
-  5
-28C
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--177.5
- 20
--188.5
- 30
-0.0
- 40
-2.5
-  1
-
-  7
-standard
- 11
--177.5
- 21
--188.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--177.5
- 21
--188.5
- 31
-0.0
-  0
-ATTRIB
-  5
-28D
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--177.5
- 20
--192.25
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
--177.5
- 21
--192.25
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--177.5
- 21
--192.25
- 31
-0.0
-  0
-ATTRIB
-  5
-28E
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--177.5
- 20
--196.25
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
--177.5
- 21
--196.25
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--177.5
- 21
--196.25
- 31
-0.0
-  0
-SEQEND
-  5
-28B
-330
-28A
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-INSERT
   5
 28F
 330
-24A
+25B
 100
 AcDbEntity
   8
 G-SYMBOL
 100
-AcDbBlockReference
- 66
-1
-  2
-UC_TX_AUX
+AcDbText
  10
--12.5
+-130.0
  20
--187.5
+-284.75
  30
+0.0
+ 40
+2.5
+  1
+ACB-01
+  7
+standard
+ 11
+-130.0
+ 21
+-284.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-130.0
+ 21
+-284.75
+ 31
 0.0
   0
 ATTRIB
   5
 291
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -10559,27 +10071,27 @@ G-SYMBOL
 100
 AcDbText
  10
-0.0
+-130.0
  20
--175.25
+-288.5
  30
 0.0
  40
-2.5
+2.0
   1
-BLK-AUX-TR-01
+4000 A, 4P, 65 kA, 440 V
   7
 standard
  11
-0.0
+-130.0
  21
--175.25
+-288.5
  31
 0.0
 100
 AcDbAttribute
   2
-TAG
+RATING
  70
 1
  74
@@ -10589,9 +10101,9 @@ TAG
  72
 0
  11
-0.0
+-130.0
  21
--175.25
+-288.5
  31
 0.0
   0
@@ -10599,7 +10111,7 @@ ATTRIB
   5
 293
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -10607,117 +10119,21 @@ G-SYMBOL
 100
 AcDbText
  10
-0.0
+-130.0
  20
--179.0
+-292.5
  30
 0.0
  40
 2.0
   1
-63 kVA, 33/0.433 kV
+SCHNEIDER ELECTRIC MASTERPACT MTZ2 H1 4000A 4P
   7
 standard
  11
-0.0
+-130.0
  21
--179.0
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-0.0
- 21
--179.0
- 31
-0.0
-  0
-ATTRIB
-  5
-295
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-0.0
- 20
--183.0
- 30
-0.0
- 40
-2.0
-  1
-Dyn11
-  7
-standard
- 11
-0.0
- 21
--183.0
- 31
-0.0
-100
-AcDbAttribute
-  2
-VECTOR
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-0.0
- 21
--183.0
- 31
-0.0
-  0
-ATTRIB
-  5
-297
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-0.0
- 20
--187.0
- 30
-0.0
- 40
-2.0
-  1
-ONAN, Z = 4.5 %
-  7
-standard
- 11
-0.0
- 21
--187.0
+-292.5
  31
 0.0
 100
@@ -10733,17 +10149,17 @@ DESC
  72
 0
  11
-0.0
+-130.0
  21
--187.0
+-292.5
  31
 0.0
   0
 SEQEND
   5
-290
+28E
 330
-28F
+28D
 100
 AcDbEntity
   8
@@ -10751,9 +10167,9 @@ G-SYMBOL
   0
 TEXT
   5
-292
+290
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -10761,21 +10177,55 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-0.0
+-130.0
  20
--175.25
+-284.75
  30
 0.0
  40
 2.5
   1
-BLK-AUX-TR-01
+ACB-01
   7
 standard
  11
-0.0
+-130.0
  21
--175.25
+-284.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+292
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-130.0
+ 20
+-288.5
+ 30
+0.0
+ 40
+2.0
+  1
+4000 A, 4P, 65 kA, 440 V
+  7
+standard
+ 11
+-130.0
+ 21
+-288.5
  31
 0.0
 100
@@ -10787,7 +10237,7 @@ TEXT
   5
 294
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -10795,89 +10245,21 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-0.0
+-130.0
  20
--179.0
+-292.5
  30
 0.0
  40
 2.0
   1
-63 kVA, 33/0.433 kV
+SCHNEIDER ELECTRIC MASTERPACT MTZ2 H1 4000A 4P
   7
 standard
  11
-0.0
+-130.0
  21
--179.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-296
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-0.0
- 20
--183.0
- 30
-0.0
- 40
-2.0
-  1
-Dyn11
-  7
-standard
- 11
-0.0
- 21
--183.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-298
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-0.0
- 20
--187.0
- 30
-0.0
- 40
-2.0
-  1
-ONAN, Z = 4.5 %
-  7
-standard
- 11
-0.0
- 21
--187.0
+-292.5
  31
 0.0
 100
@@ -10887,9 +10269,9 @@ AcDbText
   0
 INSERT
   5
-299
+295
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -10899,19 +10281,115 @@ AcDbBlockReference
  66
 1
   2
-UC_GRID_LOAD
+UC_TX_POWER_2W
  10
--15.0
+-157.5
  20
--227.5
+-260.0
  30
+0.0
+  0
+ATTRIB
+  5
+297
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-244.0
+ 30
+0.0
+ 40
+2.5
+  1
+IDT-01
+  7
+standard
+ 11
+-140.0
+ 21
+-244.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-244.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+299
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-247.75
+ 30
+0.0
+ 40
+2.0
+  1
+2.5 MVA, 33/0.433 kV
+  7
+standard
+ 11
+-140.0
+ 21
+-247.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-247.75
+ 31
 0.0
   0
 ATTRIB
   5
 29B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -10919,1495 +10397,9 @@ G-SYMBOL
 100
 AcDbText
  10
-2.5
+-140.0
  20
--216.0
- 30
-0.0
- 40
-2.5
-  1
-BLK-AUX-LOAD-01
-  7
-standard
- 11
-2.5
- 21
--216.0
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-2.5
- 21
--216.0
- 31
-0.0
-  0
-ATTRIB
-  5
-29D
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-2.5
- 20
--219.75
- 30
-0.0
- 40
-2.0
-  1
-415 V
-  7
-standard
- 11
-2.5
- 21
--219.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-2.5
- 21
--219.75
- 31
-0.0
-  0
-ATTRIB
-  5
-29F
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-2.5
- 20
--223.75
- 30
-0.0
- 40
-2.0
-  1
-BLOCK AUXILIARY ACDB
-  7
-standard
- 11
-2.5
- 21
--223.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-2.5
- 21
--223.75
- 31
-0.0
-  0
-SEQEND
-  5
-29A
-330
-299
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-29C
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-2.5
- 20
--216.0
- 30
-0.0
- 40
-2.5
-  1
-BLK-AUX-LOAD-01
-  7
-standard
- 11
-2.5
- 21
--216.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-29E
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-2.5
- 20
--219.75
- 30
-0.0
- 40
-2.0
-  1
-415 V
-  7
-standard
- 11
-2.5
- 21
--219.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2A0
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-2.5
- 20
--223.75
- 30
-0.0
- 40
-2.0
-  1
-BLOCK AUXILIARY ACDB
-  7
-standard
- 11
-2.5
- 21
--223.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-2A1
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_SW_VCB
- 10
--177.5
- 20
--150.0
- 30
-0.0
-  0
-ATTRIB
-  5
-2A3
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--134.75
- 30
-0.0
- 40
-2.5
-  1
-ICOG-VCB-01
-  7
-standard
- 11
--160.0
- 21
--134.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--134.75
- 31
-0.0
-  0
-ATTRIB
-  5
-2A5
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--138.5
- 30
-0.0
- 40
-2.0
-  1
-630 A, 3P, 20 kA, 36 kV
-  7
-standard
- 11
--160.0
- 21
--138.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--138.5
- 31
-0.0
-  0
-ATTRIB
-  5
-2A7
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--160.0
- 20
--142.5
- 30
-0.0
- 40
-2.0
-  1
-VCB
-  7
-standard
- 11
--160.0
- 21
--142.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--160.0
- 21
--142.5
- 31
-0.0
-  0
-SEQEND
-  5
-2A2
-330
-2A1
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-2A4
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--134.75
- 30
-0.0
- 40
-2.5
-  1
-ICOG-VCB-01
-  7
-standard
- 11
--160.0
- 21
--134.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2A6
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--138.5
- 30
-0.0
- 40
-2.0
-  1
-630 A, 3P, 20 kA, 36 kV
-  7
-standard
- 11
--160.0
- 21
--138.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2A8
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--160.0
- 20
--142.5
- 30
-0.0
- 40
-2.0
-  1
-VCB
-  7
-standard
- 11
--160.0
- 21
--142.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-2A9
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_PROT_LIGHTNING_ARRESTER
- 10
--120.0
- 20
--192.5
- 30
-0.0
-  0
-ATTRIB
-  5
-2AB
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--107.5
- 20
--179.75
- 30
-0.0
- 40
-2.5
-  1
-ICOG-LA-01
-  7
-standard
- 11
--107.5
- 21
--179.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--107.5
- 21
--179.75
- 31
-0.0
-  0
-ATTRIB
-  5
-2AD
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--107.5
- 20
--183.5
- 30
-0.0
- 40
-2.0
-  1
-30 kV, 10 kA
-  7
-standard
- 11
--107.5
- 21
--183.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--107.5
- 21
--183.5
- 31
-0.0
-  0
-ATTRIB
-  5
-2AF
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
--107.5
- 20
--187.5
- 30
-0.0
- 40
-2.0
-  1
-LIGHTNING ARRESTER
-  7
-standard
- 11
--107.5
- 21
--187.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
--107.5
- 21
--187.5
- 31
-0.0
-  0
-SEQEND
-  5
-2AA
-330
-2A9
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-2AC
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--107.5
- 20
--179.75
- 30
-0.0
- 40
-2.5
-  1
-ICOG-LA-01
-  7
-standard
- 11
--107.5
- 21
--179.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2AE
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--107.5
- 20
--183.5
- 30
-0.0
- 40
-2.0
-  1
-30 kV, 10 kA
-  7
-standard
- 11
--107.5
- 21
--183.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2B0
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
--107.5
- 20
--187.5
- 30
-0.0
- 40
-2.0
-  1
-LIGHTNING ARRESTER
-  7
-standard
- 11
--107.5
- 21
--187.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-2B1
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_TX_PT
- 10
-52.5
- 20
--137.5
- 30
-0.0
-  0
-ATTRIB
-  5
-2B3
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-65.0
- 20
--128.5
- 30
-0.0
- 40
-2.5
-  1
-MV-PT-01
-  7
-standard
- 11
-65.0
- 21
--128.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-65.0
- 21
--128.5
- 31
-0.0
-  0
-ATTRIB
-  5
-2B6
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-65.0
- 20
--132.25
- 30
-0.0
- 40
-2.0
-  1
-33 kV/√3 / 110 V/√3 - 110 V/√3, CL 0.5 / 3P, 100 VA
-  7
-unicode
- 11
-65.0
- 21
--132.25
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-65.0
- 21
--132.25
- 31
-0.0
-  0
-ATTRIB
-  5
-2B8
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-65.0
- 20
--136.25
- 30
-0.0
- 40
-2.0
-  1
-POTENTIAL TRANSFORMER
-  7
-standard
- 11
-65.0
- 21
--136.25
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-65.0
- 21
--136.25
- 31
-0.0
-  0
-SEQEND
-  5
-2B2
-330
-2B1
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-2B4
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-65.0
- 20
--128.5
- 30
-0.0
- 40
-2.5
-  1
-MV-PT-01
-  7
-standard
- 11
-65.0
- 21
--128.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2B7
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-65.0
- 20
--132.25
- 30
-0.0
- 40
-2.0
-  1
-33 kV/√3 / 110 V/√3 - 110 V/√3, CL 0.5 / 3P, 100 VA
-  7
-unicode
- 11
-65.0
- 21
--132.25
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2B9
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-65.0
- 20
--136.25
- 30
-0.0
- 40
-2.0
-  1
-POTENTIAL TRANSFORMER
-  7
-standard
- 11
-65.0
- 21
--136.25
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-2BA
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_SW_VCB
- 10
-160.0
- 20
--150.0
- 30
-0.0
-  0
-ATTRIB
-  5
-2BC
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-177.5
- 20
--134.75
- 30
-0.0
- 40
-2.5
-  1
-VCB-AUX-01
-  7
-standard
- 11
-177.5
- 21
--134.75
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-177.5
- 21
--134.75
- 31
-0.0
-  0
-ATTRIB
-  5
-2BE
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-177.5
- 20
--138.5
- 30
-0.0
- 40
-2.0
-  1
-630 A, 3P, 20 kA, 36 kV
-  7
-standard
- 11
-177.5
- 21
--138.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-177.5
- 21
--138.5
- 31
-0.0
-  0
-ATTRIB
-  5
-2C0
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-177.5
- 20
--142.5
- 30
-0.0
- 40
-2.0
-  1
-VCB
-  7
-standard
- 11
-177.5
- 21
--142.5
- 31
-0.0
-100
-AcDbAttribute
-  2
-DESC
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-177.5
- 21
--142.5
- 31
-0.0
-  0
-SEQEND
-  5
-2BB
-330
-2BA
-100
-AcDbEntity
-  8
-G-SYMBOL
-  0
-TEXT
-  5
-2BD
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-177.5
- 20
--134.75
- 30
-0.0
- 40
-2.5
-  1
-VCB-AUX-01
-  7
-standard
- 11
-177.5
- 21
--134.75
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2BF
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-177.5
- 20
--138.5
- 30
-0.0
- 40
-2.0
-  1
-630 A, 3P, 20 kA, 36 kV
-  7
-standard
- 11
-177.5
- 21
--138.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-2C1
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-177.5
- 20
--142.5
- 30
-0.0
- 40
-2.0
-  1
-VCB
-  7
-standard
- 11
-177.5
- 21
--142.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-INSERT
-  5
-2C2
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbBlockReference
- 66
-1
-  2
-UC_TX_AUX
- 10
-162.5
- 20
--187.5
- 30
-0.0
-  0
-ATTRIB
-  5
-2C4
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-175.0
- 20
--175.25
- 30
-0.0
- 40
-2.5
-  1
-AUX-TR-01
-  7
-standard
- 11
-175.0
- 21
--175.25
- 31
-0.0
-100
-AcDbAttribute
-  2
-TAG
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-175.0
- 21
--175.25
- 31
-0.0
-  0
-ATTRIB
-  5
-2C6
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-175.0
- 20
--179.0
- 30
-0.0
- 40
-2.0
-  1
-100 kVA, 33/0.433 kV
-  7
-standard
- 11
-175.0
- 21
--179.0
- 31
-0.0
-100
-AcDbAttribute
-  2
-RATING
- 70
-1
- 74
-2
- 71
-1
- 72
-0
- 11
-175.0
- 21
--179.0
- 31
-0.0
-  0
-ATTRIB
-  5
-2C8
-330
-24A
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-175.0
- 20
--183.0
+-251.75
  30
 0.0
  40
@@ -12417,9 +10409,9 @@ Dyn11
   7
 standard
  11
-175.0
+-140.0
  21
--183.0
+-251.75
  31
 0.0
 100
@@ -12435,17 +10427,17 @@ VECTOR
  72
 0
  11
-175.0
+-140.0
  21
--183.0
+-251.75
  31
 0.0
   0
 ATTRIB
   5
-2CA
+29D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12453,21 +10445,21 @@ G-SYMBOL
 100
 AcDbText
  10
-175.0
+-140.0
  20
--187.0
+-255.75
  30
 0.0
  40
 2.0
   1
-ONAN, Z = 4.5 %
+ONAN, Z = 6.25 %
   7
 standard
  11
-175.0
+-140.0
  21
--187.0
+-255.75
  31
 0.0
 100
@@ -12483,17 +10475,17 @@ DESC
  72
 0
  11
-175.0
+-140.0
  21
--187.0
+-255.75
  31
 0.0
   0
 SEQEND
   5
-2C3
+296
 330
-2C2
+295
 100
 AcDbEntity
   8
@@ -12501,9 +10493,9 @@ G-SYMBOL
   0
 TEXT
   5
-2C5
+298
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12511,21 +10503,21 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-175.0
+-140.0
  20
--175.25
+-244.0
  30
 0.0
  40
 2.5
   1
-AUX-TR-01
+IDT-01
   7
 standard
  11
-175.0
+-140.0
  21
--175.25
+-244.0
  31
 0.0
 100
@@ -12535,9 +10527,9 @@ AcDbText
   0
 TEXT
   5
-2C7
+29A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12545,21 +10537,21 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-175.0
+-140.0
  20
--179.0
+-247.75
  30
 0.0
  40
 2.0
   1
-100 kVA, 33/0.433 kV
+2.5 MVA, 33/0.433 kV
   7
 standard
  11
-175.0
+-140.0
  21
--179.0
+-247.75
  31
 0.0
 100
@@ -12569,9 +10561,9 @@ AcDbText
   0
 TEXT
   5
-2C9
+29C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12579,9 +10571,9 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-175.0
+-140.0
  20
--183.0
+-251.75
  30
 0.0
  40
@@ -12591,9 +10583,9 @@ Dyn11
   7
 standard
  11
-175.0
+-140.0
  21
--183.0
+-251.75
  31
 0.0
 100
@@ -12603,9 +10595,9 @@ AcDbText
   0
 TEXT
   5
-2CB
+29E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12613,21 +10605,21 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-175.0
+-140.0
  20
--187.0
+-255.75
  30
 0.0
  40
 2.0
   1
-ONAN, Z = 4.5 %
+ONAN, Z = 6.25 %
   7
 standard
  11
-175.0
+-140.0
  21
--187.0
+-255.75
  31
 0.0
 100
@@ -12637,9 +10629,9 @@ AcDbText
   0
 INSERT
   5
-2CC
+29F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12649,19 +10641,19 @@ AcDbBlockReference
  66
 1
   2
-UC_GRID_LOAD
+UC_EARTH_EARTH
  10
-160.0
+-170.0
  20
--227.5
+-261.25
  30
 0.0
   0
 ATTRIB
   5
-2CE
+2A1
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12669,21 +10661,21 @@ G-SYMBOL
 100
 AcDbText
  10
-177.5
+-157.5
  20
--216.0
+-253.5
  30
 0.0
  40
 2.5
   1
-AUX-LOAD-01
+
   7
 standard
  11
-177.5
+-157.5
  21
--216.0
+-253.5
  31
 0.0
 100
@@ -12699,17 +10691,17 @@ TAG
  72
 0
  11
-177.5
+-157.5
  21
--216.0
+-253.5
  31
 0.0
   0
 ATTRIB
   5
-2D0
+2A2
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12717,21 +10709,21 @@ G-SYMBOL
 100
 AcDbText
  10
-177.5
+-157.5
  20
--219.75
+-257.25
  30
 0.0
  40
 2.0
   1
-415 V
+
   7
 standard
  11
-177.5
+-157.5
  21
--219.75
+-257.25
  31
 0.0
 100
@@ -12747,17 +10739,17 @@ RATING
  72
 0
  11
-177.5
+-157.5
  21
--219.75
+-257.25
  31
 0.0
   0
 ATTRIB
   5
-2D2
+2A3
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12765,21 +10757,21 @@ G-SYMBOL
 100
 AcDbText
  10
-177.5
+-157.5
  20
--223.75
+-261.25
  30
 0.0
  40
 2.0
   1
-PLANT AUXILIARY / CMCS ACDB
+
   7
 standard
  11
-177.5
+-157.5
  21
--223.75
+-261.25
  31
 0.0
 100
@@ -12795,17 +10787,193 @@ DESC
  72
 0
  11
-177.5
+-157.5
  21
--223.75
+-261.25
  31
 0.0
   0
 SEQEND
   5
-2CD
+2A0
 330
-2CC
+29F
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+INSERT
+  5
+2A4
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_SW_VCB
+ 10
+5.0
+ 20
+-262.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2A6
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+22.5
+ 20
+-247.25
+ 30
+0.0
+ 40
+2.5
+  1
+ICOG-AUX-VCB-01
+  7
+standard
+ 11
+22.5
+ 21
+-247.25
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+22.5
+ 21
+-247.25
+ 31
+0.0
+  0
+ATTRIB
+  5
+2A8
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+22.5
+ 20
+-251.0
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+22.5
+ 21
+-251.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+22.5
+ 21
+-251.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2AA
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+22.5
+ 20
+-255.0
+ 30
+0.0
+ 40
+2.0
+  1
+BLOCK AUX TRANSFORMER T-OFF VCB
+  7
+standard
+ 11
+22.5
+ 21
+-255.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+22.5
+ 21
+-255.0
+ 31
+0.0
+  0
+SEQEND
+  5
+2A5
+330
+2A4
 100
 AcDbEntity
   8
@@ -12813,9 +10981,9 @@ G-SYMBOL
   0
 TEXT
   5
-2CF
+2A7
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12823,21 +10991,21 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-177.5
+22.5
  20
--216.0
+-247.25
  30
 0.0
  40
 2.5
   1
-AUX-LOAD-01
+ICOG-AUX-VCB-01
   7
 standard
  11
-177.5
+22.5
  21
--216.0
+-247.25
  31
 0.0
 100
@@ -12847,9 +11015,9 @@ AcDbText
   0
 TEXT
   5
-2D1
+2A9
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12857,9 +11025,507 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-177.5
+22.5
  20
--219.75
+-251.0
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+22.5
+ 21
+-251.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2AB
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+22.5
+ 20
+-255.0
+ 30
+0.0
+ 40
+2.0
+  1
+BLOCK AUX TRANSFORMER T-OFF VCB
+  7
+standard
+ 11
+22.5
+ 21
+-255.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2AC
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_TX_AUX
+ 10
+7.5
+ 20
+-290.0
+ 30
+0.0
+  0
+ATTRIB
+  5
+2AE
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+20.0
+ 20
+-277.75
+ 30
+0.0
+ 40
+2.5
+  1
+BLK-AUX-TR-01
+  7
+standard
+ 11
+20.0
+ 21
+-277.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+20.0
+ 21
+-277.75
+ 31
+0.0
+  0
+ATTRIB
+  5
+2B0
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+20.0
+ 20
+-281.5
+ 30
+0.0
+ 40
+2.0
+  1
+63 kVA, 33/0.433 kV
+  7
+standard
+ 11
+20.0
+ 21
+-281.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+20.0
+ 21
+-281.5
+ 31
+0.0
+  0
+ATTRIB
+  5
+2B2
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+20.0
+ 20
+-285.5
+ 30
+0.0
+ 40
+2.0
+  1
+Dyn11
+  7
+standard
+ 11
+20.0
+ 21
+-285.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+VECTOR
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+20.0
+ 21
+-285.5
+ 31
+0.0
+  0
+ATTRIB
+  5
+2B4
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+20.0
+ 20
+-289.5
+ 30
+0.0
+ 40
+2.0
+  1
+ONAN, Z = 4.5 %
+  7
+standard
+ 11
+20.0
+ 21
+-289.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+20.0
+ 21
+-289.5
+ 31
+0.0
+  0
+SEQEND
+  5
+2AD
+330
+2AC
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2AF
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+20.0
+ 20
+-277.75
+ 30
+0.0
+ 40
+2.5
+  1
+BLK-AUX-TR-01
+  7
+standard
+ 11
+20.0
+ 21
+-277.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2B1
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+20.0
+ 20
+-281.5
+ 30
+0.0
+ 40
+2.0
+  1
+63 kVA, 33/0.433 kV
+  7
+standard
+ 11
+20.0
+ 21
+-281.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2B3
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+20.0
+ 20
+-285.5
+ 30
+0.0
+ 40
+2.0
+  1
+Dyn11
+  7
+standard
+ 11
+20.0
+ 21
+-285.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2B5
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+20.0
+ 20
+-289.5
+ 30
+0.0
+ 40
+2.0
+  1
+ONAN, Z = 4.5 %
+  7
+standard
+ 11
+20.0
+ 21
+-289.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2B6
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_GRID_LOAD
+ 10
+5.0
+ 20
+-340.0
+ 30
+0.0
+  0
+ATTRIB
+  5
+2B8
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+22.5
+ 20
+-328.5
+ 30
+0.0
+ 40
+2.5
+  1
+BLK-AUX-LOAD-01
+  7
+standard
+ 11
+22.5
+ 21
+-328.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+22.5
+ 21
+-328.5
+ 31
+0.0
+  0
+ATTRIB
+  5
+2BA
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+22.5
+ 20
+-332.25
  30
 0.0
  40
@@ -12869,9 +11535,949 @@ AcDbText
   7
 standard
  11
-177.5
+22.5
  21
--219.75
+-332.25
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+22.5
+ 21
+-332.25
+ 31
+0.0
+  0
+ATTRIB
+  5
+2BC
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+22.5
+ 20
+-336.25
+ 30
+0.0
+ 40
+2.0
+  1
+BLOCK AUXILIARY ACDB
+  7
+standard
+ 11
+22.5
+ 21
+-336.25
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+22.5
+ 21
+-336.25
+ 31
+0.0
+  0
+SEQEND
+  5
+2B7
+330
+2B6
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2B9
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+22.5
+ 20
+-328.5
+ 30
+0.0
+ 40
+2.5
+  1
+BLK-AUX-LOAD-01
+  7
+standard
+ 11
+22.5
+ 21
+-328.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2BB
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+22.5
+ 20
+-332.25
+ 30
+0.0
+ 40
+2.0
+  1
+415 V
+  7
+standard
+ 11
+22.5
+ 21
+-332.25
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2BD
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+22.5
+ 20
+-336.25
+ 30
+0.0
+ 40
+2.0
+  1
+BLOCK AUXILIARY ACDB
+  7
+standard
+ 11
+22.5
+ 21
+-336.25
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2BE
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_SW_VCB
+ 10
+-157.5
+ 20
+-215.0
+ 30
+0.0
+  0
+ATTRIB
+  5
+2C0
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-199.75
+ 30
+0.0
+ 40
+2.5
+  1
+ICOG-VCB-01
+  7
+standard
+ 11
+-140.0
+ 21
+-199.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-199.75
+ 31
+0.0
+  0
+ATTRIB
+  5
+2C2
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-203.5
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+-140.0
+ 21
+-203.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-203.5
+ 31
+0.0
+  0
+ATTRIB
+  5
+2C4
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-207.5
+ 30
+0.0
+ 40
+2.0
+  1
+VCB
+  7
+standard
+ 11
+-140.0
+ 21
+-207.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-207.5
+ 31
+0.0
+  0
+SEQEND
+  5
+2BF
+330
+2BE
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2C1
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-140.0
+ 20
+-199.75
+ 30
+0.0
+ 40
+2.5
+  1
+ICOG-VCB-01
+  7
+standard
+ 11
+-140.0
+ 21
+-199.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2C3
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-140.0
+ 20
+-203.5
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+-140.0
+ 21
+-203.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2C5
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-140.0
+ 20
+-207.5
+ 30
+0.0
+ 40
+2.0
+  1
+VCB
+  7
+standard
+ 11
+-140.0
+ 21
+-207.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2C6
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_PROT_LIGHTNING_ARRESTER
+ 10
+-100.0
+ 20
+-257.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2C8
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-87.5
+ 20
+-244.75
+ 30
+0.0
+ 40
+2.5
+  1
+ICOG-LA-01
+  7
+standard
+ 11
+-87.5
+ 21
+-244.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-87.5
+ 21
+-244.75
+ 31
+0.0
+  0
+ATTRIB
+  5
+2CA
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-87.5
+ 20
+-248.5
+ 30
+0.0
+ 40
+2.0
+  1
+30 kV, 10 kA
+  7
+standard
+ 11
+-87.5
+ 21
+-248.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-87.5
+ 21
+-248.5
+ 31
+0.0
+  0
+ATTRIB
+  5
+2CC
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-87.5
+ 20
+-252.5
+ 30
+0.0
+ 40
+2.0
+  1
+LIGHTNING ARRESTER
+  7
+standard
+ 11
+-87.5
+ 21
+-252.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-87.5
+ 21
+-252.5
+ 31
+0.0
+  0
+SEQEND
+  5
+2C7
+330
+2C6
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2C9
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-87.5
+ 20
+-244.75
+ 30
+0.0
+ 40
+2.5
+  1
+ICOG-LA-01
+  7
+standard
+ 11
+-87.5
+ 21
+-244.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2CB
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-87.5
+ 20
+-248.5
+ 30
+0.0
+ 40
+2.0
+  1
+30 kV, 10 kA
+  7
+standard
+ 11
+-87.5
+ 21
+-248.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2CD
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-87.5
+ 20
+-252.5
+ 30
+0.0
+ 40
+2.0
+  1
+LIGHTNING ARRESTER
+  7
+standard
+ 11
+-87.5
+ 21
+-252.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2CE
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_TX_CT
+ 10
+-155.0
+ 20
+-172.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2D0
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-142.5
+ 20
+-157.0
+ 30
+0.0
+ 40
+2.5
+  1
+CT-BF-01..CT-BF-10
+  7
+standard
+ 11
+-142.5
+ 21
+-157.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-142.5
+ 21
+-157.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2D2
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-142.5
+ 20
+-160.5
+ 30
+0.0
+ 40
+2.0
+  1
+FEEDER PANEL CT AT MAIN HT SWITCHBOARD
+  7
+standard
+ 11
+-142.5
+ 21
+-160.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-142.5
+ 21
+-160.5
+ 31
+0.0
+  0
+ATTRIB
+  5
+2D4
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-142.5
+ 20
+-169.5
+ 30
+0.0
+ 40
+2.0
+  1
+33 kV
+  7
+standard
+ 11
+-142.5
+ 21
+-169.5
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-142.5
+ 21
+-169.5
+ 31
+0.0
+  0
+SEQEND
+  5
+2CF
+330
+2CE
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2D1
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-142.5
+ 20
+-157.0
+ 30
+0.0
+ 40
+2.5
+  1
+CT-BF-01..CT-BF-10
+  7
+standard
+ 11
+-142.5
+ 21
+-157.0
  31
 0.0
 100
@@ -12883,7 +12489,7 @@ TEXT
   5
 2D3
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12891,21 +12497,55 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
-177.5
+-142.5
  20
--223.75
+-160.5
  30
 0.0
  40
 2.0
   1
-PLANT AUXILIARY / CMCS ACDB
+FEEDER PANEL CT AT MAIN HT SWITCHBOARD
   7
 standard
  11
-177.5
+-142.5
  21
--223.75
+-160.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2D5
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-142.5
+ 20
+-169.5
+ 30
+0.0
+ 40
+2.0
+  1
+33 kV
+  7
+standard
+ 11
+-142.5
+ 21
+-169.5
  31
 0.0
 100
@@ -12915,9 +12555,1775 @@ AcDbText
   0
 INSERT
   5
-2D4
+2D6
 330
-24A
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_SW_VCB
+ 10
+-157.5
+ 20
+-137.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2D8
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-122.25
+ 30
+0.0
+ 40
+2.5
+  1
+VCB-BF-01..VCB-BF-10
+  7
+standard
+ 11
+-140.0
+ 21
+-122.25
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-122.25
+ 31
+0.0
+  0
+ATTRIB
+  5
+2DA
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-126.0
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+-140.0
+ 21
+-126.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-126.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2DC
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-140.0
+ 20
+-130.0
+ 30
+0.0
+ 40
+2.0
+  1
+FEEDER PANEL VCB AT MAIN HT SWITCHBOARD
+  7
+standard
+ 11
+-140.0
+ 21
+-130.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-140.0
+ 21
+-130.0
+ 31
+0.0
+  0
+SEQEND
+  5
+2D7
+330
+2D6
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2D9
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-140.0
+ 20
+-122.25
+ 30
+0.0
+ 40
+2.5
+  1
+VCB-BF-01..VCB-BF-10
+  7
+standard
+ 11
+-140.0
+ 21
+-122.25
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2DB
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-140.0
+ 20
+-126.0
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+-140.0
+ 21
+-126.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2DD
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-140.0
+ 20
+-130.0
+ 30
+0.0
+ 40
+2.0
+  1
+FEEDER PANEL VCB AT MAIN HT SWITCHBOARD
+  7
+standard
+ 11
+-140.0
+ 21
+-130.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2DE
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_PROT_RELAY
+ 10
+-62.5
+ 20
+-172.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2E0
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-50.0
+ 20
+-157.0
+ 30
+0.0
+ 40
+2.5
+  1
+REL-BF-01..REL-BF-10
+  7
+standard
+ 11
+-50.0
+ 21
+-157.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-50.0
+ 21
+-157.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2E2
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-50.0
+ 20
+-161.0
+ 30
+0.0
+ 40
+2.0
+  1
+FEEDER O/C + E/F RELAY
+  7
+standard
+ 11
+-50.0
+ 21
+-161.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-50.0
+ 21
+-161.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2E4
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-57.5
+ 20
+-165.0
+ 30
+0.0
+ 40
+2.5
+  1
+
+  7
+standard
+ 72
+1
+ 11
+-57.5
+ 21
+-165.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+ANSI
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-57.5
+ 21
+-165.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2E5
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-50.0
+ 20
+-169.0
+ 30
+0.0
+ 40
+2.0
+  1
+
+  7
+standard
+ 11
+-50.0
+ 21
+-169.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-50.0
+ 21
+-169.0
+ 31
+0.0
+  0
+SEQEND
+  5
+2DF
+330
+2DE
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2E1
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-50.0
+ 20
+-157.0
+ 30
+0.0
+ 40
+2.5
+  1
+REL-BF-01..REL-BF-10
+  7
+standard
+ 11
+-50.0
+ 21
+-157.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2E3
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-50.0
+ 20
+-161.0
+ 30
+0.0
+ 40
+2.0
+  1
+FEEDER O/C + E/F RELAY
+  7
+standard
+ 11
+-50.0
+ 21
+-161.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2E6
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_TX_PT
+ 10
+-60.0
+ 20
+-125.0
+ 30
+0.0
+  0
+ATTRIB
+  5
+2E8
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-47.5
+ 20
+-116.0
+ 30
+0.0
+ 40
+2.5
+  1
+MV-PT-01
+  7
+standard
+ 11
+-47.5
+ 21
+-116.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-47.5
+ 21
+-116.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2EB
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-47.5
+ 20
+-119.75
+ 30
+0.0
+ 40
+2.0
+  1
+33 kV/√3 / 110 V/√3 - 110 V/√3, CL 0.5 / 3P, 100 VA
+  7
+unicode
+ 11
+-47.5
+ 21
+-119.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-47.5
+ 21
+-119.75
+ 31
+0.0
+  0
+ATTRIB
+  5
+2ED
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+-47.5
+ 20
+-123.75
+ 30
+0.0
+ 40
+2.0
+  1
+POTENTIAL TRANSFORMER
+  7
+standard
+ 11
+-47.5
+ 21
+-123.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+-47.5
+ 21
+-123.75
+ 31
+0.0
+  0
+SEQEND
+  5
+2E7
+330
+2E6
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2E9
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-47.5
+ 20
+-116.0
+ 30
+0.0
+ 40
+2.5
+  1
+MV-PT-01
+  7
+standard
+ 11
+-47.5
+ 21
+-116.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2EC
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-47.5
+ 20
+-119.75
+ 30
+0.0
+ 40
+2.0
+  1
+33 kV/√3 / 110 V/√3 - 110 V/√3, CL 0.5 / 3P, 100 VA
+  7
+unicode
+ 11
+-47.5
+ 21
+-119.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2EE
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+-47.5
+ 20
+-123.75
+ 30
+0.0
+ 40
+2.0
+  1
+POTENTIAL TRANSFORMER
+  7
+standard
+ 11
+-47.5
+ 21
+-123.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2EF
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_SW_VCB
+ 10
+140.0
+ 20
+-137.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2F1
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+157.5
+ 20
+-122.25
+ 30
+0.0
+ 40
+2.5
+  1
+VCB-AUX-01
+  7
+standard
+ 11
+157.5
+ 21
+-122.25
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+157.5
+ 21
+-122.25
+ 31
+0.0
+  0
+ATTRIB
+  5
+2F3
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+157.5
+ 20
+-126.0
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+157.5
+ 21
+-126.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+157.5
+ 21
+-126.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2F5
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+157.5
+ 20
+-130.0
+ 30
+0.0
+ 40
+2.0
+  1
+VCB
+  7
+standard
+ 11
+157.5
+ 21
+-130.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+157.5
+ 21
+-130.0
+ 31
+0.0
+  0
+SEQEND
+  5
+2F0
+330
+2EF
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2F2
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+157.5
+ 20
+-122.25
+ 30
+0.0
+ 40
+2.5
+  1
+VCB-AUX-01
+  7
+standard
+ 11
+157.5
+ 21
+-122.25
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2F4
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+157.5
+ 20
+-126.0
+ 30
+0.0
+ 40
+2.0
+  1
+630 A, 3P, 20 kA, 36 kV
+  7
+standard
+ 11
+157.5
+ 21
+-126.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2F6
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+157.5
+ 20
+-130.0
+ 30
+0.0
+ 40
+2.0
+  1
+VCB
+  7
+standard
+ 11
+157.5
+ 21
+-130.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+2F7
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_TX_AUX
+ 10
+142.5
+ 20
+-172.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+2F9
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+155.0
+ 20
+-160.25
+ 30
+0.0
+ 40
+2.5
+  1
+AUX-TR-01
+  7
+standard
+ 11
+155.0
+ 21
+-160.25
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+155.0
+ 21
+-160.25
+ 31
+0.0
+  0
+ATTRIB
+  5
+2FB
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+155.0
+ 20
+-164.0
+ 30
+0.0
+ 40
+2.0
+  1
+100 kVA, 33/0.433 kV
+  7
+standard
+ 11
+155.0
+ 21
+-164.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+155.0
+ 21
+-164.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2FD
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+155.0
+ 20
+-168.0
+ 30
+0.0
+ 40
+2.0
+  1
+Dyn11
+  7
+standard
+ 11
+155.0
+ 21
+-168.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+VECTOR
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+155.0
+ 21
+-168.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+2FF
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+155.0
+ 20
+-172.0
+ 30
+0.0
+ 40
+2.0
+  1
+ONAN, Z = 4.5 %
+  7
+standard
+ 11
+155.0
+ 21
+-172.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+155.0
+ 21
+-172.0
+ 31
+0.0
+  0
+SEQEND
+  5
+2F8
+330
+2F7
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+2FA
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+155.0
+ 20
+-160.25
+ 30
+0.0
+ 40
+2.5
+  1
+AUX-TR-01
+  7
+standard
+ 11
+155.0
+ 21
+-160.25
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2FC
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+155.0
+ 20
+-164.0
+ 30
+0.0
+ 40
+2.0
+  1
+100 kVA, 33/0.433 kV
+  7
+standard
+ 11
+155.0
+ 21
+-164.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+2FE
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+155.0
+ 20
+-168.0
+ 30
+0.0
+ 40
+2.0
+  1
+Dyn11
+  7
+standard
+ 11
+155.0
+ 21
+-168.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+300
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+155.0
+ 20
+-172.0
+ 30
+0.0
+ 40
+2.0
+  1
+ONAN, Z = 4.5 %
+  7
+standard
+ 11
+155.0
+ 21
+-172.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+301
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbBlockReference
+ 66
+1
+  2
+UC_GRID_LOAD
+ 10
+140.0
+ 20
+-207.5
+ 30
+0.0
+  0
+ATTRIB
+  5
+303
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+157.5
+ 20
+-196.0
+ 30
+0.0
+ 40
+2.5
+  1
+AUX-LOAD-01
+  7
+standard
+ 11
+157.5
+ 21
+-196.0
+ 31
+0.0
+100
+AcDbAttribute
+  2
+TAG
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+157.5
+ 21
+-196.0
+ 31
+0.0
+  0
+ATTRIB
+  5
+305
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+157.5
+ 20
+-199.75
+ 30
+0.0
+ 40
+2.0
+  1
+415 V
+  7
+standard
+ 11
+157.5
+ 21
+-199.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+RATING
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+157.5
+ 21
+-199.75
+ 31
+0.0
+  0
+ATTRIB
+  5
+307
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL
+100
+AcDbText
+ 10
+157.5
+ 20
+-203.75
+ 30
+0.0
+ 40
+2.0
+  1
+PLANT AUXILIARY / CMCS ACDB
+  7
+standard
+ 11
+157.5
+ 21
+-203.75
+ 31
+0.0
+100
+AcDbAttribute
+  2
+DESC
+ 70
+1
+ 74
+2
+ 71
+1
+ 72
+0
+ 11
+157.5
+ 21
+-203.75
+ 31
+0.0
+  0
+SEQEND
+  5
+302
+330
+301
+100
+AcDbEntity
+  8
+G-SYMBOL
+  0
+TEXT
+  5
+304
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+157.5
+ 20
+-196.0
+ 30
+0.0
+ 40
+2.5
+  1
+AUX-LOAD-01
+  7
+standard
+ 11
+157.5
+ 21
+-196.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+306
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+157.5
+ 20
+-199.75
+ 30
+0.0
+ 40
+2.0
+  1
+415 V
+  7
+standard
+ 11
+157.5
+ 21
+-199.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+308
+330
+25B
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+157.5
+ 20
+-203.75
+ 30
+0.0
+ 40
+2.0
+  1
+PLANT AUXILIARY / CMCS ACDB
+  7
+standard
+ 11
+157.5
+ 21
+-203.75
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+INSERT
+  5
+309
+330
+25B
 100
 AcDbEntity
   8
@@ -12937,9 +14343,9 @@ UC_SW_VCB
   0
 ATTRIB
   5
-2D6
+30B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -12985,9 +14391,9 @@ TAG
   0
 ATTRIB
   5
-2D8
+30D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13033,9 +14439,9 @@ RATING
   0
 ATTRIB
   5
-2DA
+30F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13081,9 +14487,9 @@ DESC
   0
 SEQEND
   5
-2D5
+30A
 330
-2D4
+309
 100
 AcDbEntity
   8
@@ -13091,9 +14497,9 @@ G-SYMBOL
   0
 TEXT
   5
-2D7
+30C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13125,9 +14531,9 @@ AcDbText
   0
 TEXT
   5
-2D9
+30E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13159,9 +14565,9 @@ AcDbText
   0
 TEXT
   5
-2DB
+310
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13193,9 +14599,9 @@ AcDbText
   0
 INSERT
   5
-2DC
+311
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13215,9 +14621,9 @@ UC_TX_CT
   0
 ATTRIB
   5
-2DE
+313
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13263,9 +14669,9 @@ TAG
   0
 ATTRIB
   5
-2E0
+315
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13311,9 +14717,9 @@ DESC
   0
 ATTRIB
   5
-2E2
+317
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13359,9 +14765,9 @@ RATING
   0
 SEQEND
   5
-2DD
+312
 330
-2DC
+311
 100
 AcDbEntity
   8
@@ -13369,9 +14775,9 @@ G-SYMBOL
   0
 TEXT
   5
-2DF
+314
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13403,9 +14809,9 @@ AcDbText
   0
 TEXT
   5
-2E1
+316
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13437,9 +14843,9 @@ AcDbText
   0
 TEXT
   5
-2E3
+318
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13471,9 +14877,9 @@ AcDbText
   0
 INSERT
   5
-2E4
+319
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13493,9 +14899,9 @@ UC_PROT_RELAY
   0
 ATTRIB
   5
-2E6
+31B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13541,9 +14947,9 @@ TAG
   0
 ATTRIB
   5
-2E8
+31D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13589,9 +14995,9 @@ DESC
   0
 ATTRIB
   5
-2EA
+31F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13639,9 +15045,9 @@ ANSI
   0
 ATTRIB
   5
-2EB
+320
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13687,9 +15093,9 @@ RATING
   0
 SEQEND
   5
-2E5
+31A
 330
-2E4
+319
 100
 AcDbEntity
   8
@@ -13697,9 +15103,9 @@ G-SYMBOL
   0
 TEXT
   5
-2E7
+31C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13731,9 +15137,9 @@ AcDbText
   0
 TEXT
   5
-2E9
+31E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13765,9 +15171,9 @@ AcDbText
   0
 INSERT
   5
-2EC
+321
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13787,9 +15193,9 @@ UC_INST_ABT
   0
 ATTRIB
   5
-2EE
+323
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13835,9 +15241,9 @@ TAG
   0
 ATTRIB
   5
-2F0
+325
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13883,9 +15289,9 @@ RATING
   0
 ATTRIB
   5
-2F2
+327
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13931,9 +15337,9 @@ DESC
   0
 SEQEND
   5
-2ED
+322
 330
-2EC
+321
 100
 AcDbEntity
   8
@@ -13941,9 +15347,9 @@ G-SYMBOL
   0
 TEXT
   5
-2EF
+324
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -13975,9 +15381,9 @@ AcDbText
   0
 TEXT
   5
-2F1
+326
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14009,9 +15415,9 @@ AcDbText
   0
 TEXT
   5
-2F3
+328
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14043,9 +15449,9 @@ AcDbText
   0
 INSERT
   5
-2F4
+329
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14065,9 +15471,9 @@ UC_INST_KWH
   0
 ATTRIB
   5
-2F6
+32B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14113,9 +15519,9 @@ TAG
   0
 ATTRIB
   5
-2F8
+32D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14161,9 +15567,9 @@ RATING
   0
 ATTRIB
   5
-2FA
+32F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14209,9 +15615,9 @@ DESC
   0
 SEQEND
   5
-2F5
+32A
 330
-2F4
+329
 100
 AcDbEntity
   8
@@ -14219,9 +15625,9 @@ G-SYMBOL
   0
 TEXT
   5
-2F7
+32C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14253,9 +15659,9 @@ AcDbText
   0
 TEXT
   5
-2F9
+32E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14287,9 +15693,9 @@ AcDbText
   0
 TEXT
   5
-2FB
 330
-24A
+330
+25B
 100
 AcDbEntity
   8
@@ -14321,9 +15727,9 @@ AcDbText
   0
 INSERT
   5
-2FC
+331
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14343,9 +15749,9 @@ UC_PROT_LIGHTNING_ARRESTER
   0
 ATTRIB
   5
-2FE
+333
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14391,9 +15797,9 @@ TAG
   0
 ATTRIB
   5
-300
+335
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14439,9 +15845,9 @@ RATING
   0
 ATTRIB
   5
-302
+337
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14487,9 +15893,9 @@ DESC
   0
 SEQEND
   5
-2FD
+332
 330
-2FC
+331
 100
 AcDbEntity
   8
@@ -14497,9 +15903,9 @@ G-SYMBOL
   0
 TEXT
   5
-2FF
+334
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14531,9 +15937,9 @@ AcDbText
   0
 TEXT
   5
-301
+336
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14565,9 +15971,9 @@ AcDbText
   0
 TEXT
   5
-303
+338
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14599,9 +16005,9 @@ AcDbText
   0
 INSERT
   5
-304
+339
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14621,9 +16027,9 @@ UC_GRID_UTILITY
   0
 ATTRIB
   5
-306
+33B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14669,9 +16075,9 @@ TAG
   0
 ATTRIB
   5
-308
+33D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14717,9 +16123,9 @@ RATING
   0
 ATTRIB
   5
-30A
+33F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14765,9 +16171,9 @@ DESC
   0
 SEQEND
   5
-305
+33A
 330
-304
+339
 100
 AcDbEntity
   8
@@ -14775,9 +16181,9 @@ G-SYMBOL
   0
 TEXT
   5
-307
+33C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14809,9 +16215,9 @@ AcDbText
   0
 TEXT
   5
-309
+33E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14843,9 +16249,9 @@ AcDbText
   0
 TEXT
   5
-30B
+340
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14877,9 +16283,9 @@ AcDbText
   0
 INSERT
   5
-313
+341
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14891,17 +16297,17 @@ AcDbBlockReference
   2
 UC_ANN_OFFSHEET
  10
--212.5
+-192.5
  20
--280.0
+-360.0
  30
 0.0
   0
 ATTRIB
   5
-315
+343
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14909,9 +16315,9 @@ G-SYMBOL
 100
 AcDbText
  10
--200.0
+-180.0
  20
--271.5
+-351.5
  30
 0.0
  40
@@ -14921,9 +16327,9 @@ SH. UDEMO-DRL-U50-EE-002
   7
 standard
  11
--200.0
+-180.0
  21
--271.5
+-351.5
  31
 0.0
 100
@@ -14939,17 +16345,17 @@ SHEET
  72
 0
  11
--200.0
+-180.0
  21
--271.5
+-351.5
  31
 0.0
   0
 ATTRIB
   5
-317
+345
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -14957,9 +16363,9 @@ G-SYMBOL
 100
 AcDbText
  10
--200.0
+-180.0
  20
--276.0
+-356.0
  30
 0.0
  40
@@ -14969,9 +16375,9 @@ FROM MCCB-01-01..MCCB-01-19
   7
 standard
  11
--200.0
+-180.0
  21
--276.0
+-356.0
  31
 0.0
 100
@@ -14987,17 +16393,17 @@ DESC
  72
 0
  11
--200.0
+-180.0
  21
--276.0
+-356.0
  31
 0.0
   0
 SEQEND
   5
-314
+342
 330
-313
+341
 100
 AcDbEntity
   8
@@ -15005,9 +16411,9 @@ G-SYMBOL
   0
 TEXT
   5
-316
+344
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15015,9 +16421,9 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
--200.0
+-180.0
  20
--271.5
+-351.5
  30
 0.0
  40
@@ -15027,9 +16433,9 @@ SH. UDEMO-DRL-U50-EE-002
   7
 standard
  11
--200.0
+-180.0
  21
--271.5
+-351.5
  31
 0.0
 100
@@ -15039,9 +16445,9 @@ AcDbText
   0
 TEXT
   5
-318
+346
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15049,9 +16455,9 @@ G-SYMBOL-TXT
 100
 AcDbText
  10
--200.0
+-180.0
  20
--276.0
+-356.0
  30
 0.0
  40
@@ -15061,9 +16467,9 @@ FROM MCCB-01-01..MCCB-01-19
   7
 standard
  11
--200.0
+-180.0
  21
--276.0
+-356.0
  31
 0.0
 100
@@ -15073,9 +16479,9 @@ AcDbText
   0
 INSERT
   5
-319
+347
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15087,17 +16493,17 @@ AcDbBlockReference
   2
 UC_EARTH_EARTH
  10
--127.5
+-107.5
  20
--260.0
+-332.5
  30
 0.0
   0
 ATTRIB
   5
-31B
+349
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15105,9 +16511,9 @@ G-SYMBOL
 100
 AcDbText
  10
--115.0
+-95.0
  20
--252.25
+-324.75
  30
 0.0
  40
@@ -15117,9 +16523,9 @@ AcDbText
   7
 standard
  11
--115.0
+-95.0
  21
--252.25
+-324.75
  31
 0.0
 100
@@ -15135,17 +16541,17 @@ TAG
  72
 0
  11
--115.0
+-95.0
  21
--252.25
+-324.75
  31
 0.0
   0
 ATTRIB
   5
-31C
+34A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15153,9 +16559,9 @@ G-SYMBOL
 100
 AcDbText
  10
--115.0
+-95.0
  20
--256.0
+-328.5
  30
 0.0
  40
@@ -15165,9 +16571,9 @@ AcDbText
   7
 standard
  11
--115.0
+-95.0
  21
--256.0
+-328.5
  31
 0.0
 100
@@ -15183,17 +16589,17 @@ RATING
  72
 0
  11
--115.0
+-95.0
  21
--256.0
+-328.5
  31
 0.0
   0
 ATTRIB
   5
-31D
+34B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15201,9 +16607,9 @@ G-SYMBOL
 100
 AcDbText
  10
--115.0
+-95.0
  20
--260.0
+-332.5
  30
 0.0
  40
@@ -15213,9 +16619,9 @@ AcDbText
   7
 standard
  11
--115.0
+-95.0
  21
--260.0
+-332.5
  31
 0.0
 100
@@ -15231,17 +16637,17 @@ DESC
  72
 0
  11
--115.0
+-95.0
  21
--260.0
+-332.5
  31
 0.0
   0
 SEQEND
   5
-31A
+348
 330
-319
+347
 100
 AcDbEntity
   8
@@ -15249,9 +16655,9 @@ G-SYMBOL
   0
 ELLIPSE
   5
-31E
+34C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15259,9 +16665,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
--170.0
+-150.0
  20
--202.25
+-268.5
  30
 0.0
  11
@@ -15279,9 +16685,9 @@ AcDbEllipse
   0
 TEXT
   5
-31F
+34D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15289,23 +16695,23 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
--200.75
+-267.0
  30
 0.0
  40
 2.0
   1
-7R x 1C x 400 sq.mm Al XLPE ARM
+7R x 3 x 1C x 400 sq.mm Al XLPE ARM
   7
 standard
  72
 2
  11
--172.5
+-152.5
  21
--200.75
+-267.0
  31
 0.0
 100
@@ -15315,9 +16721,9 @@ AcDbText
   0
 TEXT
   5
-320
+34E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15325,9 +16731,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
--203.75
+-270.0
  30
 0.0
  40
@@ -15339,9 +16745,9 @@ standard
  72
 2
  11
--172.5
+-152.5
  21
--203.75
+-270.0
  31
 0.0
 100
@@ -15351,9 +16757,9 @@ AcDbText
   0
 ELLIPSE
   5
-321
+34F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15361,9 +16767,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
--170.0
+-150.0
  20
--161.0
+-226.0
  30
 0.0
  11
@@ -15381,9 +16787,9 @@ AcDbEllipse
   0
 TEXT
   5
-322
+350
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15391,9 +16797,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
--159.5
+-224.5
  30
 0.0
  40
@@ -15405,9 +16811,9 @@ standard
  72
 2
  11
--172.5
+-152.5
  21
--159.5
+-224.5
  31
 0.0
 100
@@ -15417,9 +16823,9 @@ AcDbText
   0
 TEXT
   5
-323
+351
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15427,9 +16833,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
--162.5
+-227.5
  30
 0.0
  40
@@ -15441,9 +16847,9 @@ standard
  72
 2
  11
--172.5
+-152.5
  21
--162.5
+-227.5
  31
 0.0
 100
@@ -15453,9 +16859,9 @@ AcDbText
   0
 ELLIPSE
   5
-324
+352
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15463,9 +16869,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
--7.5
+12.5
  20
--161.0
+-226.0
  30
 0.0
  11
@@ -15483,9 +16889,9 @@ AcDbEllipse
   0
 TEXT
   5
-325
+353
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15493,9 +16899,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--10.0
+10.0
  20
--159.5
+-224.5
  30
 0.0
  40
@@ -15507,9 +16913,9 @@ standard
  72
 2
  11
--10.0
+10.0
  21
--159.5
+-224.5
  31
 0.0
 100
@@ -15519,9 +16925,9 @@ AcDbText
   0
 TEXT
   5
-326
+354
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15529,9 +16935,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--10.0
+10.0
  20
--162.5
+-227.5
  30
 0.0
  40
@@ -15543,9 +16949,9 @@ standard
  72
 2
  11
--10.0
+10.0
  21
--162.5
+-227.5
  31
 0.0
 100
@@ -15555,9 +16961,9 @@ AcDbText
   0
 ELLIPSE
   5
-327
+355
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15565,9 +16971,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
--7.5
+12.5
  20
--202.25
+-268.5
  30
 0.0
  11
@@ -15585,9 +16991,9 @@ AcDbEllipse
   0
 TEXT
   5
-328
+356
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15595,9 +17001,111 @@ E-SLD-TEXT
 100
 AcDbText
  10
--10.0
+10.0
  20
--200.75
+-267.0
+ 30
+0.0
+ 40
+2.0
+  1
+1R x 3C x 50 sq.mm Al XLPE ARM
+  7
+standard
+ 72
+2
+ 11
+10.0
+ 21
+-267.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+357
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-TEXT
+100
+AcDbText
+ 10
+10.0
+ 20
+-270.0
+ 30
+0.0
+ 40
+2.0
+  1
+19/33 kV, DIRECTLY BURIED, L = 10 m
+  7
+standard
+ 72
+2
+ 11
+10.0
+ 21
+-270.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+ELLIPSE
+  5
+358
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-TEXT
+100
+AcDbEllipse
+ 10
+12.5
+ 20
+-306.0
+ 30
+0.0
+ 11
+1.6
+ 21
+0.0
+ 31
+0.0
+ 40
+0.5
+ 41
+0.0
+ 42
+6.283185307179586
+  0
+TEXT
+  5
+359
+330
+25B
+100
+AcDbEntity
+  8
+E-SLD-TEXT
+100
+AcDbText
+ 10
+10.0
+ 20
+-304.5
  30
 0.0
  40
@@ -15609,9 +17117,9 @@ standard
  72
 2
  11
--10.0
+10.0
  21
--200.75
+-304.5
  31
 0.0
 100
@@ -15621,9 +17129,9 @@ AcDbText
   0
 TEXT
   5
-329
+35A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15631,9 +17139,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--10.0
+10.0
  20
--203.75
+-307.5
  30
 0.0
  40
@@ -15645,9 +17153,9 @@ standard
  72
 2
  11
--10.0
+10.0
  21
--203.75
+-307.5
  31
 0.0
 100
@@ -15657,9 +17165,9 @@ AcDbText
   0
 ELLIPSE
   5
-32A
+35B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15667,9 +17175,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
--170.0
+-150.0
  20
--113.5
+-179.6
  30
 0.0
  11
@@ -15687,9 +17195,9 @@ AcDbEllipse
   0
 TEXT
   5
-32B
+35C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15697,9 +17205,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
--112.0
+-178.1
  30
 0.0
  40
@@ -15711,9 +17219,9 @@ standard
  72
 2
  11
--172.5
+-152.5
  21
--112.0
+-178.1
  31
 0.0
 100
@@ -15723,9 +17231,9 @@ AcDbText
   0
 TEXT
   5
-32C
+35D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15733,9 +17241,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
--172.5
+-152.5
  20
--115.0
+-181.1
  30
 0.0
  40
@@ -15747,9 +17255,9 @@ standard
  72
 2
  11
--172.5
+-152.5
  21
--115.0
+-181.1
  31
 0.0
 100
@@ -15759,9 +17267,9 @@ AcDbText
   0
 ELLIPSE
   5
-32D
+35E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15769,9 +17277,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
-167.5
+147.5
  20
--161.0
+-143.5
  30
 0.0
  11
@@ -15789,9 +17297,9 @@ AcDbEllipse
   0
 TEXT
   5
-32E
+35F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15799,9 +17307,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
-165.0
+145.0
  20
--159.5
+-142.0
  30
 0.0
  40
@@ -15813,9 +17321,9 @@ standard
  72
 2
  11
-165.0
+145.0
  21
--159.5
+-142.0
  31
 0.0
 100
@@ -15825,9 +17333,9 @@ AcDbText
   0
 TEXT
   5
-32F
+360
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15835,9 +17343,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
-165.0
+145.0
  20
--162.5
+-145.0
  30
 0.0
  40
@@ -15849,9 +17357,9 @@ standard
  72
 2
  11
-165.0
+145.0
  21
--162.5
+-145.0
  31
 0.0
 100
@@ -15861,9 +17369,9 @@ AcDbText
   0
 ELLIPSE
   5
+361
 330
-330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15871,9 +17379,9 @@ E-SLD-TEXT
 100
 AcDbEllipse
  10
-167.5
+147.5
  20
--202.25
+-179.6
  30
 0.0
  11
@@ -15891,9 +17399,9 @@ AcDbEllipse
   0
 TEXT
   5
-331
+362
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15901,9 +17409,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
-165.0
+145.0
  20
--200.75
+-178.1
  30
 0.0
  40
@@ -15915,9 +17423,9 @@ standard
  72
 2
  11
-165.0
+145.0
  21
--200.75
+-178.1
  31
 0.0
 100
@@ -15927,9 +17435,9 @@ AcDbText
   0
 TEXT
   5
-332
+363
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15937,9 +17445,9 @@ E-SLD-TEXT
 100
 AcDbText
  10
-165.0
+145.0
  20
--203.75
+-181.1
  30
 0.0
  40
@@ -15951,9 +17459,9 @@ standard
  72
 2
  11
-165.0
+145.0
  21
--203.75
+-181.1
  31
 0.0
 100
@@ -15963,9 +17471,9 @@ AcDbText
   0
 ELLIPSE
   5
-333
+364
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -15993,9 +17501,9 @@ AcDbEllipse
   0
 TEXT
   5
-334
+365
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16029,9 +17537,9 @@ AcDbText
   0
 SOLID
   5
-335
+366
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16039,35 +17547,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--170.0
+-235.0
  30
 0.0
  11
--169.2
+-149.2
  21
--170.0
+-235.0
  31
 0.0
  12
--170.0
+-150.0
  22
--169.2
+-234.2
  32
 0.0
  13
--169.43431457505076
+-149.43431457505076
  23
--169.43431457505076
+-234.43431457505076
  33
 0.0
   0
 SOLID
   5
-336
+367
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16075,35 +17583,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--170.0
+-235.0
  30
 0.0
  11
--170.0
+-150.0
  21
--169.2
+-234.2
  31
 0.0
  12
--170.8
+-150.8
  22
--170.0
+-235.0
  32
 0.0
  13
--170.56568542494924
+-150.56568542494924
  23
--169.43431457505076
+-234.43431457505076
  33
 0.0
   0
 SOLID
   5
-337
+368
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16111,35 +17619,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--170.0
+-235.0
  30
 0.0
  11
--170.8
+-150.8
  21
--170.0
+-235.0
  31
 0.0
  12
--170.0
+-150.0
  22
--170.8
+-235.8
  32
 0.0
  13
--170.56568542494924
+-150.56568542494924
  23
--170.56568542494924
+-235.56568542494924
  33
 0.0
   0
 SOLID
   5
-338
+369
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16147,35 +17655,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--170.0
+-235.0
  30
 0.0
  11
--170.0
+-150.0
  21
--170.8
+-235.8
  31
 0.0
  12
--169.2
+-149.2
  22
--170.0
+-235.0
  32
 0.0
  13
--169.43431457505076
+-149.43431457505076
  23
--170.56568542494924
+-235.56568542494924
  33
 0.0
   0
 SOLID
   5
-339
+36A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16183,35 +17691,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--155.0
+-220.0
  30
 0.0
  11
--169.2
+-149.2
  21
--155.0
+-220.0
  31
 0.0
  12
--170.0
+-150.0
  22
--154.2
+-219.2
  32
 0.0
  13
--169.43431457505076
+-149.43431457505076
  23
--154.43431457505076
+-219.43431457505076
  33
 0.0
   0
 SOLID
   5
-33A
+36B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16219,35 +17727,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--155.0
+-220.0
  30
 0.0
  11
--170.0
+-150.0
  21
--154.2
+-219.2
  31
 0.0
  12
--170.8
+-150.8
  22
--155.0
+-220.0
  32
 0.0
  13
--170.56568542494924
+-150.56568542494924
  23
--154.43431457505076
+-219.43431457505076
  33
 0.0
   0
 SOLID
   5
-33B
+36C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16255,35 +17763,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--155.0
+-220.0
  30
 0.0
  11
--170.8
+-150.8
  21
--155.0
+-220.0
  31
 0.0
  12
--170.0
+-150.0
  22
--155.8
+-220.8
  32
 0.0
  13
--170.56568542494924
+-150.56568542494924
  23
--155.56568542494924
+-220.56568542494924
  33
 0.0
   0
 SOLID
   5
-33C
+36D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16291,35 +17799,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
--170.0
+-150.0
  20
--155.0
+-220.0
  30
 0.0
  11
--170.0
+-150.0
  21
--155.8
+-220.8
  31
 0.0
  12
--169.2
+-149.2
  22
--155.0
+-220.0
  32
 0.0
  13
--169.43431457505076
+-149.43431457505076
  23
--155.56568542494924
+-220.56568542494924
  33
 0.0
   0
 SOLID
   5
-33D
+36E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16353,9 +17861,9 @@ AcDbTrace
   0
 SOLID
   5
-33E
+36F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16389,9 +17897,9 @@ AcDbTrace
   0
 SOLID
   5
-33F
+370
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16425,9 +17933,9 @@ AcDbTrace
   0
 SOLID
   5
-340
+371
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16461,9 +17969,9 @@ AcDbTrace
   0
 SOLID
   5
-341
+372
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16497,9 +18005,9 @@ AcDbTrace
   0
 SOLID
   5
-342
+373
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16533,9 +18041,9 @@ AcDbTrace
   0
 SOLID
   5
-343
+374
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16569,9 +18077,9 @@ AcDbTrace
   0
 SOLID
   5
-344
+375
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16605,9 +18113,9 @@ AcDbTrace
   0
 SOLID
   5
-345
+376
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16615,35 +18123,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
-65.0
+87.4174
  20
--140.0
+-127.5
  30
 0.0
  11
-65.8
+88.2174
  21
--140.0
+-127.5
  31
 0.0
  12
-65.0
+87.4174
  22
--139.2
+-126.7
  32
 0.0
  13
-65.56568542494924
+87.98308542494924
  23
--139.43431457505076
+-126.93431457505076
  33
 0.0
   0
 SOLID
   5
-346
+377
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16651,35 +18159,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
-65.0
+87.4174
  20
--140.0
+-127.5
  30
 0.0
  11
-65.0
+87.4174
  21
--139.2
+-126.7
  31
 0.0
  12
-64.2
+86.6174
  22
--140.0
+-127.5
  32
 0.0
  13
-64.43431457505076
+86.85171457505076
  23
--139.43431457505076
+-126.93431457505076
  33
 0.0
   0
 SOLID
   5
-347
+378
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16687,35 +18195,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
-65.0
+87.4174
  20
--140.0
+-127.5
  30
 0.0
  11
-64.2
+86.6174
  21
--140.0
+-127.5
  31
 0.0
  12
-65.0
+87.4174
  22
--140.8
+-128.3
  32
 0.0
  13
-64.43431457505076
+86.85171457505076
  23
--140.56568542494924
+-128.06568542494924
  33
 0.0
   0
 SOLID
   5
-348
+379
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16723,35 +18231,35 @@ E-SLD-AC
 100
 AcDbTrace
  10
-65.0
+87.4174
  20
--140.0
+-127.5
  30
 0.0
  11
-65.0
+87.4174
  21
--140.8
+-128.3
  31
 0.0
  12
-65.8
+88.2174
  22
--140.0
+-127.5
  32
 0.0
  13
-65.56568542494924
+87.98308542494924
  23
--140.56568542494924
+-128.06568542494924
  33
 0.0
   0
 SOLID
   5
-349
+37A
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16785,9 +18293,9 @@ AcDbTrace
   0
 SOLID
   5
-34A
+37B
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16821,9 +18329,9 @@ AcDbTrace
   0
 SOLID
   5
-34B
+37C
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16857,9 +18365,9 @@ AcDbTrace
   0
 SOLID
   5
-34C
+37D
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16893,9 +18401,9 @@ AcDbTrace
   0
 SOLID
   5
-34D
+37E
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16929,9 +18437,9 @@ AcDbTrace
   0
 SOLID
   5
-34E
+37F
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -16965,9 +18473,9 @@ AcDbTrace
   0
 SOLID
   5
-34F
+380
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -17001,9 +18509,9 @@ AcDbTrace
   0
 SOLID
   5
-350
+381
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -17037,9 +18545,9 @@ AcDbTrace
   0
 SOLID
   5
-351
+382
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -17073,9 +18581,9 @@ AcDbTrace
   0
 SOLID
   5
-352
+383
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -17109,9 +18617,9 @@ AcDbTrace
   0
 SOLID
   5
-353
+384
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -17145,9 +18653,9 @@ AcDbTrace
   0
 SOLID
   5
-354
+385
 330
-24A
+25B
 100
 AcDbEntity
   8
@@ -17181,207 +18689,9 @@ AcDbTrace
   0
 ENDBLK
   5
-24C
+25D
 330
-24A
-100
-AcDbEntity
-  8
-0
-100
-AcDbBlockEnd
-  0
-BLOCK
-  5
-30D
-330
-30C
-100
-AcDbEntity
-  8
-0
-100
-AcDbBlockBegin
-  2
-UC_ANN_OFFSHEET
- 70
-2
- 10
-0.0
- 20
-0.0
- 30
-0.0
-  3
-UC_ANN_OFFSHEET
-  1
-
-  0
-LINE
-  5
-30F
-330
-30C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbLine
- 10
-5.0
- 20
-15.0
- 30
-0.0
- 11
-5.0
- 21
-12.5
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-310
-330
-30C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbPolyline
- 90
-5
- 70
-1
- 10
-0.0
- 20
-12.5
- 10
-10.0
- 20
-12.5
- 10
-10.0
- 20
-5.0
- 10
-5.0
- 20
-0.0
- 10
-0.0
- 20
-5.0
-  0
-ATTDEF
-  5
-311
-330
-30C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-12.5
- 20
-8.5
- 30
-0.0
- 40
-2.5
-  1
-
-  7
-standard
- 11
-12.5
- 21
-8.5
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-SHEET
-  2
-SHEET
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-12.5
- 21
-8.5
- 31
-0.0
-  0
-ATTDEF
-  5
-312
-330
-30C
-100
-AcDbEntity
-  8
-G-SYMBOL
-100
-AcDbText
- 10
-12.5
- 20
-4.0
- 30
-0.0
- 40
-2.0
-  1
-
-  7
-standard
- 11
-12.5
- 21
-4.0
- 31
-0.0
-100
-AcDbAttributeDefinition
-  3
-DESC
-  2
-DESC
- 70
-0
- 74
-2
- 71
-1
- 72
-0
- 11
-12.5
- 21
-4.0
- 31
-0.0
-  0
-ENDBLK
-  5
-30E
-330
-30C
+25B
 100
 AcDbEntity
   8
@@ -18939,13 +20249,13 @@ AcDbLine
  10
 687.85
  20
-131.0475
+127.18
  30
 0.0
  11
 687.85
  21
-157.2975
+153.43
  31
 0.0
   0
@@ -18965,7 +20275,7 @@ LOGO_UDEMO
  10
 674.725
  20
-144.1725
+140.305
  30
 0.0
  41
@@ -18989,7 +20299,7 @@ AcDbText
  10
 689.95
  20
-150.16625000000002
+146.29875
  30
 0.0
  40
@@ -19015,7 +20325,7 @@ AcDbText
  10
 689.95
  20
-142.77250000000004
+138.90500000000003
  30
 0.0
  40
@@ -19041,7 +20351,7 @@ AcDbText
  10
 689.95
  20
-139.09750000000003
+135.23000000000002
  30
 0.0
  40
@@ -19067,13 +20377,13 @@ AcDbLine
  10
 661.6
  20
-131.0475
+127.18
  30
 0.0
  11
 822.6
  21
-131.0475
+127.18
  31
 0.0
   0
@@ -19091,13 +20401,13 @@ AcDbLine
  10
 696.6
  20
-122.99750000000002
+119.13000000000001
  30
 0.0
  11
 696.6
  21
-131.0475
+127.18
  31
 0.0
   0
@@ -19115,7 +20425,7 @@ AcDbText
  10
 663.7
  20
-125.79750000000001
+121.93
  30
 0.0
  40
@@ -19141,7 +20451,7 @@ AcDbText
  10
 698.7
  20
-125.79750000000001
+121.93
  30
 0.0
  40
@@ -19167,13 +20477,13 @@ AcDbLine
  10
 661.6
  20
-122.99750000000002
+119.13000000000001
  30
 0.0
  11
 822.6
  21
-122.99750000000002
+119.13000000000001
  31
 0.0
   0
@@ -19191,13 +20501,13 @@ AcDbLine
  10
 696.6
  20
-109.69750000000002
+105.83000000000001
  30
 0.0
  11
 696.6
  21
-122.99750000000002
+119.13000000000001
  31
 0.0
   0
@@ -19215,7 +20525,7 @@ AcDbText
  10
 663.7
  20
-117.74750000000002
+113.88000000000001
  30
 0.0
  40
@@ -19241,7 +20551,7 @@ AcDbText
  10
 698.7
  20
-117.74750000000002
+113.88000000000001
  30
 0.0
  40
@@ -19267,7 +20577,7 @@ AcDbText
  10
 698.7
  20
-112.49750000000002
+108.63000000000001
  30
 0.0
  40
@@ -19293,13 +20603,13 @@ AcDbLine
  10
 661.6
  20
-109.69750000000002
+105.83000000000001
  30
 0.0
  11
 822.6
  21
-109.69750000000002
+105.83000000000001
  31
 0.0
   0
@@ -19317,13 +20627,13 @@ AcDbLine
  10
 696.6
  20
-96.39750000000002
+92.53000000000002
  30
 0.0
  11
 696.6
  21
-109.69750000000002
+105.83000000000001
  31
 0.0
   0
@@ -19341,7 +20651,7 @@ AcDbText
  10
 663.7
  20
-104.44750000000002
+100.58000000000001
  30
 0.0
  40
@@ -19367,7 +20677,7 @@ AcDbText
  10
 698.7
  20
-104.44750000000002
+100.58000000000001
  30
 0.0
  40
@@ -19393,7 +20703,7 @@ AcDbText
  10
 698.7
  20
-99.19750000000002
+95.33000000000001
  30
 0.0
  40
@@ -19419,13 +20729,13 @@ AcDbLine
  10
 661.6
  20
-96.39750000000002
+92.53000000000002
  30
 0.0
  11
 822.6
  21
-96.39750000000002
+92.53000000000002
  31
 0.0
   0
@@ -19443,7 +20753,7 @@ AcDbText
  10
 663.7
  20
-92.89750000000002
+89.03000000000002
  30
 0.0
  40
@@ -19469,7 +20779,7 @@ AcDbText
  10
 663.7
  20
-86.21250000000002
+82.34500000000001
  30
 0.0
  40
@@ -19495,13 +20805,13 @@ AcDbLine
  10
 661.6
  20
-83.20250000000001
+79.33500000000001
  30
 0.0
  11
 822.6
  21
-83.20250000000001
+79.33500000000001
  31
 0.0
   0
@@ -19519,7 +20829,7 @@ AcDbText
  10
 663.7
  20
-79.70250000000001
+75.83500000000001
  30
 0.0
  40
@@ -19545,7 +20855,7 @@ AcDbText
  10
 663.7
  20
-72.66750000000002
+68.80000000000001
  30
 0.0
  40
@@ -19571,13 +20881,13 @@ AcDbLine
  10
 661.6
  20
-69.55250000000001
+65.685
  30
 0.0
  11
 822.6
  21
-69.55250000000001
+65.685
  31
 0.0
   0
@@ -19595,7 +20905,7 @@ AcDbText
  10
 663.7
  20
-66.05250000000001
+62.185
  30
 0.0
  40
@@ -19607,7 +20917,7 @@ standard
 100
 AcDbText
   0
-TEXT
+LINE
   5
 AE
 330
@@ -19617,23 +20927,21 @@ AcDbEntity
   8
 G-TITLE
 100
-AcDbText
+AcDbLine
  10
-663.7
+703.4181818181819
  20
-55.16750000000001
+52.7
  30
 0.0
- 40
-2.975
-  1
-26.10.26
-  7
-standard
-100
-AcDbText
+ 11
+703.4181818181819
+ 21
+65.685
+ 31
+0.0
   0
-LINE
+TEXT
   5
 AF
 330
@@ -19643,35 +20951,11 @@ AcDbEntity
   8
 G-TITLE
 100
-AcDbLine
- 10
-715.2666666666667
- 20
-52.70000000000001
- 30
-0.0
- 11
-715.2666666666667
- 21
-69.55250000000001
- 31
-0.0
-  0
-TEXT
-  5
-B0
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
 AcDbText
  10
-717.3666666666667
+705.5181818181819
  20
-66.05250000000001
+62.185
  30
 0.0
  40
@@ -19685,7 +20969,7 @@ AcDbText
   0
 LINE
   5
-B1
+B0
 330
 17
 100
@@ -19695,21 +20979,21 @@ G-TITLE
 100
 AcDbLine
  10
-768.9333333333333
+745.2363636363638
  20
-52.70000000000001
+52.7
  30
 0.0
  11
-768.9333333333333
+745.2363636363638
  21
-69.55250000000001
+65.685
  31
 0.0
   0
 TEXT
   5
-B2
+B1
 330
 17
 100
@@ -19719,9 +21003,9 @@ G-TITLE
 100
 AcDbText
  10
-771.0333333333333
+747.3363636363638
  20
-66.05250000000001
+62.185
  30
 0.0
  40
@@ -19735,7 +21019,7 @@ AcDbText
   0
 LINE
   5
-B3
+B2
 330
 17
 100
@@ -19745,17 +21029,43 @@ G-TITLE
 100
 AcDbLine
  10
-661.6
+787.0545454545456
  20
-52.70000000000001
+52.7
  30
 0.0
  11
-822.6
+787.0545454545456
  21
-52.70000000000001
+65.685
  31
 0.0
+  0
+TEXT
+  5
+B3
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbText
+ 10
+789.1545454545457
+ 20
+62.185
+ 30
+0.0
+ 40
+2.4499999999999997
+  1
+DATE
+  7
+standard
+100
+AcDbText
   0
 TEXT
   5
@@ -19769,9 +21079,59 @@ G-TITLE
 100
 AcDbText
  10
+789.1545454545457
+ 20
+57.425000000000004
+ 30
+0.0
+ 40
+3.15
+  1
+26.10.26
+  7
+standard
+100
+AcDbText
+  0
+LINE
+  5
+B5
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
+661.6
+ 20
+52.7
+ 30
+0.0
+ 11
+822.6
+ 21
+52.7
+ 31
+0.0
+  0
+TEXT
+  5
+B6
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbText
+ 10
 663.7
  20
-49.20000000000001
+49.2
  30
 0.0
  40
@@ -19785,7 +21145,7 @@ AcDbText
   0
 TEXT
   5
-B5
+B7
 330
 17
 100
@@ -19811,7 +21171,7 @@ AcDbText
   0
 LINE
   5
-B6
+B8
 330
 17
 100
@@ -19829,13 +21189,13 @@ AcDbLine
  11
 711.2913580246914
  21
-52.70000000000001
+52.7
  31
 0.0
   0
 TEXT
   5
-B7
+B9
 330
 17
 100
@@ -19847,7 +21207,7 @@ AcDbText
  10
 713.3913580246914
  20
-49.20000000000001
+49.2
  30
 0.0
  40
@@ -19861,7 +21221,7 @@ AcDbText
   0
 TEXT
   5
-B8
+BA
 330
 17
 100
@@ -19887,7 +21247,7 @@ AcDbText
   0
 LINE
   5
-B9
+BB
 330
 17
 100
@@ -19905,13 +21265,13 @@ AcDbLine
  11
 755.0197530864198
  21
-52.70000000000001
+52.7
  31
 0.0
   0
 TEXT
   5
-BA
+BC
 330
 17
 100
@@ -19923,7 +21283,7 @@ AcDbText
  10
 757.1197530864198
  20
-49.20000000000001
+49.2
  30
 0.0
  40
@@ -19937,7 +21297,7 @@ AcDbText
   0
 TEXT
   5
-BB
+BD
 330
 17
 100
@@ -19963,7 +21323,7 @@ AcDbText
   0
 LINE
   5
-BC
+BE
 330
 17
 100
@@ -19981,13 +21341,13 @@ AcDbLine
  11
 790.7975308641976
  21
-52.70000000000001
+52.7
  31
 0.0
   0
 TEXT
   5
-BD
+BF
 330
 17
 100
@@ -19999,7 +21359,7 @@ AcDbText
  10
 792.8975308641976
  20
-49.20000000000001
+49.2
  30
 0.0
  40
@@ -20013,7 +21373,7 @@ AcDbText
   0
 TEXT
   5
-BE
+C0
 330
 17
 100
@@ -20039,7 +21399,7 @@ AcDbText
   0
 LINE
   5
-BF
+C1
 330
 17
 100
@@ -20063,7 +21423,7 @@ AcDbLine
   0
 TEXT
   5
-C0
+C2
 330
 17
 100
@@ -20089,54 +21449,6 @@ AcDbText
   0
 LINE
   5
-C1
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-663.7
- 20
-29.530000000000005
- 30
-0.0
- 11
-667.5500000000001
- 21
-29.530000000000005
- 31
-0.0
-  0
-LINE
-  5
-C2
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-667.5500000000001
- 20
-29.530000000000005
- 30
-0.0
- 11
-667.5500000000001
- 21
-33.38
- 31
-0.0
-  0
-LINE
-  5
 C3
 330
 17
@@ -20147,6 +21459,54 @@ G-TITLE
 100
 AcDbLine
  10
+663.7
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+667.5500000000001
+ 21
+29.530000000000005
+ 31
+0.0
+  0
+LINE
+  5
+C4
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
+667.5500000000001
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+667.5500000000001
+ 21
+33.38
+ 31
+0.0
+  0
+LINE
+  5
+C5
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
 667.5500000000001
  20
 33.38
@@ -20161,7 +21521,7 @@ AcDbLine
   0
 LINE
   5
-C4
+C6
 330
 17
 100
@@ -20185,7 +21545,7 @@ AcDbLine
   0
 TEXT
   5
-C5
+C7
 330
 17
 100
@@ -20211,54 +21571,6 @@ AcDbText
   0
 LINE
   5
-C6
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-695.9000000000001
- 20
-29.530000000000005
- 30
-0.0
- 11
-699.7500000000001
- 21
-29.530000000000005
- 31
-0.0
-  0
-LINE
-  5
-C7
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-699.7500000000001
- 20
-29.530000000000005
- 30
-0.0
- 11
-699.7500000000001
- 21
-33.38
- 31
-0.0
-  0
-LINE
-  5
 C8
 330
 17
@@ -20269,6 +21581,54 @@ G-TITLE
 100
 AcDbLine
  10
+695.9000000000001
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+699.7500000000001
+ 21
+29.530000000000005
+ 31
+0.0
+  0
+LINE
+  5
+C9
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
+699.7500000000001
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+699.7500000000001
+ 21
+33.38
+ 31
+0.0
+  0
+LINE
+  5
+CA
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
 699.7500000000001
  20
 33.38
@@ -20283,7 +21643,7 @@ AcDbLine
   0
 LINE
   5
-C9
+CB
 330
 17
 100
@@ -20307,7 +21667,7 @@ AcDbLine
   0
 TEXT
   5
-CA
+CC
 330
 17
 100
@@ -20333,54 +21693,6 @@ AcDbText
   0
 LINE
   5
-CB
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-728.1000000000001
- 20
-29.530000000000005
- 30
-0.0
- 11
-731.9500000000002
- 21
-29.530000000000005
- 31
-0.0
-  0
-LINE
-  5
-CC
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-731.9500000000002
- 20
-29.530000000000005
- 30
-0.0
- 11
-731.9500000000002
- 21
-33.38
- 31
-0.0
-  0
-LINE
-  5
 CD
 330
 17
@@ -20391,15 +21703,15 @@ G-TITLE
 100
 AcDbLine
  10
-731.9500000000002
+728.1000000000001
  20
-33.38
+29.530000000000005
  30
 0.0
  11
-728.1000000000001
+731.9500000000002
  21
-33.38
+29.530000000000005
  31
 0.0
   0
@@ -20415,6 +21727,54 @@ G-TITLE
 100
 AcDbLine
  10
+731.9500000000002
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+731.9500000000002
+ 21
+33.38
+ 31
+0.0
+  0
+LINE
+  5
+CF
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
+731.9500000000002
+ 20
+33.38
+ 30
+0.0
+ 11
+728.1000000000001
+ 21
+33.38
+ 31
+0.0
+  0
+LINE
+  5
+D0
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
 728.1000000000001
  20
 33.38
@@ -20429,7 +21789,7 @@ AcDbLine
   0
 LINE
   5
-CF
+D1
 330
 17
 100
@@ -20455,7 +21815,7 @@ AcDbLine
   0
 LINE
   5
-D0
+D2
 330
 17
 100
@@ -20481,7 +21841,7 @@ AcDbLine
   0
 TEXT
   5
-D1
+D3
 330
 17
 100
@@ -20507,54 +21867,6 @@ AcDbText
   0
 LINE
   5
-D2
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-760.3000000000002
- 20
-29.530000000000005
- 30
-0.0
- 11
-764.1500000000002
- 21
-29.530000000000005
- 31
-0.0
-  0
-LINE
-  5
-D3
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-764.1500000000002
- 20
-29.530000000000005
- 30
-0.0
- 11
-764.1500000000002
- 21
-33.38
- 31
-0.0
-  0
-LINE
-  5
 D4
 330
 17
@@ -20565,6 +21877,54 @@ G-TITLE
 100
 AcDbLine
  10
+760.3000000000002
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+764.1500000000002
+ 21
+29.530000000000005
+ 31
+0.0
+  0
+LINE
+  5
+D5
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
+764.1500000000002
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+764.1500000000002
+ 21
+33.38
+ 31
+0.0
+  0
+LINE
+  5
+D6
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
 764.1500000000002
  20
 33.38
@@ -20579,7 +21939,7 @@ AcDbLine
   0
 LINE
   5
-D5
+D7
 330
 17
 100
@@ -20603,7 +21963,7 @@ AcDbLine
   0
 TEXT
   5
-D6
+D8
 330
 17
 100
@@ -20629,54 +21989,6 @@ AcDbText
   0
 LINE
   5
-D7
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-792.5000000000002
- 20
-29.530000000000005
- 30
-0.0
- 11
-796.3500000000003
- 21
-29.530000000000005
- 31
-0.0
-  0
-LINE
-  5
-D8
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-796.3500000000003
- 20
-29.530000000000005
- 30
-0.0
- 11
-796.3500000000003
- 21
-33.38
- 31
-0.0
-  0
-LINE
-  5
 D9
 330
 17
@@ -20687,6 +21999,54 @@ G-TITLE
 100
 AcDbLine
  10
+792.5000000000002
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+796.3500000000003
+ 21
+29.530000000000005
+ 31
+0.0
+  0
+LINE
+  5
+DA
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
+796.3500000000003
+ 20
+29.530000000000005
+ 30
+0.0
+ 11
+796.3500000000003
+ 21
+33.38
+ 31
+0.0
+  0
+LINE
+  5
+DB
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbLine
+ 10
 796.3500000000003
  20
 33.38
@@ -20701,7 +22061,7 @@ AcDbLine
   0
 LINE
   5
-DA
+DC
 330
 17
 100
@@ -20725,7 +22085,7 @@ AcDbLine
   0
 TEXT
   5
-DB
+DD
 330
 17
 100
@@ -20751,7 +22111,7 @@ AcDbText
   0
 LINE
   5
-DC
+DE
 330
 17
 100
@@ -20775,7 +22135,7 @@ AcDbLine
   0
 TEXT
   5
-DD
+DF
 330
 17
 100
@@ -20801,7 +22161,7 @@ AcDbText
   0
 TEXT
   5
-DE
+E0
 330
 17
 100
@@ -20827,58 +22187,6 @@ AcDbText
   0
 LINE
   5
-DF
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-370
-50
-100
-AcDbLine
- 10
-661.6
- 20
-18.4
- 30
-0.0
- 11
-822.6
- 21
-18.4
- 31
-0.0
-  0
-LINE
-  5
-E0
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-370
-50
-100
-AcDbLine
- 10
-822.6
- 20
-18.4
- 30
-0.0
- 11
-822.6
- 21
-157.2975
- 31
-0.0
-  0
-LINE
-  5
 E1
 330
 17
@@ -20891,15 +22199,15 @@ G-TITLE
 100
 AcDbLine
  10
-822.6
+661.6
  20
-157.2975
+18.4
  30
 0.0
  11
-661.6
+822.6
  21
-157.2975
+18.4
  31
 0.0
   0
@@ -20917,15 +22225,15 @@ G-TITLE
 100
 AcDbLine
  10
-661.6
+822.6
  20
-157.2975
+18.4
  30
 0.0
  11
-661.6
+822.6
  21
-18.4
+153.43
  31
 0.0
   0
@@ -20938,22 +22246,24 @@ E3
 AcDbEntity
   8
 G-TITLE
+370
+50
 100
 AcDbLine
  10
-661.6
+822.6
  20
-164.2975
+153.43
  30
 0.0
  11
-822.6
+661.6
  21
-164.2975
+153.43
  31
 0.0
   0
-TEXT
+LINE
   5
 E4
 330
@@ -20962,24 +22272,24 @@ E4
 AcDbEntity
   8
 G-TITLE
+370
+50
 100
-AcDbText
+AcDbLine
  10
-665.904923
+661.6
  20
-168.44500000000002
+153.43
  30
 0.0
- 40
-3.15
-  1
-00
-  7
-standard
-100
-AcDbText
+ 11
+661.6
+ 21
+18.4
+ 31
+0.0
   0
-TEXT
+LINE
   5
 E5
 330
@@ -20989,21 +22299,19 @@ AcDbEntity
   8
 G-TITLE
 100
-AcDbText
+AcDbLine
  10
-679.869846
+661.6
  20
-168.44500000000002
+160.43
  30
 0.0
- 40
-3.15
-  1
-26.10.26
-  7
-standard
-100
-AcDbText
+ 11
+822.6
+ 21
+160.43
+ 31
+0.0
   0
 TEXT
   5
@@ -21017,9 +22325,61 @@ G-TITLE
 100
 AcDbText
  10
+665.904923
+ 20
+164.57750000000001
+ 30
+0.0
+ 40
+3.15
+  1
+00
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+E7
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbText
+ 10
+679.869846
+ 20
+164.57750000000001
+ 30
+0.0
+ 40
+3.15
+  1
+26.10.26
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+E8
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbText
+ 10
 702.9
  20
-168.44500000000002
+164.57750000000001
  30
 0.0
  40
@@ -21033,54 +22393,6 @@ AcDbText
   0
 LINE
   5
-E7
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-661.6
- 20
-174.7975
- 30
-0.0
- 11
-822.6
- 21
-174.7975
- 31
-0.0
-  0
-LINE
-  5
-E8
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-661.6
- 20
-185.2975
- 30
-0.0
- 11
-822.6
- 21
-185.2975
- 31
-0.0
-  0
-TEXT
-  5
 E9
 330
 17
@@ -21089,23 +22401,21 @@ AcDbEntity
   8
 G-TITLE
 100
-AcDbText
+AcDbLine
  10
-664.647283925
+661.6
  20
-159.85425
+170.93
  30
 0.0
- 40
-2.695
-  1
-REV
-  7
-standard
-100
-AcDbText
+ 11
+822.6
+ 21
+170.93
+ 31
+0.0
   0
-TEXT
+LINE
   5
 EA
 330
@@ -21115,21 +22425,19 @@ AcDbEntity
   8
 G-TITLE
 100
-AcDbText
+AcDbLine
  10
-683.4547119
+661.6
  20
-159.85425
+181.43
  30
 0.0
- 40
-2.695
-  1
-DATE
-  7
-standard
-100
-AcDbText
+ 11
+822.6
+ 21
+181.43
+ 31
+0.0
   0
 TEXT
   5
@@ -21143,15 +22451,15 @@ G-TITLE
 100
 AcDbText
  10
-728.708139875
+664.647283925
  20
-159.85425
+155.98675
  30
 0.0
  40
 2.695
   1
-DESCRIPTION
+REV
   7
 standard
 100
@@ -21169,15 +22477,15 @@ G-TITLE
 100
 AcDbText
  10
-784.800177975
+683.4547119
  20
-159.85425
+155.98675
  30
 0.0
  40
 2.695
   1
-BY
+DATE
   7
 standard
 100
@@ -21195,15 +22503,15 @@ G-TITLE
 100
 AcDbText
  10
-796.494389875
+728.708139875
  20
-159.85425
+155.98675
  30
 0.0
  40
 2.695
   1
-CHKD
+DESCRIPTION
   7
 standard
 100
@@ -21221,9 +22529,61 @@ G-TITLE
 100
 AcDbText
  10
+784.800177975
+ 20
+155.98675
+ 30
+0.0
+ 40
+2.695
+  1
+BY
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+EF
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbText
+ 10
+796.494389875
+ 20
+155.98675
+ 30
+0.0
+ 40
+2.695
+  1
+CHKD
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+F0
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+100
+AcDbText
+ 10
 810.165033925
  20
-159.85425
+155.98675
  30
 0.0
  40
@@ -21237,54 +22597,6 @@ AcDbText
   0
 LINE
   5
-EF
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-675.6
- 20
-157.2975
- 30
-0.0
- 11
-675.6
- 21
-195.7975
- 31
-0.0
-  0
-LINE
-  5
-F0
-330
-17
-100
-AcDbEntity
-  8
-G-TITLE
-100
-AcDbLine
- 10
-701.85
- 20
-157.2975
- 30
-0.0
- 11
-701.85
- 21
-195.7975
- 31
-0.0
-  0
-LINE
-  5
 F1
 330
 17
@@ -21295,15 +22607,15 @@ G-TITLE
 100
 AcDbLine
  10
-780.6
+675.6
  20
-157.2975
+153.43
  30
 0.0
  11
-780.6
+675.6
  21
-195.7975
+191.93
  31
 0.0
   0
@@ -21319,15 +22631,15 @@ G-TITLE
 100
 AcDbLine
  10
-794.6
+701.85
  20
-157.2975
+153.43
  30
 0.0
  11
-794.6
+701.85
  21
-195.7975
+191.93
  31
 0.0
   0
@@ -21343,15 +22655,15 @@ G-TITLE
 100
 AcDbLine
  10
-808.6
+780.6
  20
-157.2975
+153.43
  30
 0.0
  11
-808.6
+780.6
  21
-195.7975
+191.93
  31
 0.0
   0
@@ -21364,20 +22676,18 @@ F4
 AcDbEntity
   8
 G-TITLE
-370
-50
 100
 AcDbLine
  10
-661.6
+794.6
  20
-157.2975
+153.43
  30
 0.0
  11
-822.6
+794.6
  21
-157.2975
+191.93
  31
 0.0
   0
@@ -21390,20 +22700,18 @@ F5
 AcDbEntity
   8
 G-TITLE
-370
-50
 100
 AcDbLine
  10
-822.6
+808.6
  20
-157.2975
+153.43
  30
 0.0
  11
-822.6
+808.6
  21
-195.7975
+191.93
  31
 0.0
   0
@@ -21421,15 +22729,15 @@ G-TITLE
 100
 AcDbLine
  10
-822.6
+661.6
  20
-195.7975
+153.43
  30
 0.0
  11
-661.6
+822.6
  21
-195.7975
+153.43
  31
 0.0
   0
@@ -21447,21 +22755,73 @@ G-TITLE
 100
 AcDbLine
  10
-661.6
+822.6
  20
-195.7975
+153.43
+ 30
+0.0
+ 11
+822.6
+ 21
+191.93
+ 31
+0.0
+  0
+LINE
+  5
+F8
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+370
+50
+100
+AcDbLine
+ 10
+822.6
+ 20
+191.93
  30
 0.0
  11
 661.6
  21
-157.2975
+191.93
+ 31
+0.0
+  0
+LINE
+  5
+F9
+330
+17
+100
+AcDbEntity
+  8
+G-TITLE
+370
+50
+100
+AcDbLine
+ 10
+661.6
+ 20
+191.93
+ 30
+0.0
+ 11
+661.6
+ 21
+153.43
  31
 0.0
   0
 TEXT
   5
-F8
+FA
 330
 17
 100
@@ -21487,7 +22847,7 @@ AcDbText
   0
 LINE
   5
-F9
+FB
 330
 17
 100
@@ -21511,7 +22871,7 @@ AcDbLine
   0
 TEXT
   5
-FA
+FC
 330
 17
 100
@@ -21537,7 +22897,7 @@ AcDbText
   0
 INSERT
   5
-10B
+10D
 330
 17
 100
@@ -21561,7 +22921,7 @@ UC_PROT_SPD_AC
   0
 TEXT
   5
-10D
+10F
 330
 17
 100
@@ -21587,7 +22947,7 @@ AcDbText
   0
 TEXT
   5
-10E
+110
 330
 17
 100
@@ -21613,7 +22973,7 @@ AcDbText
   0
 LINE
   5
-10F
+111
 330
 17
 100
@@ -21637,7 +22997,7 @@ AcDbLine
   0
 TEXT
   5
-110
+112
 330
 17
 100
@@ -21663,7 +23023,7 @@ AcDbText
   0
 INSERT
   5
-123
+125
 330
 17
 100
@@ -21687,7 +23047,7 @@ UC_SW_ACB
   0
 TEXT
   5
-125
+127
 330
 17
 100
@@ -21713,7 +23073,7 @@ AcDbText
   0
 TEXT
   5
-126
+128
 330
 17
 100
@@ -21739,7 +23099,7 @@ AcDbText
   0
 LINE
   5
-127
+129
 330
 17
 100
@@ -21763,7 +23123,7 @@ AcDbLine
   0
 TEXT
   5
-128
+12A
 330
 17
 100
@@ -21789,7 +23149,7 @@ AcDbText
   0
 INSERT
   5
-132
+134
 330
 17
 100
@@ -21813,7 +23173,7 @@ UC_TX_POWER_2W
   0
 TEXT
   5
-134
+136
 330
 17
 100
@@ -21839,7 +23199,7 @@ AcDbText
   0
 TEXT
   5
-135
+137
 330
 17
 100
@@ -21865,7 +23225,7 @@ AcDbText
   0
 LINE
   5
-136
+138
 330
 17
 100
@@ -21889,7 +23249,7 @@ AcDbLine
   0
 TEXT
   5
-137
+139
 330
 17
 100
@@ -21915,7 +23275,7 @@ AcDbText
   0
 INSERT
   5
-142
+144
 330
 17
 100
@@ -21939,7 +23299,7 @@ UC_EARTH_EARTH
   0
 TEXT
   5
-144
+146
 330
 17
 100
@@ -21965,7 +23325,7 @@ AcDbText
   0
 LINE
   5
-145
+147
 330
 17
 100
@@ -21989,7 +23349,7 @@ AcDbLine
   0
 TEXT
   5
-146
+148
 330
 17
 100
@@ -22015,7 +23375,7 @@ AcDbText
   0
 INSERT
   5
-150
+155
 330
 17
 100
@@ -22025,21 +23385,21 @@ G-SYMBOL
 100
 AcDbBlockReference
   2
-UC_TX_AUX
+UC_SW_VCB
  10
-677.91
+678.134
  20
 514.6999999999998
  30
 0.0
  41
-0.44800000000000484
+0.2688000000000029
  42
-0.44800000000000484
+0.2688000000000029
   0
 TEXT
   5
-152
+157
 330
 17
 100
@@ -22057,7 +23417,7 @@ AcDbText
  40
 2.52
   1
-AUXILIARY / STATION
+VACUUM CIRCUIT
   7
 standard
 100
@@ -22065,7 +23425,7 @@ AcDbText
   0
 TEXT
   5
-153
+158
 330
 17
 100
@@ -22083,7 +23443,7 @@ AcDbText
  40
 2.52
   1
-TRANSFORMER
+BREAKER (VCB)
   7
 standard
 100
@@ -22091,7 +23451,7 @@ AcDbText
   0
 LINE
   5
-154
+159
 330
 17
 100
@@ -22115,7 +23475,7 @@ AcDbLine
   0
 TEXT
   5
-155
+15A
 330
 17
 100
@@ -22141,7 +23501,7 @@ AcDbText
   0
 INSERT
   5
-15F
+164
 330
 17
 100
@@ -22151,21 +23511,21 @@ G-SYMBOL
 100
 AcDbBlockReference
   2
-UC_GRID_LOAD
+UC_TX_AUX
  10
-677.27
+677.9100000000001
  20
 503.4999999999998
  30
 0.0
  41
-0.38400000000000156
+0.44800000000000184
  42
-0.38400000000000156
+0.44800000000000184
   0
 TEXT
   5
-161
+166
 330
 17
 100
@@ -22177,13 +23537,39 @@ AcDbText
  10
 691.7
  20
-505.9779999999998
+507.8679999999998
  30
 0.0
  40
 2.52
   1
-LOAD
+AUXILIARY / STATION
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+167
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+691.7
+ 20
+504.08799999999985
+ 30
+0.0
+ 40
+2.52
+  1
+TRANSFORMER
   7
 standard
 100
@@ -22191,7 +23577,7 @@ AcDbText
   0
 LINE
   5
-162
+168
 330
 17
 100
@@ -22215,7 +23601,7 @@ AcDbLine
   0
 TEXT
   5
-163
+169
 330
 17
 100
@@ -22241,7 +23627,7 @@ AcDbText
   0
 INSERT
   5
-170
+173
 330
 17
 100
@@ -22251,21 +23637,21 @@ G-SYMBOL
 100
 AcDbBlockReference
   2
-UC_SW_VCB
+UC_GRID_LOAD
  10
-678.134
+677.27
  20
 492.29999999999984
  30
 0.0
  41
-0.2688000000000011
+0.38400000000000156
  42
-0.2688000000000011
+0.38400000000000156
   0
 TEXT
   5
-172
+175
 330
 17
 100
@@ -22277,39 +23663,13 @@ AcDbText
  10
 691.7
  20
-496.6679999999999
+494.77799999999985
  30
 0.0
  40
 2.52
   1
-VACUUM CIRCUIT
-  7
-standard
-100
-AcDbText
-  0
-TEXT
-  5
-173
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-100
-AcDbText
- 10
-691.7
- 20
-492.8879999999999
- 30
-0.0
- 40
-2.52
-  1
-BREAKER (VCB)
+LOAD
   7
 standard
 100
@@ -22317,7 +23677,7 @@ AcDbText
   0
 LINE
   5
-174
+176
 330
 17
 100
@@ -22341,7 +23701,7 @@ AcDbLine
   0
 LINE
   5
-175
+177
 330
 17
 100
@@ -22365,7 +23725,7 @@ AcDbLine
   0
 LINE
   5
-176
+178
 330
 17
 100
@@ -22389,7 +23749,7 @@ AcDbLine
   0
 TEXT
   5
-177
+179
 330
 17
 100
@@ -22415,7 +23775,7 @@ AcDbText
   0
 INSERT
   5
-186
+188
 330
 17
 100
@@ -22439,7 +23799,7 @@ UC_PROT_LIGHTNING_ARRESTER
   0
 TEXT
   5
-188
+18A
 330
 17
 100
@@ -22465,7 +23825,7 @@ AcDbText
   0
 TEXT
   5
-189
+18B
 330
 17
 100
@@ -22491,7 +23851,7 @@ AcDbText
   0
 LINE
   5
-18A
+18C
 330
 17
 100
@@ -22515,7 +23875,7 @@ AcDbLine
   0
 TEXT
   5
-18B
+18D
 330
 17
 100
@@ -22541,7 +23901,7 @@ AcDbText
   0
 INSERT
   5
-194
+19B
 330
 17
 100
@@ -22551,21 +23911,21 @@ G-SYMBOL
 100
 AcDbBlockReference
   2
-UC_TX_PT
+UC_TX_CT
  10
-757.962
+758.41
  20
 548.3
  30
 0.0
  41
-0.5376000000000059
+0.44800000000000484
  42
-0.5376000000000059
+0.44800000000000484
   0
 TEXT
   5
-196
+19D
 330
 17
 100
@@ -22583,7 +23943,7 @@ AcDbText
  40
 2.52
   1
-POTENTIAL / VOLTAGE
+CURRENT TRANSFORMER
   7
 standard
 100
@@ -22591,7 +23951,7 @@ AcDbText
   0
 TEXT
   5
-197
+19E
 330
 17
 100
@@ -22609,7 +23969,7 @@ AcDbText
  40
 2.52
   1
-TRANSFORMER (PT / VT)
+(CT)
   7
 standard
 100
@@ -22617,7 +23977,7 @@ AcDbText
   0
 LINE
   5
-198
+19F
 330
 17
 100
@@ -22641,7 +24001,7 @@ AcDbLine
   0
 TEXT
   5
-199
+1A0
 330
 17
 100
@@ -22667,7 +24027,7 @@ AcDbText
   0
 INSERT
   5
-1A7
+1A9
 330
 17
 100
@@ -22677,21 +24037,57 @@ G-SYMBOL
 100
 AcDbBlockReference
   2
-UC_TX_CT
+UC_PROT_RELAY
  10
-758.41
+758.73
  20
 537.0999999999999
  30
 0.0
  41
-0.44800000000000484
+0.38400000000000417
  42
-0.44800000000000484
+0.38400000000000417
   0
 TEXT
   5
-1A9
+1AB
+330
+17
+100
+AcDbEntity
+  8
+G-SYMBOL-TXT
+100
+AcDbText
+ 10
+760.6500000000001
+ 20
+539.9799999999999
+ 30
+0.0
+ 40
+1.2
+  1
+51
+  7
+standard
+ 72
+1
+ 11
+760.6500000000001
+ 21
+539.9799999999999
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+1AC
 330
 17
 100
@@ -22709,7 +24105,7 @@ AcDbText
  40
 2.52
   1
-CURRENT TRANSFORMER
+PROTECTION RELAY
   7
 standard
 100
@@ -22717,7 +24113,7 @@ AcDbText
   0
 TEXT
   5
-1AA
+1AD
 330
 17
 100
@@ -22735,7 +24131,7 @@ AcDbText
  40
 2.52
   1
-(CT)
+(ANSI FUNCTION)
   7
 standard
 100
@@ -22743,7 +24139,7 @@ AcDbText
   0
 LINE
   5
-1AB
+1AE
 330
 17
 100
@@ -22767,7 +24163,7 @@ AcDbLine
   0
 TEXT
   5
-1AC
+1AF
 330
 17
 100
@@ -22793,7 +24189,7 @@ AcDbText
   0
 INSERT
   5
-1B5
+1B8
 330
 17
 100
@@ -22803,57 +24199,21 @@ G-SYMBOL
 100
 AcDbBlockReference
   2
-UC_PROT_RELAY
+UC_TX_PT
  10
-758.73
+757.962
  20
 525.8999999999999
  30
 0.0
  41
-0.38400000000000417
+0.5376000000000059
  42
-0.38400000000000417
+0.5376000000000059
   0
 TEXT
   5
-1B7
-330
-17
-100
-AcDbEntity
-  8
-G-SYMBOL-TXT
-100
-AcDbText
- 10
-760.6500000000001
- 20
-528.7799999999999
- 30
-0.0
- 40
-1.2
-  1
-51
-  7
-standard
- 72
-1
- 11
-760.6500000000001
- 21
-528.7799999999999
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-1B8
+1BA
 330
 17
 100
@@ -22871,7 +24231,7 @@ AcDbText
  40
 2.52
   1
-PROTECTION RELAY
+POTENTIAL / VOLTAGE
   7
 standard
 100
@@ -22879,7 +24239,7 @@ AcDbText
   0
 TEXT
   5
-1B9
+1BB
 330
 17
 100
@@ -22897,7 +24257,7 @@ AcDbText
  40
 2.52
   1
-(ANSI FUNCTION)
+TRANSFORMER (PT / VT)
   7
 standard
 100
@@ -22905,7 +24265,7 @@ AcDbText
   0
 LINE
   5
-1BA
+1BC
 330
 17
 100
@@ -22929,7 +24289,7 @@ AcDbLine
   0
 TEXT
   5
-1BB
+1BD
 330
 17
 100
@@ -22955,7 +24315,7 @@ AcDbText
   0
 INSERT
   5
-1C6
+1C8
 330
 17
 100
@@ -22979,7 +24339,7 @@ UC_INST_ABT
   0
 TEXT
   5
-1C8
+1CA
 330
 17
 100
@@ -23005,7 +24365,7 @@ AcDbText
   0
 LINE
   5
-1C9
+1CB
 330
 17
 100
@@ -23029,7 +24389,7 @@ AcDbLine
   0
 TEXT
   5
-1CA
+1CC
 330
 17
 100
@@ -23055,7 +24415,7 @@ AcDbText
   0
 INSERT
   5
-1D5
+1D7
 330
 17
 100
@@ -23079,7 +24439,7 @@ UC_INST_KWH
   0
 TEXT
   5
-1D7
+1D9
 330
 17
 100
@@ -23105,7 +24465,7 @@ AcDbText
   0
 LINE
   5
-1D8
+1DA
 330
 17
 100
@@ -23129,7 +24489,7 @@ AcDbLine
   0
 TEXT
   5
-1D9
+1DB
 330
 17
 100
@@ -23155,7 +24515,7 @@ AcDbText
   0
 INSERT
   5
-1E6
+1E8
 330
 17
 100
@@ -23179,7 +24539,7 @@ UC_GRID_UTILITY
   0
 TEXT
   5
-1E8
+1EA
 330
 17
 100
@@ -23205,7 +24565,7 @@ AcDbText
   0
 LINE
   5
-1E9
+1EB
 330
 17
 100
@@ -23224,54 +24584,6 @@ AcDbLine
 822.6
  21
 490.05999999999983
- 31
-0.0
-  0
-LINE
-  5
-1EA
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-100
-AcDbLine
- 10
-751.2
- 20
-568.46
- 30
-0.0
- 11
-751.2
- 21
-490.06000000000006
- 31
-0.0
-  0
-LINE
-  5
-1EB
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-100
-AcDbLine
- 10
-770.1
- 20
-568.46
- 30
-0.0
- 11
-770.1
- 21
-490.06000000000006
  31
 0.0
   0
@@ -23287,13 +24599,13 @@ G-TEXT
 100
 AcDbLine
  10
-742.1
+751.2
  20
 568.46
  30
 0.0
  11
-742.1
+751.2
  21
 490.06000000000006
  31
@@ -23308,20 +24620,18 @@ LINE
 AcDbEntity
   8
 G-TEXT
-370
-50
 100
 AcDbLine
  10
-661.6
+770.1
  20
-490.06
+568.46
  30
 0.0
  11
-822.6
+770.1
  21
-490.06
+490.06000000000006
  31
 0.0
   0
@@ -23334,20 +24644,18 @@ LINE
 AcDbEntity
   8
 G-TEXT
-370
-50
 100
 AcDbLine
  10
-822.6
+742.1
  20
-490.06
+568.46
  30
 0.0
  11
-822.6
+742.1
  21
-575.6
+490.06000000000006
  31
 0.0
   0
@@ -23365,6 +24673,58 @@ G-TEXT
 100
 AcDbLine
  10
+661.6
+ 20
+490.06
+ 30
+0.0
+ 11
+822.6
+ 21
+490.06
+ 31
+0.0
+  0
+LINE
+  5
+1F0
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+370
+50
+100
+AcDbLine
+ 10
+822.6
+ 20
+490.06
+ 30
+0.0
+ 11
+822.6
+ 21
+575.6
+ 31
+0.0
+  0
+LINE
+  5
+1F1
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+370
+50
+100
+AcDbLine
+ 10
 822.6
  20
 575.6
@@ -23379,7 +24739,7 @@ AcDbLine
   0
 LINE
   5
-1F0
+1F2
 330
 17
 100
@@ -23405,7 +24765,7 @@ AcDbLine
   0
 TEXT
   5
-1F1
+1F3
 330
 17
 100
@@ -23431,7 +24791,7 @@ AcDbText
   0
 LINE
   5
-1F2
+1F4
 330
 17
 100
@@ -23455,7 +24815,7 @@ AcDbLine
   0
 TEXT
   5
-1F3
+1F5
 330
 17
 100
@@ -23481,7 +24841,7 @@ AcDbText
   0
 TEXT
   5
-1F4
+1F6
 330
 17
 100
@@ -23507,7 +24867,7 @@ AcDbText
   0
 LINE
   5
-1F5
+1F7
 330
 17
 100
@@ -23531,7 +24891,7 @@ AcDbLine
   0
 TEXT
   5
-1F6
+1F8
 330
 17
 100
@@ -23557,7 +24917,7 @@ AcDbText
   0
 TEXT
   5
-1F7
+1F9
 330
 17
 100
@@ -23583,7 +24943,7 @@ AcDbText
   0
 LINE
   5
-1F8
+1FA
 330
 17
 100
@@ -23607,7 +24967,7 @@ AcDbLine
   0
 TEXT
   5
-1F9
+1FB
 330
 17
 100
@@ -23633,7 +24993,7 @@ AcDbText
   0
 TEXT
   5
-1FA
+1FC
 330
 17
 100
@@ -23659,7 +25019,7 @@ AcDbText
   0
 LINE
   5
-1FB
+1FD
 330
 17
 100
@@ -23683,7 +25043,7 @@ AcDbLine
   0
 TEXT
   5
-1FC
+1FE
 330
 17
 100
@@ -23709,7 +25069,7 @@ AcDbText
   0
 TEXT
   5
-1FD
+1FF
 330
 17
 100
@@ -23735,7 +25095,7 @@ AcDbText
   0
 LINE
   5
-1FE
+200
 330
 17
 100
@@ -23759,7 +25119,7 @@ AcDbLine
   0
 TEXT
   5
-1FF
+201
 330
 17
 100
@@ -23785,7 +25145,7 @@ AcDbText
   0
 TEXT
   5
-200
+202
 330
 17
 100
@@ -23811,7 +25171,7 @@ AcDbText
   0
 LINE
   5
-201
+203
 330
 17
 100
@@ -23835,7 +25195,7 @@ AcDbLine
   0
 TEXT
   5
-202
+204
 330
 17
 100
@@ -23861,7 +25221,7 @@ AcDbText
   0
 TEXT
   5
-203
+205
 330
 17
 100
@@ -23887,7 +25247,7 @@ AcDbText
   0
 TEXT
   5
-204
+206
 330
 17
 100
@@ -23913,7 +25273,7 @@ AcDbText
   0
 LINE
   5
-205
+207
 330
 17
 100
@@ -23937,7 +25297,7 @@ AcDbLine
   0
 TEXT
   5
-206
+208
 330
 17
 100
@@ -23963,7 +25323,7 @@ AcDbText
   0
 TEXT
   5
-207
+209
 330
 17
 100
@@ -23989,7 +25349,7 @@ AcDbText
   0
 LINE
   5
-208
+20A
 330
 17
 100
@@ -24013,7 +25373,7 @@ AcDbLine
   0
 LINE
   5
-209
+20B
 330
 17
 100
@@ -24037,58 +25397,6 @@ AcDbLine
   0
 LINE
   5
-20A
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-370
-50
-100
-AcDbLine
- 10
-661.6
- 20
-436.608
- 30
-0.0
- 11
-822.6
- 21
-436.608
- 31
-0.0
-  0
-LINE
-  5
-20B
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-370
-50
-100
-AcDbLine
- 10
-822.6
- 20
-436.608
- 30
-0.0
- 11
-822.6
- 21
-490.06
- 31
-0.0
-  0
-LINE
-  5
 20C
 330
 17
@@ -24101,6 +25409,58 @@ G-TEXT
 100
 AcDbLine
  10
+661.6
+ 20
+436.608
+ 30
+0.0
+ 11
+822.6
+ 21
+436.608
+ 31
+0.0
+  0
+LINE
+  5
+20D
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+370
+50
+100
+AcDbLine
+ 10
+822.6
+ 20
+436.608
+ 30
+0.0
+ 11
+822.6
+ 21
+490.06
+ 31
+0.0
+  0
+LINE
+  5
+20E
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+370
+50
+100
+AcDbLine
+ 10
 822.6
  20
 490.06
@@ -24115,7 +25475,7 @@ AcDbLine
   0
 LINE
   5
-20D
+20F
 330
 17
 100
@@ -24141,7 +25501,7 @@ AcDbLine
   0
 TEXT
   5
-20E
+210
 330
 17
 100
@@ -24167,7 +25527,7 @@ AcDbText
   0
 LINE
   5
-20F
+211
 330
 17
 100
@@ -24191,7 +25551,7 @@ AcDbLine
   0
 TEXT
   5
-210
+212
 330
 17
 100
@@ -24217,7 +25577,7 @@ AcDbText
   0
 TEXT
   5
-211
+213
 330
 17
 100
@@ -24243,7 +25603,7 @@ AcDbText
   0
 TEXT
   5
-212
+214
 330
 17
 100
@@ -24269,7 +25629,7 @@ AcDbText
   0
 TEXT
   5
-213
+215
 330
 17
 100
@@ -24295,7 +25655,7 @@ AcDbText
   0
 TEXT
   5
-214
+216
 330
 17
 100
@@ -24321,7 +25681,7 @@ AcDbText
   0
 TEXT
   5
-215
+217
 330
 17
 100
@@ -24347,7 +25707,7 @@ AcDbText
   0
 TEXT
   5
-216
+218
 330
 17
 100
@@ -24373,7 +25733,7 @@ AcDbText
   0
 TEXT
   5
-217
+219
 330
 17
 100
@@ -24399,7 +25759,7 @@ AcDbText
   0
 TEXT
   5
-218
+21A
 330
 17
 100
@@ -24425,7 +25785,7 @@ AcDbText
   0
 TEXT
   5
-219
+21B
 330
 17
 100
@@ -24451,7 +25811,7 @@ AcDbText
   0
 TEXT
   5
-21A
+21C
 330
 17
 100
@@ -24477,7 +25837,7 @@ AcDbText
   0
 TEXT
   5
-21B
+21D
 330
 17
 100
@@ -24503,7 +25863,7 @@ AcDbText
   0
 TEXT
   5
-21C
+21E
 330
 17
 100
@@ -24529,7 +25889,7 @@ AcDbText
   0
 TEXT
   5
-21D
+21F
 330
 17
 100
@@ -24555,7 +25915,7 @@ AcDbText
   0
 TEXT
   5
-21E
+220
 330
 17
 100
@@ -24581,7 +25941,7 @@ AcDbText
   0
 TEXT
   5
-21F
+221
 330
 17
 100
@@ -24607,7 +25967,7 @@ AcDbText
   0
 TEXT
   5
-220
+222
 330
 17
 100
@@ -24633,7 +25993,7 @@ AcDbText
   0
 TEXT
   5
-221
+223
 330
 17
 100
@@ -24659,7 +26019,7 @@ AcDbText
   0
 TEXT
   5
-222
+224
 330
 17
 100
@@ -24685,7 +26045,7 @@ AcDbText
   0
 TEXT
   5
-223
+225
 330
 17
 100
@@ -24711,7 +26071,7 @@ AcDbText
   0
 TEXT
   5
-224
+226
 330
 17
 100
@@ -24737,7 +26097,7 @@ AcDbText
   0
 TEXT
   5
-225
+227
 330
 17
 100
@@ -24763,7 +26123,7 @@ AcDbText
   0
 TEXT
   5
-226
+228
 330
 17
 100
@@ -24789,7 +26149,7 @@ AcDbText
   0
 TEXT
   5
-227
+229
 330
 17
 100
@@ -24815,7 +26175,7 @@ AcDbText
   0
 TEXT
   5
-228
+22A
 330
 17
 100
@@ -24841,7 +26201,7 @@ AcDbText
   0
 TEXT
   5
-229
+22B
 330
 17
 100
@@ -24867,7 +26227,7 @@ AcDbText
   0
 TEXT
   5
-22A
+22C
 330
 17
 100
@@ -24893,7 +26253,7 @@ AcDbText
   0
 TEXT
   5
-22B
+22D
 330
 17
 100
@@ -24919,7 +26279,7 @@ AcDbText
   0
 TEXT
   5
-22C
+22E
 330
 17
 100
@@ -24945,7 +26305,7 @@ AcDbText
   0
 TEXT
   5
-22D
+22F
 330
 17
 100
@@ -24971,7 +26331,7 @@ AcDbText
   0
 TEXT
   5
-22E
+230
 330
 17
 100
@@ -24997,7 +26357,7 @@ AcDbText
   0
 TEXT
   5
-22F
+231
 330
 17
 100
@@ -25023,7 +26383,7 @@ AcDbText
   0
 TEXT
   5
-230
+232
 330
 17
 100
@@ -25049,7 +26409,7 @@ AcDbText
   0
 TEXT
   5
-231
+233
 330
 17
 100
@@ -25075,7 +26435,7 @@ AcDbText
   0
 TEXT
   5
-232
+234
 330
 17
 100
@@ -25101,7 +26461,7 @@ AcDbText
   0
 TEXT
   5
-233
+235
 330
 17
 100
@@ -25119,59 +26479,7 @@ AcDbText
  40
 2.52
   1
-FED FROM THE 33 kV SIDE OF THE IDT; 63 kVA IS A DESIGN ASSUMPTION,
-  7
-standard
-100
-AcDbText
-  0
-TEXT
-  5
-234
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-100
-AcDbText
- 10
-670.49
- 20
-320.8
- 30
-0.0
- 40
-2.52
-  1
-NOT A CALCULATED AUXILIARY LOAD.
-  7
-standard
-100
-AcDbText
-  0
-TEXT
-  5
-235
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-100
-AcDbText
- 10
-663.7699076000001
- 20
-316.684
- 30
-0.0
- 40
-2.52
-  1
-10.
+FED FROM THE 33 kV SIDE OF THE IDT THROUGH ITS OWN T-OFF VCB
   7
 standard
 100
@@ -25191,13 +26499,13 @@ AcDbText
  10
 670.49
  20
-316.684
+320.8
  30
 0.0
  40
 2.52
   1
-ASSUMPTION: VCB RATINGS (630 A / 20 kA AT THE BLOCKS AND FOR THE
+ICOG-AUX-VCB-NN; 63 kVA IS A DESIGN ASSUMPTION, NOT A CALCULATED
   7
 standard
 100
@@ -25217,13 +26525,13 @@ AcDbText
  10
 670.49
  20
-312.90400000000005
+317.02000000000004
  30
 0.0
  40
 2.52
   1
-AUXILIARY FEEDER, 1250 A / 25 kA OUTGOING) ARE PLACEHOLDERS PENDING
+AUXILIARY LOAD.
   7
 standard
 100
@@ -25241,15 +26549,15 @@ G-TEXT
 100
 AcDbText
  10
-670.49
+663.7699076000001
  20
-309.124
+312.904
  30
 0.0
  40
 2.52
   1
-A FAULT STUDY. CT-OG-01 HAS NO SPEC: THE ONLY CATALOGUED 33 kV CT
+10.
   7
 standard
 100
@@ -25269,13 +26577,13 @@ AcDbText
  10
 670.49
  20
-305.34400000000005
+312.904
  30
 0.0
  40
 2.52
   1
-IS 200-100-50/1 A, BELOW THE EXPORT CURRENT OF ABOUT 920 A.
+ASSUMPTION: EVERY BLOCK FEEDER ENDS AT THE MAIN HT SWITCHBOARD IN
   7
 standard
 100
@@ -25293,15 +26601,15 @@ G-TEXT
 100
 AcDbText
  10
-664.3858460000001
+670.49
  20
-301.228
+309.124
  30
 0.0
  40
 2.52
   1
-11.
+ITS OWN FEEDER PANEL (VCB-BF-NN WITH CT-BF-NN AND AN O/C + E/F
   7
 standard
 100
@@ -25321,13 +26629,13 @@ AcDbText
  10
 670.49
  20
-301.228
+305.344
  30
 0.0
  40
 2.52
   1
-ASSUMPTION: MV AND AUXILIARY CABLE SIZES (HAVELLS 33 kV 3C AL) AND
+RELAY REL-BF-NN), SO THE FEEDER CABLE IS SWITCHED AND PROTECTED
   7
 standard
 100
@@ -25347,13 +26655,13 @@ AcDbText
  10
 670.49
  20
-297.44800000000004
+301.564
  30
 0.0
  40
 2.52
   1
-ALL CABLE LENGTHS ARE FIXTURE CHOICES, NOT A ROUTED DESIGN. THE
+AT THE BUS END; CT-BF-NN CARRIES NO SPEC, ITS RATIO FOLLOWS THE
   7
 standard
 100
@@ -25373,13 +26681,13 @@ AcDbText
  10
 670.49
  20
-293.668
+297.784
  30
 0.0
  40
 2.52
   1
-EXPORT LINE FROM CT-OG-01 TO POI-01 IS BY OTHERS AND CARRIES NO
+BLOCK FEEDER CURRENT.
   7
 standard
 100
@@ -25397,9 +26705,269 @@ G-TEXT
 100
 AcDbText
  10
+664.3858460000001
+ 20
+293.668
+ 30
+0.0
+ 40
+2.52
+  1
+11.
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+23F
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+293.668
+ 30
+0.0
+ 40
+2.52
+  1
+ASSUMPTION: VCB RATINGS (630 A / 20 kA AT THE BLOCKS, THE BLOCK
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+240
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
 670.49
  20
 289.88800000000003
+ 30
+0.0
+ 40
+2.52
+  1
+AUXILIARY T-OFFS, THE BLOCK FEEDER PANELS AND THE AUXILIARY
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+241
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+286.108
+ 30
+0.0
+ 40
+2.52
+  1
+FEEDER, 1250 A / 25 kA OUTGOING) ARE PLACEHOLDERS PENDING A FAULT
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+242
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+282.32800000000003
+ 30
+0.0
+ 40
+2.52
+  1
+STUDY. CT-OG-01 HAS NO SPEC: THE ONLY CATALOGUED 33 kV CT IS
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+243
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+278.548
+ 30
+0.0
+ 40
+2.52
+  1
+200-100-50/1 A, BELOW THE EXPORT CURRENT OF ABOUT 920 A.
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+244
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+663.7699076000001
+ 20
+274.432
+ 30
+0.0
+ 40
+2.52
+  1
+12.
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+245
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+274.432
+ 30
+0.0
+ 40
+2.52
+  1
+ASSUMPTION: MV AND AUXILIARY CABLE SIZES (HAVELLS 33 kV 3C AL) AND
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+246
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+270.65200000000004
+ 30
+0.0
+ 40
+2.52
+  1
+ALL CABLE LENGTHS ARE FIXTURE CHOICES, NOT A ROUTED DESIGN. THE
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+247
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+266.872
+ 30
+0.0
+ 40
+2.52
+  1
+EXPORT LINE FROM CT-OG-01 TO POI-01 IS BY OTHERS AND CARRIES NO
+  7
+standard
+100
+AcDbText
+  0
+TEXT
+  5
+248
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+100
+AcDbText
+ 10
+670.49
+ 20
+263.09200000000004
  30
 0.0
  40
@@ -25413,7 +26981,7 @@ AcDbText
   0
 LINE
   5
-23F
+249
 330
 17
 100
@@ -25427,19 +26995,19 @@ AcDbLine
  10
 661.6
  20
-195.7975
+191.93
  30
 0.0
  11
 822.6
  21
-195.7975
+191.93
  31
 0.0
   0
 LINE
   5
-240
+24A
 330
 17
 100
@@ -25453,37 +27021,11 @@ AcDbLine
  10
 822.6
  20
-195.7975
+191.93
  30
 0.0
  11
 822.6
- 21
-436.608
- 31
-0.0
-  0
-LINE
-  5
-241
-330
-17
-100
-AcDbEntity
-  8
-G-TEXT
-370
-50
-100
-AcDbLine
- 10
-822.6
- 20
-436.608
- 30
-0.0
- 11
-661.6
  21
 436.608
  31
@@ -25491,7 +27033,33 @@ AcDbLine
   0
 LINE
   5
-242
+24B
+330
+17
+100
+AcDbEntity
+  8
+G-TEXT
+370
+50
+100
+AcDbLine
+ 10
+822.6
+ 20
+436.608
+ 30
+0.0
+ 11
+661.6
+ 21
+436.608
+ 31
+0.0
+  0
+LINE
+  5
+24C
 330
 17
 100
@@ -25511,13 +27079,13 @@ AcDbLine
  11
 661.6
  21
-195.7975
+191.93
  31
 0.0
   0
 INSERT
   5
-355
+386
 330
 17
 100
@@ -25529,15 +27097,15 @@ AcDbBlockReference
   2
 UC_SLD_SLD
  10
-336.760656
+323.979275
  20
-477.930797
+535.737521
  30
 0.0
  41
-1.216852775933919
+1.2652535065764097
  42
-1.216852775933919
+1.2652535065764097
   0
 ENDSEC
   0
@@ -26529,7 +28097,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-359
+38A
   0
 DICTIONARYVAR
   5
@@ -26545,7 +28113,7 @@ DictionaryVariables
   0
 DICTIONARYVAR
   5
-359
+38A
 330
 2D
 100

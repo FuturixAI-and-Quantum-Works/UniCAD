@@ -3,15 +3,15 @@
  "sheets": [
   {
    "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-401",
-   "title": "STRING WIRING DIAGRAM : STRING COMBINER BOX SCB-A-01-01-01..SCB-A-01-02-09",
+   "title": "STRING WIRING DIAGRAM : STRING COMBINER BOX SCB-A-01-01-01..SCB-A-02-02-08",
    "paper": "A1",
    "file": "utility-50mwac-strings-scb_b01aa.dxf",
    "warnings": [],
    "type": "scb_b01aa",
-   "typical_for": "SCB-A-01-01-01..SCB-A-01-02-09 (18 NOS)",
+   "typical_for": "SCB-A-01-01-01..SCB-A-02-02-08 (34 NOS)",
    "shown_for": "SCB-A-01-01-01",
    "strings_drawn": 23,
-   "strings_covered": 414,
+   "strings_covered": 782,
    "instances": [
     {
      "tag": "SCB-A-01-01-01",
@@ -375,264 +375,7 @@
       "B01-T301"
      ],
      "to": "INV-01-02 IP09"
-    }
-   ]
-  },
-  {
-   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-402",
-   "title": "STRING WIRING DIAGRAM : STRING COMBINER BOX SCB-B-01-01-01..SCB-B-01-02-06",
-   "paper": "A1",
-   "file": "utility-50mwac-strings-scb_b01ab.dxf",
-   "warnings": [],
-   "type": "scb_b01ab",
-   "typical_for": "SCB-B-01-01-01..SCB-B-01-02-06 (12 NOS)",
-   "shown_for": "SCB-B-01-01-01",
-   "strings_drawn": 22,
-   "strings_covered": 264,
-   "instances": [
-    {
-     "tag": "SCB-B-01-01-01",
-     "strings": 22,
-     "tables": [
-      "B01-T119",
-      "B01-T120",
-      "B01-T121",
-      "B01-T122",
-      "B01-T123",
-      "B01-T124",
-      "B01-T125",
-      "B01-T126",
-      "B01-T127",
-      "B01-T128",
-      "B01-T129",
-      "B01-T130",
-      "B01-T131"
-     ],
-     "to": "INV-01-01 IP01"
     },
-    {
-     "tag": "SCB-B-01-01-02",
-     "strings": 22,
-     "tables": [
-      "B01-T131",
-      "B01-T132",
-      "B01-T133",
-      "B01-T134",
-      "B01-T135",
-      "B01-T136",
-      "B01-T137",
-      "B01-T138",
-      "B01-T139",
-      "B01-T140",
-      "B01-T141",
-      "B01-T142"
-     ],
-     "to": "INV-01-01 IP02"
-    },
-    {
-     "tag": "SCB-B-01-01-03",
-     "strings": 22,
-     "tables": [
-      "B01-T143",
-      "B01-T144",
-      "B01-T145",
-      "B01-T146",
-      "B01-T147",
-      "B01-T148",
-      "B01-T149",
-      "B01-T150",
-      "B01-T151",
-      "B01-T152",
-      "B01-T153",
-      "B01-T154"
-     ],
-     "to": "INV-01-01 IP03"
-    },
-    {
-     "tag": "SCB-B-01-01-04",
-     "strings": 22,
-     "tables": [
-      "B01-T154",
-      "B01-T155",
-      "B01-T156",
-      "B01-T157",
-      "B01-T158",
-      "B01-T159",
-      "B01-T160",
-      "B01-T161",
-      "B01-T162",
-      "B01-T163",
-      "B01-T164",
-      "B01-T165"
-     ],
-     "to": "INV-01-01 IP04"
-    },
-    {
-     "tag": "SCB-B-01-01-05",
-     "strings": 22,
-     "tables": [
-      "B01-T166",
-      "B01-T167",
-      "B01-T168",
-      "B01-T169",
-      "B01-T170",
-      "B01-T171",
-      "B01-T172",
-      "B01-T173",
-      "B01-T174",
-      "B01-T175",
-      "B01-T176",
-      "B01-T177"
-     ],
-     "to": "INV-01-01 IP05"
-    },
-    {
-     "tag": "SCB-B-01-01-06",
-     "strings": 22,
-     "tables": [
-      "B01-T177",
-      "B01-T178",
-      "B01-T179",
-      "B01-T180",
-      "B01-T181",
-      "B01-T182",
-      "B01-T183",
-      "B01-T184",
-      "B01-T185",
-      "B01-T186",
-      "B01-T187",
-      "B01-T188"
-     ],
-     "to": "INV-01-01 IP06"
-    },
-    {
-     "tag": "SCB-B-01-02-01",
-     "strings": 22,
-     "tables": [
-      "B01-T302",
-      "B01-T303",
-      "B01-T304",
-      "B01-T305",
-      "B01-T306",
-      "B01-T307",
-      "B01-T308",
-      "B01-T309",
-      "B01-T310",
-      "B01-T311",
-      "B01-T312",
-      "B01-T313"
-     ],
-     "to": "INV-01-02 IP01"
-    },
-    {
-     "tag": "SCB-B-01-02-02",
-     "strings": 22,
-     "tables": [
-      "B01-T313",
-      "B01-T314",
-      "B01-T315",
-      "B01-T316",
-      "B01-T317",
-      "B01-T318",
-      "B01-T319",
-      "B01-T320",
-      "B01-T321",
-      "B01-T322",
-      "B01-T323",
-      "B01-T324"
-     ],
-     "to": "INV-01-02 IP02"
-    },
-    {
-     "tag": "SCB-B-01-02-03",
-     "strings": 22,
-     "tables": [
-      "B01-T325",
-      "B01-T326",
-      "B01-T327",
-      "B01-T328",
-      "B01-T329",
-      "B01-T330",
-      "B01-T331",
-      "B01-T332",
-      "B01-T333",
-      "B01-T334",
-      "B01-T335",
-      "B01-T336"
-     ],
-     "to": "INV-01-02 IP03"
-    },
-    {
-     "tag": "SCB-B-01-02-04",
-     "strings": 22,
-     "tables": [
-      "B01-T336",
-      "B01-T337",
-      "B01-T338",
-      "B01-T339",
-      "B01-T340",
-      "B01-T341",
-      "B01-T342",
-      "B01-T343",
-      "B01-T344",
-      "B01-T345",
-      "B01-T346",
-      "B01-T347"
-     ],
-     "to": "INV-01-02 IP04"
-    },
-    {
-     "tag": "SCB-B-01-02-05",
-     "strings": 22,
-     "tables": [
-      "B01-T348",
-      "B01-T349",
-      "B01-T350",
-      "B01-T351",
-      "B01-T352",
-      "B01-T353",
-      "B01-T354",
-      "B01-T355",
-      "B01-T356",
-      "B01-T357",
-      "B01-T358",
-      "B01-T359"
-     ],
-     "to": "INV-01-02 IP05"
-    },
-    {
-     "tag": "SCB-B-01-02-06",
-     "strings": 22,
-     "tables": [
-      "B01-T360",
-      "B01-T361",
-      "B01-T362",
-      "B01-T363",
-      "B01-T364",
-      "B01-T365",
-      "B01-T366",
-      "B01-T367",
-      "B01-T368",
-      "B01-T369",
-      "B01-T370",
-      "B01-T371"
-     ],
-     "to": "INV-01-02 IP06"
-    }
-   ]
-  },
-  {
-   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-403",
-   "title": "STRING WIRING DIAGRAM : STRING COMBINER BOX SCB-A-02-01-01..SCB-A-02-02-08",
-   "paper": "A1",
-   "file": "utility-50mwac-strings-scb_b02aa.dxf",
-   "warnings": [],
-   "type": "scb_b02aa",
-   "typical_for": "SCB-A-02-01-01..SCB-A-02-02-08 (16 NOS)",
-   "shown_for": "SCB-A-02-01-01",
-   "strings_drawn": 23,
-   "strings_covered": 368,
-   "instances": [
     {
      "tag": "SCB-A-02-01-01",
      "strings": 23,
@@ -946,17 +689,246 @@
    ]
   },
   {
-   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-404",
-   "title": "STRING WIRING DIAGRAM : STRING COMBINER BOX SCB-B-02-01-01..SCB-B-02-02-07",
+   "sheet": "UDEMO-DRL-UTILITY-50MWAC-EE-402",
+   "title": "STRING WIRING DIAGRAM : STRING COMBINER BOX SCB-B-01-01-01..SCB-B-02-02-07",
    "paper": "A1",
-   "file": "utility-50mwac-strings-scb_b02ab.dxf",
+   "file": "utility-50mwac-strings-scb_b01ab.dxf",
    "warnings": [],
-   "type": "scb_b02ab",
-   "typical_for": "SCB-B-02-01-01..SCB-B-02-02-07 (14 NOS)",
-   "shown_for": "SCB-B-02-01-01",
+   "type": "scb_b01ab",
+   "typical_for": "SCB-B-01-01-01..SCB-B-02-02-07 (26 NOS)",
+   "shown_for": "SCB-B-01-01-01",
    "strings_drawn": 22,
-   "strings_covered": 308,
+   "strings_covered": 572,
    "instances": [
+    {
+     "tag": "SCB-B-01-01-01",
+     "strings": 22,
+     "tables": [
+      "B01-T119",
+      "B01-T120",
+      "B01-T121",
+      "B01-T122",
+      "B01-T123",
+      "B01-T124",
+      "B01-T125",
+      "B01-T126",
+      "B01-T127",
+      "B01-T128",
+      "B01-T129",
+      "B01-T130",
+      "B01-T131"
+     ],
+     "to": "INV-01-01 IP01"
+    },
+    {
+     "tag": "SCB-B-01-01-02",
+     "strings": 22,
+     "tables": [
+      "B01-T131",
+      "B01-T132",
+      "B01-T133",
+      "B01-T134",
+      "B01-T135",
+      "B01-T136",
+      "B01-T137",
+      "B01-T138",
+      "B01-T139",
+      "B01-T140",
+      "B01-T141",
+      "B01-T142"
+     ],
+     "to": "INV-01-01 IP02"
+    },
+    {
+     "tag": "SCB-B-01-01-03",
+     "strings": 22,
+     "tables": [
+      "B01-T143",
+      "B01-T144",
+      "B01-T145",
+      "B01-T146",
+      "B01-T147",
+      "B01-T148",
+      "B01-T149",
+      "B01-T150",
+      "B01-T151",
+      "B01-T152",
+      "B01-T153",
+      "B01-T154"
+     ],
+     "to": "INV-01-01 IP03"
+    },
+    {
+     "tag": "SCB-B-01-01-04",
+     "strings": 22,
+     "tables": [
+      "B01-T154",
+      "B01-T155",
+      "B01-T156",
+      "B01-T157",
+      "B01-T158",
+      "B01-T159",
+      "B01-T160",
+      "B01-T161",
+      "B01-T162",
+      "B01-T163",
+      "B01-T164",
+      "B01-T165"
+     ],
+     "to": "INV-01-01 IP04"
+    },
+    {
+     "tag": "SCB-B-01-01-05",
+     "strings": 22,
+     "tables": [
+      "B01-T166",
+      "B01-T167",
+      "B01-T168",
+      "B01-T169",
+      "B01-T170",
+      "B01-T171",
+      "B01-T172",
+      "B01-T173",
+      "B01-T174",
+      "B01-T175",
+      "B01-T176",
+      "B01-T177"
+     ],
+     "to": "INV-01-01 IP05"
+    },
+    {
+     "tag": "SCB-B-01-01-06",
+     "strings": 22,
+     "tables": [
+      "B01-T177",
+      "B01-T178",
+      "B01-T179",
+      "B01-T180",
+      "B01-T181",
+      "B01-T182",
+      "B01-T183",
+      "B01-T184",
+      "B01-T185",
+      "B01-T186",
+      "B01-T187",
+      "B01-T188"
+     ],
+     "to": "INV-01-01 IP06"
+    },
+    {
+     "tag": "SCB-B-01-02-01",
+     "strings": 22,
+     "tables": [
+      "B01-T302",
+      "B01-T303",
+      "B01-T304",
+      "B01-T305",
+      "B01-T306",
+      "B01-T307",
+      "B01-T308",
+      "B01-T309",
+      "B01-T310",
+      "B01-T311",
+      "B01-T312",
+      "B01-T313"
+     ],
+     "to": "INV-01-02 IP01"
+    },
+    {
+     "tag": "SCB-B-01-02-02",
+     "strings": 22,
+     "tables": [
+      "B01-T313",
+      "B01-T314",
+      "B01-T315",
+      "B01-T316",
+      "B01-T317",
+      "B01-T318",
+      "B01-T319",
+      "B01-T320",
+      "B01-T321",
+      "B01-T322",
+      "B01-T323",
+      "B01-T324"
+     ],
+     "to": "INV-01-02 IP02"
+    },
+    {
+     "tag": "SCB-B-01-02-03",
+     "strings": 22,
+     "tables": [
+      "B01-T325",
+      "B01-T326",
+      "B01-T327",
+      "B01-T328",
+      "B01-T329",
+      "B01-T330",
+      "B01-T331",
+      "B01-T332",
+      "B01-T333",
+      "B01-T334",
+      "B01-T335",
+      "B01-T336"
+     ],
+     "to": "INV-01-02 IP03"
+    },
+    {
+     "tag": "SCB-B-01-02-04",
+     "strings": 22,
+     "tables": [
+      "B01-T336",
+      "B01-T337",
+      "B01-T338",
+      "B01-T339",
+      "B01-T340",
+      "B01-T341",
+      "B01-T342",
+      "B01-T343",
+      "B01-T344",
+      "B01-T345",
+      "B01-T346",
+      "B01-T347"
+     ],
+     "to": "INV-01-02 IP04"
+    },
+    {
+     "tag": "SCB-B-01-02-05",
+     "strings": 22,
+     "tables": [
+      "B01-T348",
+      "B01-T349",
+      "B01-T350",
+      "B01-T351",
+      "B01-T352",
+      "B01-T353",
+      "B01-T354",
+      "B01-T355",
+      "B01-T356",
+      "B01-T357",
+      "B01-T358",
+      "B01-T359"
+     ],
+     "to": "INV-01-02 IP05"
+    },
+    {
+     "tag": "SCB-B-01-02-06",
+     "strings": 22,
+     "tables": [
+      "B01-T360",
+      "B01-T361",
+      "B01-T362",
+      "B01-T363",
+      "B01-T364",
+      "B01-T365",
+      "B01-T366",
+      "B01-T367",
+      "B01-T368",
+      "B01-T369",
+      "B01-T370",
+      "B01-T371"
+     ],
+     "to": "INV-01-02 IP06"
+    },
     {
      "tag": "SCB-B-02-01-01",
      "strings": 22,

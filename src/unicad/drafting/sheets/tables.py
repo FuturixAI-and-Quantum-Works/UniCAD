@@ -134,7 +134,7 @@ class Tables:
         used = head
         for label, value in rows_in:
             lf = fit(label, label_w - 2 * m.pad_x, 0.9 * th * tf, max_lines=2, min_h=0.65 * th)
-            vf = fit(value, self.width - label_w - 2 * m.pad_x, 0.9 * th * tf, max_lines=2, min_h=0.65 * th)
+            vf = fit(value, self.width - label_w - 2 * m.pad_x, 0.9 * th * tf, max_lines=3, min_h=0.65 * th)
             rh = max(lf.block_height, vf.block_height) + 2 * m.pad_y * f
             if budget is not None and used + rh > budget:
                 break

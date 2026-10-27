@@ -1,7 +1,7 @@
 {
  "project_id": "rooftop-500kwp",
  "revision": 5,
- "sheet_count": 10,
+ "sheet_count": 11,
  "warnings": [],
  "previews": {
   "register": "preview/01-UDEMO-DIPL-RT500-EE-000-full-2400.png",
@@ -20,7 +20,7 @@
    "title": "DRAWING REGISTER",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "1 of 10",
+   "sheet_of": "1 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -30,7 +30,7 @@
    "title": "SINGLE LINE DIAGRAM 500 kWp",
    "paper": "A2",
    "drawing_scale": "NTS",
-   "sheet_of": "2 of 10",
+   "sheet_of": "2 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -40,7 +40,7 @@
    "title": "MODULE LAYOUT",
    "paper": "A3",
    "drawing_scale": "1:1000",
-   "sheet_of": "3 of 10",
+   "sheet_of": "3 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -50,7 +50,7 @@
    "title": "EARTHING LAYOUT",
    "paper": "A2",
    "drawing_scale": "1:1000",
-   "sheet_of": "4 of 10",
+   "sheet_of": "4 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -60,7 +60,7 @@
    "title": "LIGHTNING ARRESTER (LA) LAYOUT",
    "paper": "A3",
    "drawing_scale": "1:1500",
-   "sheet_of": "5 of 10",
+   "sheet_of": "5 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -70,7 +70,7 @@
    "title": "STRING WIRING DIAGRAM : INVERTER INV-01..INV-05",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "6 of 10",
+   "sheet_of": "6 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -80,7 +80,7 @@
    "title": "DC CABLE SCHEDULE (PART 1 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "7 of 10",
+   "sheet_of": "7 of 11",
    "kind_sheet_of": "1 of 3",
    "warnings": []
   },
@@ -90,7 +90,7 @@
    "title": "DC CABLE SCHEDULE (PART 2 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "8 of 10",
+   "sheet_of": "8 of 11",
    "kind_sheet_of": "2 of 3",
    "warnings": []
   },
@@ -100,18 +100,28 @@
    "title": "AC CABLE SCHEDULE",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "9 of 10",
+   "sheet_of": "9 of 11",
    "kind_sheet_of": "3 of 3",
    "warnings": []
   },
   {
    "number": "UDEMO-DIPL-RT500-EE-601",
    "kind": "bom",
-   "title": "BILL OF MATERIALS",
+   "title": "BILL OF MATERIALS (PART 1 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "10 of 10",
-   "kind_sheet_of": "1 of 1",
+   "sheet_of": "10 of 11",
+   "kind_sheet_of": "1 of 2",
+   "warnings": []
+  },
+  {
+   "number": "UDEMO-DIPL-RT500-EE-602",
+   "kind": "bom",
+   "title": "BILL OF MATERIALS (PART 2 OF 2)",
+   "paper": "A3",
+   "drawing_scale": "NTS",
+   "sheet_of": "11 of 11",
+   "kind_sheet_of": "2 of 2",
    "warnings": []
   }
  ]
