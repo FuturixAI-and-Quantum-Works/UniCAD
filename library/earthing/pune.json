@@ -6,19 +6,19 @@
   "equipment": "25x6",
   "down": "25x3"
  },
- "pits": 11,
+ "pits": 9,
  "pits_by_role": {
-  "EP": 8,
+  "EP": 6,
   "LE": 3
  },
  "pits_needed_by_resistance": 0,
- "pits_needed_by_current": 5,
+ "pits_needed_by_current": 0,
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 1.3752,
+ "resistance_ohm": 0.2998,
  "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
  "resistance_parts_ohm": {
-  "pits_and_strip": 0.6827,
-  "network_area_limit": 1.3752
+  "pits_and_strip": 0.2106,
+  "network_area_limit": 0.2998
  },
  "target_ohm": 2.0,
  "tables": 81,
@@ -28,7 +28,7 @@
   {
    "item": "pit.EP",
    "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
-   "quantity": 8.0,
+   "quantity": 6.0,
    "unit": "nos"
   },
   {
@@ -40,7 +40,7 @@
   {
    "item": "flat.25x6.main",
    "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 87.0,
+   "quantity": 609.0,
    "unit": "m"
   },
   {
@@ -52,13 +52,13 @@
   {
    "item": "flat.25x6.equipment",
    "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 35.0,
+   "quantity": 33.0,
    "unit": "m"
   },
   {
    "item": "flat.25x3.down",
    "description": "25x3 MM GS FLAT - DOWN CONDUCTOR (ROOF TO PIT / LPS)",
-   "quantity": 76.0,
+   "quantity": 72.0,
    "unit": "m"
   },
   {
@@ -167,7 +167,7 @@
   },
   {
    "name": "strip_current",
-   "value": 7528.6,
+   "value": 54678.1,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L",
    "inputs": [
@@ -197,7 +197,7 @@
     },
     {
      "name": "L",
-     "value": 80.20400000000001,
+     "value": 582.5,
      "unit": "m",
      "source": null
     }
@@ -237,7 +237,7 @@
   },
   {
    "name": "strip_resistance",
-   "value": 1.3555,
+   "value": 0.2408,
    "unit": "ohm",
    "formula": "R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm",
    "inputs": [
@@ -249,7 +249,7 @@
     },
     {
      "name": "L",
-     "value": 8020.400000000001,
+     "value": 58250.0,
      "unit": "cm",
      "source": null
     },
@@ -277,6 +277,7 @@
   "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
   "25x3 GS flat down conductors (practice; confirm against IS/IEC 62305-3 and NF C 17-102 minimum sections)",
   "target earth resistance 2 ohm (commercial premises 2 ohm; earth resistance practice table in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com); not a cited limit, set target_resistance_ohm to override",
+  "buried ring earth conductor laid 1.5 m outside each roof carrying an array, inside the plot, with the extra pits on it",
   "IS 3043 surface current density applied to the whole electrode surface in soil: the pits and the buried flat conductor",
   "earth resistance: Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
   "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius"

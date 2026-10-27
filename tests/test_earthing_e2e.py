@@ -71,6 +71,22 @@ def roof(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
+def roof_ground_station(tmp_path_factory):
+    async def steps(c, out):
+        pid = (await c.call("project_create", **ROOF_CREATE))["project_id"]
+        await c.call("site_import", project_id=pid, file_path=str(SITES / "rooftop_midc_pune.kml"))
+        await c.call("site_set_setbacks", project_id=pid, roof_edge_m=1.0, obstacle_m=0.6)
+        await c.call("layout_place", project_id=pid, module="waaree-bin-08-580", mounting="rooftop_flush", modules_per_string=19, strings_per_inverter=12,
+                     target_dc_kwp=793.44, table_rows=1, table_cols=19, half_tables=False, n_blocks=1, station_x=66.0, station_y=8.0)  # fmt: skip
+        await c.call("network_autobuild", project_id=pid, template="ci_rooftop", ac_kw=660, module="waaree-bin-08-580", inverter="sungrow-sg110cx",
+                     modules_per_string=19, strings_per_inverter=12, connection="lt_panel")  # fmt: skip
+        await c.call("earthing_design", project_id=pid, soil_resistivity=100, fault_ka=25, clearing_s=1)
+        out["pid"] = pid
+
+    return _replay(tmp_path_factory.mktemp("roofground"), steps)
+
+
+@pytest.fixture(scope="module")
 def utility(tmp_path_factory):
     async def steps(c, out):
         pid = (await c.call("project_create", **UTILITY_CREATE))["project_id"]
@@ -112,6 +128,56 @@ def test_rooftop_pits_stand_at_the_building_perimeter_inside_the_plot(roof):
     assert len(d.layout.pits) < tables / 2, "rooftop pit count follows down conductors, equipment and the resistance target, not the table count"
     assert out["design"]["earthing"]["pits"] == len(d.layout.pits)
     assert d.resistance_ohm <= d.target_ohm
+
+
+def _roof_polys(p: Project) -> list[Polygon]:
+    return [Polygon([(q.x, q.y) for q in f.polygon]) for f in p.site.geometry.features if f.kind.value == "roof"]
+
+
+def test_rooftop_station_is_earthed_by_down_conductors_to_pits_at_its_building_edge(roof):
+    out, ws = roof
+    p = _load(ws, out["pid"])
+    d = design_earthing(p)
+    station = p.array_layout.blocks[0].station
+    roofs = _roof_polys(p)
+    here = next(r for r in roofs if r.contains(SPoint(station.x, station.y)))
+    g = next(x for x in d.layout.stations if x.name == "BLOCK-01 STATION")
+    assert not any(x.name == "PLANT EQUIPMENT AREA" for x in d.layout.stations)
+    assert {"acdb", "ltp"} <= set(g.items)
+    for it in d.layout.items:
+        if it.id in g.items:
+            assert it.on_roof and here.contains(SPoint(it.at.x, it.at.y))
+    by_tag = {x.tag: x for x in d.layout.pits}
+    assert len(g.pits) >= 2
+    for t in g.pits:
+        at = SPoint(by_tag[t].at.x, by_tag[t].at.y)
+        assert not any(r.contains(at) for r in roofs)
+        assert here.exterior.distance(at) == pytest.approx(1.5, abs=0.01)
+    downs = [r for r in d.layout.runs if r.role.value == "down" and r.links == ("B01",)]
+    assert len(downs) >= 2 and not any(r.buried for r in downs)
+    ends = {(r.points[-1].x, r.points[-1].y) for r in downs}
+    assert ends <= {(by_tag[t].at.x, by_tag[t].at.y) for t in g.pits}
+
+
+def test_ground_station_on_a_rooftop_project_has_its_own_pit_cluster_at_the_layout_station(roof_ground_station):
+    out, ws = roof_ground_station
+    p = _load(ws, out["pid"])
+    d = design_earthing(p)
+    station = p.array_layout.blocks[0].station
+    assert (station.x, station.y) == (66.0, 8.0)
+    roofs = _roof_polys(p)
+    g = next(x for x in d.layout.stations if x.name == "BLOCK-01 STATION")
+    assert not any(x.name == "PLANT EQUIPMENT AREA" for x in d.layout.stations)
+    x0, y0, x1, y1 = g.ring
+    assert (x0 + x1) / 2 == pytest.approx(station.x, abs=0.01) and (y0 + y1) / 2 == pytest.approx(station.y, abs=0.01)
+    inside = [it for it in d.layout.items if it.id in g.items]
+    assert inside and not any(it.on_roof for it in inside)
+    by_tag = {x.tag: x for x in d.layout.pits}
+    for t in g.pits:
+        at = SPoint(by_tag[t].at.x, by_tag[t].at.y)
+        assert x0 - 0.01 <= at.x <= x1 + 0.01 and y0 - 0.01 <= at.y <= y1 + 0.01
+        assert not any(r.contains(at) for r in roofs)
+    assert not any(r.role.value == "down" and r.links == ("B01",) for r in d.layout.runs)
 
 
 # --- M6: one governing resistance -------------------------------------------------------------

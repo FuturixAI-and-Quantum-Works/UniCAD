@@ -230,14 +230,23 @@ def _two_connections(p: tuple[float, float], ring: list[tuple[float, float]]) ->
 
 
 def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[tuple[str, str, NodeKind]], label: str, sizes: Sizes,
-                  on_roof: bool = False, name: str | None = None, avoid: Polygon | None = None) -> None:  # fmt: skip
-    """Equipment cluster with a local ring, each item bonded to the ring by its connections, and its pits on or beside the ring (off
-    any `avoid` area, e.g. a roof the ring overlaps)."""
+                  name: str | None = None, avoid: Polygon | None = None, roof: Polygon | None = None, site: Polygon | None = None,
+                  electrode_m: float = 3.0) -> None:  # fmt: skip
+    """Equipment cluster with a local ring and each item bonded to the ring by its connections. On the ground its pits stand on or
+    beside the ring (off any `avoid` area, e.g. a roof the ring overlaps). On a `roof` the ring is bonded by down conductors to pits
+    on the ground at the nearest building edge."""
     items = sorted(items, key=lambda t: (KIND_ORDER.get(t[2], 99), t[0]))
+    on_roof = roof is not None
     pos = _cluster(centre, max(1, len(items)), STATION_PITCH_M / 2 if on_roof else STATION_PITCH_M)
+    if on_roof:
+        pos = _inside_roof(pos, roof, centre)
     xs, ys = [p[0] for p in pos], [p[1] for p in pos]
     m = 1.0 if on_roof else 2.0
     ring = _ring(min(xs) - m, min(ys) - m, max(xs) + m, max(ys) + m)
+    if on_roof:
+        clipped = box(*ring[0], *ring[2]).intersection(roof)
+        if isinstance(clipped, Polygon) and not clipped.is_empty:
+            ring = [(x, y) for x, y in clipped.exterior.coords]
     lay.run(ConductorRole.MAIN, sizes.main, ring, (label,), buried=not on_roof)
     roles: list[tuple[PitRole, str]] = []
     for (iid, tag, kind), p in zip(items, pos):
@@ -248,17 +257,62 @@ def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[
     if not any(r is PitRole.EP for r, _ in roles):
         roles = [(PitRole.EP, label)] * GROUP_PITS + roles
     if on_roof:
-        return
-    pts = _ring_points(ring, len(roles))
-    if avoid is not None and any(avoid.contains(SPoint(q)) for q in pts):
-        free = [q for q in _ring_points(ring, 8 * len(roles)) if not avoid.contains(SPoint(q))]
-        if len(free) >= len(roles):
-            pts = [free[round(i * len(free) / len(roles))] for i in range(len(roles))]
-    pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, pts)]
-    lay.stations.append(StationGroup(name or label.upper(), (ring[0][0], ring[0][1], ring[2][0], ring[2][1]), tuple(p.tag for p in pits), tuple(i[0] for i in items)))
+        pts = _roof_edge_pits(lay, roof, centre, len(roles), electrode_m, site)
+        ring_line = LineString(ring)
+        for k, ((role, serves), q) in enumerate(zip(roles, pts)):
+            if k < 2:
+                edge = nearest_points(roof.exterior, SPoint(q))[0]
+                top = nearest_points(ring_line, edge)[0]
+                lay.run(ConductorRole.DOWN, sizes.down, [(top.x, top.y), (edge.x, edge.y), q], (label,), buried=False)
+            else:
+                lay.run(ConductorRole.MAIN, sizes.main, [pts[k - 1], q])
+        pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, pts)]
+    else:
+        pts = _ring_points(ring, len(roles))
+        if avoid is not None and any(avoid.contains(SPoint(q)) for q in pts):
+            free = [q for q in _ring_points(ring, 8 * len(roles)) if not avoid.contains(SPoint(q))]
+            if len(free) >= len(roles):
+                pts = [free[round(i * len(free) / len(roles))] for i in range(len(roles))]
+        pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, pts)]
+    bounds = LineString(ring).bounds
+    lay.stations.append(StationGroup(name or label.upper(), bounds, tuple(p.tag for p in pits), tuple(i[0] for i in items)))
 
 
-# --- array rows --------------------------------------------------------------------------------
+def _inside_roof(pos: list[tuple[float, float]], roof: Polygon, station: tuple[float, float], clear: float = 0.4) -> list[tuple[float, float]]:
+    """Slides a rooftop equipment cluster inward from the station point, the cluster's edge-side midpoint, until every item is `clear` m
+    inside the roof edge."""
+    edge = nearest_points(roof.exterior, SPoint(station))[0]
+    vx, vy = station[0] - edge.x, station[1] - edge.y
+    if math.hypot(vx, vy) < TOL:
+        vx, vy = roof.centroid.x - edge.x, roof.centroid.y - edge.y
+    ln = math.hypot(vx, vy) or 1.0
+    vx, vy = vx / ln, vy / ln
+    inner = roof.buffer(-clear)
+    if inner.is_empty:
+        return pos
+    for k in range(41):
+        moved = [(x + vx * 0.25 * k, y + vy * 0.25 * k) for x, y in pos]
+        if all(inner.contains(SPoint(q)) for q in moved):
+            return moved
+    return pos
+
+
+def _roof_edge_pits(lay: EarthingLayout, roof: Polygon, toward: tuple[float, float], n: int, electrode_m: float, site: Polygon | None) -> list[tuple[float, float]]:
+    """`n` ground points 1.5 m outside the roof edge nearest `toward`, in a line along the edge one pit spacing apart and inside the plot."""
+    edge, g = _outside_roof(roof, toward, site)
+    nx, ny = g[0] - edge[0], g[1] - edge[1]
+    ln = math.hypot(nx, ny) or 1.0
+    tx, ty = -ny / ln, nx / ln
+    step = 2 * electrode_m
+    for sign in (1.0, -1.0):
+        pts = [(g[0] + sign * tx * (k - (n - 1) / 2) * step, g[1] + sign * ty * (k - (n - 1) / 2) * step) for k in range(n)]
+        if site is None or all(site.contains(SPoint(q)) for q in pts):
+            return pts
+    shift = [(g[0] + tx * k * step, g[1] + ty * k * step) for k in range(n)]
+    if site is None or all(site.contains(SPoint(q)) for q in shift):
+        return shift
+    lay.warnings.append(f"the {n} pits of the station at ({toward[0]:.1f}, {toward[1]:.1f}) do not all fit {step:g} m apart at the building edge inside the plot")
+    return pts
 
 
 def _rows(tables: list[Table]) -> list[list[Table]]:
@@ -587,6 +641,11 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         array_runs += [s[3] for s in segs]
         if tables:
             _risers(lay, segs, tables[0].azimuth_deg, sizes.array, 1.6 * (pitch or 10), buried=True)
+    yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
+    panel_items = [it for it in plant if it not in yard_items]
+    host = next((i for i, b in enumerate(blocks) if b.station is not None), None) if lay.rooftop else None
+    hosted = panel_items if host is not None else []
+    panel_items = [] if hosted else panel_items
     for i, b in enumerate(blocks):
         items = per_block.get(i, [])
         if b.station is None:
@@ -594,21 +653,14 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
                 lay.warnings.append(f"block {b.id} has no station; its {len(items)} equipment items are not placed")
             continue
         scbs = [it for it in items if it[2] is NodeKind.SCB]
-        rest = [it for it in items if it[2] is not NodeKind.SCB]
+        rest = [it for it in items if it[2] is not NodeKind.SCB] + (hosted if i == host else [])
         if not rest:
             rest = [(f"{b.id}~station", f"{b.name} STATION", NodeKind.INVERTER)]
-        on_roof = lay.rooftop and any(p.contains(SPoint(b.station.x, b.station.y)) for _, p in roof_polys)
-        at = _xy(b.station) if on_roof or roof_union is None else _free_spot(_xy(b.station), len(rest), roof_union, site)
-        _station_area(lay, at, rest, b.id, sizes, on_roof=on_roof, name=f"{b.name} STATION", avoid=roof_union)
-        if on_roof:
-            poly = next(p for _, p in roof_polys if p.contains(SPoint(b.station.x, b.station.y)))
-            edge, g = _outside_roof(poly, _xy(b.station), site)
-            lay.run(ConductorRole.DOWN, sizes.down, [_xy(b.station), edge], (b.id,), buried=False)
-            lay.run(ConductorRole.DOWN, sizes.down, [edge, g], (b.id,), buried=False)
-            for k in range(GROUP_PITS):
-                q = (g[0] + (k - 0.5) * 2 * electrode_m, g[1])
-                lay.run(ConductorRole.MAIN, sizes.main, [g, q])
-                lay.pit(PitRole.EP, q, (f"{b.id} station",))
+        at = _xy(b.station)
+        roof = next((p for _, p in roof_polys if p.contains(SPoint(*at))), None)
+        if roof_union is not None and roof is None and _cluster_box(at, len(rest)).intersects(roof_union):
+            lay.warnings.append(f"the ground station of block {b.id} at ({at[0]:.1f}, {at[1]:.1f}) stands within 2 m of a roof; its earthing is drawn at the station")
+        _station_area(lay, at, rest, b.id, sizes, name=f"{b.name} STATION", avoid=roof_union, roof=roof, site=site, electrode_m=electrode_m)
         for (iid, tag, kind), p in zip(scbs, _scb_positions(b, len(scbs))):
             lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], on_roof=lay.rooftop))
             near = sorted(array_runs, key=lambda r: LineString([_xy(q) for q in r.points]).distance(SPoint(p)))[: CONNECTIONS[kind]]
@@ -618,8 +670,6 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             if not lay.rooftop:
                 lay.pit(PitRole.EP, (p[0] + 1.0, p[1] + 0.6), (iid,))
                 lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (p[0] + 1.0, p[1] + 0.6)], (iid,))
-    yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
-    panel_items = [it for it in plant if it not in yard_items]
     if yard_items:
         _switchyard(lay, switchyard[0], switchyard[1], yard_items, sizes, perimeter_pits)
     if panel_items:
