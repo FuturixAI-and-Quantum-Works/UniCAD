@@ -58,7 +58,8 @@ def test_validate_fixture_projects_over_stdio(tmp_path):
         mccb = next(f for f in r["findings"] if f["subjects"] == ["inv_mccb"])
         assert (mccb["measured"], round(mccb["limit"], 1), mccb["unit"]) == (160, 191.3, "A")
 
-        assert "unknown rule families" in await c.fail("validate", project_id="rooftop-500kwp", families=["nope"])
+        msg = await c.fail("validate", project_id="rooftop-500kwp", families=["nope"])
+        assert "'cables'" in msg and "'earthing'" in msg, msg  # the schema lists the allowed families
 
         r = await c.call("validate", project_id="utility-50mwac")
         assert r["counts"]["error"] == 0 and r["gates"]["approval"] == {"allowed": True, "watermark": False}

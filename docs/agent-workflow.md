@@ -478,7 +478,7 @@ Fix the model, not the drawing. Cable, length and laying method are example inpu
 network_update(
     project_id="pune-midc-factory-roof",
     id="e_ct_poi",
-    fields={"cable": "polycab-lt-xlpe-al-1c-400-arm", "length_m": 20, "laying": "tray"},
+    fields={"cable": "polycab-lt-xlpe-al-1c-400-arm", "length_m": 40, "laying": "tray"},
 )
 ```
 
@@ -497,9 +497,18 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 8,
-  "counts": {"error": 0, "warning": 1, "info": 23},
-  "blocking": false,
+  "counts": {"error": 1, "warning": 1, "info": 22},
+  "blocking": true,
   "findings": [
+    {
+      "rule_id": "vdrop.ac",
+      "severity": "error",
+      "subjects": ["inv_b01a", "poi"],
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.26 + 1.32 + 0.11 + 0.57 = 2.26 % exceeds vdrop_ac_max...",
+      "measured": 2.255,
+      "limit": 2.0,
+      "unit": "%"
+    },
     {
       "rule_id": "cables.missing",
       "severity": "warning",
@@ -525,9 +534,9 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
       "rule_id": "vdrop.ac",
       "family": "vdrop",
       "title": "AC voltage drop from inverter to the point of interconnection within the design basis",
-      "severity": "info",
+      "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.26 + 1.32 + 0.11 + 0.29 = 1.97 % within vdrop_ac_max 2 %",
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.26 + 1.32 + 0.11 + 0.57 = 2.26 % exceeds vdrop_ac_max...",
       "formula": "dV%_total = sum(dV%_segment)",
       "inputs": [
         {
@@ -550,13 +559,13 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
         },
         {
           "name": "dV%[e_ct_poi]",
-          "value": 0.2865,
+          "value": 0.573,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         "... 1 more"
       ],
-      "measured": 1.969,
+      "measured": 2.255,
       "limit": 2.0,
       "unit": "%",
       "assumptions": [
@@ -742,7 +751,7 @@ cable_schedule(project_id="pune-midc-factory-roof")
   "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-cable-schedule.xlsx"],
   "rows": 31,
-  "totals": {"rows": 31.0, "cable_m": 3996.6, "loss_w": 6410.57, "cable_m_dc": 3722.4, "cable_m_lv_ac": 274.2},
+  "totals": {"rows": 31.0, "cable_m": 4056.6, "loss_w": 6978.25, "cable_m_dc": 3722.4, "cable_m_lv_ac": 334.2},
   "length_sources": {"network": 31},
   "warnings": []
 }
@@ -766,7 +775,7 @@ bom(project_id="pune-midc-factory-roof")
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 4198.0
+    "cable_m_ordered": 4261.0
   },
   "warnings": []
 }
