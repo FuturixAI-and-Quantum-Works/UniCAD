@@ -18,6 +18,8 @@ from unicad.domain.catalog import (
 from unicad.domain.network import Node, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.rules.topology import per_instance
+from unicad.schedules.earthing_bom import EARTHING, LIGHTNING, earthing_lines
+from unicad.schedules.lines import BomLine
 from unicad.schedules.model import Schedule
 
 DEFAULT_WASTAGE_PCT = 5.0
@@ -34,22 +36,12 @@ CATEGORIES: tuple[tuple[str, frozenset[NodeKind]], ...] = (
     ("METERING AND INSTRUMENT TRANSFORMERS", frozenset({NodeKind.METER, NodeKind.CT, NodeKind.PT})),
     ("PROTECTION RELAYS", frozenset({NodeKind.RELAY})),
     ("PANELS AND BUSBARS", frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})),
-    ("EARTHING", frozenset({NodeKind.EARTH_ELECTRODE})),
+    (EARTHING, frozenset({NodeKind.EARTH_ELECTRODE})),
 )
 EXCLUDED = frozenset({NodeKind.POI_GRID, NodeKind.LOAD, NodeKind.DG})
 CABLES = "CABLES"
 ACCESSORIES = "CABLE ACCESSORIES"
-CATEGORY_ORDER = tuple(c for c, _ in CATEGORIES) + (CABLES, ACCESSORIES)
-
-
-@dataclass(frozen=True)
-class BomLine:
-    category: str
-    item: str
-    catalog_id: str | None
-    qty: float
-    unit: str
-    remarks: str = ""
+CATEGORY_ORDER = tuple(c for c, _ in CATEGORIES) + (LIGHTNING, CABLES, ACCESSORIES)
 
 
 @dataclass(frozen=True)
@@ -100,12 +92,12 @@ def _describe(spec: object, node: Node) -> str:
     return node.title or node.kind.value.replace("_", " ").upper()
 
 
-def _node_lines(project: Project, catalog: Catalog, warnings: list[str]) -> list[BomLine]:
+def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: frozenset[NodeKind] = frozenset()) -> list[BomLine]:
     net = project.network
     totals: dict[tuple[str, str | None, str], list[float | str]] = {}
     for category, kinds in CATEGORIES:
         for n in net.nodes:
-            if n.kind not in kinds:
+            if n.kind not in kinds or n.kind in skip:
                 continue
             count = net.instance_count(n.id)
             remarks = ""
@@ -204,7 +196,9 @@ def build_bom(project: Project, catalog: Catalog, schedule: Schedule, wastage_pc
     if wastage_pct < 0:
         raise ValueError("wastage_pct cannot be negative")
     warnings: list[str] = []
-    lines = _node_lines(project, catalog, warnings)
+    earth_lines, earth_assumptions, earth_warnings = earthing_lines(project)
+    lines = _node_lines(project, catalog, warnings, frozenset({NodeKind.EARTH_ELECTRODE}) if earth_lines else frozenset())
+    lines += earth_lines
     cable_lines, cable_warnings = _cable_lines(schedule, project, catalog, wastage_pct)
     lines += cable_lines + _accessory_lines(schedule, project, catalog)
     order = {c: i for i, c in enumerate(CATEGORY_ORDER)}
@@ -213,7 +207,8 @@ def build_bom(project: Project, catalog: Catalog, schedule: Schedule, wastage_pc
         f"Cable wastage of {wastage_pct:g} % is added to the routed metres and the result rounded up to whole metres: a procurement allowance, not a design value.",
         "Cable metres count every run and every loaded conductor: +ve and -ve for DC single-core, three phases for three-phase single-core, one cable per run for multicore. Neutral and earth conductors are not scheduled.",
         "Lugs are one per conductor end and glands one per cable end for DC and LV cables; MV cable ends take one termination kit each. String cables are terminated with an MC4-type connector at the string end.",
-        "Existing supply, loads and generators (POI, load and DG nodes) are not part of the bill. Mounting structures, trays, conduits, ferrules and earthing conductors are not scheduled.",
-        "Items without a catalog id come from network nodes that name no equipment; their description is the node title.",
+        "Existing supply, loads and generators (POI, load and DG nodes) are not part of the bill. Mounting structures, trays, conduits and ferrules are not scheduled.",
+        "Items without a catalog id come from network nodes that name no equipment, or from the earthing and lightning designs; their description is the node title or the design's.",
+        *earth_assumptions,
     )
-    return Bom(project.id, project.name, tuple(lines), assumptions, tuple(dict.fromkeys(warnings + cable_warnings)))
+    return Bom(project.id, project.name, tuple(lines), assumptions, tuple(dict.fromkeys(warnings + cable_warnings + list(earth_warnings))))

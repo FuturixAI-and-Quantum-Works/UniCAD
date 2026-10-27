@@ -15,7 +15,9 @@ from unicad.routing.locate import manhattan, slot_centre
 from unicad.rules import run_rules
 from unicad.rules.vdrop import segment_drop
 from unicad.schedules import LengthMode, build_bom, build_schedule, write_bom_xlsx, write_schedule_xlsx
+from unicad.earthing import design_earthing
 from unicad.schedules.bom import CABLES
+from unicad.schedules.earthing_bom import EARTHING, LIGHTNING
 
 STRING_ID = re.compile(r"^INV-\d\d-DCFB-\d\d-R\d{3}-\d{4}-IP\d\d-4 sqmm$")
 
@@ -234,6 +236,53 @@ def test_bom_cable_metres_carry_the_wastage_and_terminations_are_counted_per_end
     assert lugs["Cable lug, Al, 95 sq.mm"] == 5 * 2 * 4
     with pytest.raises(ValueError):
         build_bom(p, CATALOG, s, wastage_pct=-1)
+
+
+def with_earthing_and_lps(p: Project) -> Project:
+    data = p.model_dump(mode="json")
+    data["design_basis"]["earthing"] = {"soil_resistivity_ohm_m": 150, "fault_current_ka": 25, "fault_clearing_s": 1, "switchyard_m": [60, 45]}
+    data["design_basis"]["lps"] = {"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6}
+    return Project.model_validate(data, context={"catalog": CATALOG})
+
+
+def test_bom_carries_the_earthing_and_lps_material_as_the_design_counts_it():
+    p = with_earthing_and_lps(ground_project())
+    design = design_earthing(p)
+    bom = build_bom(p, CATALOG, build_schedule(p, CATALOG))
+    earth = bom.by_category()[EARTHING]
+    pits = Counter()
+    flats = Counter()
+    for q in design.quantities:
+        if q.item.startswith("pit."):
+            pits[q.item.split(".")[1]] = q.quantity
+        elif q.item.startswith("flat."):
+            flats[q.item] = q.quantity
+    assert sum(pits.values()) == len(design.layout.pits) > 5
+    for role, n in pits.items():
+        assert [ln.qty for ln in earth if ln.item.endswith(f" - {role}") and ln.item.startswith("EARTH PIT")] == [n]
+    runs = Counter()
+    for r in design.layout.runs:
+        runs[(r.size, r.role.value)] += r.length_m
+    got = {ln.item: ln.qty for ln in earth if " MM GS FLAT - " in ln.item}
+    assert len(got) == len(flats) == len(runs)
+    assert sum(got.values()) == pytest.approx(sum(math.ceil(m) for m in runs.values()))
+    assert not any(ln.item == "MAIN EARTH GRID" for ln in earth)
+    lps = bom.by_category()[LIGHTNING]
+    n = len(design.lps.terminals)
+    assert n > 0
+    ese = next(ln for ln in lps if ln.item.startswith("ESE lightning arrester"))
+    mast = next(ln for ln in lps if ln.item.startswith("Mast"))
+    assert (ese.qty, mast.qty, ese.unit) == (n, n, "nos")
+    assert f"{design.lps.radius_m:.1f} m" in ese.item and "6 m" in mast.item
+    assert any("not counted by the design" in a for a in bom.assumptions)
+
+
+def test_bom_without_an_earthing_design_keeps_the_network_earth_node():
+    p = ground_project()
+    bom = build_bom(p, CATALOG, build_schedule(p, CATALOG))
+    assert LIGHTNING not in bom.by_category()
+    assert all(ln.category != EARTHING or ln.catalog_id is None for ln in bom.lines)
+    assert not any(ln.item.startswith("EARTH PIT") for ln in bom.lines)
 
 
 def test_xlsx_has_one_row_per_cable_a_frozen_header_and_a_units_row(tmp_path):
