@@ -8,9 +8,10 @@ from pathlib import Path
 from unicad.domain.network import Service
 from unicad.domain.project import Project, Sheet, SheetKind
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
+from unicad.drafting.sheets.titleblock import compose_location
 from unicad.drafting.tables import Column, TableRender, TableSection, TableSpec, render_tables
 from unicad.schedules.bom import CATEGORY_ORDER, Bom
-from unicad.schedules.ids import SCHEME
+from unicad.schedules.ids import SCHEME, indices
 from unicad.schedules.model import CableRow, Schedule, Section
 
 PROFILE_DIR = Path(__file__).resolve().parents[3] / "profiles"
@@ -46,7 +47,7 @@ def _laying(row: CableRow) -> str:
 
 
 def _ip(row: CableRow) -> str:
-    return row.from_tag.rsplit("-", 1)[-1]
+    return f"IP{indices(row.src)[-1]:02d}"
 
 
 def _summarise(rows: list[CableRow]) -> list[tuple[str, ...]]:
@@ -61,11 +62,10 @@ def _summarise(rows: list[CableRow]) -> list[tuple[str, ...]]:
         negs = [r.length_neg_m for r in group if r.length_neg_m is not None]
         drops = [r.vd_pct for r in group if r.vd_pct is not None]
         losses = [r.loss_w for r in group if r.loss_w is not None]
-        stem = "-".join(first.from_tag.split("-")[:3])
-        ident = f"{stem}-{_ip(first)}..{_ip(group[-1])}-{first.size_mm2:g} sqmm"
+        ident = f"{first.stem}-{_ip(first)}..{_ip(group[-1])}-{first.size_mm2:g} sqmm"
         out.append(
             (
-                ident, f"{len(group)} STRINGS {_ip(first)}-{_ip(group[-1])}", first.to_tag, first.callout, str(first.runs),
+                ident, f"{first.from_tag}..{group[-1].from_tag}", first.to_tag, first.callout, str(first.runs),
                 _num(max(lengths) if lengths else None), _num(max(negs) if negs else None), _laying(first),
                 _num(first.ib_a, 1), _num(first.iz_a, 1), _num(max(drops) if drops else None), _num(sum(losses) if losses else None),
                 f"MAX OF {len(group)}. {_remarks(first)}",
@@ -228,7 +228,7 @@ class SheetContext:
         site = p.site
         number = sheet.number if sheet else self.profile.drawing_number(client=p.client.code or "CLIENT", project=p.id.upper(), discipline="electrical", seq=seq)
         tb = TitleBlockData(
-            client=p.client.name.upper(), project_title=p.name.upper(), location=", ".join(x for x in (site.name, site.address, site.state) if x).upper(),
+            client=p.client.name.upper(), project_title=p.name.upper(), location=compose_location(site.name, site.address, site.state).upper(),
             drawing_title=title, drawing_number=number, revision=latest.rev if latest else "00", scale="NTS", sheet_no=page, sheet_count=pages,
             paper=self.paper, drawn_by=(latest.drawn or "") if latest else "", checked_by=(latest.checked or "") if latest else "",
             approved_by=(latest.approved or "") if latest else "", drawn_date=latest.date if latest else None, issued_for=issued,

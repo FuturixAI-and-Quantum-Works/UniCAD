@@ -1,19 +1,44 @@
 """Cable identification in the positional style of Indian EPC schedules: block, inverter, combiner, structure row, structure, input."""
 
+from dataclasses import dataclass
 from functools import lru_cache
 
 from unicad.arrays.geometry import frame
 from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import Project
+from unicad.rules.topology import instance_tag
 
 COMBINERS = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 
+SCHEME_FIELDS = "inverter tag, combiner tag, structure row, structure no., input no., cable size"
 SCHEME = (
-    "String cable id B01-I1-S02-R003-0027-IP05-4 sqmm reads block, inverter, combiner, structure row, structure no., combiner input, cable size. "
-    "Block, inverter, combiner and input are the network instance indices (block 01 where the network has no block level); "
-    "structure row is the rank of the table's row across the block and structure no. the table's position in the block."
+    f"String cable id INV-01-SCB-02-R003-0027-IP05-4 sqmm reads {SCHEME_FIELDS}. "
+    "Inverter and combiner are the network tags of the equipment fed (no combiner where the string goes straight to the inverter); "
+    "R and structure no. are the table's row rank and position in the block; IP is the input at the combiner or MPPT."
 )
+
+
+@dataclass(frozen=True)
+class StringId:
+    inverter: str
+    combiner: str
+    row: int | None
+    structure: int | None
+    input_no: int
+
+    @property
+    def stem(self) -> str:
+        """Tags of the equipment the string feeds, '-' joined: the part every string of one combiner shares."""
+        return "-".join(x for x in (self.inverter, self.combiner) if x)
+
+    def text(self, size_mm2: float | None = None) -> str:
+        parts = [self.stem]
+        if self.row is not None and self.structure is not None:
+            parts += [f"R{self.row:03d}", f"{self.structure:04d}"]
+        parts.append(f"IP{self.input_no:02d}")
+        out = "-".join(parts)
+        return out if size_mm2 is None else f"{out}-{size_mm2:g} sqmm"
 
 
 def indices(instance_id: str) -> tuple[int, ...]:
@@ -24,6 +49,7 @@ def indices(instance_id: str) -> tuple[int, ...]:
 class Ids:
     def __init__(self, project: Project, expanded: ElectricalNetwork):
         self.net = expanded
+        self.project = project
         self._succ: dict[str, list[str]] = {n.id: [] for n in expanded.nodes}
         for e in expanded.edges:
             if e.is_power:
@@ -62,19 +88,15 @@ class Ids:
         path = indices(gen)
         return f"B{path[0] if len(path) >= 2 else 1:02d}"
 
-    def string_stem(self, string_id: str) -> str:
+    def string_id(self, string_id: str) -> StringId:
         combiner, gen = self._roles(string_id)
-        gpath = indices(gen) if gen else ()
-        block = gpath[0] if len(gpath) >= 2 else 1
-        inverter = gpath[-1] if gpath else 1
-        cpath = indices(combiner) if combiner else ()
-        smb = cpath[len(gpath)] if len(cpath) > len(gpath) else 1
         spath = indices(string_id)
-        ip = spath[-1] if spath else 1
-        parts = [f"B{block:02d}", f"I{inverter}", f"S{smb:02d}"]
+        row = structure = None
         table = self._first_table.get(string_id)
         if table in self.table_position:
-            rank, structure = self.table_position[table]
-            parts += [f"R{rank:03d}", f"{structure:04d}"]
-        parts.append(f"IP{ip:02d}")
-        return "-".join(parts)
+            row, structure = self.table_position[table]
+        return StringId(
+            inverter=instance_tag(self.project.network, gen) if gen else instance_tag(self.project.network, string_id),
+            combiner=instance_tag(self.project.network, combiner) if combiner else "",
+            row=row, structure=structure, input_no=spath[-1] if spath else 1,
+        )  # fmt: skip

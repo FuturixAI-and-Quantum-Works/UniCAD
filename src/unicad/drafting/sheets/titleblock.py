@@ -14,6 +14,22 @@ from unicad.drafting.sheets.text import fit
 T = LayerRole.TITLE
 
 
+LOCATION_LINES = 6
+
+
+def compose_location(*parts: str | None) -> str:
+    """Comma-separated place parts with each place named once, in first-seen order and ignoring case."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for part in parts:
+        for piece in (part or "").split(","):
+            piece = piece.strip()
+            if piece and piece.casefold() not in seen:
+                seen.add(piece.casefold())
+                out.append(piece)
+    return ", ".join(out)
+
+
 @dataclass(frozen=True)
 class Row:
     height: float
@@ -104,7 +120,7 @@ class TitleBlock:
         if d.consultant:
             rows.append(self._kv_row("CONSULTANT", d.consultant, 2, kv_w))
         rows.append(self._kv_row("PROJECT TITLE", d.project_title, 3, kv_w))
-        rows.append(self._kv_row("LOCATION", d.location, 2, kv_w))
+        rows.append(self._kv_row("LOCATION", compose_location(d.location), 2, kv_w, LOCATION_LINES))
         if d.loa_no:
             rows.append(self._kv_row("LOA / PO NO.", d.loa_no, 2, kv_w))
         rows.append(self._single_row("DRAWING TITLE", d.drawing_title, 1.2 * th, 3))
@@ -144,10 +160,13 @@ class TitleBlock:
             cv.put(T, inner, self.profile.short_code, 1.4 * m.th, align="center", valign="middle",
                    pad_x=0.3 * m.th, pad_y=0.3 * m.th)
 
-    def _kv_row(self, label: str, value: str, max_lines: int, kv_w: float) -> Row:
+    def _kv_row(self, label: str, value: str, max_lines: int, kv_w: float, overflow_lines: int | None = None) -> Row:
+        """`overflow_lines` lets a value that cannot be fitted in `max_lines` even condensed and shrunk wrap onto more lines rather than be cut."""
         m = self.m
         w = self.x1 - self.x0
         f = fit(value, w - kv_w - 2 * m.pad_x, m.th, max_lines=max_lines)
+        if f.truncated and overflow_lines:
+            f = fit(value, w - kv_w - 2 * m.pad_x, m.th, max_lines=overflow_lines)
         height = f.block_height + 2 * m.pad_y
 
         def draw(top: float) -> None:

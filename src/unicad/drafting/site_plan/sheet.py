@@ -69,6 +69,7 @@ L_STATION = _LayerDef("L-STATION", 7, 25)
 L_LABEL = _LayerDef("L-LABEL", 7, 18)
 L_MASK = _LayerDef("L-MASK", 7, MIN_LINEWEIGHT)
 L_DIM = _LayerDef("L-DIM", 7, 18)
+COMPACT = frozenset({FeatureKind.ROOF, FeatureKind.OBSTACLE, FeatureKind.BUILDING, FeatureKind.EXISTING_STRUCTURE})
 LAYERS = (L_BOUNDARY, L_ROOF, L_ROAD, L_ROAD_FILL, L_WATER, L_WATER_FILL, L_EXCL, L_EXCL_FILL, L_TLINE, L_OBST, L_TABLE, L_BLOCK, L_STATION,
           L_LABEL, L_MASK, L_DIM)  # fmt: skip
 
@@ -168,7 +169,7 @@ class LayoutSheetWriter:
         self.placer: LabelPlacer | None = None
 
     def _placer(self, room: Region) -> LabelPlacer:
-        self.placer = LabelPlacer(room, max_leader=10 * self.m.th, gap=0.15 * self.m.th)
+        self.placer = LabelPlacer(room, max_leader=10 * self.m.th, gap=0.15 * self.m.th, cell=2 * self.m.th)
         return self.placer
 
     def _clipped(self, pts: Sequence[tuple[float, float]], closed: bool) -> list[list[tuple[float, float]]] | None:
@@ -294,7 +295,9 @@ class LayoutSheetWriter:
         self._site(P)
         self._tables(P)
         self._blocks(P)
-        self._feature_labels(P)
+        self._feature_labels(P, compact=False)
+        self._block_drawing(P)
+        self._feature_labels(P, compact=True)
         self.msp.add_line((panel.x0 - th, area.y0), (panel.x0 - th, area.y1), dxfattribs={"layer": self.profile.layer(LayerRole.FRAME).name})
         self._panel(panel)
         self._scale_bar(Region(area.x0 + th, area.y0, panel.x0 - 2 * th, area.y0 + 6 * th), scale)
@@ -353,9 +356,24 @@ class LayoutSheetWriter:
                 layer = L_WATER if f.kind is FeatureKind.WATER else L_OBST if f.kind is FeatureKind.OBSTACLE else L_EXCL
                 self._poly(P.ring(g.exterior.coords[:-1]), layer.name)
 
-    def _feature_labels(self, P: _Plan) -> None:
+    def _block_drawing(self, P: _Plan) -> None:
+        """Outlines of roofs, obstacles and buildings and the modules are obstacles for their labels; roads, water and the like are labelled along or inside themselves first."""
+        th = self.m.th
+        for f in self.d.site.features:
+            if f.kind in COMPACT and f.polygon and (self.view == "site" or f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)):
+                for part in _polygons(shape_of(f)):
+                    self.placer.block_path(P.ring(part.exterior.coords[:-1]), closed=True, thickness=0.1 * th, step=0.5 * th)
+        for t in self.d.layout.table_by_id.values():
+            pts = P.ring(table_corners(t))
+            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+            self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
+
+    def _feature_labels(self, P: _Plan, compact: bool | None = None) -> None:
+        """Labels of the compact features (`compact`), of the others (`not compact`) or of all in feature order (None)."""
         feats = [f for f in self.d.site.features if self.view == "site" or f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)]
         for f in feats:
+            if compact is not None and (f.kind in COMPACT) is not compact:
+                continue
             if f.kind in (FeatureKind.WATER, FeatureKind.EXCLUSION, FeatureKind.TRANSMISSION_LINE, FeatureKind.ROAD, FeatureKind.BUILDING, FeatureKind.ROOF) or (
                 f.kind is FeatureKind.OBSTACLE and self.view == "roofs"
             ):  # fmt: skip
@@ -412,7 +430,8 @@ class LayoutSheetWriter:
             h *= 0.85
         if text_width(label, h) <= avail and self._rotated(label, P(c.x, c.y), h, ang, f.id):
             return
-        self._label_text([label], P(c.x, c.y), max(0.5 * th, min(h, 0.6 * th)), 0.0, f.id)
+        x0, y0, x1, y1 = g.bounds
+        self._label_text([label], P(c.x, c.y), max(0.5 * th, min(h, 0.6 * th)), max(x1 - x0, y1 - y0) / 2 * P.k, f.id)
 
     def _module_block(self) -> str:
         name = "ARR_MODULE"

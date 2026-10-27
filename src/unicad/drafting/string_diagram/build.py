@@ -1,7 +1,6 @@
 """String diagram sheets of a project: one sheet (or more, when a type has too many strings for one) per distinct inverter or SCB type."""
 
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
 
 import ezdxf
@@ -14,16 +13,17 @@ from unicad.drafting.sheets.canvas import Region
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
 from unicad.drafting.sheets.render import render_sheet
+from unicad.drafting.sheets.titleblock import compose_location
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.sld.sheet import save_deterministic
 from unicad.drafting.string_diagram import draw
 from unicad.drafting.string_diagram.plan import DiagramType, StringLine, plan_types
 from unicad.drafting.symbols import REGISTRY
-from unicad.schedules.ids import SCHEME
+from unicad.schedules.ids import SCHEME_FIELDS
 
 LARGE_SEGMENTS = frozenset({Segment.UTILITY, Segment.BESS, Segment.HYBRID})
 FIRST_SEQ = 401
-CABLE_ID_NOTE = "STRING CABLE IDS ARE THOSE OF THE CABLE SCHEDULE: " + SCHEME.split(" reads ")[1].split(". Block")[0].upper() + "."
+CABLE_ID_NOTE = f"STRING CABLE IDS ARE THOSE OF THE CABLE SCHEDULE: {SCHEME_FIELDS.upper()}."
 
 
 @dataclass(frozen=True)
@@ -161,10 +161,10 @@ def sheet_spec(project: Project, profile: CompanyProfile, paper: PaperSize, titl
     site = project.site
     tb = TitleBlockData(
         client=prose(project.client.name), project_title=prose(project.name),
-        location=prose(", ".join(x for x in (site.name, site.address, site.state) if x)), drawing_title=title, drawing_number=number,
+        location=prose(compose_location(site.name, site.address, site.state)), drawing_title=title, drawing_number=number,
         revision=latest.rev if latest else "00", scale="NTS", sheet_no=sheet_no, sheet_count=sheet_count, paper=paper,
         drawn_by=(latest.drawn or "") if latest else "", checked_by=(latest.checked or "") if latest else "",
-        approved_by=(latest.approved or "") if latest else "", drawn_date=latest.date if latest else date(2026, 10, 27), issued_for=issued,
+        approved_by=(latest.approved or "") if latest else "", drawn_date=latest.date if latest else None, issued_for=issued,
     )  # fmt: skip
     return SheetSpec(
         paper=paper, title_block=tb, legend=legend_for(t), notes=notes_for(t), parameters=parameters_for(t),

@@ -1,15 +1,21 @@
+import math
 import os
 import subprocess
 from pathlib import Path
 
 import ezdxf
 import pytest
+from ezdxf.math import Matrix44, Vec3
+from shapely.geometry import LineString, Polygon, box
+from shapely.geometry.base import BaseGeometry
 
 from unicad.arrays import PlacementSpec, place_array
 from unicad.catalog.store import load_catalog
-from unicad.domain.site import Setbacks
+from unicad.domain.site import FeatureKind, Setbacks
 from unicad.drafting.sheets.canvas import Region
+from unicad.drafting.sheets.text import text_width
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, SheetSpec, TitleBlockData
+from unicad.drafting.labels import overlapping
 from unicad.drafting.site_plan import LayoutDrawing, choose_scale, default_notes, render_layout_sheet
 from unicad.ingest.site_import import import_site
 
@@ -132,3 +138,53 @@ def test_librecad_exports_the_sheet_at_true_scale(ground_dxf, tmp_path):
     reds = sum(1 for i in range(0, len(samples), n) if samples[i] > 200 and samples[i + 1] < 80 and samples[i + 2] < 80)
     blues = sum(1 for i in range(0, len(samples), n) if samples[i] < 80 and samples[i + 1] < 80 and samples[i + 2] > 200)
     assert reds > 500 and blues > 500
+
+
+def _text_box(e) -> Region:
+    h, w = e.dxf.height, text_width(e.dxf.text, e.dxf.height)
+    fx, fy = {(0, 0): (0, 0), (0, 1): (0, 0), (0, 2): (0, 0.5), (1, 2): (0.5, 0.5), (1, 0): (0.5, 0), (1, 1): (0.5, 0)}[(e.dxf.halign, e.dxf.valign)]
+    x, y = e.dxf.align_point.x - w * fx, e.dxf.align_point.y - h * fy
+    if e.dxf.rotation:
+        c, s = abs(math.cos(math.radians(e.dxf.rotation))), abs(math.sin(math.radians(e.dxf.rotation)))
+        cx, cy = x + w / 2, y + h / 2
+        w, h = w * c + h * s, w * s + h * c
+        x, y = cx - w / 2, cy - h / 2
+    return Region(x, y, x + w, y + h)
+
+
+def _table_footprints(doc) -> list[BaseGeometry]:
+    out = []
+    for e in doc.modelspace().query("INSERT"):
+        if e.dxf.name.startswith("ARR_TABLE_"):
+            m = Matrix44.chain(Matrix44.scale(e.dxf.xscale, e.dxf.yscale, 1), Matrix44.z_rotate(math.radians(e.dxf.rotation)), Matrix44.translate(*e.dxf.insert))
+            outline = doc.blocks[e.dxf.name].query("LWPOLYLINE").first
+            out.append(Polygon([(v.x, v.y) for v in m.transform_vertices([Vec3(x, y) for x, y in outline.get_points("xy")])]))
+    return out
+
+
+@pytest.fixture(scope="module")
+def pune_roofs():
+    site = import_site(SITES / "rooftop_midc_pune.kml", None).geometry.model_copy(update={"setbacks": Setbacks(roof_edge_m=1.0, obstacle_m=0.6)})
+    module = load_catalog().get("waaree-bin-08-580")
+    spec = PlacementSpec(module=module.id, mounting="rooftop_flush", table_rows=1, table_cols=19, half_tables=False, modules_per_string=19, strings_per_inverter=12, n_blocks=1, target_dc_kwp=793.44)
+    result = place_array(site, spec, module)
+    doc = ezdxf.new("R2018", setup=True)
+    out = render_layout_sheet(doc, LayoutDrawing.from_result(site, result, module), sheet(PaperSize.A3), PROFILE, view="roofs")
+    return site, doc, out
+
+
+def test_every_roof_and_obstacle_is_labelled_clear_of_all_outlines_and_modules(pune_roofs):
+    site, doc, out = pune_roofs
+    msp = doc.modelspace()
+    outlines = [LineString([*e.get_points("xy"), e.get_points("xy")[0]]) for e in msp.query("LWPOLYLINE") if e.dxf.layer in ("L-ROOF", "L-OBSTACLE")]
+    tables = _table_footprints(doc)
+    wanted = {f.name.upper() for f in site.features if f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)}
+    assert len(wanted) == 10 and len(outlines) >= 10 and tables
+    labels = {e.dxf.text: e for e in msp.query("TEXT") if e.dxf.layer == "L-LABEL"}
+    assert wanted <= set(labels), wanted - set(labels)
+    for name in wanted:
+        b = _text_box(labels[name])
+        g = box(b.x0, b.y0, b.x1, b.y1)
+        assert not [o for o in outlines if g.intersects(o)], f"{name} touches an outline"
+        assert not [t for t in tables if g.intersection(t).area > 1e-6], f"{name} sits on modules"
+    assert overlapping(list(out.labels)) == [] and out.warnings == ()

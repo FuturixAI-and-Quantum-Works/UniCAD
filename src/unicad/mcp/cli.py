@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import logging
 import os
 import sys
 from pathlib import Path
@@ -42,6 +43,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    logging.getLogger("ezdxf").setLevel(logging.WARNING)
     profiles = BUNDLED_DATA / "profiles"
     if profiles.is_dir():
         os.environ.setdefault("UNICAD_PROFILES", str(profiles))
