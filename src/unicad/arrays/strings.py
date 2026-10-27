@@ -31,7 +31,9 @@ def string_id(block_id: str, inverter: int, string: int) -> str:
 
 
 def assign_strings(blocks: Sequence[LayoutBlock], modules_per_string: int, strings_per_inverter: int | None) -> tuple[list[StringAssignment], int]:
-    """Strings of `modules_per_string` consecutive slots, never crossing tables; ids `B01-I1-S02` (block, inverter, string).
+    """Strings of `modules_per_string` consecutive slots, never crossing tables. Each gets a layout key `B01-I1-S02` (layout block,
+    inverter, string) that only links the layout to the network; drawings and schedules show the network tags instead (STR-01-01-02,
+    cable ids built from the inverter and combiner tags, see `unicad.schedules.ids.SCHEME`).
 
     Strings are numbered per inverter in table order; with `strings_per_inverter` unset each block has one inverter.
     Returns the assignments and the count of slots left without a string.

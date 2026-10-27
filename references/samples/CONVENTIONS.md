@@ -262,6 +262,7 @@ The notes are numbered and all caps:
   - SMB ID: `SMB-Bxx-Ixx-Sxx`.
   - String cable ID: `Bxx Ix Sxx Rxx xxxx P x-Sq.mm` (P = power cable, then the cable size).
   - Notes: "The values in the cable schedule are indicative only. Cable laying shall be done after actual measurement at site."
+  - UniCAD note: this describes the [LNT] sample. UniCAD does not copy its index-based IDs; its cable IDs start with the network tags of the equipment fed (e.g. `INV-01-SCB-02-R003-0027-IP05-4 sqmm` = inverter tag, combiner tag, structure row, structure no., input no., cable size; see `unicad.schedules.ids.SCHEME`), so one tag names the same equipment on the SLD, string diagrams and schedule.
 - Block header [LNT p3]:
   - Module data: Wattage, Vmp, Imp, Voc, Isc, including a bifacial-gain row (×1.035).
   - Cable cross-section: string 4 sq.mm, SMB to inverter 400 sq.mm.
