@@ -178,6 +178,13 @@ Standard: none (design practice). Segments: all.
 
 Each inverter or PCS AC zone should contain an AC SPD or lightning arrester. Warning when none is modelled.
 
+### `protection.spd_ac_poles`: AC SPD has a pole per phase conductor
+
+Standard: none (design practice). Segments: all.
+
+An AC surge protective device on a three-phase circuit must protect every phase: a three- or four-pole SPD (3+0, 3+1, 4+0). A single- or two-pole
+catalog SPD there protects one phase only: error. Circuits fed only by single-phase inverters count as single-phase.
+
 ### `protection.earthing`: Inverters and panels are earthed
 
 Standard: IS 3043. Segments: all.

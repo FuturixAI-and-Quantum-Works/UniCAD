@@ -62,9 +62,10 @@ def test_validate_fixture_projects_over_stdio(tmp_path):
         assert "'cables'" in msg and "'earthing'" in msg, msg  # the schema lists the allowed families
 
         r = await c.call("validate", project_id="utility-50mwac")
-        # the hand-built fixture tees its block feeders onto the bus and taps its block aux transformers with no breaker (close-e2e-3 B2, B3)
+        # the hand-built fixture tees its block feeders onto the bus, taps its block aux transformers with no breaker and puts a single-pole
+        # SPD on the three-phase inverter output (close-e2e-3 B2, B3, n23)
         errors = sorted(f["rule_id"] for f in r["findings"] if f["severity"] == "error")
-        assert errors == ["protection.mv_cable", "protection.transformer_feed"], errors
+        assert errors == ["protection.mv_cable", "protection.spd_ac_poles", "protection.transformer_feed"], errors
         assert r["gates"]["approval"]["allowed"] is False
 
     _run(tmp_path, check, _fixture("rooftop_500kwp"), _fixture("utility_50mwac"), _broken())

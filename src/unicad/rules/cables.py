@@ -13,7 +13,7 @@ from unicad.rules.grouping import grouping
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
-from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, label, zone_at
+from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, zone_at
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
 PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})
@@ -313,7 +313,7 @@ def _hv_clearing(project: Project, zone, v: float) -> tuple[float, Quantity, tup
         if hv_zone is None or hv_zone.voltage_v is None:
             continue
         ends = [e.dst_node if e.src_node == n.id else e.src_node for e in net.edges if e.is_power and e.service is not Service.DC and n.id in (e.src_node, e.dst_node) and e.id in hv_zone.edge_ids]
-        brk = next((m for m in ends if net.node(m).kind in HV_PROTECTIVE), None)
+        brk = min((m for m in ends if net.node(m).kind in HV_PROTECTIVE), key=lambda m: (not exports(net, m), m), default=None)
         if brk is None:
             continue
         level = fault_at(basis, hv_zone.voltage_v)

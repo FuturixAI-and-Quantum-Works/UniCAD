@@ -188,7 +188,9 @@ def test_800v_string_inverters_build_with_a_project_idt_and_1150v_breakers():
     for brk in ("inv_brkaa", "inv_brkba", "acdb_brka", "acdb_brkb"):
         assert CATALOG.get(net.node(brk).spec).rated_voltage >= 800
     assert any("project-specific inline spec (idt-7040kva-33-0.8-0.8-ynd11d11-project)" in a and "BHEL PS 439-1304" in a for a in r.assumptions)
-    assert any("ACCB-SPD" in b and "no catalog spd_ac" in b for b in r.blockers)
+    # close-e2e-3 n23: the 800 V ACCB takes the three-pole DEHNguard M WE 600 (Uc 600 V >= 1.1 x 800 / sqrt 3), not a single-pole unit or a blocker
+    assert not any("ACCB-SPD" in b for b in r.blockers), r.blockers
+    assert {net.node(n).spec for n in ("acdb_spda", "acdb_spdb")} == {"dehn-dg-m-we-600"}
 
 
 def test_block_lv_buses_are_capped_so_every_breaker_has_a_catalog_spec():

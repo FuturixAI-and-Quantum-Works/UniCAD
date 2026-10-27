@@ -1794,6 +1794,58 @@
     "surge_counter": null
   },
   {
+    "id": "dehn-dg-m-we-600",
+    "manufacturer": "DEHN",
+    "model": "DEHNguard DG M WE 600",
+    "symbol": "prot.spd_ac",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/DEHN_Surge_Protection_catalogue_E2_2020.pdf p.65; references/catalog-sources/extracted/protection_phase2.json; part no. 952 302; DEHNguard M WE ...: modular surge arrester (3+0 configuration) with a rated varistor voltage Umov 750 V a.c. (catalogue p.63, pdf p.65); listed for TN-C systems, one unit per installation, in the selection chart for industrial buildings (catalogue p.50, pdf p.52). Up <= 3.0 kV; Imax 25 kA; max mains-side backup fuse 100 A gG; remote signalling none",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "spd_ac",
+    "rated_current": null,
+    "rated_voltage": 600.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": 15.0,
+    "curve": null,
+    "spd_type": "2",
+    "surge_counter": null
+  },
+  {
+    "id": "dehn-dg-m-we-600-fm",
+    "manufacturer": "DEHN",
+    "model": "DEHNguard DG M WE 600 FM",
+    "symbol": "prot.spd_ac",
+    "source": {
+      "kind": "catalog",
+      "ref": "raw/datasheets/protection/DEHN_Surge_Protection_catalogue_E2_2020.pdf p.65; references/catalog-sources/extracted/protection_phase2.json; part no. 952 307; DEHNguard M WE ...: modular surge arrester (3+0 configuration) with a rated varistor voltage Umov 750 V a.c. (catalogue p.63, pdf p.65); listed for TN-C systems, one unit per installation, in the selection chart for industrial buildings (catalogue p.50, pdf p.52). Up <= 3.0 kV; Imax 25 kA; max mains-side backup fuse 100 A gG; remote signalling changeover contact",
+      "retrieved": "2026-10-26"
+    },
+    "kind": "protection",
+    "device": "spd_ac",
+    "rated_current": null,
+    "rated_voltage": 600.0,
+    "poles": 3,
+    "breaking_capacity_ka": null,
+    "short_time_withstand_ka": null,
+    "short_time_duration_s": null,
+    "ratio": null,
+    "accuracy_class": null,
+    "burden_va": null,
+    "nominal_discharge_current_ka": 15.0,
+    "curve": null,
+    "spd_type": "2",
+    "surge_counter": null
+  },
+  {
     "id": "dehn-dg-se-ci-440-fm",
     "manufacturer": "DEHN",
     "model": "DEHNguard DG SE CI 440 FM",

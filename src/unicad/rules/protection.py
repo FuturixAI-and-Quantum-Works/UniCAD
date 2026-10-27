@@ -194,6 +194,32 @@ def spd_ac(project: Project, catalog: Catalog) -> Iterator[Finding]:
             yield Finding(rule_id="protection.spd_ac", severity=Severity.WARNING, subjects=(n.id,), message=f"{label(net, n.id)}: no AC SPD or lightning arrester in the AC zone of the inverter")
 
 
+@rule("protection.spd_ac_poles", "AC SPD has a pole per phase conductor")
+def spd_ac_poles(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """An AC surge protective device on a three-phase circuit must protect every phase: a three- or four-pole SPD (3+0, 3+1, 4+0). A single- or two-pole
+    catalog SPD there protects one phase only: error. Circuits fed only by single-phase inverters count as single-phase."""
+    from unicad.rules.cables import phases
+
+    net = project.network
+    for n in net.by_kind(NodeKind.AC_SPD):
+        spec = _protection(catalog, n)
+        if spec is None or spec.poles >= 3:
+            continue
+        edge = next((e for e in net.edges_at(n.id) if e.is_power), None)
+        if edge is None or phases(project, catalog, edge) != 3:
+            continue
+        yield Finding(
+            rule_id="protection.spd_ac_poles",
+            severity=Severity.ERROR,
+            subjects=(n.id,),
+            message=f"{label(net, n.id)} {spec.model}: a {spec.poles}-pole SPD on a three-phase circuit protects only {spec.poles} conductor(s); use a three- or four-pole SPD",
+            measured=spec.poles,
+            limit=3,
+            unit="poles",
+            inputs=(Quantity(name="poles", value=spec.poles, source=spec.id),),
+        )
+
+
 @rule("protection.earthing", "Inverters and panels are earthed", clause="IS 3043")
 def earthing(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """Every inverter and PCS needs an earth connection (an edge on its 'pe' port): error when missing. Distribution panels and SCBs without one are warnings, since their earthing may be detailed on the earthing drawing instead of the SLD."""

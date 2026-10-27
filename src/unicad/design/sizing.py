@@ -80,6 +80,14 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
     if role == "dc_isolator":
         voc = max(max_dc_voc(project, catalog, node_id) or 0.0, hint.voltage_v or 0.0)
         return pick_rated(catalog, ["dc_isolator"], amps, voc, hint.poles).id
+    if role == "string_fuse":
+        voc = max_dc_voc(project, catalog, node_id) or 0.0
+        fuse = pick_rated(catalog, ["fuse_gpv"], amps, voc, hint.poles)
+        feeds = [f for f in string_feeds(project, catalog) if node_id in f.path]
+        limit = min((f.module.max_series_fuse for f in feeds if f.module.max_series_fuse is not None), default=None)
+        if limit is not None and fuse.rated_current > limit:
+            raise NoFit(f"the smallest catalog gPV fuse rated >= {amps:.1f} A at {voc:.0f} V is {fuse.rated_current:g} A, above the module max series fuse {limit:g} A")
+        return fuse.id
     need = k * amps
     if role in ("lv_breaker", "vcb"):
         fault = prospective_fault(project, catalog, node_id)

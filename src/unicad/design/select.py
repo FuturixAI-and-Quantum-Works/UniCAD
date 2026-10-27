@@ -85,8 +85,13 @@ def pick_by_voltage(catalog: Catalog, device: str, need_v: float, poles: Iterabl
 
 
 def pick_ac_spd(catalog: Catalog, line_v: float, phases: int) -> ProtectionSpec:
+    """An AC SPD with Uc >= 1.1 x U0 and one pole per phase conductor: three or four poles on a three-phase circuit (a single-pole unit protects
+    one phase only, protection.spd_ac_poles), one or two on a single-phase one."""
     u0 = line_v / math.sqrt(3) if phases == 3 else line_v
-    return pick_by_voltage(catalog, "spd_ac", SPD_AC_UC_FACTOR * u0, (4, 3, 1) if phases == 3 else (2, 1, 4))
+    try:
+        return pick_by_voltage(catalog, "spd_ac", SPD_AC_UC_FACTOR * u0, (4, 3) if phases == 3 else (2, 1))
+    except NoFit:
+        raise NoFit(f"no catalog {'three- or four-pole' if phases == 3 else 'one- or two-pole'} AC SPD with Uc >= {SPD_AC_UC_FACTOR * u0:.0f} V (1.1 x U0 at {line_v:g} V)") from None
 
 
 def pick_mv(catalog: Catalog, device: str, system_kv: float) -> ProtectionSpec | None:

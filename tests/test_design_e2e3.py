@@ -174,3 +174,72 @@ def test_b9_default_fill_grows_from_the_switchyard_side(tmp_path):
             assert mean_feeder(near) < 0.75 * mean_feeder(rows), (mean_feeder(near), mean_feeder(rows))
 
     run(go())
+
+
+def test_c1_design_strings_and_autobuild_respect_the_string_fuse_rule_validate_applies(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_c(c)
+            sd = await c.call("design_strings", project_id=C, module=C_MOD, inverter="huawei-sun2000-330ktl-h1")
+            assert sd["strings_per_mppt_unfused"] == 2 and sd["strings_per_inverter"] <= 12 == sd["strings_per_inverter_unfused"], sd
+            assert sd["string_fuses"] == "optional" and any("gPV fuse per string" in a for a in sd["assumptions"]), sd["assumptions"]
+            await c.call("layout_place", **C_HUAWEI_PLACE)
+            built = await c.call("network_autobuild", **(C_HUAWEI | {"ac_kw": None}))
+            v = await c.call("validate", project_id=C, families=["pv_strings", "protection"])
+            errors = [f for f in v["findings"] if f["severity"] == "error"]
+            assert not errors and not [f for f in built["findings"] if f["severity"] == "error"], errors
+            net = (await project(c, C))["network"]
+            fuses = [n for n in net["nodes"] if n["kind"] == "fuse"]
+            assert fuses and all(n["spec"] and n["spec"].startswith("mersen-hp15m") for n in fuses), fuses
+            assert any("gPV fuse in a string fuse box" in a for a in built["assumptions"])
+
+    run(go())
+
+
+def test_b2_b3_n11_feeders_end_in_switchboard_breakers_aux_taps_have_their_own_vcb_and_inverter_cables_clear_on_the_idt_breaker(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_b(c)
+            await c.call("layout_place", **B_PLACE)
+            built = await c.call("network_autobuild", **B_BUILD)
+            net = (await project(c, B))["network"]
+            nodes, edges = {n["id"]: n for n in net["nodes"]}, {e["id"]: e for e in net["edges"]}
+            feeders = [e for e in edges.values() if e["id"].startswith("e_icog_bus")]
+            assert feeders and all(e["dst"].startswith("bf_ct") and e["cable"] for e in feeders), feeders
+            on_bus = [e for e in edges.values() if e["dst"] == "mv_bus:bus" and e["src"].startswith(("icog", "bf_"))]
+            assert on_bus and all(nodes[e["src"].split(":")[0]]["kind"] == "vcb" and nodes[e["src"].split(":")[0]]["spec"] for e in on_bus), on_bus
+            aux = [e for e in edges.values() if e["dst"].startswith("blk_aux") and e["dst"].endswith(":hv")]
+            assert aux and all(nodes[e["src"].split(":")[0]]["kind"] == "vcb" for e in aux), aux
+            v = await c.call("validate", project_id=B, families=["protection", "cables"], include_info=True)
+            assert not [f for f in v["findings"] if f["rule_id"] in ("protection.mv_cable", "protection.transformer_feed")], v["findings"]
+            sc = [f for f in v["findings"] if f["rule_id"] == "cables.short_circuit" and any(s.startswith("e_inv_idt") for s in f["subjects"])]
+            assert sc, [f["subjects"] for f in v["findings"] if f["rule_id"] == "cables.short_circuit"]
+            for f in sc:
+                ex = await c.call("explain_finding", project_id=B, rule_id="cables.short_circuit", subject=f["subjects"][0])
+                text = str(ex)
+                assert "No clearing time" not in text and "on its HV side" in text and "ICOG-VCB" in text, ex
+            assert any("feeder panel" in a for a in built["assumptions"])
+
+    run(go())
+
+
+def test_n23_three_phase_ac_spds_have_three_or_four_poles_and_a_single_pole_one_is_flagged(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_c(c)
+            await c.call("layout_place", **C_PLACE)
+            built = await c.call("network_autobuild", **C_BUILD)
+            assert not [b for b in built["blockers"] if "SPD" in b], built["blockers"]
+            net = (await project(c, C))["network"]
+            spds = [n for n in net["nodes"] if n["kind"] == "ac_spd"]
+            for n in spds:
+                spec = (await c.call("catalog_get", id=n["spec"]))
+                spec = spec.get("spec", spec)
+                assert spec["poles"] >= 3, (n["id"], spec)
+            one = next(n for n in spds if n["voltage_v"] and n["voltage_v"] >= 600)
+            await c.call("network_update", project_id=C, id=one["id"], fields={"spec": "dehn-dg-se-ci-440-fm"})
+            v = await c.call("validate", project_id=C, families=["protection"])
+            hits = [f for f in v["findings"] if f["rule_id"] == "protection.spd_ac_poles"]
+            assert hits and hits[0]["severity"] == "error" and hits[0]["subjects"] == [one["id"]], hits
+
+    run(go())

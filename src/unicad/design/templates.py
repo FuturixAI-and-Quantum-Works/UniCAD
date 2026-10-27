@@ -25,7 +25,7 @@ from unicad.design.select import (
     pick_rated,
     pick_transformer,
 )
-from unicad.design.strings import DesignError
+from unicad.design.strings import DesignError, fuses_needed
 from unicad.rules.faults import transformer_fault_ka
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR
 
@@ -143,16 +143,39 @@ def inline_assumption(tag: str, spec: TransformerSpec, windings: int) -> str:
 # ---------------- DC side ----------------
 
 
-def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: int, module: ModuleSpec, laying: Laying, isolator: bool) -> list[str]:
-    """Strings straight onto a string inverter, or through a DC junction box and a DC isolator when one is rated for the current."""
+STRING_FUSES = (
+    "Each string has its own gPV fuse in a string fuse box at the inverter (STR-FUSE), rated at least 1.25 x Isc and at most the module's maximum series fuse, "
+    "because more strings share an MPPT than the module's reverse-current rating allows unfused (IEC 62548 practice; pv_strings.string_fuses)."
+)
+
+
+def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: int, module: ModuleSpec, laying: Laying, isolator: bool, inverter: InverterSpec | None = None) -> list[str]:
+    """Strings straight onto a string inverter, or through a DC junction box and a DC isolator when one is rated for the current. When more strings share an
+    MPPT than the module allows unfused, each string lands through its own gPV fuse (string fuse box) instead of the pass-through junction box."""
     b = c.b
     s = b.node(f"str{sfx}", "STR", NodeKind.PV_STRING, group=group, count=n_strings, spec=module.id, modules_in_series=mps)
     b.assume(DC_STRING_MIN)
+    fused = inverter is not None and fuses_needed(module, math.ceil(n_strings / inverter.mppt_count))
     ib = n_strings * ISC_FACTOR.value * module.isc
     if isolator and ib > DC_ISOLATOR_MAX_A:
         b.assume(f"DC isolators are catalogued up to {DC_ISOLATOR_MAX_A:g} A; inverters with {n_strings} strings ({ib:.0f} A) rely on their integrated DC switch instead.")
         isolator = False
     spd = b.node(f"dcspd{sfx}", "DC-SPD", NodeKind.DC_SPD, group=group, hint=NodeHint("dc_spd"))
+    ways = f"{n_strings} string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
+    if fused:
+        fu = b.node(f"sfuse{sfx}", "STR-FUSE", NodeKind.FUSE, group=group, count=n_strings, hint=NodeHint("string_fuse", poles=(1,)), title="gPV STRING FUSE (STRING FUSE BOX)")
+        b.edge(f"e_str{sfx}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
+        b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
+        b.assume(STRING_FUSES)
+        if not isolator:
+            b.edge(f"e_fuse_inv{sfx}", f"{fu}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("iso_inv"), Laying.TRAY, remarks="string fuse box to inverter input, one pair per string")
+            b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
+            return [s]
+        iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=(2, 4)))
+        b.edge(f"e_dcfb_iso{sfx}", f"{fu}:out", f"{iso}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
+        b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
+        b.assume("Each DC isolator node stands for the isolation of all string circuits of its inverter (one 2-pole way per circuit); it is rated as one device for the sum of their currents, which is conservative.")
+        return [s]
     if not isolator:
         b.edge(f"e_str{sfx}", f"{s}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
         b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
@@ -162,7 +185,6 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
     iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=(2, 4)))
     b.edge(f"e_str{sfx}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
     b.edge(f"e_dcfb_spd{sfx}", f"{fb}:out", f"{spd}:line", V.DC)
-    ways = f"{n_strings} string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
     b.edge(f"e_dcfb_iso{sfx}", f"{fb}:out", f"{iso}:in", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
     b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
     b.assume(
@@ -208,7 +230,7 @@ def inverter_groups(c: Ctx, within: str | None, blk: BlockClass, inverter: Inver
         if central:
             ids = dc_central(c, g, sfx, inv, ic.strings, mps, module, inverter)
         else:
-            ids = dc_string_inverter(c, g, sfx, inv, ic.strings, mps, module, dc_laying, isolator)
+            ids = dc_string_inverter(c, g, sfx, inv, ic.strings, mps, module, dc_laying, isolator, inverter)
         b.earth(inv)
         if ic.slots:
             c.built.string_links.append((ids, ic.count, ic.slots))
