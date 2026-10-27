@@ -129,11 +129,11 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `text` | string | no | Words that must all appear in id, kind, manufacturer or model, e.g. 'growatt 100' |
-| `kind` | string | no | One of: module, inverter, battery, pcs, transformer, cable, protection, meter |
+| `kind` | `module` \| `inverter` \| `battery` \| `pcs` \| `transformer` \| `cable` \| `protection` \| `meter` | no | Catalog kind: module, inverter, battery, pcs, transformer, cable, protection or meter |
 | `manufacturer` | string | no | Exact manufacturer name, case-insensitive |
 | `min_power` | number | no | Inclusive lower bound: W for modules, kVA for inverter, pcs and transformer |
 | `max_power` | number | no | Inclusive upper bound, same units as min_power |
-| `limit` | integer | no | Default: `20`. |
+| `limit` | integer | no | Maximum rows returned, number Default: `20`. |
 
 ### `catalog_get`
 
@@ -394,7 +394,7 @@ Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="grow
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `id` | string | yes | Unique id for this equipment template, e.g. 'inv' |
-| `kind` | `pv_string` \| `pv_array_block` \| `scb` \| `dc_fuse_box` \| `dc_isolator` \| `dc_spd` \| `dc_dc_converter` \| `inverter` \| `pcs` \| `battery` \| `acdb` \| `lt_panel` \| `breaker` \| `isolator` \| `fuse` \| `ac_spd` \| `ct` \| `pt` \| `meter` \| `relay` \| `transformer` \| `aux_transformer` \| `ht_panel` \| `rmu` \| `vcb` \| `busbar` \| `lightning_arrester` \| `earth_electrode` \| `poi_grid` \| `dg` \| `load` | yes | Equipment kind |
+| `kind` | `pv_string` \| `pv_array_block` \| `scb` \| `dc_fuse_box` \| `dc_isolator` \| `dc_spd` \| `dc_dc_converter` \| `inverter` \| `pcs` \| `battery` \| `acdb` \| `lt_panel` \| `breaker` \| `isolator` \| `fuse` \| `ac_spd` \| `ct` \| `pt` \| `meter` \| `relay` \| `transformer` \| `aux_transformer` \| `ht_panel` \| `rmu` \| `vcb` \| `busbar` \| `lightning_arrester` \| `earth_electrode` \| `poi_grid` \| `dg` \| `load` | yes | Equipment kind: pv_string, pv_array_block, scb, dc_fuse_box, dc_isolator, dc_spd, dc_dc_converter, inverter, pcs, battery, acdb, lt_panel, breaker, isolator, fuse, ac_spd, ct, pt, meter, relay, transformer, aux_transformer, ht_panel, rmu, vcb, busbar, lightning_arrester, earth_electrode, poi_grid, dg, load |
 | `spec` | string | no | Catalog id from catalog_search (module, inverter, breaker, ...) |
 | `count` | integer | no | Instances per instance of its group, e.g. 10 strings per inverter Default: `1`. |
 | `group` | string | no | Id of the group it repeats with |
@@ -403,7 +403,7 @@ Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="grow
 | `modules_in_series` | integer | no | Modules per string; pv_string only |
 | `ports` | list of string | no | Override port names; defaults depend on kind (inverter: dc, ac) |
 | `attributes` | object | no | Free label/value pairs shown on drawings, e.g. {"rating_a": 250} |
-| `title` | string | no |  |
+| `title` | string | no | Box title on the SLD |
 | `symbol` | string | no | Override the drawing symbol key |
 
 ### `network_connect`
@@ -417,21 +417,21 @@ Example: network_connect(project_id="p1", src="inv:ac", dst="acdb:in", cable="po
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `src` | string | yes | Source terminal 'node_id:port'; power flows from src to dst (generation towards grid) |
 | `dst` | string | yes | Destination terminal 'node_id:port' |
-| `service` | `dc` \| `lv_ac` \| `mv_ac` \| `hv_ac` \| `earth` \| `control` | no | Circuit type; inferred from the ports and nodes when unambiguous, else required |
+| `service` | `dc` \| `lv_ac` \| `mv_ac` \| `hv_ac` \| `earth` \| `control` | no | Circuit type (dc, lv_ac, mv_ac, hv_ac, earth, control); inferred from the ports and nodes when unambiguous, else required |
 | `cable` | string | no | Cable catalog id from catalog_search(kind='cable') |
 | `length_m` | number | no | Route length in metres, per instance |
 | `runs` | integer | no | Parallel cables per connection Default: `1`. |
-| `laying` | `air` \| `tray` \| `conduit` \| `trench` \| `buried_direct` \| `buried_duct` \| `overhead` | no |  |
+| `laying` | `air` \| `tray` \| `conduit` \| `trench` \| `buried_direct` \| `buried_duct` \| `overhead` | no | Laying method, which sets the ampacity table: air, tray, conduit, trench, buried_direct, buried_duct, overhead |
 | `derating` | number | no | Installation derating factor, e.g. 0.8 |
-| `remarks` | string | no |  |
+| `remarks` | string | no | Free text shown in the cable schedule remarks |
 | `edge_id` | string | no | Id for the connection; default 'e_<src>_<dst>' |
 
 ### `network_update`
 
 Change fields of an existing node, connection or group. The id itself cannot change.
 
-Node fields: tag, kind, spec, symbol, count, group, voltage_v, modules_in_series, ports, attributes, title.
-Edge fields: src, dst, service, cable, runs, length_m, laying, derating, remarks. Group fields: tag, count, within, title.
+Node fields: tag, kind, spec, symbol, count, group, voltage_v (V), modules_in_series, ports, attributes, title.
+Edge fields: src, dst, service, cable, runs, length_m (m), laying, derating, remarks. Group fields: tag, count, within, title.
 Example: network_update(project_id="p1", id="e_inv_acdb", fields={"length_m": 30}).
 Changing a group count can invalidate member tags; update those tags in the same session.
 
@@ -439,7 +439,7 @@ Changing a group count can invalidate member tags; update those tags in the same
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `id` | string | yes | Id of an existing node, connection (edge) or group |
-| `fields` | object | yes | Fields to change; null clears a field. For `attributes` the given keys are merged (null removes a key). |
+| `fields` | object | yes | Fields to change; null clears a field. For `attributes` the given keys are merged (null removes a key). Enum-valued fields: kind (node), service and laying (edge). |
 
 ### `network_remove`
 
@@ -574,7 +574,9 @@ Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=6
 Write the cable schedule: one row per cable with Indian-EPC positional id, from/to, cable, runs, +ve/-ve lengths, laying, design current, derated ampacity, % voltage drop and power loss.
 
 Voltage drop, current and ampacity come from the rules engine, so they match `validate`. Lengths the network states are used as given; the rest are estimated from the array layout
-(Manhattan route along the table rows plus drops and termination allowance, all reported as assumptions). Returns the file paths, totals, the worst-path voltage drop, the length source counts and any cable the schedule could not complete.
+(Manhattan route along the table rows plus drops and termination allowance, all reported as assumptions). Units: lengths and `cable_m` totals in metres, design current Ib and ampacity Iz in A, voltage drop in %, power loss in W.
+When the network's stored length is the worst-case route the cable was sized for (as network_autobuild stores it), each cable row carries its own routed length from the layout, not that worst case.
+Returns the file paths, totals, the worst-path voltage drop, the length source counts and any cable the schedule could not complete.
 Example: cable_schedule(project_id="rooftop-500kwp", format="pdf", lengths="estimated").
 
 | Parameter | Type | Required | Description |
@@ -595,9 +597,11 @@ Example: cable_schedule(project_id="rooftop-500kwp", format="pdf", lengths="esti
 ### `bom`
 
 Write the bill of materials: modules, inverters, combiner boxes, transformers, breakers, isolators, SPDs, meters and panels from the network expansion, cable metres by catalog type with wastage,
-and MC4 connectors, lugs, glands and MV termination kits counted per termination of the cable schedule.
+and MC4 connectors, lugs, glands and MV termination kits counted per termination of the cable schedule. When the project has earthing and lightning designs, it also lists their material as those designs count it:
+earth pits by type (nos), GS flat by size and use (m, plan length), ESE terminals and their masts (nos).
 
-Returns the file paths, the headline quantities and the assumptions behind every derived count. Cable metres use the same `lengths` basis as cable_schedule.
+Units: cable in metres, equipment, pits, terminals and masts in nos, MC4 in pairs, MV termination kits in sets. Returns the file paths, the headline quantities and the assumptions behind every derived count.
+Cable metres use the same `lengths` basis as cable_schedule.
 Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5).
 
 | Parameter | Type | Required | Description |
@@ -630,7 +634,7 @@ Example: drawings_render(project_id="utility-50mwac", kinds=["all"], formats=["d
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `kinds` | list of string | no | Drawing kinds to include, in set order, or 'all' for the complete set. Available: ['register', 'sld', 'layout', 'earthing', 'lps', 'strings', 'cable_schedule', 'bom'] Default: `['sld']`. |
+| `kinds` | list of `all` \| `register` \| `sld` \| `layout` \| `earthing` \| `lps` \| `strings` \| `cable_schedule` \| `bom` | no | Drawing kinds to include, in set order, or 'all' for the complete set. Available: ['all', 'register', 'sld', 'layout', 'earthing', 'lps', 'strings', 'cable_schedule', 'bom'] Default: `['sld']`. |
 | `formats` | list of `dxf` \| `pdf` \| `dwg` | no | Files per sheet: dxf (always written), pdf (LibreCAD, plus one merged set PDF), dwg Default: `['dxf', 'pdf', 'dwg']`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
@@ -646,7 +650,7 @@ small text). Example: drawings_preview(project_id="utility-50mwac", sheet="sld",
 | `sheet` | string | yes | Sheet id or drawing number from drawings_render, e.g. 'sld' or 'UDEMO-DRL-U50-EE-001' |
 | `region` | list of number | no | Crop [x0, y0, x1, y1] in sheet mm from the lower-left corner; omit for the whole sheet |
 | `px` | integer | no | Pixels on the long side of the image Default: `1600`. |
-| `kinds` | list of string | no | Drawing kinds of the set, when it has to be rendered first Default: `['sld']`. |
+| `kinds` | list of `all` \| `register` \| `sld` \| `layout` \| `earthing` \| `lps` \| `strings` \| `cable_schedule` \| `bom` | no | Drawing kinds of the set, when it has to be rendered first: ['all', 'register', 'sld', 'layout', 'earthing', 'lps', 'strings', 'cable_schedule', 'bom'] Default: `['sld']`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
 ## Company tools
@@ -718,7 +722,7 @@ Crop to the title block with region=[x0, y0, x1, y1] (the right-hand column) to 
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `paper` | `A0` \| `A1` \| `A2` \| `A3` \| `A4` | no | Paper size to draw Default: `A3`. |
+| `paper` | `A0` \| `A1` \| `A2` \| `A3` \| `A4` | no | Paper size: A0, A1, A2, A3, A4 Default: `A3`. |
 | `profile_id` | string | no | Company profile id, e.g. 'acme'; company_list shows them. Omit to use the profile of project_id, or 'default'. |
 | `project_id` | string | no | Use this project's company profile when profile_id is omitted |
 | `region` | list of number | no | Crop [x0, y0, x1, y1] in sheet mm from the lower-left corner; omit for the whole sheet |

@@ -193,7 +193,7 @@ async def test_catalog_tools(c):
     spec = await c.call("catalog_get", id=INVERTER)
     assert spec["id"] == INVERTER and spec["kind"] == "inverter" and "source" in spec
     assert "no catalog entry" in await c.fail("catalog_get", id="growatt-max-100")
-    assert "unknown kind" in await c.fail("catalog_search", kind="widget")
+    assert "Input should be 'module', 'inverter'" in await c.fail("catalog_search", kind="widget")
     res = json.loads((await c.session.read_resource("unicad://catalog/meter")).contents[0].text)
     assert res["kind"] == "meter" and res["count"] == len(res["rows"]) > 0
 

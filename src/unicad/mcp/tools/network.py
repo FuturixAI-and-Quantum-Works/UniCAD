@@ -7,11 +7,12 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from unicad.domain.network import SPEC_KINDS, AttrValue, Edge, Group, Laying, Node, NodeKind, Service
+from unicad.domain.network import SPEC_KINDS, AttrValue, Edge, Group, Node, Service
 from unicad.domain.project import Project
 from unicad.mcp.advisories import advisories
 from unicad.mcp.errors import guarded
 from unicad.mcp.inference import infer_service
+from unicad.mcp.schema import LayingArg, NodeKindArg, field_hints, values
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Workspace
 
@@ -82,7 +83,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def network_add_node(
         project_id: ProjectIdArg,
         id: Annotated[str, Field(description="Unique id for this equipment template, e.g. 'inv'")],
-        kind: Annotated[NodeKind, Field(description="Equipment kind")],
+        kind: NodeKindArg,
         spec: Annotated[str | None, Field(description="Catalog id from catalog_search (module, inverter, breaker, ...)")] = None,
         count: Annotated[int, Field(ge=1, description="Instances per instance of its group, e.g. 10 strings per inverter")] = 1,
         group: Annotated[str | None, Field(description="Id of the group it repeats with")] = None,
@@ -91,7 +92,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         modules_in_series: Annotated[int | None, Field(gt=0, description="Modules per string; pv_string only")] = None,
         ports: Annotated[list[str] | None, Field(description="Override port names; defaults depend on kind (inverter: dc, ac)")] = None,
         attributes: Annotated[dict[str, AttrValue] | None, Field(description="Free label/value pairs shown on drawings, e.g. {\"rating_a\": 250}")] = None,
-        title: str | None = None,
+        title: Annotated[str | None, Field(description="Box title on the SLD")] = None,
         symbol: Annotated[str | None, Field(description="Override the drawing symbol key")] = None,
     ) -> dict[str, Any]:
         """Add an equipment node. Ports are named per kind: pv_string out; inverter dc, ac; transformer lv, hv; most others in, out.
@@ -123,13 +124,13 @@ def register(server: MCPServer, ws: Workspace) -> None:
         project_id: ProjectIdArg,
         src: Annotated[str, Field(description="Source terminal 'node_id:port'; power flows from src to dst (generation towards grid)")],
         dst: Annotated[str, Field(description="Destination terminal 'node_id:port'")],
-        service: Annotated[Service | None, Field(description="Circuit type; inferred from the ports and nodes when unambiguous, else required")] = None,
+        service: Annotated[Service | None, Field(description=f"Circuit type ({values(Service)}); inferred from the ports and nodes when unambiguous, else required")] = None,
         cable: Annotated[str | None, Field(description="Cable catalog id from catalog_search(kind='cable')")] = None,
         length_m: Annotated[float | None, Field(gt=0, description="Route length in metres, per instance")] = None,
         runs: Annotated[int, Field(ge=1, description="Parallel cables per connection")] = 1,
-        laying: Laying | None = None,
+        laying: LayingArg = None,
         derating: Annotated[float | None, Field(gt=0, le=1, description="Installation derating factor, e.g. 0.8")] = None,
-        remarks: str | None = None,
+        remarks: Annotated[str | None, Field(description="Free text shown in the cable schedule remarks")] = None,
         edge_id: Annotated[str | None, Field(description="Id for the connection; default 'e_<src>_<dst>'")] = None,
     ) -> dict[str, Any]:
         """Connect two nodes. Instances pair up by group: equal counts connect one to one, a count of 1 fans in or out.
@@ -161,12 +162,18 @@ def register(server: MCPServer, ws: Workspace) -> None:
     def network_update(
         project_id: ProjectIdArg,
         id: Annotated[str, Field(description="Id of an existing node, connection (edge) or group")],
-        fields: Annotated[dict[str, Any], Field(description="Fields to change; null clears a field. For `attributes` the given keys are merged (null removes a key).")],
+        fields: Annotated[
+            dict[str, Any],
+            Field(
+                description="Fields to change; null clears a field. For `attributes` the given keys are merged (null removes a key). Enum-valued fields: kind (node), service and laying (edge).",
+                json_schema_extra={"properties": field_hints()},
+            ),
+        ],
     ) -> dict[str, Any]:
         """Change fields of an existing node, connection or group. The id itself cannot change.
 
-        Node fields: tag, kind, spec, symbol, count, group, voltage_v, modules_in_series, ports, attributes, title.
-        Edge fields: src, dst, service, cable, runs, length_m, laying, derating, remarks. Group fields: tag, count, within, title.
+        Node fields: tag, kind, spec, symbol, count, group, voltage_v (V), modules_in_series, ports, attributes, title.
+        Edge fields: src, dst, service, cable, runs, length_m (m), laying, derating, remarks. Group fields: tag, count, within, title.
         Example: network_update(project_id="p1", id="e_inv_acdb", fields={"length_m": 30}).
         Changing a group count can invalidate member tags; update those tags in the same session."""
 

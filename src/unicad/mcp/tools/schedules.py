@@ -86,7 +86,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         """Write the cable schedule: one row per cable with Indian-EPC positional id, from/to, cable, runs, +ve/-ve lengths, laying, design current, derated ampacity, % voltage drop and power loss.
 
         Voltage drop, current and ampacity come from the rules engine, so they match `validate`. Lengths the network states are used as given; the rest are estimated from the array layout
-        (Manhattan route along the table rows plus drops and termination allowance, all reported as assumptions). Returns the file paths, totals, the worst-path voltage drop, the length source counts and any cable the schedule could not complete.
+        (Manhattan route along the table rows plus drops and termination allowance, all reported as assumptions). Units: lengths and `cable_m` totals in metres, design current Ib and ampacity Iz in A, voltage drop in %, power loss in W.
+        When the network's stored length is the worst-case route the cable was sized for (as network_autobuild stores it), each cable row carries its own routed length from the layout, not that worst case.
+        Returns the file paths, totals, the worst-path voltage drop, the length source counts and any cable the schedule could not complete.
         Example: cable_schedule(project_id="rooftop-500kwp", format="pdf", lengths="estimated")."""
         project, rev = ws.load(project_id, revision)
         schedule = build_schedule(project, ws.catalog, LengthMode(lengths), _assumptions(drop_per_end_m, termination_m, switchyard_x, switchyard_y))
@@ -114,9 +116,11 @@ def register(server: MCPServer, ws: Workspace) -> None:
         revision: RevisionArg = None,
     ) -> dict[str, Any]:
         """Write the bill of materials: modules, inverters, combiner boxes, transformers, breakers, isolators, SPDs, meters and panels from the network expansion, cable metres by catalog type with wastage,
-        and MC4 connectors, lugs, glands and MV termination kits counted per termination of the cable schedule.
+        and MC4 connectors, lugs, glands and MV termination kits counted per termination of the cable schedule. When the project has earthing and lightning designs, it also lists their material as those designs count it:
+        earth pits by type (nos), GS flat by size and use (m, plan length), ESE terminals and their masts (nos).
 
-        Returns the file paths, the headline quantities and the assumptions behind every derived count. Cable metres use the same `lengths` basis as cable_schedule.
+        Units: cable in metres, equipment, pits, terminals and masts in nos, MC4 in pairs, MV termination kits in sets. Returns the file paths, the headline quantities and the assumptions behind every derived count.
+        Cable metres use the same `lengths` basis as cable_schedule.
         Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5)."""
         project, rev = ws.load(project_id, revision)
         schedule = build_schedule(project, ws.catalog, LengthMode(lengths))

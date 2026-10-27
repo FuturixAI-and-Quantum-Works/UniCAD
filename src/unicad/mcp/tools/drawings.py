@@ -9,6 +9,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import DrawingKind
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
 from unicad.render import RenderError, preview
@@ -50,7 +51,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def drawings_render(
         project_id: ProjectIdArg,
-        kinds: Annotated[list[str], Field(description=f"Drawing kinds to include, in set order, or 'all' for the complete set. Available: {list(ALL_KINDS)}")] = ["sld"],  # noqa: B006
+        kinds: Annotated[list[DrawingKind], Field(description=f"Drawing kinds to include, in set order, or 'all' for the complete set. Available: {['all', *ALL_KINDS]}")] = ["sld"],  # noqa: B006
         formats: Annotated[list[Format], Field(description="Files per sheet: dxf (always written), pdf (LibreCAD, plus one merged set PDF), dwg")] = ["dxf", "pdf", "dwg"],  # noqa: B006
         revision: RevisionArg = None,
     ) -> dict[str, Any]:
@@ -79,7 +80,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             Field(min_length=4, max_length=4, description="Crop [x0, y0, x1, y1] in sheet mm from the lower-left corner; omit for the whole sheet"),
         ] = None,
         px: Annotated[int, Field(ge=200, le=6000, description="Pixels on the long side of the image")] = 1600,
-        kinds: Annotated[list[str], Field(description="Drawing kinds of the set, when it has to be rendered first")] = ["sld"],  # noqa: B006
+        kinds: Annotated[list[DrawingKind], Field(description=f"Drawing kinds of the set, when it has to be rendered first: {['all', *ALL_KINDS]}")] = ["sld"],  # noqa: B006
         revision: RevisionArg = None,
     ) -> dict[str, Any]:
         """PNG of one sheet (or a region of it) rasterised from the same PDF that goes into the issued set; renders the set first

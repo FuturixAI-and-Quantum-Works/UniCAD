@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, get_args
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -6,10 +6,11 @@ from pydantic import Field
 
 from unicad.catalog.store import power
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import CatalogKind, CatalogKindArg
 from unicad.mcp.workspace import Workspace
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
-KINDS = ("module", "inverter", "battery", "pcs", "transformer", "cable", "protection", "meter")
+KINDS = get_args(CatalogKind)
 KeyFields = {
     "module": ("pmax", "voc", "vmp", "isc", "imp", "tech", "almm_listed"),
     "inverter": ("topology", "ac_rated_kva", "ac_voltage", "mppt_count", "mppt_min", "mppt_max", "dc_max_voltage"),
@@ -36,11 +37,11 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @guarded
     def catalog_search(
         text: Annotated[str, Field(description="Words that must all appear in id, kind, manufacturer or model, e.g. 'growatt 100'")] = "",
-        kind: Annotated[str | None, Field(description=f"One of: {', '.join(KINDS)}")] = None,
+        kind: CatalogKindArg = None,
         manufacturer: Annotated[str | None, Field(description="Exact manufacturer name, case-insensitive")] = None,
         min_power: Annotated[float | None, Field(description="Inclusive lower bound: W for modules, kVA for inverter, pcs and transformer")] = None,
         max_power: Annotated[float | None, Field(description="Inclusive upper bound, same units as min_power")] = None,
-        limit: Annotated[int, Field(ge=1, le=200)] = 20,
+        limit: Annotated[int, Field(ge=1, le=200, description="Maximum rows returned, number")] = 20,
     ) -> dict[str, Any]:
         """Find equipment in the catalog; returns compact rows with the key ratings. Use the row `id` as a node `spec` or edge `cable`.
 

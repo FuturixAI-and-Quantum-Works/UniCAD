@@ -15,6 +15,7 @@ from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sheets.render import render_sheet
 from unicad.drafting.sld.sheet import save_deterministic
 from unicad.mcp.errors import guarded
+from unicad.mcp.schema import PaperArg
 from unicad.mcp.tools.params import ProjectIdArg
 from unicad.mcp.workspace import Edit, Workspace
 from unicad.render import RenderError, preview
@@ -141,7 +142,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
     @server.tool(annotations=WRITES)
     @guarded
     def company_preview_sheet(
-        paper: Annotated[PaperSize, Field(description="Paper size to draw")] = PaperSize.A3,
+        paper: PaperArg = PaperSize.A3,
         profile_id: ProfileIdArg = None,
         project_id: OptionalProjectArg = None,
         region: Annotated[list[float] | None, Field(min_length=4, max_length=4, description="Crop [x0, y0, x1, y1] in sheet mm from the lower-left corner; omit for the whole sheet")] = None,

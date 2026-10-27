@@ -750,9 +750,17 @@ cable_schedule(project_id="pune-midc-factory-roof")
   "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-cable-schedule.xlsx"],
   "rows": 31,
-  "totals": {"rows": 31.0, "cable_m": 4301.4, "loss_w": 7657.83, "cable_m_dc": 3986.4, "cable_m_lv_ac": 315.0},
-  "length_sources": {"network": 31},
-  "warnings": []
+  "totals": {
+    "rows": 31.0,
+    "cable_m": 2831.31,
+    "loss_w": 6067.59,
+    "cable_m_dc": 2516.31,
+    "cable_m_lv_ac": 315.0
+  },
+  "length_sources": {"estimated": 24, "network": 7},
+  "warnings": [
+    "The main LT panel collecting the inverters is not located in the project; it is assumed at the centroid of..."
+  ]
 }
 ```
 
@@ -769,12 +777,12 @@ bom(project_id="pune-midc-factory-roof")
   "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-bom.xlsx"],
   "summary": {
-    "lines": 31,
+    "lines": 38,
     "modules": 440.0,
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 4517.0
+    "cable_m_ordered": 2974.0
   },
   "warnings": []
 }
