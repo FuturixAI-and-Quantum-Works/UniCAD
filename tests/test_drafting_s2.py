@@ -214,3 +214,41 @@ def test_rv_m4_the_inverter_to_logger_link_is_drawn_as_a_communication_line():
     text = words(b.doc)
     assert legend_lines and "COMMUNICATION LINK (DATA CABLE)" in text
     assert "RS-485 DAISY CHAIN THROUGH ALL 12 INVERTERS TO THE DATA LOGGER" in text
+
+
+# ---------------- RV-M3: the LT plant layout shows the ACCB, the client panel and their cable route, and no stations ----------------
+
+
+def test_rv_m3_a_stationless_lt_plant_draws_no_indicative_stations_and_shows_the_accb():
+    doc = built(rvunl(), "layout")[0].doc
+    names = {i.dxf.name for i in doc.modelspace().query("INSERT")}
+    text = words(doc)
+    assert not any("INVERTER" in n.upper() and "LAYOUT" in n.upper() for n in names), names
+    assert "INDICATIVE" not in text and "INVERTER STATION" not in text
+    assert "ACCB-01" in text and "BLOCK-07" in text
+
+
+def test_rv_m3_panels_the_layout_places_are_drawn_with_their_cable_route(monkeypatch):
+    import unicad.routing
+    from types import SimpleNamespace
+    from unicad.domain.layout import PlacedEquipment, Point
+
+    p = rvunl()
+    layout = p.array_layout
+    accb = PlacedEquipment(node="acdb", tag="ACCB-01", kind="acdb", at=Point(x=12, y=60), basis="test")
+    mbp = PlacedEquipment(node="poi", tag="POI-01", kind="poi_grid", at=Point(x=8, y=20), basis="test")
+    p = p.model_copy(update={"array_layout": layout.model_copy(update={"equipment": (*layout.equipment, accb, mbp)})})
+    route = SimpleNamespace(edge="e_ct_poi", from_tag="ACCB-01", to_tag="POI-01", points=((12, 60), (12, 20), (8, 20)), length_m=44.0)
+    monkeypatch.setattr(unicad.routing, "panel_routes", lambda project: [route], raising=False)
+    doc = built(p, "layout")[0].doc
+    text = words(doc)
+    assert "ACCB-01" in text and "POI-01" in text
+    assert "ACCB-01 TO POI-01: 9R x 3.5C x 300 sq.mm" in text and "CABLE ROUTE BETWEEN PANELS" in text
+    assert [e for e in doc.modelspace() if e.dxf.layer == "L-CABLE-ROUTE" and e.dxftype() == "LWPOLYLINE"]
+
+
+def test_rv_m3_a_plant_with_stations_keeps_them():
+    from test_fence_clearance import load
+
+    text = words(built(load("thar_45mw"), "layout")[0].doc)
+    assert "INVERTER STATION (INDICATIVE LOCATION)" in text

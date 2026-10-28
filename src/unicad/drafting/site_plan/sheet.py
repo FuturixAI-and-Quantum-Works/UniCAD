@@ -75,11 +75,14 @@ L_STATION = _LayerDef("L-STATION", 7, 25)
 L_LABEL = _LayerDef("L-LABEL", 7, 18)
 L_MASK = _LayerDef("L-MASK", 7, MIN_LINEWEIGHT)
 L_DIM = _LayerDef("L-DIM", 7, 18)
+L_ROUTE = _LayerDef("L-CABLE-ROUTE", 30, 50)
 COMPACT = frozenset({FeatureKind.ROOF, FeatureKind.OBSTACLE, FeatureKind.BUILDING, FeatureKind.EXISTING_STRUCTURE})
+PANEL_KINDS = frozenset({"acdb", "lt_panel", "poi_grid", "ht_panel"})
+ROUTE_LEGEND = "line.route"
 KEEP_CLEAR = frozenset({FeatureKind.TRANSMISSION_LINE, FeatureKind.WATER, FeatureKind.EXCLUSION, FeatureKind.ROAD})
 """Site features a station label keeps off, so a tag never reads as standing in a line corridor, a pond or on a road."""
 LAYERS = (L_BOUNDARY, L_ROOF, L_ROAD, L_ROAD_FILL, L_WATER, L_WATER_FILL, L_EXCL, L_EXCL_FILL, L_TLINE, L_OBST, L_TABLE, L_BLOCK, L_STATION,
-          L_LABEL, L_MASK, L_DIM)  # fmt: skip
+          L_LABEL, L_MASK, L_DIM, L_ROUTE)  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -88,6 +91,14 @@ class EquipmentArea:
 
     name: str
     outline: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True)
+class CableRoute:
+    """A cable route between two pieces of equipment the layout places (the ACCB and the client panel), in site metres."""
+
+    label: str
+    points: tuple[tuple[float, float], ...]
 
 
 @dataclass(frozen=True)
@@ -103,6 +114,7 @@ class LayoutDrawing:
     roads: tuple[RoadLine, ...] = ()
     notes: tuple[str, ...] = ()
     areas: tuple[EquipmentArea, ...] = ()
+    routes: tuple[CableRoute, ...] = ()
 
     @classmethod
     def from_result(cls, site: SiteGeometry, result: PlacementResult, module: ModuleSpec, table_gap_m: float | None = None, notes: Sequence[str] = ()) -> "LayoutDrawing":
@@ -320,8 +332,8 @@ class LayoutSheetWriter:
         tb = self.sheet.title_block.model_copy(update={"scale": f"1:{scale}"})
         notes = self.sheet.notes or self.d.notes
         spec = self.sheet.model_copy(update={"title_block": tb, "notes": notes, "legend": self.sheet.legend or self._legend_entries()})
-        rendered = render_sheet(self.doc, spec, self.profile, legend_drawer(self.msp))
         self._layers()
+        rendered = render_sheet(self.doc, spec, self.profile, legend_drawer(self.msp))
         self.cv = Canvas(self.doc, self.profile)
         P = _Plan(bounds, plan_room, scale)
         self._placer(plan_room)
@@ -329,6 +341,7 @@ class LayoutSheetWriter:
         self._tables(P)
         self._blocks(P)
         self._equipment(P)
+        self._routes(P)
         self._areas(P)
         self._feature_labels(P, compact=False)
         self._block_outlines(P)
@@ -352,7 +365,10 @@ class LayoutSheetWriter:
         if any(b.station for b in self.d.layout.blocks):
             out.append(("layout.inverter", "INVERTER STATION (INDICATIVE LOCATION)"))
         if self.d.layout.equipment:
-            out.append(("layout.field_equipment", "FIELD EQUIPMENT (INVERTER, SCB, BESS, PCS, TRANSFORMER) AT ITS DESIGN POSITION, TAGGED"))
+            kinds = "INVERTER, SCB, BESS, PCS, TRANSFORMER" + (", LT PANEL" if any(e.kind in PANEL_KINDS for e in self.d.layout.equipment) else "")
+            out.append(("layout.field_equipment", f"FIELD EQUIPMENT ({kinds}) AT ITS DESIGN POSITION, TAGGED"))
+        if self.d.routes:
+            out.append((ROUTE_LEGEND, "CABLE ROUTE BETWEEN PANELS (INDICATIVE)"))
         out.append(("ann.north", "GRID NORTH"))
         return tuple(out)
 
@@ -555,11 +571,15 @@ class LayoutSheetWriter:
             colour = self.colours[b.id]
             if multi and b.boundary:
                 self._dashed(P.ring([(p.x, p.y) for p in b.boundary]), L_BLOCK.name, 2.2 * th / 3.5, 1.0 * th / 3.5, colour=colour)
-            if b.station is None:
-                continue
             kwp = sum(t.slot_count for t in b.tables) * self.d.module.pmax / 1000
             lines = (b.name, f"{kwp / 1000:.3f} MWp" if kwp >= 1000 else f"{kwp:.2f} kWp")
             hs = (0.85 * th, 0.7 * th)
+            if b.station is None:
+                if multi and b.tables:
+                    c = unary_union([Polygon(table_corners(t)) for t in b.tables]).centroid
+                    at = P(c.x, c.y)
+                    stations.append((b, lines, hs, at, Region(at[0], at[1], at[0], at[1]), colour))
+                continue
             x, y = P(b.station.x, b.station.y)
             w, h = sym.width * s, sym.height * s
             icon = Region(x - w / 2 - 0.25 * th, y - h / 2 - 0.25 * th, x + w / 2 + 0.25 * th, y + h / 2 + 0.25 * th)
@@ -712,6 +732,14 @@ class LayoutSheetWriter:
                 return []
             d += step
         return list(items)
+
+    def _routes(self, P: _Plan) -> None:
+        th = self.m.th
+        for r in self.d.routes:
+            pts = [P(x, y) for x, y in r.points]
+            self._poly(pts, L_ROUTE.name, closed=False)
+            (ax, ay), (bx, by) = max(zip(pts, pts[1:]), key=lambda s: math.dist(*s))
+            self._label_text([r.label], ((ax + bx) / 2, (ay + by) / 2), 0.5 * th, 0.3 * th, f"route {r.label}", layer=L_ROUTE.name, mask=True)
 
     def _areas(self, P: _Plan) -> None:
         th = self.m.th
