@@ -28,6 +28,16 @@
       {"code": "DG M WE 600 FM", "part_no": "952 307", "poles": 3, "uc_vac": 600, "in_ka": 15, "imax_ka": 25, "up_kv": 3.0, "max_backup_fuse_a": 100, "remote_signalling": "changeover contact"}
     ]
   },
+  "spd_ac_dehn_it": {
+    "source": "raw/datasheets/protection/DEHN_Surge_Protection_catalogue_E2_2020.pdf",
+    "pdf_page": 70,
+    "standard": "EN 61643-11 / IEC 61643-11",
+    "note": "DEHNguard SE H 1000 FM: pluggable single-pole type 2 arrester 'specifically designed for higher system voltages' (catalogue p.68, pdf p.70). Three units, one from each phase conductor to PE, make the '3 - 0' circuit the DEHN Lightning Protection Guide (DS702/E 2014, printed p.233, Figure 8.1.5.2a) shows for IT systems without a distributed neutral, where the phase-to-PE Uc must be >= 1.1 x U(L-L).",
+    "it_requirement": {"source": "raw/datasheets/protection/DEHN_Lightning_Protection_Guide_DS702_E_2014_ipd-flipbook_page234.html", "url": "https://resources.ipd.com.au/Flipbook/35_DS702_E_2014_Lightning_Protection_Guide/files/basic-html/page234.html", "printed_page": 233, "figure": "8.1.5.2a", "text": "Phase conductor to PE: Uc >= 1.1 x U L-L", "context": "page233.html (printed p.232): after the first fault in an IT system the voltage of the intact conductors to earth corresponds to the voltage between the phase conductors"},
+    "variants": [
+      {"code": "DG SE H 1000 FM", "part_no": "952 938", "units": 3, "poles": 3, "uc_vac": 1000, "in_ka": 20, "imax_ka": 40, "up_kv": 4.5, "max_backup_fuse_a": 100, "remote_signalling": "changeover contact"}
+    ]
+  },
   "pt_33kv": {
     "source": "raw/datasheets/protection/WBSEDCL_33kV_PT_spec.pdf",
     "pdf_page": 6,

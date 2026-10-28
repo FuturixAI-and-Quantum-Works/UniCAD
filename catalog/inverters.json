@@ -6,7 +6,7 @@
     "symbol": "inv.string",
     "source": {
       "kind": "datasheet",
-      "ref": "raw/datasheets/inverters/Growatt_MAX100KTL3-X-LV_DS_thirdparty-liriksolar.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 10",
+      "ref": "raw/datasheets/inverters/Growatt_MAX100KTL3-X-LV_DS_thirdparty-liriksolar.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 10; AC terminal from p.2: 'AC connection: OT Terminal (Max. 240mm²)'; cables per pole not stated",
       "retrieved": "2026-10-26"
     },
     "kind": "inverter",
@@ -26,7 +26,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": 240.0,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "growatt-min-3000tl-x",
@@ -55,7 +57,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.982
+    "max_efficiency": 0.982,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "growatt-min-5000tl-x",
@@ -84,7 +88,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9840000000000001
+    "max_efficiency": 0.9840000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "growatt-min-6000tl-x",
@@ -113,7 +119,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9840000000000001
+    "max_efficiency": 0.9840000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "growatt-mod-3000tl3-x",
@@ -142,7 +150,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.983
+    "max_efficiency": 0.983,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "growatt-mod-6000tl3-x",
@@ -171,7 +181,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.983
+    "max_efficiency": 0.983,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "growatt-mod-9000tl3-x",
@@ -200,7 +212,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.986
+    "max_efficiency": 0.986,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "havells-enviro-gti-11000tx",
@@ -229,7 +243,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "havells-enviro-gti-3000-ng",
@@ -258,7 +274,9 @@
     "dc_input_count": 1,
     "max_dc_input_current": 12.0,
     "max_dc_short_circuit_current": 15.0,
-    "max_efficiency": 0.977
+    "max_efficiency": 0.977,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "havells-enviro-gti-5000-d",
@@ -287,7 +305,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.98
+    "max_efficiency": 0.98,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "havells-enviro-gti-6600tx",
@@ -316,7 +336,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "huawei-sun2000-100ktl-m2",
@@ -345,7 +367,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.986
+    "max_efficiency": 0.986,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "huawei-sun2000-330ktl-h1",
@@ -354,7 +378,7 @@
     "symbol": "inv.string",
     "source": {
       "kind": "datasheet",
-      "ref": "raw/datasheets/inverters/Huawei_SUN2000-330KTL-H1_DS.pdf p.1; references/catalog-sources/extracted/inverter_datasheets.csv row 8; inputs per MPPT differ between trackers; smallest used",
+      "ref": "raw/datasheets/inverters/Huawei_SUN2000-330KTL-H1_DS.pdf p.1; references/catalog-sources/extracted/inverter_datasheets.csv row 8; inputs per MPPT differ between trackers; smallest used; AC terminal from p.1: 'AC Connector: Support OT / DT Terminal (Max. 400 mm²)'; cables per pole not stated",
       "retrieved": "2026-10-26"
     },
     "kind": "inverter",
@@ -374,7 +398,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9903
+    "max_efficiency": 0.9903,
+    "ac_terminal_max_mm2": 400.0,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "polycab-psis-3k0",
@@ -403,7 +429,9 @@
     "dc_input_count": 1,
     "max_dc_input_current": 20.0,
     "max_dc_short_circuit_current": 30.0,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "polycab-psis-5k-sm2",
@@ -432,7 +460,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.982
+    "max_efficiency": 0.982,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "polycab-psit-10k-sm2",
@@ -461,7 +491,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.982
+    "max_efficiency": 0.982,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "polycab-psit-5k-sm2",
@@ -490,7 +522,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.982
+    "max_efficiency": 0.982,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "polycab-psit10ksm1r2",
@@ -519,7 +553,9 @@
     "dc_input_count": 1,
     "max_dc_input_current": 20.0,
     "max_dc_short_circuit_current": 30.0,
-    "max_efficiency": 0.978
+    "max_efficiency": 0.978,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sma-sc-4000-up",
@@ -548,7 +584,9 @@
     "dc_input_count": 24,
     "max_dc_input_current": 4750.0,
     "max_dc_short_circuit_current": 8400.0,
-    "max_efficiency": 0.988
+    "max_efficiency": 0.988,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sma-sc-4400-up",
@@ -577,7 +615,9 @@
     "dc_input_count": 24,
     "max_dc_input_current": 4750.0,
     "max_dc_short_circuit_current": 8400.0,
-    "max_efficiency": 0.988
+    "max_efficiency": 0.988,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sma-sc-4600-up",
@@ -606,7 +646,9 @@
     "dc_input_count": 24,
     "max_dc_input_current": 4750.0,
     "max_dc_short_circuit_current": 8400.0,
-    "max_efficiency": 0.9890000000000001
+    "max_efficiency": 0.9890000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "solis-s5-gc100k",
@@ -615,7 +657,7 @@
     "symbol": "inv.string",
     "source": {
       "kind": "datasheet",
-      "ref": "raw/datasheets/inverters/Solis_S5-GC100-110K_DS.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 9",
+      "ref": "raw/datasheets/inverters/Solis_S5-GC100-110K_DS.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 9; AC terminal from p.2: 'AC connection: OT terminal (max. 185 mm²)'; cables per pole not stated",
       "retrieved": "2026-10-26"
     },
     "kind": "inverter",
@@ -635,7 +677,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.987
+    "max_efficiency": 0.987,
+    "ac_terminal_max_mm2": 185.0,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "solis-s6-gr1p1k-m",
@@ -664,7 +708,9 @@
     "dc_input_count": 1,
     "max_dc_input_current": 14.0,
     "max_dc_short_circuit_current": 22.0,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "solis-s6-gr1p3k",
@@ -693,7 +739,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "solis-s6-gr1p3k-m",
@@ -722,7 +770,9 @@
     "dc_input_count": 2,
     "max_dc_input_current": 19.0,
     "max_dc_short_circuit_current": 24.0,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "solis-s6-gr1p5k",
@@ -751,7 +801,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "solis-s6-gr1p6k",
@@ -780,7 +832,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": null
+    "max_efficiency": null,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg10rt",
@@ -809,7 +863,9 @@
     "dc_input_count": 3,
     "max_dc_input_current": 37.5,
     "max_dc_short_circuit_current": 48.0,
-    "max_efficiency": 0.985
+    "max_efficiency": 0.985,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg110cx",
@@ -818,7 +874,7 @@
     "symbol": "inv.string",
     "source": {
       "kind": "datasheet",
-      "ref": "raw/datasheets/inverters/Sungrow_SG110CX_DS_V1.21.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 2",
+      "ref": "raw/datasheets/inverters/Sungrow_SG110CX_DS_V1.21.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 2; AC terminal from p.2: 'AC connection type: OT terminal (Max. 240 mm²)'; cables per pole not stated",
       "retrieved": "2026-10-26"
     },
     "kind": "inverter",
@@ -838,7 +894,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.987
+    "max_efficiency": 0.987,
+    "ac_terminal_max_mm2": 240.0,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg110cx-p2",
@@ -847,7 +905,7 @@
     "symbol": "inv.string",
     "source": {
       "kind": "datasheet",
-      "ref": "raw/datasheets/inverters/Sungrow_SG110CX-P2_DS_V3.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 3",
+      "ref": "raw/datasheets/inverters/Sungrow_SG110CX-P2_DS_V3.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 3; AC terminal from p.2: 'AC connection type: OT / DT terminal (Max. 240 mm²)'; cables per pole not stated",
       "retrieved": "2026-10-26"
     },
     "kind": "inverter",
@@ -867,7 +925,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.985
+    "max_efficiency": 0.985,
+    "ac_terminal_max_mm2": 240.0,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg3.0rs",
@@ -896,7 +956,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9790000000000001
+    "max_efficiency": 0.9790000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg3125hv-30",
@@ -925,7 +987,9 @@
     "dc_input_count": 18,
     "max_dc_input_current": 3997.0,
     "max_dc_short_circuit_current": 10000.0,
-    "max_efficiency": 0.99
+    "max_efficiency": 0.99,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg3125hv-mv-20",
@@ -954,7 +1018,9 @@
     "dc_input_count": 21,
     "max_dc_input_current": 4178.0,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.99
+    "max_efficiency": 0.99,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg350hx",
@@ -963,7 +1029,7 @@
     "symbol": "inv.string",
     "source": {
       "kind": "datasheet",
-      "ref": "raw/datasheets/inverters/Sungrow_SG350HX_DS_V20.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 4",
+      "ref": "raw/datasheets/inverters/Sungrow_SG350HX_DS_V20.pdf p.2; references/catalog-sources/extracted/inverter_datasheets.csv row 4; AC terminal from p.2: 'AC connection type: Support OT/DT terminal (Max. 400 mm²)'; cables per pole not stated",
       "retrieved": "2026-10-26"
     },
     "kind": "inverter",
@@ -983,7 +1049,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9902
+    "max_efficiency": 0.9902,
+    "ac_terminal_max_mm2": 400.0,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg5.0rs",
@@ -1012,7 +1080,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9790000000000001
+    "max_efficiency": 0.9790000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg5.0rt",
@@ -1041,7 +1111,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9840000000000001
+    "max_efficiency": 0.9840000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg6.0rs",
@@ -1070,7 +1142,9 @@
     "dc_input_count": null,
     "max_dc_input_current": null,
     "max_dc_short_circuit_current": null,
-    "max_efficiency": 0.9790000000000001
+    "max_efficiency": 0.9790000000000001,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   },
   {
     "id": "sungrow-sg8.0rt",
@@ -1099,6 +1173,8 @@
     "dc_input_count": 3,
     "max_dc_input_current": 37.5,
     "max_dc_short_circuit_current": 48.0,
-    "max_efficiency": 0.985
+    "max_efficiency": 0.985,
+    "ac_terminal_max_mm2": null,
+    "ac_terminal_cables_per_pole": null
   }
 ]
