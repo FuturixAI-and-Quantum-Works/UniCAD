@@ -510,6 +510,9 @@ def _bess_rows(project: Project, catalog: Catalog | None) -> list[tuple[str, str
         rows.append(("BESS ENERGY AS BUILT", _fmt_power(kwh, "Wh")))
     asked_kw = next((n.attributes.get(BESS_KW_ASKED) for n in pcs if n.attributes.get(BESS_KW_ASKED)), None)
     asked_kwh = next((n.attributes.get(BESS_KWH_ASKED) for n in pcs if n.attributes.get(BESS_KWH_ASKED)), None)
+    if (rating := getattr(project.design_basis, "bess", None)) is not None:
+        kva, kwh, asked_kw, asked_kwh = rating.built_kva, rating.built_kwh, rating.brief_kw, rating.brief_kwh
+        rows = [("BESS POWER AS BUILT (PCS RATED)", _fmt_power(kva, "VA")), ("BESS ENERGY AS BUILT", _fmt_power(kwh, "Wh"))]
     differs = (asked_kw and abs(kva / asked_kw - 1) > 1e-3) or (asked_kwh and abs(kwh / asked_kwh - 1) > 1e-3)
     if differs:
         asked = " / ".join(x for x in (_fmt_power(asked_kw, "W") if asked_kw else None, _fmt_power(asked_kwh, "Wh") if asked_kwh else None) if x)
