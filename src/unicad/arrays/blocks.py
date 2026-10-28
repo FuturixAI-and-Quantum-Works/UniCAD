@@ -19,6 +19,9 @@ CONCAVE_RATIO = 0.25
 CUT_SLACK = 0.02
 WIDE_GAP_RATIO = 2.5
 REGION_BALANCE = 0.10
+KEEP_OUT_BALANCE = 0.40
+"""How far apart (largest minus smallest mean block over the plant mean) blocks may be to keep every block off the far side of a keep-out
+corridor (a transmission line) before blocks are joined across it. An engineering assumption, not a cited figure."""
 MAX_GROWTH = 1.5
 SWAP_WINDOW = 40
 
@@ -261,11 +264,12 @@ def roof_station(tables: Sequence[Table], weights: Sequence[float], site: SiteGe
     return clear or Point(x=round(q.x, 3), y=round(q.y, 3))
 
 
-def corridors(site: SiteGeometry) -> list[tuple[str, BaseGeometry]]:
-    """Linear corridors that a block should not straddle: transmission line corridors and roads with a width, by feature id."""
+def corridors(site: SiteGeometry, keep_out_only: bool = False) -> list[tuple[str, BaseGeometry]]:
+    """Linear corridors that a block should not straddle: transmission line corridors and roads with a width, by feature id. A transmission
+    line corridor is a keep-out (cables do not run under the line); a road can be crossed, so `keep_out_only` leaves roads out."""
     out = []
     for f in site.features:
-        if f.kind is FeatureKind.TRANSMISSION_LINE or (f.kind is FeatureKind.ROAD and (f.polygon or f.width_m)):
+        if f.kind is FeatureKind.TRANSMISSION_LINE or (not keep_out_only and f.kind is FeatureKind.ROAD and (f.polygon or f.width_m)):
             g = shape_of(f)
             out.append((f.id, g if f.polygon else g.buffer((f.width_m or 1.0) / 2, cap_style="flat")))
     return out
@@ -297,9 +301,10 @@ def _extended(site: SiteGeometry, area: BaseGeometry, walls: list[tuple[str, Bas
     return out
 
 
-def regions(tables: Sequence[Table], site: SiteGeometry) -> list[list[int]]:
-    """Tables grouped by the part of the site they stand in once the corridors cut it (indices into `tables`)."""
-    walls = corridors(site)
+def regions(tables: Sequence[Table], site: SiteGeometry, keep_out_only: bool = False) -> list[list[int]]:
+    """Tables grouped by the part of the site they stand in once the corridors cut it (indices into `tables`); with `keep_out_only`, once only
+    the keep-out corridors (transmission lines) cut it."""
+    walls = corridors(site, keep_out_only)
     if not walls or len(tables) < 2:
         return [list(range(len(tables)))]
     bounds = [shape_of(f) for f in site.features if f.kind is FeatureKind.BOUNDARY and f.polygon]
@@ -330,6 +335,25 @@ def allocate(caps: Sequence[float], n: int, cap: float | None) -> list[int]:
         i = max(range(len(caps)), key=lambda i: (caps[i] / k[i], -i))
         k[i] += 1
     return k
+
+
+def allocate_even(caps: Sequence[float], n: int, cap: float | None) -> list[int] | None:
+    """The blocks per region (at least one each, at least enough to keep under `cap`) that makes block means closest, among the splits that sum to `n`;
+    None when there is none or too many regions to try."""
+    low = [max(1, math.ceil(c / cap - 1e-9)) if cap is not None else 1 for c in caps]
+    if len(caps) > 6 or sum(low) > n:
+        return None
+
+    def splits(i: int, left: int):
+        if i == len(caps) - 1:
+            if left >= low[i]:
+                yield [left]
+            return
+        for m in range(low[i], left - sum(low[i + 1 :]) + 1):
+            for rest in splits(i + 1, left - m):
+                yield [m, *rest]
+
+    return min(splits(0, n), key=lambda kk: (_spread(caps, kk), kk), default=None)
 
 
 def _spread(caps: Sequence[float], k: Sequence[int]) -> float:
@@ -368,6 +392,7 @@ def build_blocks(
     strings make, and a region too small for one inverter is left out."""
     notes = warnings if warnings is not None else []
     parts = regions(tables, site)
+    island_of = {i: k for k, g in enumerate(regions(tables, site, keep_out_only=True)) for i in g}
     whole = bool(units and quantum and trim)
     if whole and len(parts) > 1:
         small = [g for g in parts if sum(units[i] for i in g) < quantum]
@@ -398,17 +423,37 @@ def build_blocks(
             if sum(k) != n:
                 notes.append(f"{sum(k)} blocks instead of {n} so that no block crosses a road or line corridor and the blocks stay balanced")
             break
-        small = min(range(len(parts)), key=lambda i: (caps[i], i))
+        islands = [frozenset(island_of[i] for i in g) for g in parts]
+        same = {i: [j for j in range(len(parts)) if j != i and islands[j] & islands[i]] for i in range(len(parts))}
+        joinable = [i for i in same if same[i]]
+        across = not joinable
+        if across:
+            loose = next((kk for m in tries if (kk := allocate_even(caps, m, cap)) is not None and _spread(caps, kk) <= KEEP_OUT_BALANCE), None)
+            if loose is not None:
+                k = loose
+                means = [c / m for c, m in zip(caps, k)]
+                notes.append(
+                    f"blocks differ in capacity by {_spread(caps, k):.0%} ({min(means):,.0f} to {max(means):,.0f} kWp) so that none runs cable under a transmission line corridor: "
+                    f"the parts of the site on either side of it hold {', '.join(f'{c:,.0f} kWp' for c in caps)} (a spread up to {KEEP_OUT_BALANCE:.0%} is accepted, an assumption); the largest block holds {max(means):,.0f} kWp: pass n_blocks {n + 1} or block_dc_kwp to cap block size"
+                )
+                break
+            joinable = list(range(len(parts)))
+        small = min(joinable, key=lambda i: (caps[i], i))
         cx = [sum(table_centre(tables[i])[0] for i in g) / len(g) for g in parts]
         cy = [sum(table_centre(tables[i])[1] for i in g) / len(g) for g in parts]
-        near = min((j for j in range(len(parts)) if j != small), key=lambda j: (math.hypot(cx[j] - cx[small], cy[j] - cy[small]), j))
+        near = min(same[small] if not across else [j for j in range(len(parts)) if j != small], key=lambda j: (math.hypot(cx[j] - cx[small], cy[j] - cy[small]), j))
         parts[near] = sorted(parts[near] + parts[small])
         del parts[small]
-        notes.append(
-            "some blocks cross a road or line corridor: keeping every block to one side would leave blocks more than one inverter apart"
-            if whole
-            else f"some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than {REGION_BALANCE:.0%}"
-        )
+        if across:
+            notes.append(
+                f"some blocks cross a transmission line corridor (cable runs under it): keeping every block to one side would leave blocks more than {KEEP_OUT_BALANCE:.0%} apart in capacity"
+            )
+        else:
+            notes.append(
+                "some blocks cross a road or line corridor: keeping every block to one side would leave blocks more than one inverter apart"
+                if whole
+                else f"some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than {REGION_BALANCE:.0%}"
+            )
     groups: list[list[int]] = []
     for g, kk in zip(parts, k):
         sub = partition([tables[i] for i in g], [kwp[i] for i in g], kk, azimuth_deg, cap, [units[i] for i in g] if units else None, quantum)
