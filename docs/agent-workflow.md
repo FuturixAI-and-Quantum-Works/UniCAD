@@ -417,8 +417,14 @@ network_autobuild(
     "inverters": 2,
     "strings": 22
   },
-  "rules": {"error": 0, "warning": 1, "info": 21},
+  "rules": {"error": 0, "warning": 2, "info": 21},
   "findings": [
+    {
+      "rule_id": "cables.missing",
+      "severity": "warning",
+      "subjects": ["e_ct_poi"],
+      "message": "edge e_ct_poi (CT-02 -> POI-01) (lv_ac) has no cable or length_m; cable sizing and voltage drop are not che..."
+    },
     {
       "rule_id": "cables.missing",
       "severity": "warning",
@@ -450,9 +456,15 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 7,
-  "counts": {"error": 0, "warning": 1, "info": 21},
+  "counts": {"error": 0, "warning": 2, "info": 21},
   "blocking": false,
   "findings": [
+    {
+      "rule_id": "cables.missing",
+      "severity": "warning",
+      "subjects": ["e_ct_poi"],
+      "message": "edge e_ct_poi (CT-02 -> POI-01) (lv_ac) has no cable or length_m; cable sizing and voltage drop are not che..."
+    },
     {
       "rule_id": "cables.missing",
       "severity": "warning",
