@@ -11,6 +11,7 @@ from pathlib import Path
 import ezdxf
 
 from ezdxf.document import Drawing
+from ezdxf.enums import TextEntityAlignment
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet
@@ -19,21 +20,39 @@ from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import (
     CompanyProfile,
     IssuedFor,
+    LayerRole,
     PaperSize,
     Revision,
     SheetSpec,
     TitleBlockData,
 )
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
+from unicad.drafting.sheets.text import text_width
 from unicad.drafting.sld import annotate
-from unicad.drafting.sld.layout import layout_sld, plan_pages, stack_rows
+from unicad.drafting.sld.layout import layout_sld, plan_pages, rows_win, stack_rows
 from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage
 from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
 
 NOTES = annotate.GENERAL_NOTES
-ROWS_GAIN = 1.15
-"""How much larger stacked rows must draw a diagram than one row before the sheet uses them."""
+
+
+def _flag_unreadable(doc: Drawing, profile: CompanyProfile, area, scale: float, minimum: float, paper: str) -> None:
+    """A red banner over the top-left corner of the drawing area: the sheet must not go out looking like a good one."""
+    h = metrics_for(PaperSize(paper)).th
+    words = f"WARNING: THIS DIAGRAM IS DRAWN AT SCALE {scale:.2f} ON {paper}, BELOW THE {minimum:.2f} AT WHICH ITS SMALLEST TEXT PRINTS READABLY. SPLIT OR RE-LAY IT OUT BEFORE ISSUE.".split()
+    lines, line = [], ""
+    for w in words:
+        if line and text_width(f"{line} {w}", h) > 0.6 * area.width:
+            lines.append(line)
+            line = w
+        else:
+            line = f"{line} {w}".strip()
+    lines.append(line)
+    top = area.y1 - h
+    for i, t in enumerate(lines):
+        doc.modelspace().add_text(t, dxfattribs={"layer": profile.layer(LayerRole.TEXT).name, "style": profile.text_style, "height": h, "color": 1}).set_placement(
+            (area.x0 + 1.5 * h, top - 1.6 * h * i), align=TextEntityAlignment.TOP_LEFT)
 
 
 @dataclass(frozen=True)
@@ -133,7 +152,7 @@ def fit_layout(
         layout = layout_sld(project.network, catalog, opts, scope, xrefs)
         scale = layout.fit_scale(area.width, area.height, opts)
         rows = stack_rows(project.network, catalog, opts, scope, xrefs, area.width, area.height) if scale < opts.max_scale else None
-        if rows is not None and rows.fit_scale(area.width, area.height, opts) >= ROWS_GAIN * scale:
+        if rows is not None and rows_win(scale, rows.fit_scale(area.width, area.height, opts)):
             return rows, rows.fit_scale(area.width, area.height, opts)
         return layout, scale
 
@@ -173,7 +192,7 @@ def render_sld(
     `xrefs` maps each cut edge id to the number of the sheet that continues it."""
     sheet = next(s for s in (project.sheets if sheets is None else sheets) if s.id == sheet_id)
     scope = nodes if nodes is not None else _scope(project, sheet)
-    layout, options, _ = fit_layout(project, catalog, sheet.paper, scope, options, xrefs)
+    layout, options, fitted = fit_layout(project, catalog, sheet.paper, scope, options, xrefs)
     if doc is None:
         doc = ezdxf.new("R2018", setup=["linetypes"])
     spec = sheet_spec(project, sheet, layout, catalog, sheets, drawn_on)
@@ -190,6 +209,8 @@ def render_sld(
     placement = write_sld(doc, layout, area, block_name=f"UC_SLD_{sheet.id.upper()}", text_style=profile.text_style,
                           options=options)
     warnings = list(rendered.warnings) + list(layout.warnings)
+    if not placement.readable:
+        _flag_unreadable(doc, profile, area, placement.scale, options.min_scale, sheet.paper)
     pages: tuple[SldPage, ...] = (SldPage(tuple(n for n, _ in layout.represented), (), placement.scale),)
     if not placement.readable:
         pages = plan_pages(project.network, catalog, area.width, area.height, options, scope)

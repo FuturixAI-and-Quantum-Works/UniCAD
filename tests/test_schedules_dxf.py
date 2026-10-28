@@ -97,11 +97,13 @@ def test_schedule_tables_summarise_strings_per_combiner_for_big_projects_and_lis
         schedule_tables(small, "everything")
 
 
-def test_summarised_utility_schedule_breaks_pages_per_block():
+def test_summarised_utility_schedule_has_a_titled_section_per_block_and_fills_its_pages():
+    """R6-m2: a forced page break at every block change left the Kutch DC schedule 12 pages of about 20 % fill; the blocks keep their titled
+    sections and the pages fill (this replaces the earlier assertion that each block starts a page)."""
     (_, dc), _ = schedule_tables(build_schedule(fixture("utility_50mwac"), CATALOG))
     strings = [s for s in dc.sections if "STRING" in s.title]
     assert [s.title.rsplit(" - ", 1)[1] for s in strings] == [f"BLOCK-0{i}" for i in range(1, 7)]
-    assert [s.page_break_before for s in strings] == [False] + [True] * 5
+    assert not any(s.page_break_before for s in dc.sections)
     assert all(len(s.rows) == 30 for s in strings)
 
 

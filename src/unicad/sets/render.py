@@ -166,6 +166,8 @@ def render_set(
             "warnings": list(b.warnings),
             **b.meta,
         })
+    warnings += [f"{e['number']}: NOT READABLE, {next((w for w in e['warnings'] if 'needs scale' in w), 'drawn below the readable scale')}; split it or re-lay it out before issue"
+                 for e in entries if e.get("readable") is False]
     set_pdf = None
     if "pdf" in formats:
         renderer = renderer or LibreCadRenderer()

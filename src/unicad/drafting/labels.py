@@ -4,7 +4,8 @@ Each label is a box of known size tied to an anchor (a pit, a terminal, a statio
 the anchor first, then rings of positions further out joined back by a leader line, and takes the first ring that has a box clear
 of every placed label, every blocked area (symbols) and the sheet area's edge; within a ring the optional cost decides. A label
 that finds no place within the maximum leader length is returned as overflow for the caller's callout list. Labels are placed in
-the order given, so the result is deterministic.
+the order given, so the result is deterministic. An optional `allow(box, anchor)` vetoes boxes (and the leader to the anchor) the caller
+keeps labels out of, such as the far side of a fence.
 """
 
 import math
@@ -128,7 +129,7 @@ class LabelPlacer:
         seg = Region(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
         return not any(_segment_hits(p.box, a, b) for p in self.labels if p.box.overlaps(seg.inset(-1e-6)))
 
-    def place(self, label: Label, cost: Callable[[Region], float] | None = None) -> Placement | None:
+    def place(self, label: Label, cost: Callable[[Region], float] | None = None, allow: Callable[[Region, tuple[float, float]], bool] | None = None) -> Placement | None:
         w, h, a = label.width, label.height, label.anchor
         d0 = label.clear + max(self.gap, 0.15 * h)
         rings: list[list[Region]] = [[_box_at(a, w, h, dx, dy, d0) for dx, dy in ADJACENT]]
@@ -138,7 +139,7 @@ class LabelPlacer:
             rings.append([_ring_box(a, w, h, 2 * math.pi * i / RING_DIRECTIONS, d) for i in range(RING_DIRECTIONS)])
             d += step
         for n, ring in enumerate(rings):
-            ok = [(i, r) for i, r in enumerate(ring) if self._free(r)]
+            ok = [(i, r) for i, r in enumerate(ring) if self._free(r) and (allow is None or allow(r, label.anchor))]
             if n:
                 ok = [(i, r) for i, r in ok if self._leader_clear(a, nearest_on(r, a))]
             if not ok:

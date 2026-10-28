@@ -82,7 +82,7 @@ def test_switchyard_position_is_taken_from_the_call(tmp_path):
 def test_dxf_pages_are_written_one_file_each(tmp_path):
     async def check(c):
         dxf = await c.call("cable_schedule", project_id="utility-50mwac", format="dxf")
-        assert dxf["pages"] == len(dxf["files"]) == 13 and all(f.endswith(".dxf") and Path(f).is_file() for f in dxf["files"])
+        assert dxf["pages"] == len(dxf["files"]) == 6 and all(f.endswith(".dxf") and Path(f).is_file() for f in dxf["files"])
         assert dxf["layout_warnings"] == []
 
     run(tmp_path, check, fixture("utility_50mwac"))

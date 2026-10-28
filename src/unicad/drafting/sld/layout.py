@@ -1718,8 +1718,8 @@ def plan_pages(
 
     def best(ids: frozenset[str]) -> SldLayout:
         plain = layout_sld(network, catalog, options, ids)
-        rows = stack_rows(network, catalog, options, ids, None, width, height)
-        return rows if rows is not None and rows.fit_scale(width, height, options) > plain.fit_scale(width, height, options) else plain
+        rows = stack_rows(network, catalog, options, ids, None, width, height) if plain.fit_scale(width, height, options) < options.max_scale else None
+        return rows if rows is not None and rows_win(plain.fit_scale(width, height, options), rows.fit_scale(width, height, options)) else plain
 
     def readable(ids: frozenset[str]) -> bool:
         return best(ids).fit_scale(width, height, options) >= options.min_scale
@@ -1753,12 +1753,21 @@ def _own_once(pages: list[SldPage]) -> tuple[SldPage, ...]:
 def _flush(network, catalog, width, height, options, ids: frozenset[str]) -> list[SldPage]:
     lay = layout_sld(network, catalog, options, ids)
     rows = stack_rows(network, catalog, options, ids, None, width, height) if lay.fit_scale(width, height, options) < options.min_scale else None
-    if rows is not None and rows.fit_scale(width, height, options) > lay.fit_scale(width, height, options):
+    if rows is not None and rows_win(lay.fit_scale(width, height, options), rows.fit_scale(width, height, options)):
         lay = rows
     if lay.fit_scale(width, height, options) >= options.min_scale:
         cut = tuple(e.id for e in network.edges if e.is_power and (e.src_node in ids) != (e.dst_node in ids))
         return [SldPage(tuple(n.id for n in network.nodes if n.id in ids), cut, lay.fit_scale(width, height, options))]
     return list(plan_pages(network, catalog, width, height, options, ids))
+
+
+ROWS_GAIN = 1.15
+"""How much larger stacked rows must draw a diagram than one row before a sheet uses them: the split plan and the sheet renderer apply the same rule,
+so a page the plan calls readable is drawn as the plan assumed."""
+
+
+def rows_win(plain: float, rows: float) -> bool:
+    return rows >= ROWS_GAIN * plain
 
 
 MAX_ROWS = 5

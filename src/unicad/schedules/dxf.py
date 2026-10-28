@@ -126,12 +126,11 @@ def _numbered(columns: tuple[Column, ...]) -> tuple[Column, ...]:
 
 def _sections(schedule: Schedule, services: frozenset[Service], detail: bool) -> list[TableSection]:
     """Table sections of the given services, numbered continuously. Strings are summarised per combiner unless `detail`. On a plant of
-    several blocks each DC block starts a page."""
+    several blocks each DC block has its own titled section; pages are filled, a block does not start a page."""
     out: list[TableSection] = []
     sl = 0
     blocks = {r.block for sec in schedule.sections if sec.service is Service.DC for r in sec.rows}
     split = len(blocks) > 1 and "" not in blocks
-    prev = None
     for sec in schedule.sections:
         if sec.service not in services:
             continue
@@ -140,12 +139,10 @@ def _sections(schedule: Schedule, services: frozenset[Service], detail: bool) ->
             numbered = tuple((str(sl + i + 1), *cells) for i, cells in enumerate(body))
             sl += len(body)
             title = sec.title if block is None else f"{sec.title} - {block}"
-            brk = block is not None and prev is not None and block != prev
-            if out and out[-1].title == title and not brk:
-                out[-1] = TableSection(title, out[-1].rows + numbered, out[-1].page_break_before)
+            if out and out[-1].title == title:
+                out[-1] = TableSection(title, out[-1].rows + numbered)
             else:
-                out.append(TableSection(title, numbered, page_break_before=brk))
-            prev = block
+                out.append(TableSection(title, numbered))
     return out
 
 
