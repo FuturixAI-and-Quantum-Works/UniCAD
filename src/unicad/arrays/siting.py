@@ -48,6 +48,10 @@ def occupied(site: SiteGeometry, tables: Sequence[Table], roads: Sequence[LineSt
     return unary_union(parts)
 
 
+ROAD_WIDTH_ASSUMED_M = 6.0
+"""Width taken for a site road drawn without one: layout_place's default internal road width, which it also gives such roads when placing tables."""
+
+
 def keep_off_m(site: SiteGeometry, f: SiteFeature) -> float:
     """The clearance ground equipment keeps from a site feature: its own setback_m, else the site's exclusion setback (obstacle setback for
     obstacles), as tables keep. Roads and roofs keep none: a station may stand in the strip beside a road that tables keep clear of."""
@@ -59,16 +63,17 @@ def keep_off_m(site: SiteGeometry, f: SiteFeature) -> float:
 
 
 def equipment_ground(site: SiteGeometry) -> BaseGeometry:
-    """Where ground equipment may stand: inside the boundary, off roads (their width), roofs, and exclusions, water, buildings, obstacles and line
-    corridors by their setback (keep_off_m)."""
+    """Where ground equipment may stand: inside the boundary, off roads (their width, ROAD_WIDTH_ASSUMED_M for a road drawn without one),
+    roofs, and exclusions, water, buildings, obstacles and line corridors by their setback (keep_off_m)."""
     inside = unary_union([shape_of(f) for f in site.of_kind(FeatureKind.BOUNDARY)])
     off = []
     for f in site.features:
         if f.kind in (FeatureKind.BOUNDARY, FeatureKind.SETBACK_LINE, FeatureKind.SWITCHYARD):
             continue
         g, clear = shape_of(f), keep_off_m(site, f)
-        if f.polyline and f.width_m:
-            g = g.buffer(f.width_m / 2 + clear, cap_style="flat", join_style="mitre")
+        width = f.width_m or (ROAD_WIDTH_ASSUMED_M if f.kind is FeatureKind.ROAD else None)
+        if f.polyline and width:
+            g = g.buffer(width / 2 + clear, cap_style="flat", join_style="mitre")
         elif clear:
             g = g.buffer(clear, join_style="mitre")
         off.append(g)
@@ -146,6 +151,25 @@ def reserve_switchyard(
     feature = SiteFeature(id=RESERVED_YARD_ID, kind=FeatureKind.EXCLUSION, polygon=tuple(Point(x=x, y=y) for x, y in ring))
     where = why if given else f"derived: the free ground {why}, clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position)"
     return ReservedYard(feature, Located(at=at, basis=f"{where}; a {lx:g} x {ly:g} m yard ({size}) is kept free of tables"))
+
+
+RESERVED_BESS_ID = "bess-area-reserve"
+
+
+def reserve_bess(site: SiteGeometry, yard: BaseGeometry, size_m: tuple[float, float], gap_m: float, basis: str) -> ReservedYard | None:
+    """A BESS area of `size_m` kept free of tables at the free ground nearest the switchyard `yard`, `gap_m` clear of it and clear of roads,
+    exclusions, water and line corridors by their setback; None when no free ground holds it. The carve keeps tables far enough from its
+    centre that network_autobuild's BESS grid (centred at the free spot nearest the switchyard, half its diagonal clear of tables) lands there."""
+    lx, ly = size_m
+    reach = math.hypot(lx, ly) / 2
+    c = yard.centroid
+    at = nearest_in(room(site, yard.buffer(gap_m, join_style="mitre"), reach), (c.x, c.y))
+    if at is None:
+        return None
+    ring = ((at.x - lx / 2, at.y - ly / 2), (at.x + lx / 2, at.y - ly / 2), (at.x + lx / 2, at.y + ly / 2), (at.x - lx / 2, at.y + ly / 2))
+    clear = reach - min(lx, ly) / 2 + STATION_CLEAR_M
+    feature = SiteFeature(id=RESERVED_BESS_ID, kind=FeatureKind.EXCLUSION, polygon=tuple(Point(x=x, y=y) for x, y in ring), setback_m=round(clear, 3))
+    return ReservedYard(feature, Located(at=at, basis=f"a {lx:g} x {ly:g} m BESS area ({basis}) is kept free of tables at the free ground nearest the switchyard, {gap_m:g} m clear of it"))
 
 
 def switchyard(

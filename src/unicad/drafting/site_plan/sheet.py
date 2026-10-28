@@ -75,6 +75,8 @@ L_LABEL = _LayerDef("L-LABEL", 7, 18)
 L_MASK = _LayerDef("L-MASK", 7, MIN_LINEWEIGHT)
 L_DIM = _LayerDef("L-DIM", 7, 18)
 COMPACT = frozenset({FeatureKind.ROOF, FeatureKind.OBSTACLE, FeatureKind.BUILDING, FeatureKind.EXISTING_STRUCTURE})
+KEEP_CLEAR = frozenset({FeatureKind.TRANSMISSION_LINE, FeatureKind.WATER, FeatureKind.EXCLUSION, FeatureKind.ROAD})
+"""Site features a station label keeps off, so a tag never reads as standing in a line corridor, a pond or on a road."""
 LAYERS = (L_BOUNDARY, L_ROOF, L_ROAD, L_ROAD_FILL, L_WATER, L_WATER_FILL, L_EXCL, L_EXCL_FILL, L_TLINE, L_OBST, L_TABLE, L_BLOCK, L_STATION,
           L_LABEL, L_MASK, L_DIM)  # fmt: skip
 
@@ -135,6 +137,11 @@ def nice_step(length_m: float) -> float:
 
 def _label(f: SiteFeature) -> str:
     return (f.name or f.id).replace("-", " ").replace("_", " ").upper()
+
+
+def _area_of(f: SiteFeature) -> BaseGeometry:
+    g = shape_of(f)
+    return g.buffer((f.width_m or 1.0) / 2, cap_style="flat") if f.polyline else g
 
 
 def _polygons(g: BaseGeometry) -> list[Polygon]:
@@ -493,9 +500,14 @@ class LayoutSheetWriter:
         install(self.doc, ["layout.inverter"])
         s = 0.16 * th
         footprints = [Polygon(P.ring(table_corners(t))) for t in self.d.layout.table_by_id.values()]
+        footprints += [Polygon(P.ring(p.exterior.coords[:-1])) for f in self.d.site.features if f.kind in KEEP_CLEAR for p in _polygons(_area_of(f))]
         tree = STRtree(footprints)
         taken: list[Polygon] = []
         stations: list = []
+        side = 0.6 * th
+        for e in self.d.layout.equipment:
+            x, y = P(e.at.x, e.at.y)
+            self.placer.block(Region(x - side / 2, y - side / 2, x + side / 2, y + side / 2))
 
         def clash(r: Region) -> float:
             g = box(r.x0, r.y0, r.x1, r.y1)
@@ -513,7 +525,7 @@ class LayoutSheetWriter:
             x, y = P(b.station.x, b.station.y)
             w, h = sym.width * s, sym.height * s
             icon = Region(x - w / 2 - 0.25 * th, y - h / 2 - 0.25 * th, x + w / 2 + 0.25 * th, y + h / 2 + 0.25 * th)
-            if self._crosses(icon, P, footprints):
+            if self._crosses_edge(icon, P):
                 icon = self._beside(icon, (x, y), colour, clash)
             self.placer.block(icon)
             self._mask(icon)
@@ -536,12 +548,12 @@ class LayoutSheetWriter:
             self._text(lines[0], (tx, cy + 0.6 * th), hs[0], align="ML")
             self._text(lines[1], (tx, cy - 0.65 * th), hs[1], align="ML")
 
-    def _crosses(self, r: Region, P: _Plan, footprints: Sequence[Polygon]) -> bool:
-        """Whether a symbol drawn over `r` would sit on a roof edge, obstacle outline or table, so it has to stand beside its point."""
+    def _crosses_edge(self, r: Region, P: _Plan) -> bool:
+        """Whether a station symbol drawn over `r` would straddle a roof edge or an obstacle or building outline. Only then does it stand
+        beside its point; on open ground it is drawn centred on the position the design gave it, over the tables it masks."""
         g = box(r.x0, r.y0, r.x1, r.y1)
-        edges = [LineString(P.ring(shape_of(f).exterior.coords)) for f in self.d.site.features
-                 if f.polygon and f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE, FeatureKind.BUILDING)]  # fmt: skip
-        return any(e.intersects(g) for e in edges) or any(f.intersects(g) for f in footprints)
+        return any(LineString(P.ring(shape_of(f).exterior.coords)).intersects(g) for f in self.d.site.features
+                   if f.polygon and f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE, FeatureKind.BUILDING))  # fmt: skip
 
     def _beside(self, icon: Region, at: tuple[float, float], colour: int, cost) -> Region:
         """`icon` moved clear of outlines next to `at`, which keeps a dot and a leader to it, so the point stays where the design put it."""

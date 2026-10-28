@@ -136,3 +136,93 @@ def test_n17_sheet_x_of_y_counts_the_parts_of_the_same_drawing(projects):
             assert f"{k} of {n}" in texts, (title, sorted(t for t in texts if " of " in t))
         else:
             assert "1 of 1" in texts, title
+
+
+def test_r5_m6_bess_stands_off_the_road_and_beside_the_switchyard(projects):
+    """Run 5: the 3 x 3 BESS grid straddled the Kutch access road (PCS-01 1.4 m from its centreline) 432 m from the switchyard: the site road
+    has no width, so the free area ignored it, and tables left no room near the yard. The road now takes the assumed 6 m width and layout_place
+    keeps a BESS area free beside the switchyard."""
+    from shapely.geometry import Point as SPoint
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+
+    from unicad.arrays.geometry import table_corners
+    from unicad.arrays.siting import ROAD_WIDTH_ASSUMED_M, keep_off_m
+    from unicad.domain.site import FeatureKind, shape_of
+    from unicad.rules.structure import BESS_SEPARATION_M
+
+    p = projects[C]
+    site, layout = p.site.geometry, p.array_layout
+    bess = [e for e in layout.equipment if e.kind in ("battery", "pcs", "transformer")]
+    assert len(bess) == 9
+    road = next(shape_of(f) for f in site.features if f.kind is FeatureKind.ROAD)
+    tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()])
+    yard = layout.switchyard.at
+    for e in bess:
+        pt = SPoint(e.at.x, e.at.y)
+        assert road.distance(pt) >= ROAD_WIDTH_ASSUMED_M / 2 + 1.5, (e.tag, road.distance(pt))
+        assert tables.distance(pt) >= 1.5, e.tag
+        for f in site.features:
+            if f.kind in (FeatureKind.WATER, FeatureKind.TRANSMISSION_LINE, FeatureKind.EXCLUSION):
+                assert shape_of(f).distance(pt) >= keep_off_m(site, f) - 1e-6, (e.tag, f.id)
+        assert abs(e.at.x - yard.x) + abs(e.at.y - yard.y) <= 120, (e.tag, e.at, yard)
+    lx, ly = p.design_basis.earthing.switchyard_m
+    from shapely.geometry import box
+
+    mat = box(yard.x - lx / 2, yard.y - ly / 2, yard.x + lx / 2, yard.y + ly / 2)
+    assert min(mat.distance(SPoint(e.at.x, e.at.y)) for e in bess) >= BESS_SEPARATION_M - 1e-6
+
+
+@pytest.mark.parametrize("pid", [B, C])
+def test_r5_m9_lightning_masts_keep_every_feature_setback_like_other_equipment(projects, pid):
+    """Run 5: B ESE-13 stood on the edge of the village pond and C ESE-03 exactly on the edge of the 132 kV corridor; terminals kept clear of
+    tables only. They now keep the setback of water, exclusions and line corridors and stand off roads, as stations and BESS units do."""
+    from shapely.geometry import Point as SPoint
+
+    from unicad.arrays.siting import ROAD_WIDTH_ASSUMED_M, keep_off_m
+    from unicad.domain.site import FeatureKind, shape_of
+    from unicad.lps.design import design_lps
+
+    p = projects[pid]
+    site = p.site.geometry
+    d = design_lps(p)
+    assert d.terminals and d.covered_all
+    for t in d.terminals:
+        if t.on_roof:
+            continue
+        pt = SPoint(t.at.x, t.at.y)
+        for f in site.features:
+            g = shape_of(f)
+            if f.kind in (FeatureKind.WATER, FeatureKind.TRANSMISSION_LINE, FeatureKind.EXCLUSION, FeatureKind.OBSTACLE):
+                assert g.distance(pt) >= keep_off_m(site, f) - 1e-6, (t.tag, f.id, g.distance(pt))
+            elif f.kind is FeatureKind.ROAD and f.polyline:
+                assert g.distance(pt) >= (f.width_m or ROAD_WIDTH_ASSUMED_M) / 2 - 1e-2, (t.tag, f.id)
+
+
+@pytest.mark.parametrize("pid", [B, C])
+def test_r5_m8_layout_sheet_draws_each_station_at_its_model_position(projects, pid):
+    """Run 5: the layout sheet moved the 20 m station symbol off the tables beside its point, onto the 132 kV corridor (C BLOCK-03/04, B BLOCK-04),
+    while the model had them 11.5 m and 12.9 m clear. The symbol is now centred on the stored position on open ground."""
+    import ezdxf
+
+    from unicad.drafting.site_plan.sheet import LayoutDrawing, render_layout_sheet
+    from unicad.drafting.sheets.model import IssuedFor, SheetSpec, TitleBlockData
+    from unicad.drafting.symbols import REGISTRY
+
+    p = projects[pid]
+    layout = p.array_layout
+    tables = list(layout.table_by_id.values())
+    drawing = LayoutDrawing(p.site.geometry, layout, CATALOG.get(tables[0].module), max(t.cols for t in tables))
+    tb = TitleBlockData(client="C", project_title="P", location="L", drawing_title="LAYOUT", drawing_number="X-101", revision="0", paper=PaperSize.A1,
+                        issued_for=IssuedFor.INFORMATION)
+    doc = ezdxf.new("R2018", setup=True)
+    sheet = render_layout_sheet(doc, drawing, SheetSpec(paper=PaperSize.A1, title_block=tb), load_profile(p.company_profile))
+    k = 1000 / sheet.scale
+    msp = doc.modelspace()
+    first = next(e for e in msp.query("INSERT") if e.dxf.name.startswith("ARR_TABLE"))
+    ox, oy = first.dxf.insert.x - k * tables[0].origin.x, first.dxf.insert.y - k * tables[0].origin.y
+    sym = REGISTRY["layout.inverter"]
+    drawn = sorted((round(e.dxf.insert.x + sym.width * e.dxf.xscale / 2, 1), round(e.dxf.insert.y + sym.height * e.dxf.yscale / 2, 1))
+                   for e in msp.query("INSERT") if e.dxf.name == sym.block_name and sheet.plan.x0 <= e.dxf.insert.x <= sheet.plan.x1)  # fmt: skip
+    model = sorted((round(ox + k * b.station.x, 1), round(oy + k * b.station.y, 1)) for b in layout.blocks if b.station is not None)
+    assert drawn == pytest.approx(model, abs=0.2)

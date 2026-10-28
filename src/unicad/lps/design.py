@@ -11,6 +11,7 @@ from shapely.ops import nearest_points, unary_union
 from shapely.prepared import prep
 
 from unicad.arrays.geometry import table_centre, table_corners
+from unicad.arrays.siting import equipment_ground
 from unicad.domain.layout import Point
 from unicad.domain.project import LpsBasis, Project
 from unicad.domain.site import FeatureKind
@@ -35,8 +36,8 @@ ENVELOPE_ASSUMPTION = (
     f"centred on its stored position and each string inverter as a {ENVELOPE_M['inverter']:g} m square (assumed envelopes, not datasheet sizes)"
 )
 MAST_ASSUMPTION = (
-    f"terminals keep {MAST_CLEAR_M:g} m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure) "
-    "and stand off stations, the switchyard grid and BESS units"
+    f"terminals keep {MAST_CLEAR_M:g} m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure), "
+    "keep the setback of exclusions, water and line corridors as the tables do, and stand off roads, stations, the switchyard grid and BESS units"
 )
 
 
@@ -186,8 +187,9 @@ def _snapped(free, spacing: float) -> np.ndarray:
 
 
 def candidates(project: Project, radius: float, clear: float = MAST_CLEAR_M) -> tuple[np.ndarray, list[str | None]]:
-    """Mast positions: free ground inside the boundary `clear` m away from tables and clear of carved features, stations, the switchyard grid and
-    placed equipment; on rooftop projects, also free roof area."""
+    """Mast positions: free ground inside the boundary `clear` m away from tables, off roads and keeping the setback of every exclusion, water
+    body and line corridor as other ground equipment does (`siting.equipment_ground`), clear of stations, the switchyard grid and placed
+    equipment; on rooftop projects, also free roof area."""
     layout = project.array_layout
     tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
     stations = unary_union([SPoint(b.station.x, b.station.y).buffer(6.0) for b in layout.blocks if b.station is not None]) if layout is not None else Polygon()
@@ -207,7 +209,8 @@ def candidates(project: Project, radius: float, clear: float = MAST_CLEAR_M) -> 
     site = boundary(project)
     if site is not None:
         roof_union = unary_union([p for _, p in roofs(project)]) if roofs(project) else Polygon()
-        free = site.buffer(-2.0).difference(tables.buffer(clear)).difference(blocked(project)).difference(roof_union.buffer(1.0)).difference(stations)
+        free = site.buffer(-2.0).intersection(equipment_ground(project.site.geometry)).difference(tables.buffer(clear)).difference(blocked(project))
+        free = free.difference(roof_union.buffer(1.0)).difference(stations)
         g = _snapped(free, spacing)
         pts.append(g)
         where += [None] * len(g)

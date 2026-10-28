@@ -136,6 +136,13 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     stored_site = site
     if reserved is not None:
         site = site.with_features((*site.features, reserved.feature))
+    bess = None
+    if not on_roofs and spec.bess_area_m is not None:
+        yard = shape_of(reserved.feature) if reserved is not None else (m[1] if (m := siting.marked_switchyard(site)) is not None else None)
+        if yard is not None:
+            bess = siting.reserve_bess(stored_site, yard, spec.bess_area_m, spec.bess_gap_m, spec.bess_basis)
+        if bess is not None:
+            site = site.with_features((*site.features, bess.feature))
     placed = place_tables(site, spec, module)
     if not placed.tables:
         raise PlacementError("no table fits the buildable area; try a shorter table, a smaller setback or half tables")
@@ -179,6 +186,10 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     assumptions = spec.assumptions() + list(placed.assumptions)
     if yard is not None:
         assumptions.append(f"{'MV switchyard' if not on_roofs else 'Main LT panel / switchyard'} at local ({yard.at.x:.1f}, {yard.at.y:.1f}): {yard.basis}; cable routing and earthing use this location")
+    if bess is not None:
+        assumptions.append(f"BESS area at local ({bess.located.at.x:.1f}, {bess.located.at.y:.1f}): {bess.located.basis}; network_autobuild places the BESS units there")
+    elif spec.bess_area_m is not None and not on_roofs:
+        block_notes.append(f"no free ground beside the switchyard holds the {spec.bess_area_m[0]:g} x {spec.bess_area_m[1]:g} m BESS area: network_autobuild places the BESS units at the nearest free area it finds, or pass bess_x/bess_y")
     if any(b.station is not None for b in blocks) and spec.station is None and not on_roofs:
         assumptions.append(siting.SPOT_ASSUMPTION)
     if widened:

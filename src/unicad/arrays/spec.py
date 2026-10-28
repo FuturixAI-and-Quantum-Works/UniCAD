@@ -112,6 +112,9 @@ class PlacementSpec(_Frozen):
     station: Point | None = Field(default=None, description="inverter station of every block, local metres; default on the block (on a roof for rooftop arrays)")
     switchyard: Point | None = Field(default=None, description="MV switchyard (main LT panel on an LT plant), local metres; default a marked site area, else derived")
     switchyard_m: tuple[float, float] | None = Field(default=None, description="switchyard length x width, to keep a derived switchyard clear of tables")
+    bess_area_m: tuple[float, float] | None = Field(default=None, description="BESS area length x width kept free of tables beside the switchyard (hybrid and BESS plants)")
+    bess_gap_m: float = Field(default=0.0, ge=0, description="clearance the BESS area keeps from the switchyard footprint")
+    bess_basis: str = Field(default="bess_area_m", description="where the BESS area size comes from, for the assumption text")
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:

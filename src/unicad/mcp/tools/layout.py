@@ -10,12 +10,14 @@ from unicad.arrays.geometry import frame
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Orientation, StringAssignment
 from unicad.domain.network import NodeKind
-from unicad.domain.project import Project
+from unicad.design.placement import BESS_PITCH_M, _bess_units
+from unicad.domain.project import Project, Segment
 from unicad.domain.site import SiteGeometry
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import MountingArg, PitchMethodArg, RegionModeArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Problem, Workspace
+from unicad.rules.structure import BESS_SEPARATION_M
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 LIST_CAP = 40
@@ -103,6 +105,24 @@ def _full_cols(layout: ArrayLayout) -> int:
     return max(t.cols for t in layout.table_by_id.values())
 
 
+BESS_AREA_ASSUMED_M = (4 * BESS_PITCH_M, 3 * BESS_PITCH_M)
+BESS_SEGMENTS = frozenset({Segment.HYBRID, Segment.BESS})
+
+
+def _bess_area(p: Project, given: list[float] | None) -> tuple[tuple[float, float] | None, str]:
+    """The BESS area to keep free beside the switchyard and where its size comes from: given, else on a hybrid or BESS plant the grid
+    network_autobuild stands the network's BESS units on, else an assumed area of four units by three rows at that grid's pitch."""
+    if given is not None:
+        return (given[0], given[1]), "bess_area_m"
+    if p.segment not in BESS_SEGMENTS:
+        return None, ""
+    units = _bess_units(p.network.expand())
+    if units:
+        return (max(len(u) for u in units) * BESS_PITCH_M, len(units) * BESS_PITCH_M), f"the grid of the network's {len(units)} BESS block(s) at {BESS_PITCH_M:g} m pitch"
+    return BESS_AREA_ASSUMED_M, (f"assumed: the network has no BESS units yet, so 4 units by 3 rows at {BESS_PITCH_M:g} m pitch; "
+                                 "pass bess_area_m or re-run layout_place after network_autobuild")
+
+
 def half_table_for_strings(rows: int, cols: int, mps: int) -> int | None:
     """The longest table shorter than `cols` whose rows x length modules make whole strings of `mps`."""
     return next((k for k in range(cols - 1, 0, -1) if rows * k >= mps and rows * k % mps == 0), None)
@@ -165,6 +185,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         switchyard_x: Annotated[float | None, Field(description="Local x (m) of the MV switchyard (main LT panel on an LT plant); cable routing and earthing read it. "
                                                     "Default: a site area of kind 'switchyard', else derived and reported")] = None,
         switchyard_y: Annotated[float | None, Field(description="Local y (m) of the MV switchyard")] = None,
+        bess_area_m: Annotated[list[Annotated[float, Field(gt=0)]] | None, Field(min_length=2, max_length=2, description="BESS area length x width (m) kept free of tables "
+                                "beside the switchyard, where network_autobuild then places the BESS units. Default on hybrid and BESS plants: the grid of the network's "
+                                "BESS units, else an assumed area (reported)")] = None,
     ) -> dict[str, Any]:
         """Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
         site an inverter station per block and assign strings to module slots. Replaces any existing array layout.
@@ -192,6 +215,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             if (switchyard_x is None) != (switchyard_y is None):
                 raise ValueError("pass switchyard_x and switchyard_y together")
             earthing = p.design_basis.earthing
+            bess_area, bess_basis = _bess_area(p, bess_area_m)
             cols = table_cols or mps or 28
             notes: list[str] = []
             if table_cols is None:
@@ -211,6 +235,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 station=None if station_x is None else {"x": station_x, "y": station_y},
                 switchyard=None if switchyard_x is None else {"x": switchyard_x, "y": switchyard_y},
                 switchyard_m=earthing.switchyard_m if earthing is not None else None,
+                bess_area_m=bess_area, bess_gap_m=BESS_SEPARATION_M, bess_basis=bess_basis,
                 **{k: v for k, v in (given | {"half_cols": half}).items() if v is not None},
             )  # fmt: skip
             result = place_array(site, spec, mod)

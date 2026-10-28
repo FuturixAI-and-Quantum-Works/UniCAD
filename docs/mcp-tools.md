@@ -308,6 +308,7 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `station_y` | number | no | Local y (m) of the inverter station |
 | `switchyard_x` | number | no | Local x (m) of the MV switchyard (main LT panel on an LT plant); cable routing and earthing read it. Default: a site area of kind 'switchyard', else derived and reported |
 | `switchyard_y` | number | no | Local y (m) of the MV switchyard |
+| `bess_area_m` | list of number | no | BESS area length x width (m) kept free of tables beside the switchyard, where network_autobuild then places the BESS units. Default on hybrid and BESS plants: the grid of the network's BESS units, else an assumed area (reported) |
 
 ### `layout_summary`
 
