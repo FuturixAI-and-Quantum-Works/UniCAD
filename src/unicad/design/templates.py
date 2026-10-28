@@ -12,7 +12,8 @@ from unicad.design.builder import EdgeHint, NetBuilder, NodeHint
 from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, sections, split_even
 from unicad.design.select import (
     DC_FAMILY,
-    DC_STRING_FAMILY,
+    mc4_cap,
+    string_family,
     DC_STRING_MIN,
     LV1_FAMILY,
     LV3_FAMILY,
@@ -27,13 +28,22 @@ from unicad.design.select import (
 )
 from unicad.design.strings import DesignError, fuses_needed
 from unicad.rules.faults import transformer_fault_ka
+from unicad.rules.protection import ISOLATOR_WAYS
+from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.ratio import BESS_KW_ASKED, BESS_KWH_ASKED
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR
 
 V = Service
 BHEL_IDT = "references/catalog-sources/raw/datasheets/transformers/BHEL_PS439-1304_5.5MVA_33kV_IDT_spec_via_indembassysweden.pdf"
 SCB_STRINGS = 24
-SCB_ASSUMPTION = f"String combiner boxes take up to {SCB_STRINGS} strings each (common SCB size, as in the hand-built utility fixture); no SCB is catalogued, so SCBs carry no spec."
+SCB_SIZES = (SCB_STRINGS, 16, 12)
+
+
+def scb_assumption(n: int) -> str:
+    return (
+        f"String combiner boxes take up to {n} strings each (24 is the common SCB size of the hand-built utility fixture; 16 and 12 are used when the string cables, "
+        "capped at the MC4 cross-sections, need smaller patches to meet the DC voltage drop limit); no SCB is catalogued, so SCBs carry no spec."
+    )
 BLOCK_AUX_KVA = 63.0
 PLANT_AUX_KVA = 100.0
 DC_ISOLATOR_MAX_A = 250.0
@@ -56,7 +66,7 @@ def default_lengths(template: str) -> dict[str, float]:
 @dataclass
 class Built:
     builder: NetBuilder
-    string_links: list[tuple[list[str], int, list[list[StringAssignment]]]] = field(default_factory=list)
+    string_links: list[tuple[list[str], int, list[list[StringAssignment]], list[int] | None]] = field(default_factory=list)
     blockers: list[str] = field(default_factory=list)
     summary: dict = field(default_factory=dict)
 
@@ -67,6 +77,7 @@ class Ctx:
     catalog: Catalog
     lengths: dict[str, float]
     given: frozenset[str] = frozenset()
+    scb_strings: int = SCB_STRINGS
     b: NetBuilder = field(default_factory=NetBuilder)
     built: Built | None = None
 
@@ -90,6 +101,12 @@ class Ctx:
         used = ", ".join(f"{k} {self.lengths[k]:g} m" for k in keys if k in self.lengths and k not in self.given)
         if used:
             self.b.assume(f"Cable route lengths are design placeholders, not a routed design: {used}.")
+
+
+def _string_family(c: Ctx, module: ModuleSpec, mps: int):
+    voc = string_voltage(module, mps, "voc", cell_temp_min(c.project.design_basis)).value
+    c.b.assume(mc4_cap(voc))
+    return string_family(voc)
 
 
 def lv_hint(phases: int) -> EdgeHint:
@@ -141,6 +158,13 @@ def inline_assumption(tag: str, spec: TransformerSpec, windings: int) -> str:
     )
 
 
+SOLAR_INCOMER = (
+    "The solar feeder ends in its own incomer breaker (SOLAR-INC) at the panel it connects to, so the feeder cables, which the grid feeds from that end, are "
+    "protected where the fault current comes from (protection.lv_both_ends); the ACDB outgoing breaker protects them against the inverters' contribution."
+)
+EXISTING = "existing"
+
+
 # ---------------- DC side ----------------
 
 
@@ -156,11 +180,24 @@ FLOATING = (
 )
 
 
+ISOLATOR_POLES = (4, 2)
+ISOLATION = (
+    "Each DC isolator node stands for the isolation of every separate string circuit of its inverter: one + and - pole pair per circuit, so an inverter with n "
+    "unparalleled string circuits takes ceil(n / 2) four-pole two-circuit switch-disconnectors (ABB OTDC E22 type), each rated for the two strings it switches "
+    "(protection.rated_current per device; the BOM counts the devices)."
+)
+
+
+def isolator_title(n: int) -> str:
+    return f"DC ISOLATION, {n} SEPARATE STRING CIRCUITS (+ AND - PER CIRCUIT)" if n > 1 else "DC ISOLATOR"
+
+
 def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: int, module: ModuleSpec, laying: Laying, isolator: bool, inverter: InverterSpec | None = None) -> list[str]:
     """Strings straight onto a string inverter, or through a DC junction box and a DC isolator when one is rated for the current. When more strings share an
     MPPT than the module allows unfused, each string lands through its own gPV fuse (string fuse box) instead of the pass-through junction box."""
     b = c.b
     s = b.node(f"str{sfx}", "STR", NodeKind.PV_STRING, group=group, count=n_strings, spec=module.id, modules_in_series=mps)
+    fam = _string_family(c, module, mps)
     b.assume(DC_STRING_MIN)
     fused = inverter is not None and fuses_needed(module, math.ceil(n_strings / inverter.mppt_count))
     ib = n_strings * ISC_FACTOR.value * module.isc
@@ -174,40 +211,52 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
             f"sfuse{sfx}", "STR-FUSE", NodeKind.FUSE, group=group, count=n_strings, hint=NodeHint("string_fuse", poles=(1,)),
             title="gPV STRING FUSES, + AND - POLES (STRING FUSE BOX)", attributes={FUSED_POLES: 2},
         )  # fmt: skip
-        b.edge(f"e_str{sfx}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
+        b.edge(f"e_str{sfx}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(fam), c.L("string"), laying)
         b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
         b.assume(STRING_FUSES, FLOATING)
         if not isolator:
-            b.edge(f"e_fuse_inv{sfx}", f"{fu}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("iso_inv"), Laying.TRAY, remarks="string fuse box to inverter input, one pair per string")
+            b.edge(f"e_fuse_inv{sfx}", f"{fu}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam), c.L("iso_inv"), Laying.TRAY, remarks="string fuse box to inverter input, one pair per string")
             b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
             return [s]
-        iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=(2, 4)))
-        b.edge(f"e_dcfb_iso{sfx}", f"{fu}:out", f"{iso}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
-        b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
-        b.assume("Each DC isolator node stands for the isolation of all string circuits of its inverter (one 2-pole way per circuit); it is rated as one device for the sum of their currents, which is conservative.")
+        iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=ISOLATOR_POLES), attributes={ISOLATOR_WAYS: n_strings}, title=isolator_title(n_strings))
+        b.edge(f"e_dcfb_iso{sfx}", f"{fu}:out", f"{iso}:in", V.DC, EdgeHint(fam), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
+        b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
+        b.assume(ISOLATION)
         return [s]
     if not isolator:
-        b.edge(f"e_str{sfx}", f"{s}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
+        b.edge(f"e_str{sfx}", f"{s}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam), c.L("string"), laying)
         b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
         b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
         return [s]
     fb = b.node(f"dcfb{sfx}", "DCJB", NodeKind.DC_FUSE_BOX, group=group, symbol="dc.jb", title="DC JUNCTION BOX")
-    iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=(2, 4)))
-    b.edge(f"e_str{sfx}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
+    iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=ISOLATOR_POLES), attributes={ISOLATOR_WAYS: n_strings}, title=isolator_title(n_strings))
+    b.edge(f"e_str{sfx}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(fam), c.L("string"), laying)
     b.edge(f"e_dcfb_spd{sfx}", f"{fb}:out", f"{spd}:line", V.DC)
-    b.edge(f"e_dcfb_iso{sfx}", f"{fb}:out", f"{iso}:in", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
-    b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
+    b.edge(f"e_dcfb_iso{sfx}", f"{fb}:out", f"{iso}:in", V.DC, EdgeHint(fam, runs=n_strings), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
+    b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
     b.assume(
         "The DC junction box passes strings through to separate inverter inputs (one cable pair per string); no string fuses are needed with at most two strings per MPPT.",
-        "Each DC isolator node stands for the isolation of all string circuits of its inverter (one 2-pole way per circuit); it is rated as one device for the sum of their currents, which is conservative.",
+        ISOLATION,
     )
     return [s]
 
 
+SCB_FUSES = (
+    "Every SCB input has its own gPV string fuse (SCB-nn-FUSE), rated above 1.5 x Isc, below 2.4 x Isc and at most the module's maximum series fuse "
+    "(protection.string_fuse_rating, as for string inverters), because the SCB parallels more strings than the module's reverse-current rating allows unfused."
+)
+CENTRAL_FLOATING = (
+    "The central inverter's PV array is taken as not connected to earth (floating, the inverter monitoring its insulation), so each SCB input is fused in both the + "
+    "and - poles: a double earth fault can drive reverse current through either pole (M. Mitolo, Distributed Generation & Alternative Energy Journal, 2025, on "
+    "IEC 60364-7-712). Confirm the inverter's DC earthing option; a functionally earthed array needs a fuse in the unearthed pole only."
+)
+
+
 def dc_central(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: int, module: ModuleSpec, inverter: InverterSpec) -> list[str]:
     b = c.b
-    b.assume(SCB_ASSUMPTION)
-    classes = split_even(n_strings, SCB_STRINGS)
+    fam = _string_family(c, module, mps)
+    b.assume(scb_assumption(c.scb_strings))
+    classes = split_even(n_strings, c.scb_strings)
     if inverter.dc_input_count is not None and sum(k for k, _ in classes) > inverter.dc_input_count:
         raise DesignError(f"{n_strings} strings need {sum(k for k, _ in classes)} SCBs, more than the {inverter.dc_input_count} DC inputs of {inverter.id}")
     spd = b.node(f"inv_dcspd{sfx}", "DC-SPD", NodeKind.DC_SPD, group=group, hint=NodeHint("dc_spd"))
@@ -218,12 +267,20 @@ def dc_central(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: i
         g = b.group(f"scb_sec{x}", f"SCB SECTION{t}", count=count, within=group)
         s = b.node(f"str{x}", f"STR{t}", NodeKind.PV_STRING, group=g, count=per, spec=module.id, modules_in_series=mps)
         scb = b.node(f"scb{x}", f"SCB{t}", NodeKind.SCB, group=g, title=f"{per}-INPUT STRING COMBINER BOX")
-        b.edge(f"e_str{x}", f"{s}:out", f"{scb}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), Laying.AIR)
+        fu = b.node(
+            f"scb_fuse{x}", f"SCB{t}-FUSE", NodeKind.FUSE, group=g, count=per, hint=NodeHint("string_fuse", poles=(1,)),
+            title="gPV STRING FUSES IN SCB, + AND - POLES", attributes={FUSED_POLES: 2},
+        )  # fmt: skip
+        b.edge(f"e_str{x}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(fam), c.L("string"), Laying.AIR)
+        b.edge(f"e_fuse_scb{x}", f"{fu}:out", f"{scb}:in", V.DC)
         b.edge(f"e_scb_inv{x}", f"{scb}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_FAMILY), c.L("scb_inv"), Laying.TRENCH)
         b.edge(f"e_scb_spd{x}", f"{scb}:out", f"{spd}:line", V.DC)
         b.earth(scb)
         ids.append(s)
-    b.assume(DC_STRING_MIN, "SCB to inverter DC cables are laid in trenches and rated with the in-air ampacity column (the catalogued solar DC cable has no in-ground rating).")
+    b.assume(
+        DC_STRING_MIN, "SCB to inverter DC cables are laid in trenches and rated with the in-air ampacity column (the catalogued solar DC cable has no in-ground rating).",
+        SCB_FUSES, CENTRAL_FLOATING,
+    )
     return ids
 
 
@@ -243,7 +300,8 @@ def inverter_groups(c: Ctx, within: str | None, blk: BlockClass, inverter: Inver
             ids = dc_string_inverter(c, g, sfx, inv, ic.strings, mps, module, dc_laying, isolator, inverter)
         b.earth(inv)
         if ic.slots:
-            c.built.string_links.append((ids, ic.count, ic.slots))
+            scbs = [per for k, per in split_even(ic.strings, c.scb_strings) for _ in range(k)] if central else None
+            c.built.string_links.append((ids, ic.count, ic.slots, scbs))
         out.append((ic, g, inv))
     return out
 
@@ -305,7 +363,8 @@ def mv_yard(c: Ctx, kv: float, metering: str, aux: bool, export_limit_kw: float 
     b.node("out_la", "LA-OG-01", NodeKind.LIGHTNING_ARRESTER, voltage_v=vv, spec=la.id if la else None)
     b.edge("e_ct_la", "out_ct:out", "out_la:line", V.MV_AC)
     attrs = {"export_limit_kva": float(export_limit_kw)} if export_limit_kw else {}
-    b.node("poi", "POI-01", NodeKind.POI_GRID, voltage_v=vv, title=f"{kv:g} kV EXPORT LINE TO GRID SUBSTATION", attributes=attrs)
+    limit = f", EXPORT LIMIT {export_limit_kw:g} kW" if export_limit_kw else ""
+    b.node("poi", "POI-01", NodeKind.POI_GRID, voltage_v=vv, title=f"{kv:g} kV EXPORT LINE TO GRID SUBSTATION{limit}", attributes=attrs)
     b.edge("e_ct_poi", "out_ct:out", "poi:in", V.MV_AC, remarks=f"{kv:g} kV export line, route by others")
     b.earth()
     return bus
@@ -377,12 +436,15 @@ def residential(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec
     invs = inverter_groups(c, None, blk, inverter, module, plan.modules_per_string, False, Laying.TRAY, True)
     out = lv_board(c, None, "", invs, v, ph, "SOLAR ACDB", "inv_acdb", Laying.CONDUIT, prefix="ACDB")
     b.node("gen_meter", "GM-01", NodeKind.METER, spec=pick_meter(c.catalog, "generation", "direct").id, title="SOLAR GENERATION METER")
-    b.node("db", "DB-01", NodeKind.LT_PANEL, voltage_v=v, title="CONSUMER MAIN DB")
-    b.node("load", "LOAD-01", NodeKind.LOAD, voltage_v=v, title="CONSUMER LOADS")
+    b.node("db", "DB-01", NodeKind.LT_PANEL, voltage_v=v, title="CONSUMER MAIN DB", attributes={EXISTING: True})
+    b.node("load", "LOAD-01", NodeKind.LOAD, voltage_v=v, title="CONSUMER LOADS", attributes={EXISTING: True})
+    b.node("inc_brk", "SOLAR-INC", NodeKind.BREAKER, voltage_v=v, hint=NodeHint("lv_breaker", _poles(ph)), title="SOLAR INCOMER MCB IN DB-01")
     b.node("net_meter", "NM-01", NodeKind.METER, spec=pick_meter(c.catalog, "net", "direct").id, title="DISCOM NET METER (BIDIRECTIONAL)")
     b.node("poi", "POI-01", NodeKind.POI_GRID, voltage_v=v, title=f"DISCOM LT SUPPLY {v:g} V")
     b.edge("e_brk_gm", f"{out}:out", "gen_meter:in", V.LV_AC, lv_hint(ph), c.L("acdb_meter"), Laying.CONDUIT)
-    b.edge("e_gm_db", "gen_meter:out", "db:in", V.LV_AC, lv_hint(ph), c.L("meter_db"), Laying.CONDUIT)
+    b.edge("e_gm_db", "gen_meter:out", "inc_brk:in", V.LV_AC, lv_hint(ph), c.L("meter_db"), Laying.CONDUIT)
+    b.edge("e_inc_db", "inc_brk:out", "db:in", V.LV_AC)
+    b.assume(SOLAR_INCOMER)
     b.edge("e_db_load", "db:out", "load:in", V.LV_AC, remarks="Existing consumer wiring, by others")
     b.edge("e_db_nm", "db:out", "net_meter:in", V.LV_AC)
     b.edge("e_nm_poi", "net_meter:out", "poi:in", V.LV_AC, remarks="DISCOM service connection, by others")
@@ -416,12 +478,17 @@ def ci_rooftop(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
         b.node("net_meter", "NM-01", NodeKind.METER, spec=pick_meter(c.catalog, "net", "ct").id, ports=["sig"], title="DISCOM NET METER")
         b.node("poi", "POI-01", NodeKind.POI_GRID, voltage_v=v, title="DISCOM LT SUPPLY 415 V")
         if connection == "dedicated_feeder":
-            b.edge("e_iso_netct", "ac_iso:out", "net_ct:in", V.LV_AC, lv_hint(3), c.L("iso_ltp"), Laying.TRAY, remarks="Dedicated LT feeder to the DISCOM metering point")
-            b.assume("Dedicated LT feeder: the plant exports through its own feeder and net/export meter, not through the consumer LT panel.")
+            b.node("inc_brk", "SOLAR-INC", NodeKind.BREAKER, voltage_v=v, hint=NodeHint("lv_breaker", _poles(3)), title="SOLAR FEEDER BREAKER AT DISCOM METERING POINT")
+            b.edge("e_iso_netct", "ac_iso:out", "inc_brk:in", V.LV_AC, lv_hint(3), c.L("iso_ltp"), Laying.TRAY, remarks="Dedicated LT feeder to the DISCOM metering point")
+            b.edge("e_inc_netct", "inc_brk:out", "net_ct:in", V.LV_AC)
+            b.assume("Dedicated LT feeder: the plant exports through its own feeder and net/export meter, not through the consumer LT panel.", SOLAR_INCOMER)
         else:
-            b.node("ltp", "LTP-01", NodeKind.LT_PANEL, voltage_v=v, title="CONSUMER LT PANEL 415 V")
-            b.node("load", "LOAD-01", NodeKind.LOAD, voltage_v=v, title="CONSUMER LOADS")
-            b.edge("e_iso_ltp", "ac_iso:out", "ltp:in", V.LV_AC, lv_hint(3), c.L("iso_ltp"), Laying.TRAY)
+            b.node("ltp", "LTP-01", NodeKind.LT_PANEL, voltage_v=v, title="CONSUMER LT PANEL 415 V", attributes={EXISTING: True})
+            b.node("load", "LOAD-01", NodeKind.LOAD, voltage_v=v, title="CONSUMER LOADS", attributes={EXISTING: True})
+            b.node("inc_brk", "SOLAR-INC", NodeKind.BREAKER, voltage_v=v, hint=NodeHint("lv_breaker", _poles(3)), title="SOLAR INCOMER BREAKER IN LTP-01")
+            b.edge("e_iso_ltp", "ac_iso:out", "inc_brk:in", V.LV_AC, lv_hint(3), c.L("iso_ltp"), Laying.TRAY)
+            b.edge("e_inc_ltp", "inc_brk:out", "ltp:in", V.LV_AC)
+            b.assume(SOLAR_INCOMER)
             b.edge("e_ltp_load", "ltp:out", "load:in", V.LV_AC, remarks="Existing consumer distribution, by others")
             b.edge("e_ltp_ct", "ltp:out", "net_ct:in", V.LV_AC)
             b.earth("ltp")

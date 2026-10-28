@@ -298,6 +298,7 @@ class ProtectionSpec(Spec):
     surge_counter: bool | None = Field(default=None, description="lightning arrester supplied with a discharge counter; None when the source is silent")
     terminal_max_mm2: float | None = Field(default=None, gt=0, description="largest cable per pole the terminals take (sq.mm); None when the source is silent")
     terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most cables per pole the terminals take")
+    break_time_s: float | None = Field(default=None, gt=0, description="total breaking time (opening + arcing) of a circuit-breaker, as the datasheet gives it")
 
 
 class MeterSpec(Spec):

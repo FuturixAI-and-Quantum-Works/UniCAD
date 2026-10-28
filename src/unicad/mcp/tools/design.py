@@ -69,6 +69,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         block_switch: Annotated[Literal["vcb", "rmu"], Field(description="Switch on each block transformer's HV side")] = "vcb",
         auxiliary: Annotated[bool, Field(description="Add block and plant auxiliary transformers")] = True,
         export_limit_kw: Annotated[float | None, Field(gt=0, description="Sanctioned export capacity in kW, recorded on the POI")] = None,
+        export_control: Annotated[Literal["none", "ppc"], Field(description="ppc: a power plant controller limits the export at the POI to export_limit_kw (PV inverters + BESS PCS may exceed it)")] = "none",
         bess_kw: Annotated[float | None, Field(gt=0, description="Storage power in kW (bess_dc, hybrid)")] = None,
         bess_kwh: Annotated[float | None, Field(gt=0, description="Storage energy in kWh")] = None,
         pcs: Annotated[str | None, Field(description="Catalog PCS id")] = None,
@@ -89,7 +90,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             template=template, ac_kw=ac_kw, dc_kwp=dc_kwp, module=module, inverter=inverter, grid_voltage_v=grid_voltage_v,
             modules_per_string=modules_per_string, strings_per_inverter=strings_per_inverter, inverters_per_block=inverters_per_block,
             step_up_kv=step_up_kv, connection=connection, metering=metering, block_switch=block_switch, auxiliary=auxiliary,
-            export_limit_kw=export_limit_kw, bess_kw=bess_kw, bess_kwh=bess_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
+            export_limit_kw=export_limit_kw, export_control=export_control, bess_kw=bess_kw, bess_kwh=bess_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
         )  # fmt: skip
 
         def change(p: Project) -> Edit:

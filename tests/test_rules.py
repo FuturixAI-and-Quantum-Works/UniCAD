@@ -74,6 +74,8 @@ def test_rooftop_fixture_is_a_valid_design():
     assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
         ("cables.missing", "warning", ("e_ct_poi",)),
         ("cables.missing", "warning", ("e_ltp_load",)),
+        ("protection.lv_both_ends", "warning", ("e_acb_ct", "ltp")),
+        ("protection.lv_both_ends", "warning", ("e_iso_ltp", "ltp")),
     }
     assert report.counts["error"] == 0 and not report.blocking
     gate = issue_gate(report, IssuedFor.APPROVAL)
@@ -98,9 +100,12 @@ def test_utility_fixture_report():
     assert {(r, sev, subj) for r, sev, subj in summary(report) if sev != "info"} == {
         ("pv_strings.operating_current", "warning", ("str", "inv")),
         ("cables.ampacity", "warning", ("e_scb_inv",)),
+        ("cables.ampacity", "error", ("e_inv_idt",)),
         ("cables.missing", "warning", ("e_ct_poi",)),
     }
-    assert report.counts["error"] == 0 and not report.blocking
+    # 8 x 3 x 1C 400 Al in a trench: 3 racks of up to 3 trefoils, KEI single core table B 0.81: 8 x 589 x 0.81 = 3816.7 A < Ib 3849 A
+    (idt,) = [f for f in report.by_rule("cables.ampacity") if f.subjects == ("e_inv_idt",)]
+    assert idt.limit == pytest.approx(8 * 589 * 0.81, abs=0.01) and report.counts["error"] == 1
     assert ("pv_strings.string_fuses", "info", ("str", "inv", "scb")) in summary(report)
 
 

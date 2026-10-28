@@ -2,7 +2,7 @@
 
 import math
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import CableSpec, MeterSpec, ProtectionSpec, TransformerSpec
@@ -162,6 +162,22 @@ class CableFamily:
 
 DC_FAMILY = CableFamily("dc", "Polycab", "dc_solar", "cu", (1,), max_runs=8, min_mm2=4.0)
 DC_STRING_FAMILY = CableFamily("dc_string", "Polycab", "dc_solar", "cu", (1,), max_runs=1, min_mm2=4.0)
+MC4 = "references/catalog-sources/raw/datasheets/cables/Staubli_MC4_open_crimp_11014112-en.pdf"
+MC4_MAX_MM2, MC4_MAX_MM2_HV, MC4_HV_V = 10.0, 6.0, 1000.0
+
+
+def string_family(voc_v: float) -> CableFamily:
+    """String cables end on MC4 connectors (module leads, inverter inputs, SCB fuse holders), so they are capped at the cross-sections the connector takes."""
+    return replace(DC_STRING_FAMILY, max_mm2=MC4_MAX_MM2 if voc_v <= MC4_HV_V else MC4_MAX_MM2_HV)
+
+
+def mc4_cap(voc_v: float) -> str:
+    cap = MC4_MAX_MM2 if voc_v <= MC4_HV_V else MC4_MAX_MM2_HV
+    return (
+        f"String cables are at most {cap:g} sq.mm: they end on MC4 connectors (module leads, inverter inputs, SCB fuse holders), and the Staubli Original MC4 range "
+        f"takes 2.5 to 10 sq.mm, the 10 sq.mm contact only up to DC {MC4_HV_V:g} V (IEC 62852; datasheet {MC4} p.1 note 1); the strings reach {voc_v:.0f} V at Tmin. "
+        "Where voltage drop would need a larger string cable, the strings are grouped onto nearer combiner boxes or the path is reported, not given a cable no connector takes."
+    )
 LV3_FAMILY = CableFamily("lv3", "Polycab", "lv_ac", "al", (4, 1), armoured=True, insulation="xlpe", max_runs=12, multicore_max_mm2=300.0, min_mm2=10.0, max_mm2=400.0)
 LV1_FAMILY = CableFamily("lv1", "Polycab", "lv_ac", "al", (2,), armoured=True, insulation="xlpe", max_runs=4, min_mm2=10.0)
 DC_STRING_MIN = "String cables are at least 4 sq.mm (design practice for PV string wiring), even where 2.5 sq.mm would carry the current."

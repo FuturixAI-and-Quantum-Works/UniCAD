@@ -146,7 +146,10 @@ compared with it, because whole catalog units rarely add up to the request exact
 
 Standard: none (design practice). Segments: all.
 
-When a poi_grid node carries an `export_limit_kva` attribute (sanctioned or contracted export capacity), total rated inverter AC kVA above it is a warning: the plant needs export limiting or a smaller AC capacity.
+When a poi_grid node carries an `export_limit_kva` attribute (sanctioned or contracted export capacity), the AC capacity that can export through it, rated
+PV inverter kVA plus BESS PCS kVA (a discharging battery exports like the PV), is compared with it. Above it is a warning: the plant needs export control or a
+smaller AC capacity. With `export_control` = "ppc" on the POI (a declared power plant controller limiting the export), the excess is an info finding that states
+the controller assumption. Within the limit is an info finding giving the sum.
 
 
 ## protection
@@ -155,7 +158,7 @@ When a poi_grid node carries an `export_limit_kva` attribute (sanctioned or cont
 
 Standard: IS 732. Segments: all.
 
-A breaker, fuse or switch on an export path must be rated for the current it carries: on the AC side In >= 1.25 x the maximum current of the inverters behind it, on the DC side In >= 1.25 x Isc of the strings behind it. String fuses (gPV) are checked by protection.string_fuse_rating. The upper bound In <= cable ampacity belongs to cable sizing, which reuses the same design current.
+A breaker, fuse or switch on an export path must be rated for the current it carries: on the AC side In >= 1.25 x the maximum current of the inverters behind it, on the DC side In >= 1.25 x Isc of the strings behind it. A DC isolator node standing for several separate string circuits (isolator_ways) is checked per device: each switches poles / 2 circuits and carries their share. String fuses (gPV) are checked by protection.string_fuse_rating. The upper bound In <= cable ampacity belongs to cable sizing, which reuses the same design current.
 
 ### `protection.breaking_capacity`: Interrupting devices state a breaking capacity
 
@@ -232,6 +235,18 @@ An MV cable must have a circuit breaker, RMU breaker or fuse (switch-fuse) at it
 the bus end of a block feeder, the transformer-tap end of an auxiliary transformer feeder. A breaker at the far end only (the block VCB of a feeder that
 tees straight onto the main bus) leaves the cable unprotected: error.
 
+### `protection.lv_both_ends`: LT export cables are protected at the grid end
+
+Standard: IS 732 / IEC 60364-4-43. Segments: all.
+
+An LT AC cable between the generators and the grid is fed from both ends. It needs an MCB, MCCB, ACB or fuse at its grid end (downstream, through
+in-line CTs, meters and isolators), or a transformer there whose HV breaker clears the fault. A cable whose only overcurrent device is at the generator end
+(an ACDB outgoing breaker) while its grid end lands on a panel or busbar is a warning: add the solar incomer breaker at the panel. A cable that ends at the
+supply point itself (the DISCOM service connection) is protected by the supply's own device, by others, and is not checked.
+
+Worked example: ACDB ACB -> cable -> CT -> isolator -> cable -> consumer LT panel. Both cables reach the panel through the CT and isolator only, so both are
+flagged until an incomer breaker is placed at the LT panel end.
+
 ### `protection.transformer_feed`: Every transformer tap is switched and protected
 
 Standard: none (design practice). Segments: all.
@@ -293,7 +308,9 @@ area (area x parallel runs), I the three-phase fault current and t its clearing 
 I is the level declared for the cable's system voltage (design_basis.fault_levels) or, in an LT zone (up to 1000 V) fed by a transformer, the transformer-fed current of
 protection.fault_level when that is larger. t depends on the voltage level: an LT cable protected by an MCB, MCCB or ACB (directly, or through in-line CTs, meters and
 isolators as for cables.protection) is cleared by the breaker's instantaneous trip, taken as 0.1 s (a labelled assumption: the shortest duration IEC 60364-4-43 applies the
-adiabatic formula to); every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
+adiabatic formula to); an LT cable a transformer feeds with no LT breaker on it is cleared by the VCB on that transformer's HV side, in the feeder relay's instantaneous
+stage plus the VCB's catalogued total breaking time (0.023 + 0.020 + 0.060 = 0.103 s for an ABB VD4 behind an ABB REF615, labelled as an assumption on the relay settings);
+every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
 k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). The fault is taken at the
 cable's source end, which is conservative (cable impedance only lowers it), and only the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not
 checked. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.

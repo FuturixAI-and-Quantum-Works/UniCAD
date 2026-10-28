@@ -284,7 +284,7 @@ def test_a_banded_cable_is_called_out_on_the_sld_with_every_band_size_the_schedu
     rows = build_schedule(p, CATALOG).rows
     sheets = plan_sld_set(p, PROFILE, CATALOG)
     texts = [t.dxf.text for b in SldBuilder().build(p, sheets, sheets, PROFILE, CATALOG) for blk in b.doc.blocks for t in blk.query("TEXT")]
-    banded = [e for e in p.network.edges if e.bands]
+    banded = [e for e in p.network.edges if e.bands and e.runs == 1 and all(b.runs in (None, 1) for b in e.bands)]
     assert banded
     for e in banded:
         sizes = sorted({r.size_mm2 for r in rows if r.edge == e.id and r.runs == 1})

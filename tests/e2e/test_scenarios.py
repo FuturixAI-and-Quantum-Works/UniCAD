@@ -1,6 +1,7 @@
 """The close-e2e scenarios replayed over MCP stdio, from project_create to the issued set: a C&I rooftop on the Acme profile (Pune),
-a 40 MWac utility plant (Rajasthan) and a 20 MWac PV + 10 MW / 20 MWh BESS hybrid (Kutch). Slow (several minutes, LibreCAD and
-LibreDWG); run with UNICAD_E2E=1."""
+a 40 MWac utility plant (Rajasthan), a 35 MWac central-inverter plant on 24-input SCBs (run 5, Rajasthan), a 20 MWac PV + 8 MW / 16 MWh
+BESS hybrid and the run-5 12 MWac PV + 7.56 MW / 15 MWh hybrid under a 12 MW export limit held by a plant controller (Kutch). Slow
+(several minutes, LibreCAD and LibreDWG); run with UNICAD_E2E=1."""
 
 import asyncio
 import json
@@ -90,7 +91,52 @@ HYBRID = {
               "strings_per_inverter": 24, "n_blocks": 3, "target_dc_kwp": 21792.24, "road_every_rows": 12},
     "autobuild": {"template": "hybrid", "ac_kw": 20064, "module": "vikram-solar-hypersol-m10r-144-590-wp", "inverter": "sungrow-sg350hx", "modules_per_string": 27,
                   "strings_per_inverter": 24, "inverters_per_block": 19, "bess_kw": 8000, "bess_kwh": 16000, "pcs": "sungrow-st5015kwh-2500kw-2h",
-                  "battery": "sungrow-st5015kwh", "export_limit_kw": 20000},
+                  "battery": "sungrow-st5015kwh", "export_limit_kw": 20000, "export_control": "ppc"},
+    "lps": {"method": "ese", "level": "III", "ese_delta_t_us": 60, "mast_height_m": 6},
+}  # fmt: skip
+
+CENTRAL = {
+    "create": {
+        "name": "35 MWac Ground Mount Solar PV Plant", "client": "Thar Renewables Ltd", "segment": "utility", "site": "Thar Renewables solar park, Rajasthan",
+        "grid_voltage_v": 33000, "state": "Rajasthan", "utility": "RVPNL", "client_code": "TRL", "project_id": "thar-35mw", "ambient_min_c": 2, "ambient_max_c": 48,
+        "altitude_m": 250, "vdrop_dc_max": 0.02, "vdrop_ac_max": 0.015, "dc_ac_ratio_target": 1.25, "power_factor": 0.95,
+    },
+    "profile": None,
+    "site": SITES / "ground_mount_rajasthan.kml",
+    "setbacks": {"boundary_m": 10, "exclusion_m": 10},
+    "basis": {
+        "fault_levels": [{"voltage_v": 33000, "fault_ka": 25, "clearing_s": 1, "source": "RVPNL 33 kV fault level (brief)"}],
+        "earthing": {"soil_resistivity_ohm_m": 150, "fault_current_ka": 25, "fault_clearing_s": 1, "surface_resistivity_ohm_m": 3000, "surface_layer_m": 0.1,
+                     "switchyard_m": [60, 45]},
+        "lps": {"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6},
+    },
+    "place": {"module": "waaree-bin-21-630", "tilt_deg": 25, "road_every_rows": 10, "target_dc_kwp": 45500, "n_blocks": 4, "modules_per_string": 28,
+              "strings_per_inverter": 312},
+    "autobuild": {"template": "utility_central", "ac_kw": 35200, "module": "waaree-bin-21-630", "inverter": "sma-sc-4400-up", "modules_per_string": 28,
+                  "strings_per_inverter": 312, "inverters_per_block": 2},
+    "lps": {"method": "ese", "level": "III", "ese_delta_t_us": 60, "mast_height_m": 6},
+}  # fmt: skip
+
+HYBRID_R5 = {
+    "create": {
+        "name": "12 MWac Solar PV + 7.56 MW / 15 MWh BESS Hybrid Plant", "client": "Kutch Hybrid Power Pvt Ltd", "segment": "hybrid", "site": "Kutch hybrid site, Gujarat",
+        "grid_voltage_v": 33000, "state": "Gujarat", "utility": "GETCO", "client_code": "KHP", "project_id": "kutch-hybrid-r5", "ambient_min_c": 5, "ambient_max_c": 46,
+        "altitude_m": 20, "vdrop_dc_max": 0.02, "vdrop_ac_max": 0.015, "dc_ac_ratio_target": 1.2, "power_factor": 0.95,
+    },
+    "profile": None,
+    "site": SITES / "site_plan_kutch.dxf",
+    "site_origin": {"origin_lon": 69.8, "origin_lat": 23.45},
+    "setbacks": {"boundary_m": 10, "exclusion_m": 10},
+    "basis": {
+        "fault_levels": [{"voltage_v": 33000, "fault_ka": 25, "clearing_s": 1, "source": "GETCO 33 kV fault level (brief)"}],
+        "earthing": {"soil_resistivity_ohm_m": 80, "fault_current_ka": 25, "fault_clearing_s": 1, "surface_resistivity_ohm_m": 3000, "surface_layer_m": 0.1,
+                     "switchyard_m": [60, 45]},
+        "lps": {"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6},
+    },
+    "place": {"module": "waaree-bi-55-545", "tilt_deg": 22, "road_every_rows": 10, "target_dc_kwp": 14649.6, "n_blocks": 4, "modules_per_string": 28, "strings_per_inverter": 24},
+    "autobuild": {"template": "hybrid", "ac_kw": 12000, "module": "waaree-bi-55-545", "inverter": "huawei-sun2000-330ktl-h1", "modules_per_string": 28,
+                  "strings_per_inverter": 24, "inverters_per_block": 10, "bess_kw": 7560, "bess_kwh": 15045, "pcs": "sungrow-st5015kwh-2500kw-2h",
+                  "battery": "sungrow-st5015kwh", "export_limit_kw": 12000, "export_control": "ppc"},
     "lps": {"method": "ese", "level": "III", "ese_delta_t_us": 60, "mast_height_m": 6},
 }  # fmt: skip
 
@@ -135,7 +181,8 @@ async def scenario(c: Client, s: dict) -> dict:
         built = await c.call("network_autobuild", project_id=pid, **s["autobuild"])
     await c.call("earthing_design", project_id=pid)
     await c.call("lps_design", project_id=pid, **s["lps"])
-    run = {"checked": await c.call("validate", project_id=pid), "built": built, "export_limit_kw": s["autobuild"].get("export_limit_kw"), "bess": s["autobuild"].get("bess_kw")}
+    run = {"checked": await c.call("validate", project_id=pid), "built": built, "export_limit_kw": s["autobuild"].get("export_limit_kw"), "bess": s["autobuild"].get("bess_kw"),
+           "export_control": s["autobuild"].get("export_control", "none")}
     run["drawn"] = await c.call("drawings_render", project_id=pid, kinds=["all"], formats=["dxf", "pdf", "dwg"])
     run["cables"] = await c.call("cable_schedule", project_id=pid, format="xlsx")
     run["bom"] = await c.call("bom", project_id=pid, format="xlsx")
@@ -169,6 +216,7 @@ def check(run: dict) -> None:
     check_string_fuses(run)
     check_capacity_against_the_intent(run)
     check_bom_leaves_out_cables_by_others(run)
+    check_lt_cables_are_protected_and_grouped(run)
 
 
 def table(path: str, sheet: str) -> list[dict]:
@@ -260,7 +308,10 @@ def check_string_fuses(run: dict) -> None:
         assert n["attributes"].get("fused_poles") == 2
     lines = table(run["bom"]["files"][0], "BOM")
     boxes = sum(ln["QUANTITY"] for ln in lines if ln["ITEM"].startswith("STRING FUSE BOX"))
-    assert boxes == run["built"]["design"]["inverters"]
+    in_scb = [n for n in fuses if n["id"].startswith("scb_fuse")]
+    assert boxes == (0 if in_scb else run["built"]["design"]["inverters"])
+    links = sum(ln["QUANTITY"] for ln in lines if ln["CATALOG ID"] in {n["spec"] for n in fuses})
+    assert links == 2 * run["built"]["design"]["strings"], (links, run["built"]["design"]["strings"])
 
 
 def check_capacity_against_the_intent(run: dict) -> None:
@@ -270,6 +321,10 @@ def check_capacity_against_the_intent(run: dict) -> None:
     if run["export_limit_kw"]:
         assert design["ac_kva"] <= run["export_limit_kw"], design
         assert not warnings_of(run, "ratio.export_limit")
+        if run["bess"]:
+            assert run["export_control"] == "ppc"
+            poi = next(n for n in run["project"]["network"]["nodes"] if n["kind"] == "poi_grid")
+            assert poi["attributes"]["export_control"] == "ppc" and f"EXPORT LIMIT {run['export_limit_kw']:g} kW" in poi["title"]
     if run["bess"]:
         (intent,) = warnings_of(run, "ratio.bess_intent")
         assert "asked (" in intent["message"]
@@ -289,7 +344,18 @@ def check_bom_leaves_out_cables_by_others(run: dict) -> None:
         assert got == (math.ceil(mine * 1.05) if mine else 0) or abs(got - mine * 1.05) <= 1, (ref, got, mine)
 
 
-SCENARIOS = [("rooftop", ROOFTOP), ("utility", UTILITY), ("hybrid", HYBRID)]
+def check_lt_cables_are_protected_and_grouped(run: dict) -> None:
+    """Close-e2e-5 M1, M2, M3: no LT cable is fed from both ends without a breaker at its grid end; parallel LT circuits carry a cited group rating factor;
+    voltage drop never piles more than four parallel runs onto a circuit beyond what its current needs."""
+    assert not warnings_of(run, "protection.lv_both_ends")
+    for e in run["project"]["network"]["edges"]:
+        if e["service"] == "lv_ac" and e.get("runs", 1) > 3:
+            assert e.get("laying") in ("tray", "air", "trench", "buried_direct"), e["id"]
+    lines = [ln for ln in table(run["bom"]["files"][0], "BOM") if "LT PANEL" in ln["ITEM"] and "CONSUMER" in ln["ITEM"]]
+    assert not lines, lines
+
+
+SCENARIOS = [("rooftop", ROOFTOP), ("utility", UTILITY), ("central", CENTRAL), ("hybrid", HYBRID), ("hybrid_r5", HYBRID_R5)]
 
 
 @pytest.mark.parametrize("name, s", SCENARIOS)

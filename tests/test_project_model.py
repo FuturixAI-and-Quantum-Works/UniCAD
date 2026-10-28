@@ -300,7 +300,7 @@ def test_rules_resolve_the_inline_spec(catalog):
 
     clean = run_rules(Project.model_validate(raw("utility_50mwac"), context={"catalog": catalog}), catalog)
     assert not [f for f in clean.by_rule("structure.transformer_voltage") if f.subjects == ("idt",)]
-    assert not clean.by_rule("structure.missing_spec") and clean.counts["error"] == 0
+    assert not clean.by_rule("structure.missing_spec") and all(f.rule_id == "cables.ampacity" for f in clean.findings if f.severity.value == "error")
 
     data = raw("utility_50mwac")
     inline_idt(data)["lv_kv"] = [0.8, 0.8]

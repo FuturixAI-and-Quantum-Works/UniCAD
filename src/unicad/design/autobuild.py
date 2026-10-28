@@ -17,11 +17,13 @@ from unicad.domain.project import DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.placement import place_equipment
 from unicad.design.plan import PvPlan, from_layout, uniform
+from unicad.arrays.geometry import frame
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
+from unicad.routing.locate import slot_centre
 from unicad.design.sizing import band_cables, size_network
 from unicad.design.strings import DesignError, StringDesign, size_strings
 from unicad.rules import Finding, Severity, run_rules
-from unicad.rules.ratio import plant_capacity
+from unicad.rules.ratio import PPC, plant_capacity
 from unicad.rules.thresholds import VOLTAGE_TOLERANCE, Setting, using
 
 Template = Literal["residential", "ci_rooftop", "utility_string", "utility_central", "bess_ac", "bess_dc", "hybrid"]
@@ -60,6 +62,7 @@ class Intent(BaseModel):
     block_switch: Literal["vcb", "rmu"] = "vcb"
     auxiliary: bool = True
     export_limit_kw: float | None = Field(default=None, gt=0)
+    export_control: Literal["none", "ppc"] = Field(default="none", description="ppc: a power plant controller limits the export at the POI to export_limit_kw")
     bess_kw: float | None = Field(default=None, gt=0)
     bess_kwh: float | None = Field(default=None, gt=0)
     pcs: str | None = None
@@ -269,19 +272,110 @@ def _plan(
     return uniform(blocks, math.ceil(n_inv / blocks), spi, mps)
 
 
-def _link_strings(net: ElectricalNetwork, links) -> tuple[StringAssignment, ...]:
+INVERTER_GROUPING = (
+    "The layout strings of the like inverters of a block (same string count) are split between them in compact parts (recursive bisection along the longer "
+    "extent, in the array frame), so each inverter, or its SCBs, collects neighbouring strings."
+)
+SCB_GROUPING = (
+    "Each central inverter's strings are grouped onto its SCBs by nearness (each SCB takes the string farthest out and its nearest neighbours, then a few rounds of "
+    "nearest-centroid reassignment within the SCB sizes), so every SCB combines a patch of neighbouring strings and stands at their centroid."
+)
+
+
+def _centre(layout: ArrayLayout, a: StringAssignment) -> tuple[float, float]:
+    pts = [slot_centre(layout.table_by_id[t], r, c) for t, r, c in a.slots()]
+    t = layout.table_by_id[a.spans[0].table]
+    (ux, uy), (vx, vy) = frame(t.azimuth_deg)
+    x, y = sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
+    return x * ux + y * uy, x * vx + y * vy
+
+
+def _bisect(items: list[tuple[tuple[float, float], StringAssignment]], sizes: list[int]) -> list[list[tuple[tuple[float, float], StringAssignment]]]:
+    """Split `items` into groups of `sizes` by recursive bisection along the longer extent (compact halves for inverters)."""
+    if len(sizes) <= 1:
+        return [items]
+    k = len(sizes) // 2
+    first = sum(sizes[:k])
+    spans = [max(p[i] for p, _ in items) - min(p[i] for p, _ in items) for i in (0, 1)]
+    axis = 0 if spans[0] >= spans[1] else 1
+    ordered = sorted(items, key=lambda it: (it[0][axis], it[0][1 - axis]))
+    return _bisect(ordered[:first], sizes[:k]) + _bisect(ordered[first:], sizes[k:])
+
+
+def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+def _radius(groups: list[list[tuple[tuple[float, float], StringAssignment]]]) -> float:
+    worst = 0.0
+    for g in groups:
+        c = (sum(p[0] for p, _ in g) / len(g), sum(p[1] for p, _ in g) / len(g))
+        worst = max(worst, max(_dist(p, c) for p, _ in g))
+    return worst
+
+
+def _refine(items, groups, sizes):
+    """Capacity-bound nearest-centroid reassignment rounds from `groups`; the grouping whose farthest string is nearest its centroid wins."""
+    best, best_r = groups, _radius(groups)
+    for _ in range(PATCH_ROUNDS):
+        cents = [(sum(p[0] for p, _ in g) / len(g), sum(p[1] for p, _ in g) / len(g)) for g in groups]
+        pairs = sorted((_dist(it[0], c), it[1].string, i, k) for i, it in enumerate(items) for k, c in enumerate(cents))
+        room, where = list(sizes), {}
+        for _, _, i, k in pairs:
+            if i not in where and room[k] > 0:
+                where[i] = k
+                room[k] -= 1
+        groups = [[it for i, it in enumerate(items) if where[i] == k] for k in range(len(sizes))]
+        r = _radius(groups)
+        if r < best_r - 1e-9:
+            best, best_r = groups, r
+    return best, best_r
+
+
+def _partition(items: list[tuple[tuple[float, float], StringAssignment]], sizes: list[int]) -> list[list[StringAssignment]]:
+    """Groups of `sizes` neighbouring strings: recursive bisection along the longer extent, and seeded patches (each starts at the string farthest from the
+    centre of those left and takes its nearest neighbours, distance along the array axes), each refined by nearest-centroid reassignment; the grouping whose
+    farthest string is nearest its group centroid is kept."""
+    if len(sizes) <= 1:
+        return [[a for _, a in items]]
+    left, seeded = list(items), []
+    for size in sizes:
+        cx, cy = sum(p[0] for p, _ in left) / len(left), sum(p[1] for p, _ in left) / len(left)
+        seed = max(left, key=lambda it: (_dist(it[0], (cx, cy)), it[1].string))
+        near = sorted(left, key=lambda it: (_dist(it[0], seed[0]), it[1].string))[:size]
+        taken = {id(x) for x in near}
+        left = [x for x in left if id(x) not in taken]
+        seeded.append(near)
+    best = min((_refine(items, g, sizes) for g in (_bisect(items, sizes), seeded)), key=lambda gr: gr[1])[0]
+    return [[a for _, a in g] for g in best]
+
+
+PATCH_ROUNDS = 8
+
+
+def _link_strings(net: ElectricalNetwork, links, layout: ArrayLayout, notes: list[str]) -> tuple[StringAssignment, ...]:
     out = []
-    for node_ids, count, slots in links:
+    for node_ids, count, slots, scbs in links:
         chunks = []
         for nid in node_ids:
             ids = net.instance_ids(nid)
             size = len(ids) // count
             chunks.append([ids[j * size : (j + 1) * size] for j in range(count)])
+        per_inv = slots
+        if count > 1 and len({len(sl) for sl in slots}) == 1:
+            pool = [(_centre(layout, a), a) for sl in slots for a in sl]
+            per_inv = _partition(pool, [len(slots[0])] * count)
+            if INVERTER_GROUPING not in notes:
+                notes.append(INVERTER_GROUPING)
+        if scbs and all(len(sl) == sum(scbs) for sl in per_inv):
+            per_inv = [[a for g in _partition([(_centre(layout, a), a) for a in sl], scbs) for a in g] for sl in per_inv]
+            if SCB_GROUPING not in notes:
+                notes.append(SCB_GROUPING)
         for j in range(count):
             mine = [i for ch in chunks for i in ch[j]]
-            if len(mine) != len(slots[j]):
-                raise DesignError(f"internal: inverter {j + 1} of {node_ids} has {len(mine)} network strings for {len(slots[j])} layout strings")
-            out += [StringAssignment(string=sid, spans=a.spans) for sid, a in zip(mine, slots[j], strict=True)]
+            if len(mine) != len(per_inv[j]):
+                raise DesignError(f"internal: inverter {j + 1} of {node_ids} has {len(mine)} network strings for {len(per_inv[j])} layout strings")
+            out += [StringAssignment(string=sid, spans=a.spans) for sid, a in zip(mine, per_inv[j], strict=True)]
     return tuple(out)
 
 
@@ -338,17 +432,39 @@ def autobuild(
     exactly one pv_string instance; the returned project's array_layout carries the links. `thresholds` are the company's threshold
     settings, applied to sizing and to the rules exactly as validate applies them."""
     with using(thresholds):
-        return _autobuild(project, catalog, Intent.model_validate(intent), layout, thresholds)
+        intent = Intent.model_validate(intent)
+        r = _autobuild(project, catalog, intent, layout, thresholds)
+        first = _string_vdrop(r)
+        if not first or not any(n.kind is NodeKind.SCB for n in r.project.network.nodes):
+            return r
+        for size in T.SCB_SIZES[1:]:
+            try:
+                again = _autobuild(project, catalog, intent, layout, thresholds, size)
+            except DesignError:
+                break
+            if not _string_vdrop(again):
+                note = (
+                    f"SCBs of {T.SCB_STRINGS} inputs left string paths over the DC voltage drop limit with string cables capped at the MC4 cross-sections "
+                    f"({first[0]}); the strings are combined on {size}-input SCBs instead (more SCBs, shorter string runs)."
+                )
+                return again.model_copy(update={"assumptions": (note, *again.assumptions)})
+        return r
 
 
-def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: PlacementResult | ArrayLayout | None, thresholds: Mapping[str, Setting] | None) -> AutobuildResult:
+def _string_vdrop(r: AutobuildResult) -> list[str]:
+    return [b for b in r.blockers if b.startswith("DC ") and "voltage drop" in b]
+
+
+def _autobuild(
+    project: Project, catalog: Catalog, intent: Intent, layout: PlacementResult | ArrayLayout | None, thresholds: Mapping[str, Setting] | None, scb_strings: int = T.SCB_STRINGS
+) -> AutobuildResult:
     notes: list[str] = []
     project = _with_grid(project, intent.grid_voltage_v)
     template = _template(project, intent, catalog)
     lay = _layout_of(layout)
     basis = project.design_basis
     lengths = {**T.default_lengths(template), **intent.lengths}
-    ctx = T.Ctx(project, catalog, lengths, frozenset(intent.lengths))
+    ctx = T.Ctx(project, catalog, lengths, frozenset(intent.lengths), scb_strings)
     if lay is not None and (intent.ac_kw or intent.dc_kwp):
         notes.append("A layout is given: the PV plan follows its blocks and strings; ac_kw and dc_kwp are not used to size the PV plant.")
     sd = None
@@ -405,8 +521,16 @@ def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: Place
             T.hybrid(ctx, plan, inverter, module, bp, intent.block_switch, intent.auxiliary, intent.export_limit_kw)
     built = ctx.built
     b = built.builder
+    if intent.export_control == "ppc":
+        if not intent.export_limit_kw:
+            raise DesignError("export_control='ppc' needs export_limit_kw (the limit the plant controller holds at the POI)")
+        for n in b.nodes:
+            if n["kind"] == NodeKind.POI_GRID.value:
+                n["attributes"] = {**(n.get("attributes") or {}), "export_control": "ppc"}
+                n["title"] = f"{n.get('title') or 'GRID'} (PPC EXPORT CONTROL)"
+        notes.append(PPC)
     net = b.network()
-    linked = _link_strings(net, built.string_links) if lay is not None else ()
+    linked = _link_strings(net, built.string_links, lay, notes) if lay is not None else ()
     if lay is not None:
         array_layout = lay.model_copy(update={"strings": linked, "equipment": ()})
     elif project.array_layout is not None:

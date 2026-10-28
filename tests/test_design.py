@@ -129,7 +129,7 @@ def test_bess_and_hybrid_put_storage_behind_its_own_transformer_on_the_mv_bus(bu
         tr = net.node("bess_tr").spec
         assert isinstance(tr, TransformerSpec) and tr.lv_kv == (0.69, 0.69) and tr.rated_kva == 2 * 2520
     hybrid = built["hybrid"].project.network
-    assert chain(hybrid, "str")[:4] == ["pv_string", "scb", "inverter", "transformer"]
+    assert chain(hybrid, "str")[:5] == ["pv_string", "fuse", "scb", "inverter", "transformer"]
     assert {e.src_node for e in hybrid.edges if e.dst == "mv_bus:bus"} == {"bf_vcb", "bf_vcb_bess"}
 
 
@@ -150,7 +150,7 @@ def test_residential_three_phase_picks_a_real_ten_kilowatt_inverter(built):
     assert r.blockers == ()
     inv = r.project.network.node("inv").spec
     assert CATALOG.get(inv).phases == 3 and CATALOG.get(inv).ac_rated_kva == 10
-    assert chain(r.project.network, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "meter", "lt_panel", "meter", "poi_grid"]
+    assert chain(r.project.network, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "meter", "breaker", "lt_panel", "meter", "poi_grid"]
 
 
 def test_residential_single_phase_builds_with_a_real_one_phase_inverter_at_zero_errors():
@@ -160,7 +160,7 @@ def test_residential_single_phase_builds_with_a_real_one_phase_inverter_at_zero_
     spec = CATALOG.get(r.project.network.node("inv").spec)
     assert (spec.phases, spec.ac_rated_kva, spec.ac_voltage) == (1, 5, 230)
     assert any("1-phase string inverter that takes the module and covers 5 kW" in a for a in r.assumptions)
-    assert chain(r.project.network, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "meter", "lt_panel", "meter", "poi_grid"]
+    assert chain(r.project.network, "str") == ["pv_string", "dc_fuse_box", "dc_isolator", "inverter", "breaker", "acdb", "breaker", "meter", "breaker", "lt_panel", "meter", "poi_grid"]
     assert r.project.network.node("inv_brk").spec.startswith("schneider-ic60n") or CATALOG.get(r.project.network.node("inv_brk").spec).rated_voltage >= 230
 
 
@@ -222,7 +222,9 @@ def test_large_hybrid_is_not_blocked_by_the_outgoing_vcb_rating():
 
 def test_rooftop_500kw_matches_the_hand_fixture_chain_and_counts(built):
     hand, auto = fixture("rooftop_500kwp").network, built["ci_rooftop_lt"].project.network
-    assert chain(auto, "str") == chain(hand, "str")
+    want = chain(hand, "str")
+    want.insert(want.index("lt_panel"), "breaker")
+    assert chain(auto, "str") == want
     for kind in (NodeKind.INVERTER, NodeKind.DC_ISOLATOR, NodeKind.DC_SPD, NodeKind.METER, NodeKind.CT, NodeKind.LT_PANEL):
         assert instances(auto, kind) == instances(hand, kind), kind
     assert abs(instances(auto, NodeKind.PV_STRING) - instances(hand, NodeKind.PV_STRING)) <= 0.2 * instances(hand, NodeKind.PV_STRING)
@@ -232,7 +234,7 @@ def test_rooftop_500kw_matches_the_hand_fixture_chain_and_counts(built):
 
 def test_utility_50mwac_matches_the_hand_fixture_chain_and_counts(built):
     hand, auto = fixture("utility_50mwac").network, built["utility_central"].project.network
-    assert chain(auto, "str") == chain(hand, "str")
+    assert chain(auto, "str") == ["pv_string", "fuse", *chain(hand, "str")[1:]]
     for kind in (NodeKind.INVERTER, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.METER, NodeKind.LIGHTNING_ARRESTER, NodeKind.VCB, NodeKind.CT, NodeKind.RELAY):
         assert instances(auto, kind) == instances(hand, kind), kind
     assert abs(instances(auto, NodeKind.SCB) - instances(hand, NodeKind.SCB)) <= 0.2 * instances(hand, NodeKind.SCB)

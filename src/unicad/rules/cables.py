@@ -16,7 +16,7 @@ from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
 from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, per_instance, zone_at
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
-PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})
+PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR, NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 PANEL_MOUNTED = frozenset({NodeKind.BREAKER, NodeKind.VCB, NodeKind.ISOLATOR, NodeKind.FUSE, NodeKind.CT, NodeKind.METER, NodeKind.RMU})
 OVERLOAD_DEVICES = frozenset({"mcb", "mccb", "acb", "fuse_gpv", "fuse_hrc"})
 COLUMN = {
@@ -289,7 +289,7 @@ def cable_fault(project: Project, catalog: Catalog, e: Edge, guards: dict[str, l
         t = LV_BREAKER_CLEARING_S
         time = Quantity(name="t", value=t, unit="s", source=f"assumption: instantaneous trip of {spec.model} ({spec.device.upper()}), {t:g} s")
         tnote = (f"{label(net, nid)} {spec.model} ({spec.device.upper()}) protects the cable. {LV_BREAKER_CLEARING}",)
-    elif (hv := _hv_clearing(project, zone, v)) is not None and (declared is None or fed is not None):
+    elif (hv := _hv_clearing(project, catalog, zone, v)) is not None and (declared is None or fed is not None):
         t, time, tnote = hv
     elif declared is not None:
         t, time, tnote = declared.clearing_s, declared.inputs()[1], declared.assumptions
@@ -300,11 +300,20 @@ def cable_fault(project: Project, catalog: Catalog, e: Edge, guards: dict[str, l
 
 
 HV_PROTECTIVE = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.BREAKER, NodeKind.FUSE})
+REF615 = "references/catalog-sources/raw/datasheets/protection/ABB_REF615_Product_Guide_1MRS756379_D.pdf"
+RELAY_START_S = 0.023
+RELAY_DELAY_S = 0.020
+RELAY_INSTANTANEOUS = (
+    f"ABB REF615 feeder relay, instantaneous overcurrent stage PHIPTOC: start time at most {RELAY_START_S * 1000:g} ms at 2 x the start value (Table 24) plus its "
+    f"minimum operate delay setting {RELAY_DELAY_S * 1000:g} ms (Table 25), {REF615} p.23-24"
+)
 
 
-def _hv_clearing(project: Project, zone, v: float) -> tuple[float, Quantity, tuple[str, ...]] | None:
-    """Clearing time of an LT cable fault fed by a transformer and not guarded by an LT breaker: the breaker on that transformer's HV side clears it,
-    in the clearing time of the HV fault level (its relay and break times are not modelled). None when no such transformer and breaker exist."""
+def _hv_clearing(project: Project, catalog: Catalog, zone, v: float) -> tuple[float, Quantity, tuple[str, ...]] | None:
+    """Clearing time of an LT cable fault fed by a transformer and not guarded by an LT breaker: the breaker on that transformer's HV side clears it.
+    When the HV breaker is a VCB with a catalogued total breaking time, the time is the feeder relay's instantaneous stage (RELAY_INSTANTANEOUS) plus that
+    breaking time, labelled as the transformer protection set to see the fault; else the clearing time of the HV fault level. None when no such transformer
+    and breaker exist."""
     net, basis = project.network, project.design_basis
     for n in net.by_kind(NodeKind.TRANSFORMER):
         if zone_at(net, n.id, "lv") != zone:
@@ -316,15 +325,28 @@ def _hv_clearing(project: Project, zone, v: float) -> tuple[float, Quantity, tup
         brk = min((m for m in ends if net.node(m).kind in HV_PROTECTIVE), key=lambda m: (not exports(net, m), m), default=None)
         if brk is None:
             continue
+        node = net.node(brk)
+        spec = (catalog.get(node.spec) if isinstance(node.spec, str) else node.spec) if node.spec is not None else None
+        brk_s = getattr(spec, "break_time_s", None) if node.kind is NodeKind.VCB else None
+        head = (
+            f"An LT fault on this cable is fed by {label(net, n.id)} and cleared by {label(net, brk)} on its HV side (no LT breaker guards the cable; an inverter's "
+            "integrated AC breaker clears only the inverter's own contribution)."
+        )
+        if brk_s is not None:
+            t = round(RELAY_START_S + RELAY_DELAY_S + brk_s, 3)
+            note = (
+                f"{head} Clearing time {t:g} s = relay {RELAY_START_S + RELAY_DELAY_S:g} s ({RELAY_INSTANTANEOUS}) + {spec.model} total breaking time {brk_s:g} s ({spec.id}). "
+                f"Assumption: the {label(net, n.id)} protection (instantaneous overcurrent or differential) is set to see a fault on its LT winding cable, which needs no "
+                "discrimination with an LT device because each LT winding feeds one inverter; confirm in the relay settings, or declare the LT level with its clearing_s."
+            )
+            src = f"assumption: IDT protection relay {RELAY_START_S + RELAY_DELAY_S:g} s (REF615) + {spec.model} {brk_s:g} s ({spec.id})"
+            return t, Quantity(name="t", value=t, unit="s", source=src), (note,)
         level = fault_at(basis, hv_zone.voltage_v)
         if level is not None:
             t, basis_note = level.clearing_s, f"the clearing time of the {hv_zone.voltage_v:g} V fault level ({level.where})"
         else:
             t, basis_note = default_clearing(basis, hv_zone.voltage_v)
-        note = (
-            f"An LT fault on this cable is fed by {label(net, n.id)} and cleared by {label(net, brk)} on its HV side (no LT breaker guards the cable; an inverter's "
-            f"integrated AC breaker clears only the inverter's own contribution). The breaker's relay and break times are not modelled, so {t:g} s is taken: {basis_note} (assumption)."
-        )
+        note = f"{head} The breaker's relay and break times are not modelled, so {t:g} s is taken: {basis_note} (assumption)."
         return t, Quantity(name="t", value=t, unit="s", source=f"assumption: {label(net, brk)} on the {label(net, n.id)} HV side, {t:g} s"), (note,)
     return None
 
@@ -476,7 +498,9 @@ def short_circuit(project: Project, catalog: Catalog) -> Iterator[Finding]:
     I is the level declared for the cable's system voltage (design_basis.fault_levels) or, in an LT zone (up to 1000 V) fed by a transformer, the transformer-fed current of
     protection.fault_level when that is larger. t depends on the voltage level: an LT cable protected by an MCB, MCCB or ACB (directly, or through in-line CTs, meters and
     isolators as for cables.protection) is cleared by the breaker's instantaneous trip, taken as 0.1 s (a labelled assumption: the shortest duration IEC 60364-4-43 applies the
-    adiabatic formula to); every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
+    adiabatic formula to); an LT cable a transformer feeds with no LT breaker on it is cleared by the VCB on that transformer's HV side, in the feeder relay's instantaneous
+    stage plus the VCB's catalogued total breaking time (0.023 + 0.020 + 0.060 = 0.103 s for an ABB VD4 behind an ABB REF615, labelled as an assumption on the relay settings);
+    every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
     k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). The fault is taken at the
     cable's source end, which is conservative (cable impedance only lowers it), and only the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not
     checked. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.

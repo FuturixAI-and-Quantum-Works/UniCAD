@@ -504,6 +504,8 @@
     ],
     "order_code": "VD4 36.{06|12}.{isc} p360",
     "short_time_withstand_ka_3s": "equal to rated Isc (p.18)",
+    "total_breaking_time_ms": 60,
+    "total_breaking_time_page": 18,
     "note": "Ordering table p.19 lists 25 kA only from 1250 A; 630 A is offered at 16 and 20 kA. 1600, 2000 and 2500 A are offered at 25, 31.5 and 40 kA; 3150 A (assembled poles, 25 and 31.5 kA only) is not catalogued. Page 18 holds the general characteristics table."
   },
   "rmu_36kv": {

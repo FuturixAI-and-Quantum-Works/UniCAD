@@ -67,7 +67,8 @@ def test_group_factor_falls_back_to_a_stated_assumption_where_the_handbook_has_n
     cable = CATALOG.get("polycab-lt-xlpe-al-4c-300-arm")
     assert grouping(cable, Laying.TRAY, 1) is None
     assert grouping(cable, Laying.TRAY, 4).factor == 0.75 and "next" not in grouping(cable, Laying.TRAY, 4).source
-    assert grouping(cable, Laying.BURIED_DIRECT, 7).factor is None and "stops at 6" in grouping(cable, Laying.BURIED_DIRECT, 7).source
+    assert grouping(cable, Laying.BURIED_DIRECT, 7).factor == 0.52 and "Havells" in grouping(cable, Laying.BURIED_DIRECT, 7).source
+    assert grouping(cable, Laying.BURIED_DIRECT, 13).factor is None and "at most 12" in grouping(cable, Laying.BURIED_DIRECT, 13).source
     assert grouping(cable, Laying.CONDUIT, 2).factor is None and "assumption" in grouping(cable, Laying.CONDUIT, 2).source
     assert grouping(cable, Laying.TRENCH, 3, dc=True).factor is None
 
