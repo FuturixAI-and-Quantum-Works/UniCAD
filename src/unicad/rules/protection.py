@@ -450,7 +450,7 @@ def _grid_end_device(project: Project, catalog: Catalog, node_id: str) -> tuple[
 def lv_both_ends(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """An LT AC cable between the generators and the grid is fed from both ends. It needs an MCB, MCCB, ACB or fuse at its grid end (downstream, through
     in-line CTs, meters and isolators), or a transformer there whose HV breaker clears the fault. A cable whose only overcurrent device is at the generator end
-    (an ACDB outgoing breaker) while its grid end lands on a panel or busbar is a warning: add the solar incomer breaker at the panel. A cable that ends at the
+    (an ACDB outgoing breaker) while its grid end lands on a panel or busbar is an error: add the solar incomer breaker at the panel. A cable that ends at the
     supply point itself (the DISCOM service connection) is protected by the supply's own device, by others, and is not checked.
 
     Worked example: ACDB ACB -> cable -> CT -> isolator -> cable -> consumer LT panel. Both cables reach the panel through the CT and isolator only, so both are
@@ -464,7 +464,7 @@ def lv_both_ends(project: Project, catalog: Catalog) -> Iterator[Finding]:
             continue
         yield Finding(
             rule_id="protection.lv_both_ends",
-            severity=Severity.WARNING,
+            severity=Severity.ERROR,
             subjects=(e.id, end),
             message=f"LT cable {e.id} ({label(net, e.src_node)} -> {label(net, e.dst_node)}) is fed from both ends but has no breaker or fuse at its grid end: "
             f"the grid-fed fault reaches it from {label(net, end)} through CTs and isolators only. Add a solar incomer breaker at {label(net, end)}",

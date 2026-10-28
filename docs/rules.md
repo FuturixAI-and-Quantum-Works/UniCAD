@@ -241,7 +241,7 @@ Standard: IS 732 / IEC 60364-4-43. Segments: all.
 
 An LT AC cable between the generators and the grid is fed from both ends. It needs an MCB, MCCB, ACB or fuse at its grid end (downstream, through
 in-line CTs, meters and isolators), or a transformer there whose HV breaker clears the fault. A cable whose only overcurrent device is at the generator end
-(an ACDB outgoing breaker) while its grid end lands on a panel or busbar is a warning: add the solar incomer breaker at the panel. A cable that ends at the
+(an ACDB outgoing breaker) while its grid end lands on a panel or busbar is an error: add the solar incomer breaker at the panel. A cable that ends at the
 supply point itself (the DISCOM service connection) is protected by the supply's own device, by others, and is not checked.
 
 Worked example: ACDB ACB -> cable -> CT -> isolator -> cable -> consumer LT panel. Both cables reach the panel through the CT and isolator only, so both are

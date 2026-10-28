@@ -348,7 +348,7 @@
         "src": "inv:ac",
         "dst": "idt:lv",
         "service": "lv_ac",
-        "cable": "kei-lt-xlpe-al-1c-400-arm",
+        "cable": "kei-lt-xlpe-al-1c-500-arm",
         "runs": 8,
         "length_m": 15.0,
         "laying": "trench"

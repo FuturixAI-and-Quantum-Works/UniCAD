@@ -133,6 +133,14 @@
         "voltage_v": 415.0
       },
       {
+        "id": "solar_inc",
+        "tag": "SOLAR-INC",
+        "kind": "breaker",
+        "spec": "schneider-mtz2-n1-1000a-4p",
+        "voltage_v": 415.0,
+        "title": "SOLAR INCOMER BREAKER IN LTP-01"
+      },
+      {
         "id": "ltp",
         "tag": "LTP-01",
         "kind": "lt_panel",
@@ -265,12 +273,18 @@
       {
         "id": "e_iso_ltp",
         "src": "ac_iso:out",
-        "dst": "ltp:in",
+        "dst": "solar_inc:in",
         "service": "lv_ac",
         "cable": "polycab-lt-xlpe-al-1c-400-arm",
         "runs": 3,
         "length_m": 5.0,
         "laying": "tray"
+      },
+      {
+        "id": "e_inc_ltp",
+        "src": "solar_inc:out",
+        "dst": "ltp:in",
+        "service": "lv_ac"
       },
       {
         "id": "e_ltp_load",

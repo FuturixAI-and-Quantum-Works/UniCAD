@@ -4,6 +4,7 @@ from pathlib import Path
 
 from unicad.catalog.store import load_catalog
 from unicad.domain.project import Project
+from unicad.rules import Severity, run_rules
 from unicad.store import canonical_json
 
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1] / "fixtures" / "projects"
@@ -44,6 +45,7 @@ roof_nodes = [
     node("solar_meter", "SM-01", "meter", spec="generic-meter-generation-ct-0.5s", ports=["sig"], title="SOLAR GENERATION METER"),
     node("ac_spd", "AC-SPD-01", "ac_spd", spec="finder-7p.25.8.275.x020", voltage_v=415.0),
     node("ac_iso", "AC-ISO-01", "isolator", spec="abb-ot1000e04p", voltage_v=415.0),
+    node("solar_inc", "SOLAR-INC", "breaker", spec="schneider-mtz2-n1-1000a-4p", voltage_v=415.0, title="SOLAR INCOMER BREAKER IN LTP-01"),
     node("ltp", "LTP-01", "lt_panel", voltage_v=415.0, title="CONSUMER LT PANEL 415 V"),
     node("load", "LOAD-01", "load", voltage_v=415.0, title="CONSUMER LOADS"),
     node("net_ct", "CT-02", "ct", voltage_v=415.0),
@@ -62,7 +64,8 @@ roof_edges = [
     edge("e_acb_ct", "acdb_acb:out", "solar_ct:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, length_m=60.0, laying="tray", remarks="Roof ACDB to the solar metering and isolation panel in the LT room"),
     edge("e_ct_spd", "solar_ct:out", "ac_spd:line", "lv_ac"),
     edge("e_ct_iso", "solar_ct:out", "ac_iso:in", "lv_ac"),
-    edge("e_iso_ltp", "ac_iso:out", "ltp:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, length_m=5.0, laying="tray"),
+    edge("e_iso_ltp", "ac_iso:out", "solar_inc:in", "lv_ac", cable="polycab-lt-xlpe-al-1c-400-arm", runs=3, length_m=5.0, laying="tray"),
+    edge("e_inc_ltp", "solar_inc:out", "ltp:in", "lv_ac"),
     edge("e_ltp_load", "ltp:out", "load:in", "lv_ac", remarks="Existing consumer distribution, by others"),
     edge("e_ltp_ct", "ltp:out", "net_ct:in", "lv_ac"),
     edge("e_ct_poi", "net_ct:out", "poi:in", "lv_ac", remarks="DISCOM service connection, by others"),
@@ -282,7 +285,22 @@ utility = {
     "revisions": rev0(),
 }
 
-for name, raw in (("rooftop_500kwp", rooftop), ("utility_50mwac", utility)):
+INV_IDT_SIZES = (400, 500, 630, 800, 1000)
+
+
+def sized_inv_idt(raw: dict) -> dict:
+    """The smallest KEI 1C Al cable at the fixture's run count whose ampacity (with the KEI group rating factor the rules apply) carries the inverter current."""
+    for mm2 in INV_IDT_SIZES:
+        e = next(e for e in raw["network"]["edges"] if e["id"] == "e_inv_idt")
+        e["cable"] = f"kei-lt-xlpe-al-1c-{mm2}-arm"
+        p = Project.model_validate(raw, context={"catalog": cat})
+        hits = [f for f in run_rules(p, cat, families=["cables"]).findings if f.severity is Severity.ERROR and "e_inv_idt" in f.subjects]
+        if not hits:
+            return raw
+    raise SystemExit(f"no KEI 1C Al size in {INV_IDT_SIZES} carries e_inv_idt: {hits[0].message}")
+
+
+for name, raw in (("rooftop_500kwp", rooftop), ("utility_50mwac", sized_inv_idt(utility))):
     p = Project.model_validate(raw, context={"catalog": cat})
     (OUT / f"{name}.json").write_text(canonical_json(p), encoding="utf-8")
     print(name, len(p.network.expand().nodes), "instances")

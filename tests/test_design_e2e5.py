@@ -3,6 +3,7 @@ incomer at the LT panel, grouping of parallel LT circuits, SCB string grouping a
 isolation per string circuit, the LT clearing time behind an IDT, existing equipment in the BOM and one schedule row per fuse-box link."""
 
 import asyncio
+import json
 import re
 from pathlib import Path
 
@@ -157,8 +158,13 @@ def test_r5_m2_the_solar_feeder_ends_in_an_incomer_breaker_at_the_lt_panel(rooft
     from unicad.store.files import parse_project
 
     hand = parse_project((ROOT / "fixtures" / "projects" / "rooftop_500kwp.json").read_text(), CATALOG)
-    flagged = {f.subjects for f in run_rules(hand, CATALOG, ["protection"]).by_rule("protection.lv_both_ends")}
-    assert flagged == {("e_acb_ct", "ltp"), ("e_iso_ltp", "ltp")}
+    assert not run_rules(hand, CATALOG, ["protection"]).by_rule("protection.lv_both_ends")
+    data = hand.model_dump(mode="json")
+    data["network"]["nodes"] = [n for n in data["network"]["nodes"] if n["id"] != "solar_inc"]
+    data["network"]["edges"] = [e | ({"dst": "ltp:in"} if e["id"] == "e_iso_ltp" else {}) for e in data["network"]["edges"] if e["id"] != "e_inc_ltp"]
+    bare = parse_project(json.dumps(data), CATALOG)
+    flagged = {(f.subjects, f.severity.value) for f in run_rules(bare, CATALOG, ["protection"]).by_rule("protection.lv_both_ends")}
+    assert flagged == {(("e_acb_ct", "ltp"), "error"), (("e_iso_ltp", "ltp"), "error")}
 
 
 def test_r5_m3_group_factors_cover_more_than_three_circuits_from_the_cited_tables():

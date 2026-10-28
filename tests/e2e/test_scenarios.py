@@ -347,7 +347,7 @@ def check_bom_leaves_out_cables_by_others(run: dict) -> None:
 def check_lt_cables_are_protected_and_grouped(run: dict) -> None:
     """Close-e2e-5 M1, M2, M3: no LT cable is fed from both ends without a breaker at its grid end; parallel LT circuits carry a cited group rating factor;
     voltage drop never piles more than four parallel runs onto a circuit beyond what its current needs."""
-    assert not warnings_of(run, "protection.lv_both_ends")
+    assert not [f for f in run["checked"]["findings"] if f["rule_id"] == "protection.lv_both_ends"]
     for e in run["project"]["network"]["edges"]:
         if e["service"] == "lv_ac" and e.get("runs", 1) > 3:
             assert e.get("laying") in ("tray", "air", "trench", "buried_direct"), e["id"]
