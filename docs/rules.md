@@ -139,7 +139,8 @@ Total DC kWp over total rated inverter AC kVA, compared with the design basis dc
 
 Standard: none (design practice). Segments: all.
 
-When PCS nodes carry the requested storage size (bess_kw_requested / bess_kwh_requested, set by network_autobuild), the built PCS kVA and battery kWh are
+When PCS nodes carry the requested storage size (bess_kw_requested / bess_kwh_requested, set by network_autobuild from bess_brief_kw / bess_brief_kwh, else
+bess_kw / bess_kwh; design_basis.bess holds both for the drawings), the built PCS kVA and battery kWh are
 compared with it, because whole catalog units rarely add up to the request exactly: a difference above 1 % in either is a warning that states it, a smaller one an info finding.
 
 ### `ratio.export_limit`: Plant AC capacity within the grid connection limit
@@ -205,6 +206,15 @@ Each inverter or PCS DC zone should contain a DC surge protective device. Warnin
 Standard: none (design practice). Segments: all.
 
 Each inverter or PCS AC zone should contain an AC SPD or lightning arrester. Warning when none is modelled.
+
+### `protection.spd_ac_uc`: AC SPD continuous operating voltage suits the system earthing
+
+Standard: IEC 60364-5-53. Segments: all.
+
+An AC SPD's maximum continuous operating voltage Uc (catalog rated_voltage) must cover the voltage it sees from phase to PE: on an IT bus (every
+transformer winding feeding it brings out no neutral, e.g. the delta LV windings of a YNd11 inverter-duty transformer) Uc >= 1.1 x U(L-L), because
+after a first earth fault the healthy phases stand at line voltage to earth (DEHN Lightning Protection Guide 2014, Figure 8.1.5.2a): error when below.
+On a TN bus (a winding with its neutral out, or the utility's LT network) Uc >= 1.1 x U0, common practice and not a cited limit: warning when below.
 
 ### `protection.spd_ac_poles`: AC SPD has a pole per phase conductor
 
@@ -282,13 +292,15 @@ or equipment. Ib <= In is protection.rated_current. MV breakers are not checked:
 
 Worked example: an ACB of In 1250 A feeding a CT, an isolator and then a cable of Iz 980 A to the LT panel is an error (1250 A > 980 A), although the cable does not touch the ACB.
 
-### `cables.terminals`: Cables fit the terminals of the switchgear they land on
+### `cables.terminals`: Cables fit the terminals of the switchgear and inverter outputs they land on
 
 Standard: none (design practice). Segments: all.
 
 A cable landing on a breaker or switch must fit its terminals: conductor size per pole at most the device's largest terminal cable and parallel runs at most
 its cables per pole, as the catalog gives them from the device datasheet (or as a labelled assumption in the catalog source where the datasheet is silent).
-Every length band of a template edge is checked too. An error when a cable does not fit.
+Every length band of a template edge is checked too. An error when a cable does not fit. The same holds for an inverter's AC output terminals where its
+datasheet gives the largest cable (and cables per pole); where it gives the size but not the number of cables per pole, more than one cable per pole is a
+warning to confirm with the manufacturer.
 
 ### `cables.battery_dc`: Battery DC cables carry the PCS current at the battery's lowest voltage
 

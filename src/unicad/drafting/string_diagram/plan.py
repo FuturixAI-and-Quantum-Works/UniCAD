@@ -1,7 +1,6 @@
 """What a string diagram shows, as plain data: the inverter or SCB types of a project, the strings of a typical instance in series
 order with their cables, fuses, MPPT inputs and table positions, and every instance a type stands for."""
 
-import math
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from typing import Literal
@@ -14,7 +13,7 @@ from unicad.domain.project import Project
 from unicad.rules.cables import cable_of
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import ISC_FACTOR
-from unicad.rules.topology import EVEN_MPPT, instance_tag, string_feeds
+from unicad.rules.topology import EVEN_MPPT, instance_tag, mppt_of, mppt_split, string_feeds
 from unicad.schedules import LengthMode, build_schedule
 from unicad.schedules.ids import Ids, indices
 
@@ -288,8 +287,8 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
         n_inputs = len(rep.strings)
         mppt = None
         if kind == "inverter":
-            ipm = max(1, math.ceil(n_inputs / inv_spec.mppt_count))
-            used = math.ceil(n_inputs / ipm)
+            split = mppt_split(n_inputs, inv_spec.mppt_count)
+            ipm, used = max(split, default=1), len(split)
             overflow = used > inv_spec.mppt_count or (inv_spec.inputs_per_mppt is not None and ipm > inv_spec.inputs_per_mppt)
             mppt = MpptPlan(inv_spec.mppt_count, ipm, n_inputs, used, overflow)
         lines: list[StringLine] = []
@@ -299,7 +298,7 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
             lines.append(StringLine(
                 instance=s, tag=instance_tag(net, s), number=i, ip=f"IP{sid.input_no:02d}",
                 cable_id=string_cable_ids.get(s, sid.text()), modules=node.modules_in_series or n_series,
-                mppt=((i - 1) // mppt.inputs_per_mppt + 1) if mppt else None, voc_cold_v=round(voc, 1), isc_a=module.isc,
+                mppt=mppt_of(i, split) if mppt else None, voc_cold_v=round(voc, 1), isc_a=module.isc,
                 length_m=edge.length_m if edge else None, slots=slots_of.get(s, ()),
             ))  # fmt: skip
         path_nodes = first.path

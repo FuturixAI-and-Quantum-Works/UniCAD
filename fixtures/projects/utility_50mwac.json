@@ -102,7 +102,7 @@
         "id": "inv_acspd",
         "tag": "AC-SPD-{0:02d}-{1}",
         "kind": "ac_spd",
-        "spec": "dehn-dg-m-we-600",
+        "spec": "dehn-dg-se-h-1000-fm-3x",
         "group": "inv_sec",
         "voltage_v": 660.0
       },

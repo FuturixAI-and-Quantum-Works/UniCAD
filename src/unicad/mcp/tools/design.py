@@ -72,6 +72,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         export_control: Annotated[Literal["none", "ppc"], Field(description="ppc: a power plant controller limits the export at the POI to export_limit_kw (PV inverters + BESS PCS may exceed it)")] = "none",
         bess_kw: Annotated[float | None, Field(gt=0, description="Storage power in kW (bess_dc, hybrid)")] = None,
         bess_kwh: Annotated[float | None, Field(gt=0, description="Storage energy in kWh")] = None,
+        bess_brief_kw: Annotated[float | None, Field(gt=0, description="Storage power in kW the brief asks for, when bess_kw is a whole-unit size away from it (default bess_kw)")] = None,
+        bess_brief_kwh: Annotated[float | None, Field(gt=0, description="Storage energy in kWh the brief asks for, when bess_kwh is a whole-unit size away from it (default bess_kwh)")] = None,
         pcs: Annotated[str | None, Field(description="Catalog PCS id")] = None,
         battery: Annotated[str | None, Field(description="Catalog battery id")] = None,
         use_layout: Annotated[bool, Field(description="Build the PV plan from the project's array layout (layout_place) and link every layout string to one pv_string instance")] = True,
@@ -90,7 +92,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             template=template, ac_kw=ac_kw, dc_kwp=dc_kwp, module=module, inverter=inverter, grid_voltage_v=grid_voltage_v,
             modules_per_string=modules_per_string, strings_per_inverter=strings_per_inverter, inverters_per_block=inverters_per_block,
             step_up_kv=step_up_kv, connection=connection, metering=metering, block_switch=block_switch, auxiliary=auxiliary,
-            export_limit_kw=export_limit_kw, export_control=export_control, bess_kw=bess_kw, bess_kwh=bess_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
+            export_limit_kw=export_limit_kw, export_control=export_control, bess_kw=bess_kw, bess_kwh=bess_kwh, bess_brief_kw=bess_brief_kw, bess_brief_kwh=bess_brief_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
         )  # fmt: skip
 
         def change(p: Project) -> Edit:

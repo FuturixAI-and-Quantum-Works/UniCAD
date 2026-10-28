@@ -180,7 +180,7 @@ u_nodes = [
     node("scb", "SCB-{0:02d}-{1}-{2:02d}", "scb", group="scb_sec"),
     node("inv", "INV-{0:02d}-{1}", "inverter", spec=UINV, group="inv_sec"),
     node("inv_dcspd", "DC-SPD-{0:02d}-{1}", "dc_spd", spec="finder-7p.23.9.500.x015", group="inv_sec"),
-    node("inv_acspd", "AC-SPD-{0:02d}-{1}", "ac_spd", spec="dehn-dg-m-we-600", group="inv_sec", voltage_v=660.0),
+    node("inv_acspd", "AC-SPD-{0:02d}-{1}", "ac_spd", spec="dehn-dg-se-h-1000-fm-3x", group="inv_sec", voltage_v=660.0),
     node("idt", "IDT-{0:02d}", "transformer", spec=IDT_SPEC, group="block"),
     node("blk_aux_vcb", "ICOG-AUX-VCB-{0:02d}", "vcb", spec="abb-vd4-36kv-630a-20ka", group="block", voltage_v=33000.0, title="BLOCK AUX TRANSFORMER T-OFF VCB"),
     node("blk_aux", "BLK-AUX-TR-{0:02d}", "aux_transformer", spec="is1180-33kv-63kva-dyn11", group="block"),
