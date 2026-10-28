@@ -12,6 +12,7 @@ from unicad.domain.layout import ArrayLayout, Table
 from unicad.domain.network import Edge, ElectricalNetwork, Node, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.rules.cables import cable_of
+from unicad.rules.protection import isolator_devices
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import ISC_FACTOR
 from unicad.rules.topology import EVEN_MPPT, instance_tag, string_feeds
@@ -223,7 +224,9 @@ def _devices(net: ElectricalNetwork, catalog: Catalog, path: tuple[str, ...], ch
         extra = ""
         if isinstance(spec, ProtectionSpec):
             amps = f" {spec.rated_current:g} A" if spec.rated_current else ""
-            extra = f"{amps} {spec.rated_voltage:g} V"
+            split = isolator_devices(node, spec)
+            many = f" {split[2]} x {spec.poles}P," if split is not None and split[2] > 1 else ""
+            extra = f"{many}{amps} {spec.rated_voltage:g} V"
         out.append(f"{instance_tag(net, chain[nid])}: {_short(node)}{extra}")
     return tuple(out)
 

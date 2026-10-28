@@ -20,6 +20,7 @@ from unicad.domain.catalog import (
 )
 from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
 from unicad.domain.project import DesignBasis, Project
+from unicad.rules.protection import isolator_devices
 from unicad.rules.ratio import EXPORT_CONTROL_ATTR, EXPORT_LIMIT_ATTR, plant_capacity
 from unicad.rules.topology import AC_SERVICES, GENERATORS
 
@@ -267,6 +268,8 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
             poles = node.attributes.get("fused_poles") if spec.device in ("fuse_gpv", "fuse_hrc") else None
             if isinstance(poles, int) and poles != spec.poles:
                 rating = rating.replace(f"{spec.poles}P", f"{poles} x {spec.poles}P ({'+ AND - POLES' if poles == 2 else f'{poles} POLES'})", 1)
+            if (split := isolator_devices(node, spec)) is not None and split[2] > 1:
+                rating = f"{split[2]} x {rating}"
             desc = node.title or (f"{spec.manufacturer} {spec.model}".upper() if spec.device in TYPE_LABELLED else label)
         case MeterSpec():
             rating = f"CL {spec.accuracy_class}, {spec.connection.upper().replace('_', '/')} OPERATED"
