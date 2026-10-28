@@ -29,8 +29,9 @@ def built(project: Project, kind: str, profile=None):
 
 
 def words(doc) -> str:
-    """Every TEXT on the sheet, joined with spaces, so a phrase wrapped over lines still reads as one."""
-    return re.sub(r"\s+", " ", " ".join(e.dxf.text for e in doc.modelspace().query("TEXT")))
+    """Every TEXT on the sheet (modelspace and the blocks it draws), joined with spaces, so a phrase wrapped over lines still reads as one."""
+    spaces = [doc.modelspace(), *(b for b in doc.blocks if not b.name.startswith("*"))]
+    return re.sub(r"\s+", " ", " ".join(e.dxf.text for space in spaces for e in space.query("TEXT")))
 
 
 @pytest.fixture(scope="module")
@@ -146,3 +147,70 @@ def test_the_layer_map_applies_to_exported_schedule_and_bom_pages():
     for doc in docs:
         layers = {e.dxf.layer for e in doc.modelspace()}
         assert "G-TEXT" not in layers and "CO-TABLE-TEXT" in layers
+
+
+# ---------------- RV-M5: standard node attributes drawn on the SLD; the relay drawn with its ANSI numbers ----------------
+
+LOGGED_ATTRIBUTES = {  # the network_update calls of the bench run (log.jsonl) before the agent moved the data into titles
+    "acdb": ("ACCB: 12 IN / 1 OUT, IP65 OUTDOOR", {"busbar": "3P+N, 50 Hz, 2500 A Al", "fault_level": "31.5 kA / 3 s", "enclosure": "IP65 outdoor"}),
+    "solar_ct": ("CT 2500/1 A", {"core_1": "cl 0.2s 15 VA", "core_2": "PS", "core_3": "cl 0.2s 15 VA"}),
+    "pt": (None, {"core_1": "cl 0.2 15 VA", "core_2": "cl 3P 15 VA"}),
+    "relay": ("NUMERICAL RELAY 50/51/67/67N/27/59/50N/51N", {"protocol": "IEC 61850"}),
+}
+
+
+def rvunl_with_logged_attributes() -> Project:
+    data = rvunl().model_dump(mode="json")
+    for n in data["network"]["nodes"]:
+        if n["id"] in LOGGED_ATTRIBUTES:
+            title, attrs = LOGGED_ATTRIBUTES[n["id"]]
+            n["attributes"] = attrs
+            if title:
+                n["title"] = title
+            else:
+                n.pop("title", None)
+    return Project.model_validate(data)
+
+
+def test_rv_m5_node_attributes_are_drawn_on_the_sld():
+    text = words(built(rvunl_with_logged_attributes(), "sld")[0].doc)
+    for phrase in ("BUSBAR 3P+N, 50 Hz, 2500 A AL", "FAULT LEVEL 31.5 kA / 3 S", "C1 CL 0.2S 15 VA", "C2 PS", "C3 CL 0.2S 15 VA", "C1 CL 0.2 15 VA",
+                   "C2 CL 3P 15 VA", "IEC 61850"):  # fmt: skip
+        assert phrase in text, phrase
+
+
+def test_rv_m5_the_relay_symbol_carries_its_ansi_numbers():
+    doc = built(rvunl_with_logged_attributes(), "sld")[0].doc
+    relay = [i for i in doc.modelspace().query("INSERT") if i.dxf.name.startswith("UC_SLD")]
+    block = doc.blocks.get(relay[0].dxf.name)
+    names = {e.dxf.name for e in block.query("INSERT")}
+    assert any("RELAY_GROUP" in n.upper() for n in names), sorted(names)
+    texts = {e.dxf.text for e in block.query("TEXT")} | {a.dxf.text for i in block.query("INSERT") for a in i.attribs}
+    assert {"50", "51", "67", "67N", "27", "59"} <= texts, texts
+
+
+def test_rv_m5_typed_fields_read_before_attributes():
+    from unicad.domain.network import Node
+    from unicad.drafting.sld.annotate import standard_attributes
+
+    class CT(Node):
+        ratio: str | None = None
+
+    ct = CT(id="ct", tag="CT-01", kind="ct", ratio="2500/1 A", attributes={"ratio": "100/1 A", "core_1": "cl 0.2s 15 VA"})
+    assert standard_attributes(ct) == ("RATIO 2500/1 A", "C1 CL 0.2S 15 VA")
+
+
+# ---------------- RV-M4: RS-485 links drawn in their own line style with a legend entry ----------------
+
+
+def test_rv_m4_the_inverter_to_logger_link_is_drawn_as_a_communication_line():
+    b = built(rvunl(), "sld")[0]
+    assert not any("c_inv_dlog" in w for w in b.warnings), b.warnings
+    block = next(blk for blk in b.doc.blocks if blk.name.startswith("UC_SLD"))
+    comm = [e for e in block if e.dxf.layer == "E-SLD-COMM"]
+    assert len(comm) >= 2, "the inverter and the meter links to the logger"
+    assert b.doc.layers.get("E-SLD-COMM").dxf.linetype != b.doc.layers.get("E-SLD-CTRL").dxf.linetype
+    legend_lines = [e for e in b.doc.modelspace().query("LINE") if e.dxf.layer == "E-SLD-COMM"]
+    text = words(b.doc)
+    assert legend_lines and "COMMUNICATION LINK (DATA CABLE)" in text
+    assert "RS-485 DAISY CHAIN THROUGH ALL 12 INVERTERS TO THE DATA LOGGER" in text

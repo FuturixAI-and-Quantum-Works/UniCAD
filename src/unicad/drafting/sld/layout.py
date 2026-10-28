@@ -71,6 +71,8 @@ _FLIP = {Side.N: Side.S, Side.S: Side.N, Side.E: Side.W, Side.W: Side.E}
 
 Contour = dict[int, tuple[float, float]]
 
+COMMS_PORT = "sig"
+
 
 class LayoutError(ValueError):
     pass
@@ -828,9 +830,13 @@ class _Builder:
         if g is None:
             return None
         pin = rec.edge_pins.get(edge.id, rec.mapping.get(port)) if edge is not None else rec.mapping.get(port)
+        base = host if nid in self.sat_of else rec
+        if (pin is None or pin not in g.pins) and port == COMMS_PORT:
+            # A data port the symbol has no pin for (an inverter's RS-485 terminals): the link leaves the right side of the body.
+            b = g.body
+            return PinRef(nid, port, self._abs(base, (b.x1, b.y0 + 0.25 * (b.y1 - b.y0))))
         if pin is None or pin not in g.pins:
             return None
-        base = host if nid in self.sat_of else rec
         return PinRef(nid, pin, self._abs(base, g.pins[pin][0]))
 
     def _side_of(self, nid: str, port: str, edge: Edge | None = None) -> Side | None:
@@ -1632,11 +1638,16 @@ def _seg_touches(seg: Box, edge: Box, tol: float = 1e-6) -> bool:
     return seg.x0 <= edge.x1 + tol and edge.x0 <= seg.x1 + tol and seg.y0 <= edge.y1 + tol and edge.y0 <= seg.y1 + tol
 
 
+def is_comms(e: Edge) -> bool:
+    """A control edge between two signal ports (an inverter or meter to a data logger), not instrument wiring from a CT or PT secondary."""
+    return e.service is Service.CONTROL and e.src_port == COMMS_PORT and e.dst_port == COMMS_PORT
+
+
 def _kind(e: Edge) -> WireKind:
     if e.service is Service.DC:
         return WireKind.DC
     if e.service is Service.CONTROL:
-        return WireKind.CONTROL
+        return WireKind.COMMS if is_comms(e) else WireKind.CONTROL
     if e.service is Service.EARTH:
         return WireKind.EARTH
     return WireKind.AC

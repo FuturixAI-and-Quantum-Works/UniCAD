@@ -16,7 +16,7 @@ from ezdxf.enums import TextEntityAlignment
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet
 from unicad.drafting.assumptions import sheet_assumptions
-from unicad.drafting.legend import legend_drawer
+from unicad.drafting.legend import COMMS_LEGEND, legend_drawer
 from unicad.drafting.project_fields import project_fields
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import (
@@ -32,7 +32,7 @@ from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
 from unicad.drafting.sld import annotate
 from unicad.drafting.sld.layout import layout_sld, plan_pages, rows_win, stack_rows
-from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage
+from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage, WireKind
 from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
 
@@ -119,7 +119,10 @@ def sheet_spec(
         issued_for=issued,
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
-    notes = NOTES + layout.notes
+    comms = [project.network.edge_by_id[w.edge_id] for w in layout.wires if w.kind is WireKind.COMMS and w.edge_id in project.network.edge_by_id]
+    if comms:
+        legend += (COMMS_LEGEND,)
+    notes = NOTES + layout.notes + tuple(dict.fromkeys(comms_note(project.network, e) for e in comms if e.remarks))
     return SheetSpec(
         paper=paper,
         title_block=tb,
@@ -133,6 +136,11 @@ def sheet_spec(
         parameters=annotate.system_parameters(project, catalog),
         assumptions=sheet_assumptions(project, "sld"),
     )
+
+
+def comms_note(net, edge) -> str:
+    a, b = net.node(edge.src_node), net.node(edge.dst_node)
+    return f"COMMUNICATION LINK {annotate.node_tag(net, a)} TO {annotate.node_tag(net, b)}: {annotate.prose(edge.remarks)}."
 
 
 def fit_layout(
