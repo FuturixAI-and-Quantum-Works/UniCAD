@@ -95,6 +95,8 @@ def write_body(doc: Drawing, layout: SldLayout, block_name: str, text_style: str
             _text(block, lb, text_style)
     for j in layout.junctions:
         _dot(block, j, JUNCTION_R, "E-SLD-AC")
+    for lb in layout.headings:
+        _text(block, lb, text_style)
 
 
 def write_sld(

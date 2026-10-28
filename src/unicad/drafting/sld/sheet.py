@@ -26,12 +26,14 @@ from unicad.drafting.sheets.model import (
 )
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sld import annotate
-from unicad.drafting.sld.layout import layout_sld, plan_pages
+from unicad.drafting.sld.layout import layout_sld, plan_pages, stack_rows
 from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage
 from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
 
 NOTES = annotate.GENERAL_NOTES
+ROWS_GAIN = 1.15
+"""How much larger stacked rows must draw a diagram than one row before the sheet uses them."""
 
 
 @dataclass(frozen=True)
@@ -123,15 +125,24 @@ def fit_layout(
     options: SldOptions = SldOptions(),
     xrefs: Mapping[str, str] | None = None,
 ) -> tuple[SldLayout, SldOptions, float]:
-    """The layout for `scope` on `paper`, compacted when that reads better, with the scale it fits at."""
+    """The layout for `scope` on `paper`, in stacked rows when that draws it markedly larger (see `stack_rows`), compacted when that reads
+    better, with the scale it fits at."""
     area = metrics_for(PaperSize(paper)).drawing_area
-    layout = layout_sld(project.network, catalog, options, scope, xrefs)
-    scale = layout.fit_scale(area.width, area.height, options)
+
+    def best(opts: SldOptions) -> tuple[SldLayout, float]:
+        layout = layout_sld(project.network, catalog, opts, scope, xrefs)
+        scale = layout.fit_scale(area.width, area.height, opts)
+        rows = stack_rows(project.network, catalog, opts, scope, xrefs, area.width, area.height) if scale < opts.max_scale else None
+        if rows is not None and rows.fit_scale(area.width, area.height, opts) >= ROWS_GAIN * scale:
+            return rows, rows.fit_scale(area.width, area.height, opts)
+        return layout, scale
+
+    layout, scale = best(options)
     if scale < options.min_scale:
         tight = options.compact()
-        compact = layout_sld(project.network, catalog, tight, scope, xrefs)
-        if compact.fit_scale(area.width, area.height, tight) > scale:
-            return compact, tight, compact.fit_scale(area.width, area.height, tight)
+        compact, cscale = best(tight)
+        if cscale > scale:
+            return compact, tight, cscale
     return layout, options, scale
 
 

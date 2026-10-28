@@ -117,7 +117,7 @@ def test_markers_print_the_target_sheet_number_and_the_tag_beyond(built):
              for b in done}
     assert {"SH. UDEMO-DRL-U50-EE-002", "FROM INV-01-1..INV-01-2"} <= texts["sld"]
     assert {"SH. UDEMO-DRL-U50-EE-001", "TO IDT-01"} <= texts["sld_block"]
-    assert "1 of 2" in texts["sld"] and "2 of 2" in texts["sld_block"]
+    assert "1 of 1" in texts["sld"] and "1 of 1" in texts["sld_block"], "each drawing number is one drawing: sheet x of y counts its own parts"
 
 
 def test_partition_follows_the_nearest_root_towards_the_grid(projects):

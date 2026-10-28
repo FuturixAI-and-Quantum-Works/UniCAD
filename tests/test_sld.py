@@ -616,7 +616,7 @@ def test_symbols_turned_upright_are_defined_before_the_diagram_block_that_insert
     import ezdxf
 
     sym = PlacedSymbol(id="b", node_id="bat", key="bat.bess", at=(0.0, 0.0), rotation=180.0, values=(("TAG", "BAT-01"),), labels=(), body=Box(-40, -30, 0, 0), pins=())
-    layout = typing.cast(typing.Any, type("L", (), {"frames": (), "wires": (), "busbars": (), "symbols": (sym,), "callouts": (), "stubs": (), "junctions": ()}))
+    layout = typing.cast(typing.Any, type("L", (), {"frames": (), "wires": (), "busbars": (), "symbols": (sym,), "callouts": (), "stubs": (), "junctions": (), "headings": ()}))
     doc = ezdxf.new("R2018", setup=["linetypes"])
     write_body(doc, layout, "UC_SLD_TEST")
     doc.modelspace().add_blockref("UC_SLD_TEST", (0, 0))

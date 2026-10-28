@@ -255,8 +255,9 @@ class _FrameRec:
 
 class _Builder:
     def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
-                 xrefs: Mapping[str, str] | None = None):
+                 xrefs: Mapping[str, str] | None = None, notes: tuple[str, ...] = ()):
         self.net, self.catalog, self.o = net, catalog, options
+        self.preset_notes = notes
         self.xrefs = dict(xrefs or {})
         self.warnings: list[str] = []
         keep = _expand_scope(net, scope) if scope is not None else frozenset(net.node_by_id)
@@ -422,7 +423,7 @@ class _Builder:
     def _values(self, node: Node, key: str) -> tuple[tuple[str, str], ...]:
         if node.id in self.markers:
             target = self.xrefs.get(node.id.removeprefix(MARKER_PREFIX))
-            texts = {"DESC": node.title or "", "SHEET": f"SH. {target}" if target else ""}
+            texts = {"DESC": node.title or "", "SHEET": (target if target.startswith(ROW_REF) else f"SH. {target}") if target else ""}
         else:
             texts = annotate.node_texts(self.net, node, self.catalog)
             if key.startswith("tx.idt_") and not node.title and not node.spec:
@@ -497,7 +498,7 @@ class _Builder:
             if any(s.kind == "control" for s in rec.sats):
                 ext = ext.union(Box(ext.x0, ext.y0, ext.x1, rec.ctrl_y + STUB / 2))
             rec.extent = ext
-        notes: dict[str, int] = {}
+        notes: dict[str, int] = {t: len(annotate.GENERAL_NOTES) + i + 1 for i, t in enumerate(self.preset_notes)}
         for rec in sorted((r for r in self.recs.values() if r.tree_edge), key=lambda r: self.order[r.tree_edge.id]):
             text = annotate.remark(rec.tree_edge)
             if text and annotate.is_long_remark(text):
@@ -1196,6 +1197,8 @@ class _Builder:
 
 
 MARKER_PREFIX = "off."
+ROW_REF = "SEE ROW "
+"""Start of an off-sheet marker's reference when the conductor continues in another row of the same sheet."""
 
 
 def _framed_in(net: ElectricalNetwork, node: Node) -> str | None:
@@ -1638,13 +1641,40 @@ def layout_sld(
 
 
 def _build(network: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
-           xrefs: Mapping[str, str] | None = None) -> tuple[_Builder, SldLayout]:
-    b = _Builder(network, catalog, options, scope, xrefs)
+           xrefs: Mapping[str, str] | None = None, notes: tuple[str, ...] = ()) -> tuple[_Builder, SldLayout]:
+    b = _Builder(network, catalog, options, scope, xrefs, notes)
     b.topology()
     b.geometry()
     b.place_x()
     b.place_y()
     return b, b.emit()
+
+
+def _feeders(b: "_Builder", network: ElectricalNetwork) -> tuple[str | None, frozenset[str], list[frozenset[str]]] | None:
+    """The first node with several feeders (walking down from the roots), what stays with it (the incomer, its metering and a feeder
+    wired to it by control cables) and its feeder subtrees in drawing order. A page of separate feeders (several roots, as a split-off
+    part of a diagram) has no such node: each root's subtree is a feeder. None when there is neither."""
+    nodes = frozenset(n for n in b.recs if n not in b.markers)
+    split = None
+    frontier = list(b.roots)
+    while frontier and split is None:
+        nxt = []
+        for nid in frontier:
+            if len(b.recs[nid].children) > 1:
+                split = nid
+                break
+            nxt += b.recs[nid].children
+        frontier = nxt
+    if split is None and len(b.roots) > 1:
+        subtrees = [frozenset(b._subtree_nodes(r)) - b.markers for r in b.roots]
+        return None, nodes - frozenset().union(*subtrees), [s for s in subtrees if s]
+    if split is None:
+        return None
+    subtrees = [frozenset(b._subtree_nodes(c)) - b.markers for c in b.recs[split].children if c not in b.markers]
+    main = nodes - frozenset().union(*subtrees)
+    # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn.
+    wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
+    return split, main.union(*wired), [s for s in subtrees if s not in wired]
 
 
 def plan_pages(
@@ -1667,32 +1697,27 @@ def plan_pages(
 
     if lay.fit_scale(width, height, options) >= options.min_scale:
         return (page(nodes, lay),)
-    split = None
-    frontier = list(b.roots)
-    while frontier and split is None:
-        nxt = []
-        for nid in frontier:
-            if len(b.recs[nid].children) > 1:
-                split = nid
-                break
-            nxt += b.recs[nid].children
-        frontier = nxt
-    if split is None:
+    found = _feeders(b, network)
+    if found is None or found[0] is None:
         return (page(nodes, lay),)
-    subtrees = [frozenset(b._subtree_nodes(c)) - b.markers for c in b.recs[split].children if c not in b.markers]
-    main = nodes - frozenset().union(*subtrees)
-    # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn.
-    wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
-    subtrees = [s for s in subtrees if s not in wired]
-    main = main.union(*wired)
-    # The main page also takes the first feeders while it stays readable, so it is not a strip across an empty sheet.
-    while subtrees and layout_sld(network, catalog, options, main | subtrees[0]).fit_scale(width, height, options) >= options.min_scale:
+    _, main, subtrees = found
+
+    def best(ids: frozenset[str]) -> SldLayout:
+        plain = layout_sld(network, catalog, options, ids)
+        rows = stack_rows(network, catalog, options, ids, None, width, height)
+        return rows if rows is not None and rows.fit_scale(width, height, options) > plain.fit_scale(width, height, options) else plain
+
+    def readable(ids: frozenset[str]) -> bool:
+        return best(ids).fit_scale(width, height, options) >= options.min_scale
+
+    # The main page also takes the first feeders while it stays readable (in stacked rows if need be), so it is not a strip across an empty sheet.
+    while subtrees and readable(main | subtrees[0]):
         main |= subtrees.pop(0)
-    pages = [page(main, layout_sld(network, catalog, options, main))]
+    pages = [page(main, best(main))]
     current: frozenset[str] = frozenset()
     for sub in subtrees:
         trial = current | sub
-        if current and layout_sld(network, catalog, options, trial).fit_scale(width, height, options) < options.min_scale:
+        if current and not readable(trial):
             pages += _flush(network, catalog, width, height, options, current)
             trial = sub
         current = trial
@@ -1713,7 +1738,160 @@ def _own_once(pages: list[SldPage]) -> tuple[SldPage, ...]:
 
 def _flush(network, catalog, width, height, options, ids: frozenset[str]) -> list[SldPage]:
     lay = layout_sld(network, catalog, options, ids)
+    rows = stack_rows(network, catalog, options, ids, None, width, height) if lay.fit_scale(width, height, options) < options.min_scale else None
+    if rows is not None and rows.fit_scale(width, height, options) > lay.fit_scale(width, height, options):
+        lay = rows
     if lay.fit_scale(width, height, options) >= options.min_scale:
         cut = tuple(e.id for e in network.edges if e.is_power and (e.src_node in ids) != (e.dst_node in ids))
         return [SldPage(tuple(n.id for n in network.nodes if n.id in ids), cut, lay.fit_scale(width, height, options))]
     return list(plan_pages(network, catalog, width, height, options, ids))
+
+
+MAX_ROWS = 5
+ROW_GAP = 15.0
+ROW_HEADING_H = 3.5
+
+
+def _row_widths(lay: SldLayout, groups: list[frozenset[str]]) -> list[float]:
+    """Drawn width of each group of nodes in `lay`: its symbols, their labels and the cable callouts of the conductors that end on them."""
+    ends = {w.edge_id: {r.owner for r in (w.start, w.end) if r is not None} for w in lay.wires}
+    out = []
+    for g in groups:
+        boxes = [b for s in lay.symbols if (s.node_id or "") in g for b in (s.body, *(lb.box for lb in s.labels))]
+        boxes += [lb.box for c in lay.callouts if ends.get(c.edge_id, set()) & g for lb in c.labels]
+        out.append(union_all(boxes).width if boxes else 0.0)
+    return out
+
+
+def _split_rows(widths: list[float], first: float, k: int, gap: float) -> list[list[int]]:
+    """The feeders (indices into `widths`, in drawing order) in `k` rows with the widest row narrowest: contiguous rows first, then single
+    feeders moved to another row (keeping drawing order within it) while that narrows the widest row. The first row also holds `first`."""
+    n = len(widths)
+
+    def width(row: list[int], r: int) -> float:
+        w = sum(widths[i] for i in row) + gap * max(0, len(row) - 1)
+        return max(w, first) if r == 0 else w
+
+    best: dict[int, tuple[float, list[list[int]]]] = {0: (0.0, [])}
+    for r in range(k):
+        nxt: dict[int, tuple[float, list[list[int]]]] = {}
+        for i, (cost, rows) in best.items():
+            for j in ([n] if r == k - 1 else range(i + 1, n - (k - r - 1) + 1)):
+                if j <= i:
+                    continue
+                c = max(cost, width(list(range(i, j)), r))
+                if j not in nxt or c < nxt[j][0]:
+                    nxt[j] = (c, rows + [list(range(i, j))])
+        best = nxt
+    if n not in best:
+        return [list(range(n))]
+    rows = best[n][1]
+
+    def worst(rs: list[list[int]]) -> tuple[float, float]:
+        ws = [width(row, r) for r, row in enumerate(rs)]
+        return max(ws), sum(ws)
+
+    improved = True
+    while improved:
+        improved = False
+        for a in range(k):
+            for i in list(rows[a]):
+                if len(rows[a]) == 1:
+                    continue
+                for b in range(k):
+                    if b == a:
+                        continue
+                    trial = [list(row) for row in rows]
+                    trial[a].remove(i)
+                    trial[b] = sorted(trial[b] + [i])
+                    if worst(trial) < worst(rows):
+                        rows, improved = trial, True
+                        break
+                if improved:
+                    break
+            if improved:
+                break
+    return rows
+
+
+def stack_rows(
+    network: ElectricalNetwork,
+    catalog: Catalog | None,
+    options: SldOptions,
+    scope: frozenset[str] | None,
+    xrefs: Mapping[str, str] | None,
+    width: float,
+    height: float,
+) -> SldLayout | None:
+    """The diagram drawn in stacked rows on one sheet at one scale: the first node with several feeders (the main bus) keeps its incomer and
+    the first feeders in row 1, the other feeders follow in rows below it, and each conductor cut between rows ends in a continuation
+    marker that names the row it continues in. The row count that draws the diagram largest on `width` x `height` wins; None when the
+    diagram has no such bus or one row (the plain layout) draws it as large."""
+    b, lay = _build(network, catalog, options, scope, xrefs)
+    found = _feeders(b, network)
+    if found is None or len(found[2]) < 2:
+        return None
+    split, main, subs = found
+    plain = lay.fit_scale(width, height, options)
+    widths = _row_widths(lay, subs)
+    first = layout_sld(network, catalog, options, main, xrefs).extent.width if main else 0.0
+    bus = annotate.prose(xref_tag(network, network.node(split), network.node(split))) if split in network.node_by_id else None
+    best: tuple[float, SldLayout] | None = None
+    for k in range(2, min(MAX_ROWS, len(subs)) + 1):
+        split_rows = _split_rows(widths, first, k, options.h_gap)
+        rows = [frozenset().union(*(subs[i] for i in row)) for row in split_rows]
+        rows[0] = rows[0] | main
+        row_of = {n: i for i, r in enumerate(rows) for n in r}
+        parts = []
+        for i, ids in enumerate(rows):
+            refs = dict(xrefs or {})
+            for e in network.edges:
+                if e.is_power and (e.src_node in ids) != (e.dst_node in ids):
+                    other = e.dst_node if e.src_node in ids else e.src_node
+                    if other in row_of and row_of[other] != i:
+                        refs[e.id] = f"{ROW_REF}{row_of[other] + 1}"
+            parts.append(_build(network, catalog, options, ids, refs, lay.notes)[1])
+        stacked = replace(_stack(parts, bus), notes=lay.notes)
+        scale = stacked.fit_scale(width, height, options)
+        if best is None or scale > best[0] + 1e-9:
+            best = (scale, stacked)
+    if best is None or best[0] <= plain + 1e-9:
+        return None
+    return best[1]
+
+
+def _stack(parts: list[SldLayout], bus: str | None) -> SldLayout:
+    """Rows one under another, left edges aligned, each under its heading; marker symbol ids are made unique per row."""
+    n = len(parts)
+    x0 = min(p.extent.x0 for p in parts)
+    top = 0.0
+    out: list[SldLayout] = []
+    for i, p in enumerate(parts, start=1):
+        text = f"ROW {i} OF {n}" + ("" if i == 1 or bus is None else f": FEEDERS OF {bus} CONTINUED FROM ROW 1")
+        head = label(text, (p.extent.x0, p.extent.y1 + ROW_HEADING_H), ROW_HEADING_H)
+        p = replace(p, headings=(head,), extent=p.extent.union(head.box))
+        moved = p.shifted(x0 - p.extent.x0, top - p.extent.y1)
+        if i > 1:
+            ids = {s.id for s in moved.symbols if s.role == "offsheet"}
+            moved = replace(
+                moved,
+                symbols=tuple(replace(s, id=f"{s.id}@row{i}") if s.id in ids else s for s in moved.symbols),
+                offsheets=tuple(replace(o, symbol_id=f"{o.symbol_id}@row{i}") if o.symbol_id in ids else o for o in moved.offsheets),
+            )
+        out.append(moved)
+        top = moved.extent.y0 - ROW_GAP
+    return SldLayout(
+        symbols=tuple(s for p in out for s in p.symbols),
+        busbars=tuple(b for p in out for b in p.busbars),
+        wires=tuple(w for p in out for w in p.wires),
+        callouts=tuple(c for p in out for c in p.callouts),
+        frames=tuple(f for p in out for f in p.frames),
+        junctions=tuple(j for p in out for j in p.junctions),
+        offsheets=tuple(o for p in out for o in p.offsheets),
+        represented=tuple(dict.fromkeys(r for p in out for r in p.represented)),
+        extent=union_all([p.extent for p in out]),
+        stubs=tuple(st for p in out for st in p.stubs),
+        warnings=tuple(dict.fromkeys(w for p in out for w in p.warnings)),
+        notes=tuple(dict.fromkeys(nt for p in out for nt in p.notes)),
+        headings=tuple(h for p in out for h in p.headings),
+    )

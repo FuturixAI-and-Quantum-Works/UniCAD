@@ -193,6 +193,33 @@ class SldLayout:
     warnings: tuple[str, ...] = ()
     notes: tuple[str, ...] = ()
     """Cable remarks too long for a callout, in order: callouts refer to them as NOTE 1, 2, ..."""
+    headings: tuple[Label, ...] = ()
+    """Free text over the diagram: the row headings of a diagram drawn in stacked rows."""
+
+    def shifted(self, dx: float, dy: float) -> "SldLayout":
+        """The same layout moved by (dx, dy)."""
+
+        def p(q: Point) -> Point:
+            return (q[0] + dx, q[1] + dy)
+
+        def lbs(labels: tuple[Label, ...]) -> tuple[Label, ...]:
+            return tuple(replace(lb, at=p(lb.at), box=lb.box.shift(dx, dy)) for lb in labels)
+
+        def pin(r: PinRef | None) -> PinRef | None:
+            return None if r is None else replace(r, at=p(r.at))
+
+        return replace(
+            self,
+            symbols=tuple(replace(s, at=p(s.at), labels=lbs(s.labels), body=s.body.shift(dx, dy), pins=tuple(pin(r) for r in s.pins)) for s in self.symbols),
+            busbars=tuple(replace(b, y=b.y + dy, x0=b.x0 + dx, x1=b.x1 + dx, labels=lbs(b.labels)) for b in self.busbars),
+            wires=tuple(replace(w, points=tuple(map(p, w.points)), start=pin(w.start), end=pin(w.end)) for w in self.wires),
+            callouts=tuple(replace(c, tick=p(c.tick), labels=lbs(c.labels)) for c in self.callouts),
+            frames=tuple(replace(f, box=f.box.shift(dx, dy), labels=lbs(f.labels), outline=tuple(tuple(map(p, loop)) for loop in f.outline)) for f in self.frames),
+            junctions=tuple(map(p, self.junctions)),
+            extent=self.extent.shift(dx, dy),
+            stubs=tuple(replace(st, points=tuple(map(p, st.points)), labels=lbs(st.labels)) for st in self.stubs),
+            headings=lbs(self.headings),
+        )
 
     def texts(self) -> tuple[Label, ...]:
         out: list[Label] = []
@@ -206,7 +233,7 @@ class SldLayout:
             out += f.labels
         for st in self.stubs:
             out += st.labels
-        return tuple(out)
+        return tuple(out) + self.headings
 
     def legend_keys(self) -> tuple[str, ...]:
         seen: dict[str, None] = {}

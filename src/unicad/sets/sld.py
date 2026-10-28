@@ -14,7 +14,7 @@ from unicad.domain.project import Project, Sheet, SheetKind, SheetScope
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld import annotate
-from unicad.drafting.sld.layout import plan_pages
+from unicad.drafting.sld.layout import ROW_REF, plan_pages
 from unicad.drafting.sld.model import SldOptions
 from unicad.drafting.sld.sheet import fit_layout, furniture_overflow, render_sld
 from unicad.drafting.sld.xref import partition
@@ -174,6 +174,14 @@ def _shown(project: Project, sheet: Sheet, catalog: Catalog | None = None) -> Pr
     return project.model_copy(update={"network": shown})
 
 
+PART = re.compile(r" \(PART \d+ OF \d+\)$")
+
+
+def _drawing(sheet: Sheet) -> str:
+    """The drawing a sheet is a part of: its title without 'PART k OF n', so the title block counts 'sheet k of n' over the same parts."""
+    return PART.sub("", sheet.title)
+
+
 def _papers_from(first: str) -> tuple[str, ...]:
     return PAPERS[PAPERS.index(first):] if first in PAPERS else PAPERS
 
@@ -299,11 +307,12 @@ class SldBuilder:
         out = []
         for s, part in zip(sheets, partition(project.network, sheets)):
             nodes = _drawn(project.network, s, part.nodes)
-            doc, res = render_sld(_shown(project, s, catalog), s.id, profile, catalog, options=self.options, sheets=drawing_set, nodes=nodes, xrefs=part.xrefs, drawn_on=drawn_on)
+            pieces = [x for x in drawing_set if _drawing(x) == _drawing(s)] if PART.search(s.title) else [s]
+            doc, res = render_sld(_shown(project, s, catalog), s.id, profile, catalog, options=self.options, sheets=pieces, nodes=nodes, xrefs=part.xrefs, drawn_on=drawn_on)
             marks = {o.symbol_id: o for o in res.layout.offsheets}
             refs = [
                 {"edge": o.edge_id, "node": o.node_id, "to_sheet": o.target, "text": dict(sym.values).get("DESC", "")}
-                for sym in res.layout.symbols if sym.role == "offsheet" and (o := marks.get(sym.id)) is not None
+                for sym in res.layout.symbols if sym.role == "offsheet" and (o := marks.get(sym.id)) is not None and not (o.target or "").startswith(ROW_REF)
             ]
             meta = {"nodes": sorted(nodes), "cut_edges": list(part.cut_edges), "cross_refs": refs, "readable": res.placement.readable}
             out.append(BuiltSheet(s, doc, res.placement.scale, res.warnings, meta))
