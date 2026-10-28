@@ -20,7 +20,7 @@ from unicad.domain.catalog import (
 )
 from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
 from unicad.domain.project import DesignBasis, Project
-from unicad.rules.ratio import plant_capacity
+from unicad.rules.ratio import EXPORT_CONTROL_ATTR, EXPORT_LIMIT_ATTR, plant_capacity
 from unicad.rules.topology import AC_SERVICES, GENERATORS
 
 _KIND_LABEL = {
@@ -527,6 +527,12 @@ def system_parameters(project: Project, catalog: Catalog | None) -> tuple[tuple[
         rows.append(("PV STRINGS", f"{strings:,} x {'/'.join(map(str, series))} MODULES"))
     rows += [("INVERTERS", f"{c} x {label}") for label, c in inverters.items()]
     rows += [("BESS PCS", f"{c} x {label}") for label, c in pcs.items()]
+    for poi in net.by_kind(NodeKind.POI_GRID):
+        limit = poi.attributes.get(EXPORT_LIMIT_ATTR)
+        if isinstance(limit, int | float) and not isinstance(limit, bool):
+            rows.append(("EXPORT LIMIT", f"{_fmt_power(float(limit), 'W')} AT {poi.tag}"))
+        if poi.attributes.get(EXPORT_CONTROL_ATTR) == "ppc":
+            rows.append(("EXPORT CONTROL", f"POWER PLANT CONTROLLER (PPC) AT {poi.tag}"))
     g = project.design_basis.grid
     rows.append(("GRID CONNECTION", f"{volts(g.voltage_v)}, {g.phases} PH, {g.frequency_hz:g} Hz{', ' + g.utility if g.utility else ''}"))
     return tuple(rows)
