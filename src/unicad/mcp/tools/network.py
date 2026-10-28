@@ -7,7 +7,8 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from unicad.domain.network import SPEC_KINDS, AttrValue, Edge, Group, Node, Service
+from unicad.domain.network import SPEC_KINDS, AttrValue, BusbarRating, CtRating, Edge, Group, Node, PtRating, RelayRating, Service, SpdRating
+from unicad.drafting.symbols.registry import REGISTRY as SYMBOLS
 from unicad.domain.project import Project
 from unicad.mcp.advisories import advisories
 from unicad.mcp.errors import guarded
@@ -43,6 +44,15 @@ def parse_terminal(project: Project, role: str, terminal: str) -> tuple[str, str
         hint = f"; did you mean {near}" if near else f"; existing nodes: {list(project.network.node_by_id)[:15]}"
         raise ValueError(f"{role} {terminal!r} refers to unknown node {node_id!r}{hint}")
     return node_id, port
+
+
+def check_symbol(key: str | None) -> None:
+    """A node's symbol key must name a symbol the drawings can place."""
+    if key is None or key in SYMBOLS:
+        return
+    near = difflib.get_close_matches(key, list(SYMBOLS), n=4, cutoff=0.3) or [k for k in SYMBOLS if key.lower() in k.lower()][:4]
+    hint = f"; did you mean {near}" if near else ""
+    raise ValueError(f"unknown symbol {key!r}{hint}; network_symbols lists every valid key")
 
 
 def register(server: MCPServer, ws: Workspace) -> None:
@@ -93,20 +103,31 @@ def register(server: MCPServer, ws: Workspace) -> None:
         ports: Annotated[list[str] | None, Field(description="Override port names; defaults depend on kind (inverter: dc, ac)")] = None,
         attributes: Annotated[dict[str, AttrValue] | None, Field(description="Free label/value pairs shown on drawings, e.g. {\"rating_a\": 250}")] = None,
         title: Annotated[str | None, Field(description="Box title on the SLD")] = None,
-        symbol: Annotated[str | None, Field(description="Override the drawing symbol key")] = None,
+        symbol: Annotated[str | None, Field(description="Override the drawing symbol key; network_symbols lists the valid keys")] = None,
+        busbar: Annotated[BusbarRating | None, Field(description="Busbar rating of a bus, ACDB/ACCB or panel: rating_a, material, phases, fault_ka, fault_s")] = None,
+        ct: Annotated[CtRating | None, Field(description="CT ratio and cores, e.g. {\"primary_a\": 2500, \"secondary_a\": 1, \"cores\": [{\"accuracy_class\": \"0.2S\", \"burden_va\": 15}]}")] = None,
+        pt: Annotated[PtRating | None, Field(description="PT ratio and windings, e.g. {\"primary_v\": 415, \"secondary_v\": 110, \"phase_to_neutral\": true, \"cores\": [...]}")] = None,
+        relay: Annotated[RelayRating | None, Field(description="Relay ANSI functions and protocol, e.g. {\"functions\": [\"50\", \"51\", \"27\", \"59\"], \"protocol\": \"IEC 61850\"}")] = None,
+        spd: Annotated[SpdRating | None, Field(description="SPD ratings as specified: spd_type, imax_ka, in_ka, uc_v")] = None,
+        long_time_setting_a: Annotated[float | None, Field(gt=0, description="Breaker only: Ir, the trip unit's long-time setting in A (default the frame rating)")] = None,
+        mppt: Annotated[list[int] | None, Field(description="pv_string only: MPPT number each instance lands on within its inverter, one per instance")] = None,
     ) -> dict[str, Any]:
         """Add an equipment node. Ports are named per kind: pv_string out; inverter dc, ac; transformer lv, hv; most others in, out.
+        Control links (RS-485, CT/PT secondaries) use the ports 'sig' or 'sec': meters have sig, CTs and PTs sec, relays sig; give an inverter or a
+        data logger a sig port with ports=[..., "sig"]. The rating fields (busbar, ct, pt, relay, spd, long_time_setting_a) are drawn on the SLD and read by the rules.
 
         Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="growatt-max-100ktl3-x-lv", group="inv_sec")."""
 
         def change(p: Project) -> Edit:
             if group is not None and group not in p.network.group_by_id:
                 raise ValueError(f"node {id!r} is in unknown group {group!r}; groups: {list(p.network.group_by_id)}")
+            check_symbol(symbol)
             use_tag = tag or default_tag(id, repeat_depth(p, group, count))
             new = Node(
                 id=id, tag=use_tag, kind=kind, spec=spec, symbol=symbol, count=count, group=group, voltage_v=voltage_v,
                 modules_in_series=modules_in_series, ports=tuple(ports) if ports is not None else None,
-                attributes=attributes or {}, title=title,
+                attributes=attributes or {}, title=title, busbar=busbar, ct=ct, pt=pt, relay=relay, spd=spd,
+                long_time_setting_a=long_time_setting_a, mppt=tuple(mppt) if mppt is not None else None,
             )  # fmt: skip
             existing = p.network.node_by_id.get(id)
             if existing is not None:
@@ -134,6 +155,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         edge_id: Annotated[str | None, Field(description="Id for the connection; default 'e_<src>_<dst>'")] = None,
     ) -> dict[str, Any]:
         """Connect two nodes. Instances pair up by group: equal counts connect one to one, a count of 1 fans in or out.
+        Power connections use the power ports of each kind (inverter dc/ac, transformer lv/hv, most others in/out). Control connections
+        (service='control': CT/PT secondaries, RS-485 links) join only the signal ports 'sig' and 'sec': CT and PT have 'sec', meters and
+        relays 'sig'; an inverter or data logger needs 'sig' added to its ports first (network_update fields={"ports": [..., "sig"]}). Earth connections use 'pe'.
 
         Example: network_connect(project_id="p1", src="inv:ac", dst="acdb:in", cable="polycab-...", length_m=25)."""
 
@@ -172,7 +196,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
     ) -> dict[str, Any]:
         """Change fields of an existing node, connection or group. The id itself cannot change.
 
-        Node fields: tag, kind, spec, symbol, count, group, voltage_v (V), modules_in_series, ports, attributes, title.
+        Node fields: tag, kind, spec, symbol (network_symbols lists the keys), count, group, voltage_v (V), modules_in_series, ports, attributes, title,
+        and the typed ratings busbar, ct, pt, relay, spd, long_time_setting_a (breaker Ir, A) and mppt (pv_string); see the fields schema.
         Edge fields: src, dst, service, cable, runs, length_m (m), laying, derating, remarks. Group fields: tag, count, within, title.
         Example: network_update(project_id="p1", id="e_inv_acdb", fields={"length_m": 30}).
         Changing a group count can invalidate member tags; update those tags in the same session."""
@@ -195,6 +220,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
                     data["attributes"] = {a: b for a, b in merged.items() if b is not None}
                 else:
                     data[k] = v
+            if model is Node and "symbol" in fields:
+                check_symbol(fields["symbol"])
             new = model.model_validate(data)
             updated = ws.rebuild(p, **{key: [new if i.id == id else i for i in items]})
             return Edit(updated, (id,), {"updated": id, "fields": sorted(fields)}, advisories(updated, [id]))
@@ -254,6 +281,19 @@ def register(server: MCPServer, ws: Workspace) -> None:
             return Edit(updated, (), {"removed": removed, "cascaded_edges": sorted(cascaded)})
 
         return ws.mutate(project_id, change)
+
+    @server.tool(annotations=READ_ONLY)
+    @guarded
+    def network_symbols(
+        query: Annotated[str | None, Field(description="Only keys or titles containing this text, e.g. 'meter' or 'logger'")] = None,
+    ) -> dict[str, Any]:
+        """List the drawing symbol keys a node's `symbol` may name, with their titles and categories. A node without a symbol takes its catalog
+        spec's symbol or its kind's default.
+
+        Example: network_symbols(query="logger")."""
+        q = (query or "").lower()
+        rows = [{"key": k, "title": d.title, "category": str(getattr(d.category, "value", d.category))} for k, d in sorted(SYMBOLS.items()) if q in k.lower() or q in d.title.lower()]
+        return {"count": len(rows), "symbols": rows}
 
     @server.tool(annotations=READ_ONLY)
     @guarded

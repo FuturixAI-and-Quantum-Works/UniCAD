@@ -11,15 +11,15 @@ UniCAD builds Indian (IS/CEA) solar EPC drawing sets from a typed project model.
 
 Workflow, in order. Every edit returns the new revision and a `problems` list; read it before the next step.
 0. Company: company_list shows the profiles (title block, drawing numbering, layers, symbols, rule thresholds). For a new company run company_onboard(dxf_path, answers) with its DXF and questionnaire, fix what it reports as failed, and check the result with company_preview_sheet.
-1. project_create(name, client, segment, site, grid_voltage_v). Read the `assumptions` it returns: they are placeholders. company_assign(project_id, profile_id) puts the project on the company's profile. project_list / project_get show what exists.
+1. project_create(name, client, segment, site, grid_voltage_v, developer). Read the `assumptions` it returns: they are placeholders. project_parties changes the title, client or developer later. company_assign(project_id, profile_id) puts the project on the company's profile. project_list / project_get show what exists.
 2. project_design_basis(project_id, ...) before any design: site values (ambient_min_c, ambient_max_c, altitude_m), limits (vdrop_dc_max, vdrop_ac_max, dc_ac_ratio_target, power_factor), fault levels per system voltage, earthing inputs (soil resistivity from the Wenner test; on a utility, hybrid or BESS plant also switchyard_m, the MV switchyard earth grid length x width from the substation layout, because the layout keeps that yard free of tables and the BESS units are placed clear of it, so set it now rather than when the earth grid is designed) and lightning protection inputs (level from the risk assessment). A value you set replaces its placeholder. If you change site values, limits or fault levels after the network exists, build the network again (step 5).
 3. site_import(project_id, file_path) from KML, KMZ, GeoJSON, DXF or a coordinate list; site_set_feature / site_remove_feature fix what the survey missed; site_set_setbacks takes clearances from the design basis (none are assumed); site_summary shows the buildable area.
 4. design_strings sizes a string for a module and inverter. layout_place(project_id, module, modules_per_string, strings_per_inverter, ...) then puts tables on the buildable area (tables default to one string per row, half tables only where they hold whole strings), splits them into inverter blocks of whole inverters and assigns strings; it reports an error when a table cannot hold a string. For rooftops the inverter station stands on a roof unless station_x/station_y give its place. layout_summary and layout_blocks read the result.
-5. network_autobuild(project_id, template, ac_kw or dc_kwp, module, inverter) builds the complete electrical network from intent, links layout strings and sizes breakers for the prospective fault (declared levels and transformer-fed LV faults) and cables for the declared fault levels. Use catalog_search / catalog_get for equipment ids. For hand edits use network_add_group, network_add_node, network_connect, network_update and network_remove; model identical equipment once with a count.
+5. network_autobuild(project_id, template, ac_kw or dc_kwp, module, inverter) builds the complete electrical network from intent, links layout strings and sizes breakers for the prospective fault (declared levels and transformer-fed LV faults) and cables for the declared fault levels. Use catalog_search / catalog_get for equipment ids. A ground-mount plant exporting at 415 V into a client's LT panel is template utility_lt (string inverters -> ACCB with CT, meter and, when asked, PT, relay and data logger -> client panel; no transformer). Strings the brief gives per inverter and MPPT (mixed 18/19-module strings, different module counts per inverter) go in inverter_strings; check them first with design_strings(inverter_strings=...). For hand edits use network_add_group, network_add_node, network_connect, network_update and network_remove; model identical equipment once with a count. Ratings the brief states (busbar, CT and PT ratio and cores, relay ANSI functions, SPD Imax, a breaker's long-time setting Ir) go in the typed node fields busbar, ct, pt, relay, spd and long_time_setting_a, not in titles; network_symbols lists the symbol keys. A later network_autobuild replaces hand edits: its `hand_edits` lists them and keep_hand_edits=true re-applies them.
 6. validate(project_id) runs the engineering rules and says which issue purposes (approval, construction, as_built) are blocked; its `next` says when a rebuild is the fix. explain_finding(project_id, rule_id, subject) gives the formula, inputs and sources. Fix errors with network_update / layout_place / site tools or by re-running network_autobuild, then validate again until no errors remain. Never edit a value just to silence a rule: change the design. earthing_design(project_id, soil_resistivity, ...) and lps_design(project_id, method, level, ...) design the earth grid and lightning protection (run layout_place first); earthing_summary reads them back.
 7. Deliverables: cable_schedule and bom export the schedules (xlsx, dxf or pdf); drawings_preview shows a sheet as PNG while you check it.
 8. project_snapshot(project_id, label) names the agreed revision; project_diff compares revisions (per-feature site changes, per-block layout changes, sheet changes). Use revision= on read tools to inspect an older state.
-9. Issue, last: project_issue(project_id, issued_for, rev, drawn, checked, approved, date) once the rules allow the purpose (approval, construction and as_built are refused while an error remains), then drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers, every sheet carrying the revision, names and date. A set rendered before the issue has no revision, names or date.
+9. Issue, last: project_issue(project_id, issued_for, rev, drawn, checked, approved, date) once the rules allow the purpose (approval, construction and as_built are refused while an error remains, including an SLD sheet the last render marked unreadable; amend=true corrects the latest revision instead of adding one), then drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers, every sheet carrying the revision, names and date. A set rendered before the issue has no revision, names or date.
 
 Rules: mark every assumption you make and tell the user; take equipment values only from the catalog; if a tool reports a blocker or an error finding, fix the model rather than working around it. Prompts new_rooftop_project, new_utility_project, new_bess_project and revise_after_comments give step plans for the common jobs.
 ```
@@ -56,7 +56,7 @@ Build a utility-scale PV drawing set for "<name>" with UniCAD tools. State inten
 4. site_import(project_id, file_path) for boundary, exclusions, water, roads and transmission lines; fix classification with kind_mapping or site_set_feature. site_set_setbacks (boundary_m, exclusion_m) from the design basis; site_summary for the buildable acres.
 5. catalog_search for module, inverter (or pcs) and transformer; design_strings(project_id, module, inverter) for the string length and DC/AC ratio.
 6. layout_place(project_id, module, tilt_deg, road_every_rows, target_dc_kwp, block_dc_kwp or n_blocks, modules_per_string, strings_per_inverter). Check layout_summary (block_balance, gcr) and layout_blocks.
-7. network_autobuild(project_id, template="utility_string" or "utility_central", module, inverter, inverters_per_block). Layout strings are linked to the network automatically; breakers and cables are sized for the fault levels set in step 3. Read `blockers` and `assumptions`. If you change the design basis afterwards, run network_autobuild again.
+7. network_autobuild(project_id, template="utility_string" or "utility_central" (MV export) or "utility_lt" (415 V export into the client's LT panel), module, inverter, inverters_per_block). Layout strings are linked to the network automatically; breakers and cables are sized for the fault levels set in step 3. Read `blockers` and `assumptions`. If you change the design basis afterwards, run network_autobuild again.
 8. validate(project_id); explain_finding for each error; fix and re-validate until no errors remain.
 9. earthing_design(project_id, ...) (switchyard_m is already in the design basis from step 3; pass it here only to change it, and then place the layout and build the network again) and lps_design(project_id, method, level, ...) design from the stored inputs; validate again.
 10. Deliverables: cable_schedule and bom. Quote paths, totals and assumptions.
@@ -127,7 +127,7 @@ company_onboard(
   "defaulted": [
     "text_style: UniCAD default",
     "text_font: UniCAD default",
-    "thresholds: UniCAD defaults for continuous_factor, fault_clearing_default, k_xlpe_al, k_xlpe_cu, stc_irradi..."
+    "thresholds: UniCAD defaults for continuous_factor, fault_clearing_default, k_xlpe_al, k_xlpe_cu, layout_sho..."
   ],
   "failed": [],
   "warnings": []
@@ -417,14 +417,8 @@ network_autobuild(
     "inverters": 2,
     "strings": 22
   },
-  "rules": {"error": 0, "warning": 2, "info": 21},
+  "rules": {"error": 0, "warning": 1, "info": 21},
   "findings": [
-    {
-      "rule_id": "cables.missing",
-      "severity": "warning",
-      "subjects": ["e_ct_poi"],
-      "message": "edge e_ct_poi (CT-02 -> POI-01) (lv_ac) has no cable or length_m; cable sizing and voltage drop are not che..."
-    },
     {
       "rule_id": "cables.missing",
       "severity": "warning",
@@ -456,15 +450,9 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 7,
-  "counts": {"error": 0, "warning": 2, "info": 21},
+  "counts": {"error": 0, "warning": 1, "info": 21},
   "blocking": false,
   "findings": [
-    {
-      "rule_id": "cables.missing",
-      "severity": "warning",
-      "subjects": ["e_ct_poi"],
-      "message": "edge e_ct_poi (CT-02 -> POI-01) (lv_ac) has no cable or length_m; cable sizing and voltage drop are not che..."
-    },
     {
       "rule_id": "cables.missing",
       "severity": "warning",

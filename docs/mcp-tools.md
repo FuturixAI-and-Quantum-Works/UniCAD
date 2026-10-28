@@ -25,6 +25,8 @@ Creating the same project again with identical inputs changes nothing.
 | `address` | string | no |  |
 | `utility` | string | no | DISCOM or transmission utility |
 | `client_code` | string | no | Short client code for drawing numbers |
+| `developer` | string | no | Project developer when it is not the client, e.g. the RESCO or IPP building the plant |
+| `developer_code` | string | no | Short developer code |
 | `ambient_min_c` | number | no | Site minimum ambient °C |
 | `ambient_max_c` | number | no | Site maximum ambient °C |
 | `altitude_m` | number | no | Site altitude in metres |
@@ -32,6 +34,25 @@ Creating the same project again with identical inputs changes nothing.
 | `vdrop_ac_max` | number | no | Max AC voltage drop as a fraction |
 | `dc_ac_ratio_target` | number | no | Target DC/AC ratio |
 | `power_factor` | number | no | Design power factor |
+
+### `project_parties`
+
+Set the project title and the parties the title block and register name: the client (owner) and the project developer. Only what you
+pass changes; a developer field you pass on a project without a developer creates one (its name is then required).
+
+Example: project_parties(project_id="rvunl-heerapura", developer="Truere Knight Pvt. Ltd.").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
+| `name` | string | no | New project title |
+| `client` | string | no | Client company name |
+| `client_code` | string | no | Short client code |
+| `client_address` | string | no | Client address |
+| `developer` | string | no | Project developer, when it is not the client (e.g. 'Truere Knight Pvt. Ltd.') |
+| `developer_code` | string | no | Short developer code |
+| `developer_address` | string | no | Developer address |
+| `clear_developer` | boolean | no | Remove the developer Default: `False`. |
 
 ### `project_get`
 
@@ -122,7 +143,9 @@ Issue the drawing set: add a revision (mark, date, purpose, drawn/checked/approv
 block, revision table and the drawing register show from the next drawings_render. The engineering rules run first (as in
 validate): approval, construction and as_built are refused while any error remains, and the refusal lists every error;
 proposal and information are allowed with errors and the response says the sheets carry them. A revision mark already
-issued is refused unless every value is the same (then nothing changes). Re-render with drawings_render afterwards.
+issued is refused unless every value is the same (then nothing changes) or amend=true corrects the latest revision in place, so a
+fix to its remarks or names before any newer issue does not cost a new revision. Remarks longer than about 55 characters are
+shortened in the title block revision cell; the reply warns. Re-render with drawings_render afterwards.
 
 Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="0", drawn="A. Kumar", checked="S. Rao", approved="P. Iyer", date="2026-10-28").
 
@@ -136,6 +159,7 @@ Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="
 | `approved` | string | no | Name of the approver, printed in the APPROVED cell |
 | `date` | string | no | Issue date as YYYY-MM-DD; today when omitted |
 | `remarks` | string | no | Revision description in the revision table; 'ISSUED FOR <PURPOSE>' when omitted |
+| `amend` | boolean | no | Correct the latest issued revision (same rev mark: its date, purpose, names or remarks) instead of adding a new one; refused for an older revision Default: `False`. |
 
 ## Catalog tools
 
@@ -355,6 +379,9 @@ strings per MPPT and per inverter (limit and the count nearest the DC/AC target)
 each quantity, and the margins to each limit. strings_per_inverter respects the string-fuse rule validate applies (pv_strings.string_fuses):
 strings_per_mppt_unfused / strings_per_inverter_unfused are the most that need no fuse; string_fuses is 'optional' when the DC/AC target needs
 more, with the trade-off in the assumptions (pass that strings_per_inverter to network_autobuild for a design with one gPV fuse per string).
+With inverter_strings (strings given per inverter and MPPT, lengths that may differ, e.g. 18 and 19 modules on one inverter, and modules per inverter that
+differ between inverters) it checks those instead: every length's Voc at the coldest cell and MPPT window, the MPPTs and strings per MPPT against the
+inverter, and the DC kWp and DC/AC ratio of each inverter class; `given_strings.problems` lists what does not fit (empty when network_autobuild will take them).
 Example: design_strings(project_id="p1", module="waaree-bi-55-540", inverter="sungrow-sg110cx").
 
 Read-only.
@@ -365,6 +392,7 @@ Read-only.
 | `module` | string | yes | Catalog id of the PV module |
 | `inverter` | string | yes | Catalog id of the inverter |
 | `modules_per_string` | integer | no | Check a given string length instead of picking the longest |
+| `inverter_strings` | list of object | no | Strings given per inverter and MPPT, inverter classes in numbering order: each {"count": inverters, "mppts": [[modules per string of each string on MPPT 1], [..MPPT 2], ...]}, e.g. [{"count": 4, "mppts": [[18, 18], [18, 18], [18, 18], [18, 18], [18, 18], [18, 18], [18, 18]]}, {"count": 1, "mppts": [[18, 19], [18, 19], [18, 19], [18, 19], [18, 19], [18, 19], [18]]}] |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
 ## Network tools
@@ -372,17 +400,22 @@ Read-only.
 ### `network_autobuild`
 
 Replace the project's electrical network with a complete one built from a short intent: strings sized from the catalog and design basis,
-a topology template (residential, ci_rooftop, utility_string, utility_central, bess_ac, bess_dc, hybrid) with protection, metering, SPDs and
+a topology template (residential, ci_rooftop, utility_lt, utility_string, utility_central, bess_ac, bess_dc, hybrid) with protection, metering, SPDs and
 earthing, breakers rated >= 1.25 x design current and cables sized for ampacity and voltage drop. Then runs the rules.
 
 Returns the new revision, a summary (instances per kind, DC kWp, AC kVA), rule counts, the remaining error and warning findings, blockers
-(what the catalog or the intent could not satisfy) and every assumption made. Example:
+(what the catalog or the intent could not satisfy) and every assumption made. A re-run replaces the network: `hand_edits` lists the edits made
+since the previous network_autobuild that the new network does not carry, and keep_hand_edits=true re-applies them.
+utility_lt is the LT ground-mount plant: string inverters -> ACCB (MCCB incomers, bus, SPD, outgoing ACB, CT, meter; PT and relay with `relay`;
+data logger with data_logger=true) -> solar incomer in the client's 415 V LT panel, with no transformer and no DISCOM metering (the default for a
+utility project on an LT grid). inverter_strings (residential, ci_rooftop, utility_lt) builds strings given per inverter and MPPT, e.g. 18- and
+19-module strings on one inverter and different module counts per inverter; check them first with design_strings(inverter_strings=...). Example:
 network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp", inverter="huawei-sun2000-100ktl-m2").
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `template` | `residential` \| `ci_rooftop` \| `utility_string` \| `utility_central` \| `bess_ac` \| `bess_dc` \| `hybrid` | no | Topology; default from the project segment (utility: central when the inverter is central, else string) |
+| `template` | `residential` \| `ci_rooftop` \| `utility_lt` \| `utility_string` \| `utility_central` \| `bess_ac` \| `bess_dc` \| `hybrid` | no | Topology; default from the project segment (utility: central when the inverter is central, else string) |
 | `ac_kw` | number | no | PV AC capacity in kW (sets the inverter count); for bess_ac the storage power |
 | `dc_kwp` | number | no | PV DC capacity in kWp |
 | `module` | string | no | Catalog module id; default the highest-Pmax ALMM-listed module |
@@ -408,6 +441,10 @@ network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="ada
 | `lengths` | object | no | Cable route length overrides in m by role, e.g. {"vcb_bus": 650} |
 | `bess_x` | number | no | Local x (m) of the BESS area centre (bess_ac, hybrid); default the free area nearest the switchyard |
 | `bess_y` | number | no | Local y (m) of the BESS area centre |
+| `inverter_strings` | list of object | no | Strings given per inverter and MPPT, inverter classes in numbering order: each {"count": inverters, "mppts": [[modules per string of each string on MPPT 1], [..MPPT 2], ...]}, e.g. [{"count": 4, "mppts": [[18, 18], [18, 18], [18, 18], [18, 18], [18, 18], [18, 18], [18, 18]]}, {"count": 1, "mppts": [[18, 19], [18, 19], [18, 19], [18, 19], [18, 19], [18, 19], [18]]}] |
+| `relay` | object | no | utility_lt: add a bus PT and a numerical relay with these ANSI functions and protocol on the ACCB outgoing, e.g. {"functions": ["50", "51", "67", "67N", "27", "59", "50N", "51N"], "protocol": "IEC 61850"} |
+| `data_logger` | boolean | no | utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter Default: `False`. |
+| `keep_hand_edits` | boolean | no | Re-apply the network edits made since the last network_autobuild (added, changed and removed nodes, connections and groups) onto the new network; edits that no longer fit are listed as skipped Default: `False`. |
 
 ### `network_add_group`
 
@@ -427,6 +464,8 @@ Example: network_add_group(project_id="p1", id="inv_sec", count=5, title="100 kW
 ### `network_add_node`
 
 Add an equipment node. Ports are named per kind: pv_string out; inverter dc, ac; transformer lv, hv; most others in, out.
+Control links (RS-485, CT/PT secondaries) use the ports 'sig' or 'sec': meters have sig, CTs and PTs sec, relays sig; give an inverter or a
+data logger a sig port with ports=[..., "sig"]. The rating fields (busbar, ct, pt, relay, spd, long_time_setting_a) are drawn on the SLD and read by the rules.
 
 Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="growatt-max-100ktl3-x-lv", group="inv_sec").
 
@@ -444,11 +483,21 @@ Example: network_add_node(project_id="p1", id="inv", kind="inverter", spec="grow
 | `ports` | list of string | no | Override port names; defaults depend on kind (inverter: dc, ac) |
 | `attributes` | object | no | Free label/value pairs shown on drawings, e.g. {"rating_a": 250} |
 | `title` | string | no | Box title on the SLD |
-| `symbol` | string | no | Override the drawing symbol key |
+| `symbol` | string | no | Override the drawing symbol key; network_symbols lists the valid keys |
+| `busbar` | object | no | Busbar rating of a bus, ACDB/ACCB or panel: rating_a, material, phases, fault_ka, fault_s |
+| `ct` | object | no | CT ratio and cores, e.g. {"primary_a": 2500, "secondary_a": 1, "cores": [{"accuracy_class": "0.2S", "burden_va": 15}]} |
+| `pt` | object | no | PT ratio and windings, e.g. {"primary_v": 415, "secondary_v": 110, "phase_to_neutral": true, "cores": [...]} |
+| `relay` | object | no | Relay ANSI functions and protocol, e.g. {"functions": ["50", "51", "27", "59"], "protocol": "IEC 61850"} |
+| `spd` | object | no | SPD ratings as specified: spd_type, imax_ka, in_ka, uc_v |
+| `long_time_setting_a` | number | no | Breaker only: Ir, the trip unit's long-time setting in A (default the frame rating) |
+| `mppt` | list of integer | no | pv_string only: MPPT number each instance lands on within its inverter, one per instance |
 
 ### `network_connect`
 
 Connect two nodes. Instances pair up by group: equal counts connect one to one, a count of 1 fans in or out.
+Power connections use the power ports of each kind (inverter dc/ac, transformer lv/hv, most others in/out). Control connections
+(service='control': CT/PT secondaries, RS-485 links) join only the signal ports 'sig' and 'sec': CT and PT have 'sec', meters and
+relays 'sig'; an inverter or data logger needs 'sig' added to its ports first (network_update fields={"ports": [..., "sig"]}). Earth connections use 'pe'.
 
 Example: network_connect(project_id="p1", src="inv:ac", dst="acdb:in", cable="polycab-...", length_m=25).
 
@@ -470,7 +519,8 @@ Example: network_connect(project_id="p1", src="inv:ac", dst="acdb:in", cable="po
 
 Change fields of an existing node, connection or group. The id itself cannot change.
 
-Node fields: tag, kind, spec, symbol, count, group, voltage_v (V), modules_in_series, ports, attributes, title.
+Node fields: tag, kind, spec, symbol (network_symbols lists the keys), count, group, voltage_v (V), modules_in_series, ports, attributes, title,
+and the typed ratings busbar, ct, pt, relay, spd, long_time_setting_a (breaker Ir, A) and mppt (pv_string); see the fields schema.
 Edge fields: src, dst, service, cable, runs, length_m (m), laying, derating, remarks. Group fields: tag, count, within, title.
 Example: network_update(project_id="p1", id="e_inv_acdb", fields={"length_m": 30}).
 Changing a group count can invalidate member tags; update those tags in the same session.
@@ -492,6 +542,19 @@ Example: network_remove(project_id="p1", ids=["scb"]).
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
 | `ids` | list of string | yes | Ids of nodes, connections (edges) or groups to remove |
 | `include_members` | boolean | no | When removing a group, also remove the nodes and groups inside it Default: `False`. |
+
+### `network_symbols`
+
+List the drawing symbol keys a node's `symbol` may name, with their titles and categories. A node without a symbol takes its catalog
+spec's symbol or its kind's default.
+
+Example: network_symbols(query="logger").
+
+Read-only.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `query` | string | no | Only keys or titles containing this text, e.g. 'meter' or 'logger' |
 
 ### `network_summary`
 
@@ -522,7 +585,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `families` | list of `structure` \| `pv_strings` \| `ratio` \| `protection` \| `cables` \| `vdrop` \| `earthing` \| `lps` | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps |
+| `families` | list of `structure` \| `pv_strings` \| `ratio` \| `protection` \| `cables` \| `vdrop` \| `earthing` \| `lps` \| `layout` \| `drawings` | no | Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps, layout, drawings |
 | `include_info` | boolean | no | Also list info findings (segment voltage drops, unstated deratings); they are always counted. Default: `False`. |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
@@ -539,7 +602,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `rule_id` | `structure.unconnected_port` \| `structure.path_to_poi` \| `structure.inverter_ac_voltage` \| `structure.transformer_voltage` \| `structure.missing_spec` \| `structure.bess_separation` \| `pv_strings.voc_max` \| `pv_strings.hot_cell` \| `pv_strings.vmp_min` \| `pv_strings.start_voltage` \| `pv_strings.vmp_max` \| `pv_strings.inputs` \| `pv_strings.isc_per_mppt` \| `pv_strings.operating_current` \| `pv_strings.string_fuses` \| `ratio.dc_ac_inverter` \| `ratio.dc_ac_plant` \| `ratio.bess_intent` \| `ratio.export_limit` \| `protection.rated_current` \| `protection.breaking_capacity` \| `protection.fault_level` \| `protection.oversize` \| `protection.rated_voltage` \| `protection.spd_dc` \| `protection.spd_ac` \| `protection.spd_ac_uc` \| `protection.spd_ac_poles` \| `protection.earthing` \| `protection.string_fuse_rating` \| `protection.mv_cable` \| `protection.lv_both_ends` \| `protection.transformer_feed` \| `cables.missing` \| `cables.ampacity` \| `cables.protection` \| `cables.terminals` \| `cables.battery_dc` \| `cables.short_circuit` \| `vdrop.dc` \| `vdrop.ac` \| `vdrop.bands` \| `earthing.conductor_size` \| `earthing.electrode_resistance` \| `earthing.touch_step` \| `earthing.every_equipment_bonded` \| `earthing.mat_fence_clearance` \| `lps.coverage` \| `lps.mast_fence_clearance` | yes | Rule id from validate, e.g. 'cables.ampacity' |
+| `rule_id` | `structure.unconnected_port` \| `structure.path_to_poi` \| `structure.inverter_ac_voltage` \| `structure.transformer_voltage` \| `structure.missing_spec` \| `structure.bess_separation` \| `pv_strings.voc_max` \| `pv_strings.hot_cell` \| `pv_strings.vmp_min` \| `pv_strings.start_voltage` \| `pv_strings.vmp_max` \| `pv_strings.inputs` \| `pv_strings.isc_per_mppt` \| `pv_strings.operating_current` \| `pv_strings.string_fuses` \| `ratio.dc_ac_inverter` \| `ratio.dc_ac_plant` \| `ratio.bess_intent` \| `ratio.export_limit` \| `protection.rated_current` \| `protection.trip_setting` \| `protection.breaking_capacity` \| `protection.fault_level` \| `protection.oversize` \| `protection.rated_voltage` \| `protection.spd_dc` \| `protection.spd_ac` \| `protection.spd_ac_uc` \| `protection.spd_ac_poles` \| `protection.earthing` \| `protection.string_fuse_rating` \| `protection.mv_cable` \| `protection.lv_both_ends` \| `protection.transformer_feed` \| `cables.missing` \| `cables.ampacity` \| `cables.protection` \| `cables.terminals` \| `cables.battery_dc` \| `cables.short_circuit` \| `vdrop.dc` \| `vdrop.ac` \| `vdrop.bands` \| `earthing.conductor_size` \| `earthing.electrode_resistance` \| `earthing.touch_step` \| `earthing.every_equipment_bonded` \| `earthing.mat_fence_clearance` \| `lps.coverage` \| `lps.mast_fence_clearance` \| `layout.shortfall` \| `drawings.readable_sld` | yes | Rule id from validate, e.g. 'cables.ampacity' |
 | `subject` | string | yes | One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb' |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 
