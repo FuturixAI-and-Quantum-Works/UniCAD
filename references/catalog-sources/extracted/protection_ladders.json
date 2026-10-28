@@ -53,6 +53,7 @@
     "frames": [
       {
         "frame": "DN0-100",
+        "terminal_with_spreaders": {"cables_per_pole": 1, "max_mm2": 50},
         "frame_a": 100,
         "types": {
           "C": {
@@ -76,6 +77,7 @@
       },
       {
         "frame": "DN0-125",
+        "terminal_with_spreaders": {"cables_per_pole": 1, "max_mm2": 50},
         "frame_a": 125,
         "types": {
           "D": {
@@ -89,6 +91,7 @@
       },
       {
         "frame": "DN1-250",
+        "terminal_with_spreaders": {"cables_per_pole": 1, "max_mm2": 185},
         "frame_a": 250,
         "types": {
           "C": {
@@ -108,6 +111,7 @@
       },
       {
         "frame": "DN2-250",
+        "terminal_with_spreaders": {"cables_per_pole": 1, "max_mm2": 185},
         "frame_a": 250,
         "types": {
           "D": {
@@ -140,6 +144,7 @@
       },
       {
         "frame": "DN3B-400",
+        "terminal_with_spreaders": {"cables_per_pole": 2, "max_mm2": 240},
         "frame_a": 400,
         "types": {
           "D": {
@@ -154,6 +159,7 @@
       },
       {
         "frame": "DN3-400",
+        "terminal_with_spreaders": {"cables_per_pole": 2, "max_mm2": 240},
         "frame_a": 400,
         "types": {
           "D": {
@@ -174,6 +180,7 @@
       },
       {
         "frame": "DN3-630",
+        "terminal_with_spreaders": {"cables_per_pole": 2, "max_mm2": 240},
         "frame_a": 630,
         "types": {
           "D": {
@@ -197,6 +204,7 @@
       },
       {
         "frame": "DN4-1250",
+        "terminal_with_spreaders": {"cables_per_pole": 2, "max_mm2": 300},
         "frame_a": 1250,
         "types": {
           "N": {
@@ -217,6 +225,8 @@
         "release": "MP (MTX1.0/2.0/3.0)"
       }
     ],
+    "terminal_pdf_page": 50,
+    "terminal_note": "'Terminal capacity with spreader terminals' table, catalogue page 48 (PDF page 50): largest cable per pole by frame (DN0 50, DN1 185, DN2 185, DN3 2 x 240, DN3B 2 x 240, DN4 2 x 300 sq.mm). Without spreaders the same table gives DN0 35, DN1 120, DN2 95, DN3 120, DN3B 185 sq.mm and DN4 bar only; the values with spreader terminals are used. The catalogue recommends copper termination.",
     "frames_note": "Icu is the 415/440 VAC row of the 'Rated Short Circuit Breaking Capacity' table. The DN2-250 table spans pp.27-28 (D/N/S on p.27, H/V on p.28). DN3B-400 has one unlabelled TM column on p.28; the 'D' label comes from the DC table on p.31. Column-to-type mapping checked by counting the 415 V row (8 values on p.27, 13 on p.28).",
     "dc_application": {
       "pdf_page": 31,

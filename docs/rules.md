@@ -20,6 +20,8 @@ Clause references name the standard only; clause numbers are added once verified
 | `k_xlpe_cu` | 143 A s^0.5/mm2 | Adiabatic constant k of a copper conductor with XLPE insulation (90 degC to 250 degC), 0.143 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table; the Polycab XLPE catalogue gives the same 1 s ratings (143.1 kA for 1000 mm2). Manufacturer value, standard name IS 7098. |
 | `k_xlpe_al` | 94 A s^0.5/mm2 | Adiabatic constant k of an aluminium conductor with XLPE insulation (90 degC to 250 degC), 0.094 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table (Polycab's 1 s table gives 94.5 kA for 1000 mm2; the lower value is used). Manufacturer value, standard name IS 7098. |
 | `fault_clearing_default` | 1 s | Fault clearing time taken as 1 s, the duration cable and switchgear short-circuit ratings are tabulated for, when neither the fault level nor the earthing basis gives a clearing time. |
+| `string_fuse_min` | 1.5 | String fuse rating In > 1.5 x Isc(STC) of the module (IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR for a fuse protecting one string; the standards' own text was not available.). |
+| `string_fuse_max` | 2.4 | String fuse rating In < 2.4 x Isc(STC) of the module (IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR for a fuse protecting one string; the standards' own text was not available.). |
 
 ## structure
 
@@ -133,6 +135,13 @@ Standard: none (design practice). Segments: all.
 
 Total DC kWp over total rated inverter AC kVA, compared with the design basis dc_ac_ratio_target. Outside the band is a warning.
 
+### `ratio.bess_intent`: BESS power and energy as asked
+
+Standard: none (design practice). Segments: all.
+
+When PCS nodes carry the requested storage size (bess_kw_requested / bess_kwh_requested, set by network_autobuild), the built PCS kVA and battery kWh are
+compared with it, because whole catalog units rarely add up to the request exactly: a difference above 1 % in either is a warning that states it, a smaller one an info finding.
+
 ### `ratio.export_limit`: Plant AC capacity within the grid connection limit
 
 Standard: none (design practice). Segments: all.
@@ -167,6 +176,14 @@ placeholder minimum and reports that as an assumption. A breaker without a catal
 
 Worked examples: a 20 kA VD4 vacuum breaker on a 33 kV bus with a 25 kA fault level is an error (20 kA < 25 kA); the 25 kA VD4 passes. A 7040 kVA, 7 % IDT winding at 800 V
 on an infinite bus passes 7040 / (sqrt(3) x 0.8 x 0.07) = 72.6 kA to its LV bus, so a 12 kA MCCB there is an error.
+
+### `protection.oversize`: LT breakers are not rated above what the design current needs without a stated reason
+
+Standard: none (design practice). Segments: all.
+
+An LT breaker (MCB, MCCB, ACB) on an export path rated above the smallest catalog breaker that covers k x Ib at its voltage and poles is a warning, because the
+cable it protects must then carry In, not Ib (cables.protection). The finding says why the larger device is there: no smaller catalog breaker breaks the prospective
+fault at its bus (protection.fault_level), or the smaller frames' terminals do not take the cable it lands (cables.terminals), or neither (a smaller one fits).
 
 ### `protection.rated_voltage`: Device rated voltage covers the system voltage
 
@@ -203,7 +220,9 @@ Every inverter and PCS needs an earth connection (an edge on its 'pe' port): err
 
 Standard: IEC 62548. Segments: all.
 
-A gPV fuse carrying n strings must be rated at least n x 1.25 x Isc, and a fuse protecting a single string must not exceed the module's maximum series fuse rating.
+A gPV fuse protecting one string must be rated 1.5 x Isc < In < 2.4 x Isc and In <= the module's maximum series fuse rating (IMOD_MAX_OCPR); a fuse protecting a
+group of N strings 1.5 x N x Isc < In < IMOD_MAX_OCPR - (N - 1) x Isc. Isc is the module short-circuit current at STC. The factors are the string_fuse_min and
+string_fuse_max thresholds, whose text names the sources the clause was read from.
 
 ### `protection.mv_cable`: Every MV cable is protected at the end the fault current comes from
 
@@ -247,6 +266,22 @@ A device protects the cables connected to it and those reached from it through i
 or equipment. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
 
 Worked example: an ACB of In 1250 A feeding a CT, an isolator and then a cable of Iz 980 A to the LT panel is an error (1250 A > 980 A), although the cable does not touch the ACB.
+
+### `cables.terminals`: Cables fit the terminals of the switchgear they land on
+
+Standard: none (design practice). Segments: all.
+
+A cable landing on a breaker or switch must fit its terminals: conductor size per pole at most the device's largest terminal cable and parallel runs at most
+its cables per pole, as the catalog gives them from the device datasheet (or as a labelled assumption in the catalog source where the datasheet is silent).
+Every length band of a template edge is checked too. An error when a cable does not fit.
+
+### `cables.battery_dc`: Battery DC cables carry the PCS current at the battery's lowest voltage
+
+Standard: none (design practice). Segments: all.
+
+A battery-to-PCS (or battery-to-DC-DC converter) cable must carry the battery's maximum continuous current when the catalog gives it, else the converter's rated
+power at the battery's minimum voltage, shared by the batteries in parallel on that converter: Ib = P / V_min / n. Iz below Ib is an error. Where no DC breaker or fuse
+is modelled on the cable, the finding states that the container's integrated DC switchgear is relied on; a modelled device must have In >= Ib (protection.rated_current).
 
 ### `cables.short_circuit`: Cable conductor withstands the prospective fault
 

@@ -19,15 +19,20 @@ from unicad.design.select import (
     pick_lv_breaker,
     pick_rated,
 )
-from unicad.rules.cables import K_BY_CABLE, cable_fault, needs_cable, phases, protectors
+from unicad.rules.cables import K_BY_CABLE, cable_fault, needs_cable, phases, protectors, terminals
 from unicad.rules.faults import prospective_fault
+from unicad.rules.protection import covers_fault
 from unicad.rules.pv import cell_temp_min, string_voltage
-from unicad.rules.thresholds import CONTINUOUS_FACTOR
-from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, string_feeds, zone_at
+from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR, STRING_FUSE_MAX, STRING_FUSE_MIN
+from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, per_instance, string_feeds, zone_at
 from unicad.rules.vdrop import segment_drop
 
 MAX_VDROP_STEPS = 400
 NOMINAL_ASSUMPTION = "Auxiliary feeders carry no export current in the rules; their breakers and cables are rated for the auxiliary transformer's full-load current."
+TERMINALS = (
+    "Cables landing on a breaker are chosen, length bands included, only among sizes its terminals take (largest cable and cables per pole from the catalog entry, "
+    "which cites the datasheet table or labels the value an assumption; cables.terminals)."
+)
 
 
 @dataclass
@@ -82,11 +87,21 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
         return pick_rated(catalog, ["dc_isolator"], amps, voc, hint.poles).id
     if role == "string_fuse":
         voc = max_dc_voc(project, catalog, node_id) or 0.0
-        fuse = pick_rated(catalog, ["fuse_gpv"], amps, voc, hint.poles)
         feeds = [f for f in string_feeds(project, catalog) if node_id in f.path]
+        net = project.network
+        k = max((per_instance(net, f.string.id, node_id) for f in feeds), default=1)
+        isc = max((f.module.isc for f in feeds), default=amps / ISC_FACTOR.value if amps else 0.0)
+        need = k * STRING_FUSE_MIN.value * isc
+        fuse = pick_rated(catalog, ["fuse_gpv"], need + 1e-6, voc, hint.poles)
         limit = min((f.module.max_series_fuse for f in feeds if f.module.max_series_fuse is not None), default=None)
-        if limit is not None and fuse.rated_current > limit:
-            raise NoFit(f"the smallest catalog gPV fuse rated >= {amps:.1f} A at {voc:.0f} V is {fuse.rated_current:g} A, above the module max series fuse {limit:g} A")
+        tops = ([limit - (k - 1) * isc] if limit is not None else []) + ([STRING_FUSE_MAX.value * isc] if k == 1 else [])
+        top = min(tops) if tops else None
+        if top is not None and fuse.rated_current > top + 1e-9:
+            raise NoFit(
+                f"the smallest catalog gPV fuse rated above {k} x {STRING_FUSE_MIN.value:g} x {isc:g} A = {need:.1f} A at {voc:.0f} V is {fuse.rated_current:g} A, "
+                f"above the upper limit {top:.1f} A (module max series fuse {limit if limit is not None else '-'} A, {STRING_FUSE_MAX.value:g} x Isc)"
+            )
+        s.assumptions.append(STRING_FUSE_MIN.assumption)
         return fuse.id
     need = k * amps
     if role in ("lv_breaker", "vcb"):
@@ -136,6 +151,10 @@ def _need(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing
 def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:
     ph = phases(project, catalog, e) if e.service is not Service.DC else 1
     options = cable_options(catalog, hint.family, e.laying, ph, hint.runs)
+    t = terminals(project, catalog, e)
+    if t is not None:
+        options = [o for o in options if t.admits(o.cable, o.runs)]
+        s.assumptions.append(TERMINALS)
     if e.service not in AC_SERVICES:
         return options
     if s.guards is None:
@@ -216,8 +235,10 @@ def vdrop_paths(project: Project) -> list[tuple[str, list[Edge], float]]:
     return out
 
 
-def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s: Sizing) -> Project:
-    """Upsize the cable with the largest drop on each path over its limit, one step at a time, until every path fits or no step is left."""
+def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s: Sizing, node_hints: dict[str, NodeHint] | None = None) -> Project:
+    """Upsize the cable with the largest drop on each path over its limit, one step at a time, until every path fits or no step is left; where the
+    terminals of an LT breaker are the limit, move that breaker to a larger frame (REFRAME)."""
+    node_hints = node_hints or {}
     for _ in range(MAX_VDROP_STEPS):
         over = []
         for what, edges, limit in vdrop_paths(project):
@@ -243,14 +264,64 @@ def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s:
             else:
                 if any(eid in changed for eid in drops):
                     continue
+                reframed = next((p for eid in sorted(drops, key=lambda k: -drops[k]) if eid in s.chosen and (p := _reframe(project, catalog, net.edge_by_id[eid], hints[eid], node_hints, s)) is not None), None)
+                if reframed is not None:
+                    project = reframed
+                    changed["_reframed"] = None
+                    break
                 total = sum(drops.values())
                 msg = f"{what}: voltage drop {total:.2f} % exceeds {limit:g} % and no larger cable option is left"
                 if msg not in s.blockers:
                     s.blockers.append(msg)
         if not changed:
             return project
-        project = _rebuild(project, edges=[changed.get(e.id, e) for e in net.edges])
+        net = project.network
+        project = _rebuild(project, edges=[changed.get(e.id) or e for e in net.edges])
     return project
+
+
+REFRAME = (
+    "Where voltage drop needs a cable larger than an LT breaker's terminals take, the breaker is replaced by the smallest catalog breaker with the same poles, rated for the voltage and the fault, "
+    "whose terminals take the cable (a larger frame, rated at least the original); the cable then carries the new rating (In <= Iz) and "
+    "protection.oversize reports the larger rating."
+)
+
+
+def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_hints: dict[str, NodeHint], s: Sizing) -> Project | None:
+    """Swap the terminal-limited LT breaker at an end of `e` for a larger frame whose terminals take the next larger cable (see REFRAME)."""
+    t = terminals(project, catalog, e)
+    if t is None:
+        return None
+    net = project.network
+    ends = [net.node(n) for n in (e.src_node, e.dst_node) if n in node_hints and node_hints[n].role == "lv_breaker" and net.node(n).spec is not None]
+    if not ends:
+        return None
+    brk = ends[0]
+    old = catalog.get(brk.spec)
+    cur = s.chosen[e.id]
+    ph = phases(project, catalog, e)
+    fault = prospective_fault(project, catalog, brk.id)
+    v = _zone_v(project, brk.id) or 0.0
+    pool = sorted(
+        (p for p in catalog.filter("protection") if isinstance(p, ProtectionSpec) and p.device in ("mcb", "mccb", "acb") and p.rated_current is not None
+         and p.rated_current >= (old.rated_current or 0) and p.rated_voltage >= v and p.poles == old.poles and p.id != old.id
+         and (fault is None or covers_fault(p, fault.ka))),
+        key=lambda p: (p.rated_current, p.manufacturer != old.manufacturer, p.breaking_capacity_ka or 0.0, p.id),
+    )  # fmt: skip
+    for o in cable_options(catalog, hint.family, e.laying, ph, hint.runs):
+        if o.r_eff >= cur.r_eff - 1e-12 or t.admits(o.cable, o.runs):
+            continue
+        p = next((p for p in pool if (p.terminal_max_mm2 is None or o.cable.size_mm2 <= p.terminal_max_mm2) and (p.terminal_cables_per_pole is None or o.runs <= p.terminal_cables_per_pole)), None)
+        if p is None or o.iz < max(p.rated_current, _need(project, catalog, e, hint, s)) - 1e-9:
+            continue
+        nodes = [n.model_copy(update={"spec": p.id}) if n.id == brk.id else n for n in net.nodes]
+        edges = [_apply(x, o) if x.id == e.id else x for x in net.edges]
+        s.chosen[e.id] = o
+        s.guards = None
+        s.assumptions.append(REFRAME)
+        s.assumptions.append(f"{brk.tag}: {old.model} takes at most {t.text()}; voltage drop needs {o.runs} x {o.cable.callout()}, so {p.model} is used.")
+        return _rebuild(project, nodes=nodes, edges=edges)
+    return None
 
 
 BAND_SERVICES = frozenset({Service.DC, Service.LV_AC})
@@ -258,6 +329,11 @@ BANDS = (
     "String and LT cables are sized per length band: each routed instance takes the smallest cable that carries the design current, withstands the fault "
     "and whose voltage drop at its own routed length is at most the drop the template cable has at the worst-case length, so every instance stays within "
     "the path limit the rules check on the worst case; the cable schedule and BOM list each instance with its band's cable."
+)
+MAX_BANDS = 2
+BAND_CAP = (
+    f"At most {MAX_BANDS} length bands besides the worst-case cable per circuit type (design choice, so a circuit type uses at most {MAX_BANDS + 1} cable sizes): "
+    "the shortest instances take the smallest kept band's cable, which is larger than they need."
 )
 
 
@@ -284,6 +360,9 @@ def band_cables(s: Sizing, catalog: Catalog, hints: dict[str, EdgeHint], lengths
             if o is not None:
                 upto[id(o)] = (max(up, upto.get(id(o), (0.0, o))[0]), o)
         bands = tuple(CableBand(upto_m=m, cable=o.cable.id, runs=o.runs) for m, o in sorted(upto.values(), key=lambda v: v[0]))
+        if len(bands) > MAX_BANDS:
+            bands = bands[-MAX_BANDS:]
+            s.assumptions.append(BAND_CAP)
         if bands:
             banded += 1
             e = e.model_copy(update={"bands": bands})
@@ -298,7 +377,7 @@ def size_network(project: Project, catalog: Catalog, node_hints: dict[str, NodeH
     s = Sizing(project)
     p = size_protection(project, catalog, node_hints, s)
     p = size_cables(p, catalog, edge_hints, s)
-    p = fit_vdrop(p, catalog, edge_hints, s)
+    p = fit_vdrop(p, catalog, edge_hints, s, node_hints)
     s.project = p
     s.assumptions = list(dict.fromkeys(s.assumptions))
     return s

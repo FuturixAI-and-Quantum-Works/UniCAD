@@ -42,6 +42,8 @@ EXCLUDED = frozenset({NodeKind.POI_GRID, NodeKind.LOAD, NodeKind.DG})
 CABLES = "CABLES"
 ACCESSORIES = "CABLE ACCESSORIES"
 CATEGORY_ORDER = tuple(c for c, _ in CATEGORIES) + (LIGHTNING, CABLES, ACCESSORIES)
+BY_OTHERS = "by others"
+FUSED_POLES = "fused_poles"
 
 
 @dataclass(frozen=True)
@@ -110,6 +112,9 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
                     continue
                 series, n_strings = n.modules_in_series, count
                 count *= n.modules_in_series
+            elif n.kind is NodeKind.FUSE and isinstance(poles := n.attributes.get(FUSED_POLES), int) and poles > 1:
+                count *= poles
+                remarks = f"{poles} fuse links per string (+ and - poles)"
             elif n.kind in (NodeKind.SCB, NodeKind.DC_FUSE_BOX):
                 inputs = sum(per_instance(net, e.src_node, n.id) for e in net.edges if e.is_power and e.dst_node == n.id and net.node(e.src_node).kind is NodeKind.PV_STRING)
                 remarks = f"{inputs} string inputs" if inputs else ""
@@ -131,7 +136,24 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
         made = [f"{k:,} strings of {m}" for m, k in sorted(strings.get(key, {}).items())]
         return "; ".join([*made, *notes[key]])
 
-    return [BomLine(c, item, cid, float(q), "nos", remark((c, cid, item))) for (c, cid, item), q in totals.items()]
+    return [BomLine(c, item, cid, float(q), "nos", remark((c, cid, item))) for (c, cid, item), q in totals.items()] + _fuse_box_lines(project)
+
+
+def _fuse_box_lines(project: Project) -> list[BomLine]:
+    """One string fuse box enclosure per inverter whose strings land on their own gPV fuses (a FUSE node fed by strings, without an SCB or DC fuse box node)."""
+    net = project.network
+    boxes: dict[tuple[int, int], int] = defaultdict(int)
+    for n in net.by_kind(NodeKind.FUSE):
+        fed = [e for e in net.edges if e.is_power and e.dst_node == n.id and net.node(e.src_node).kind is NodeKind.PV_STRING]
+        if not fed:
+            continue
+        poles = n.attributes.get(FUSED_POLES)
+        boxes[(n.count, poles if isinstance(poles, int) else 1)] += net.instance_count(n.id) // max(1, n.count)
+    return [
+        BomLine("COMBINER BOXES", f"STRING FUSE BOX, {ways}-way gPV fuse holders{', + and - poles' if poles > 1 else ''}, outdoor enclosure", None, float(q), "nos",
+                f"{ways * poles} fuse holders each; no catalog item: specify before ordering")
+        for (ways, poles), q in sorted(boxes.items())
+    ]  # fmt: skip
 
 
 def _conductors(cable: CableSpec) -> int:
@@ -144,6 +166,8 @@ def _cable_lines(schedule: Schedule, project: Project, catalog: Catalog, wastage
     unmeasured: dict[str, int] = defaultdict(int)
     estimated: dict[str, int] = defaultdict(int)
     for r in schedule.rows:
+        if _by_others(r):
+            continue
         metres[r.cable_ref] += r.cable_metres
         rows[r.cable_ref] += 1
         unmeasured[r.cable_ref] += r.length_pos_m is None
@@ -161,6 +185,10 @@ def _cable_lines(schedule: Schedule, project: Project, catalog: Catalog, wastage
             BomLine(CABLES, f"{spec.manufacturer} {spec.model}, {spec.callout()}, {spec.voltage_grade}", spec.id, float(ordered), "m", f"{net_m:.1f} m routed + {wastage_pct:g} % wastage{extra}{short}")
         )
     return sorted(lines, key=lambda ln: ln.item), warnings
+
+
+def _by_others(row) -> bool:
+    return BY_OTHERS in (row.remarks or "").lower()
 
 
 def _cable_specs(project: Project, catalog: Catalog, schedule: Schedule) -> dict[str, CableSpec]:
@@ -181,6 +209,8 @@ def _accessory_lines(schedule: Schedule, project: Project, catalog: Catalog) -> 
     net = project.network
     specs = _cable_specs(project, catalog, schedule)
     for r in schedule.rows:
+        if _by_others(r):
+            continue
         spec = specs[r.cable_ref]
         cables = r.runs * r.cables_per_run
         string_cable = net.node(net.edge_by_id[r.edge].src_node).kind is NodeKind.PV_STRING
@@ -219,7 +249,8 @@ def build_bom(project: Project, catalog: Catalog, schedule: Schedule, wastage_pc
         f"Cable wastage of {wastage_pct:g} % is added to the routed metres and the result rounded up to whole metres: a procurement allowance, not a design value.",
         "Cable metres count every run and every loaded conductor: +ve and -ve for DC single-core, three phases for three-phase single-core, one cable per run for multicore. Neutral and earth conductors are not scheduled.",
         "Lugs are one per conductor end and glands one per cable end for DC and LV cables; MV cable ends take one termination kit each. String cables are terminated with an MC4-type connector at the string end.",
-        "Existing supply, loads and generators (POI, load and DG nodes) are not part of the bill. Mounting structures, trays, conduits and ferrules are not scheduled.",
+        "Existing supply, loads and generators (POI, load and DG nodes) are not part of the bill, nor are cables the schedule marks 'by others' (the DISCOM service connection, existing consumer wiring). "
+        "Mounting structures, trays, conduits and ferrules are not scheduled.",
         "Items without a catalog id come from network nodes that name no equipment, or from the earthing and lightning designs; their description is the node title or the design's.",
         *earth_assumptions,
     )

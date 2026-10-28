@@ -1,5 +1,6 @@
 """project_issue over MCP stdio: the issue revision reaches every sheet and the register, and the rules gate refuses approval while errors remain (N13).
-The project replays the close-e2e run 3 rooftop calls (scenario A)."""
+The project replays the close-e2e run 3 rooftop calls (scenario A) up to network_autobuild; the run's hand edits of the LT cables are left out, because the
+autobuilt cables are sized for the voltage drop limit with the inverter breakers' terminal capacity, and the DISCOM service cable is by others."""
 
 import asyncio
 from pathlib import Path
@@ -29,8 +30,6 @@ ROOFTOP_A = [
                       "target_dc_kwp": 616.55, "n_blocks": 1}),
     ("network_autobuild", {"project_id": PID, "template": "ci_rooftop", "ac_kw": 500, "module": MODULE, "inverter": "solis-s5-gc100k", "modules_per_string": 19,
                            "strings_per_inverter": 11, "connection": "lt_panel"}),
-    ("network_update", {"project_id": PID, "id": "e_ct_poi", "fields": {"cable": "polycab-lt-xlpe-al-1c-630-arm", "length_m": 30, "laying": "tray", "runs": 3}}),
-    ("network_update", {"project_id": PID, "id": "e_brk_ct", "fields": {"cable": "polycab-lt-xlpe-al-1c-630-arm", "runs": 3}}),
 ]  # fmt: skip
 
 ISSUE = {"project_id": PID, "rev": "0", "drawn": "A. Kumar", "checked": "S. Rao", "approved": "P. Iyer", "date": "2026-10-28"}
@@ -51,6 +50,7 @@ def test_project_issue_gates_on_errors_and_reaches_every_sheet(tmp_path):
         async with connect(tmp_path / "ws") as c:
             for tool, args in ROOFTOP_A:
                 await c.call(tool, **args)
+            built = next(e for e in (await c.call("project_get", project_id=PID, full=True))["project"]["network"]["edges"] if e["id"] == "e_brk_ct")
             await c.call("network_update", project_id=PID, id="e_brk_ct", fields={"cable": "kei-lt-xlpe-al-1c-16-arm", "runs": 1})
             refused = await c.fail("project_issue", issued_for="approval", **ISSUE)
             assert "cannot issue" in refused and "cables." in refused and "e_brk_ct" in refused
@@ -58,7 +58,7 @@ def test_project_issue_gates_on_errors_and_reaches_every_sheet(tmp_path):
             info = await c.call("project_issue", issued_for="information", **(ISSUE | {"rev": "A", "remarks": "PRELIMINARY"}))
             assert info["gate"]["allowed"] and info["gate"]["errors"] >= 1 and info["problems"]
 
-            await c.call("network_update", project_id=PID, id="e_brk_ct", fields={"cable": "polycab-lt-xlpe-al-1c-630-arm", "runs": 3})
+            await c.call("network_update", project_id=PID, id="e_brk_ct", fields={"cable": built["cable"], "runs": built.get("runs", 1)})
             issued = await c.call("project_issue", issued_for="approval", **ISSUE)
             assert issued["changed"] and issued["revisions"] == ["A", "0"] and issued["gate"]["errors"] == 0
             again = await c.call("project_issue", issued_for="approval", **ISSUE)

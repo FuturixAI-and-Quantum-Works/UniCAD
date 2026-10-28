@@ -4,6 +4,7 @@ LibreDWG); run with UNICAD_E2E=1."""
 
 import asyncio
 import json
+import math
 import os
 import sys
 import time
@@ -62,15 +63,16 @@ UTILITY = {
         "lps": {"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6},
     },
     "place": {"module": "waaree-bin-21-635", "mounting": "fixed_tilt", "tilt_deg": 25, "table_rows": 2, "table_cols": 28, "road_every_rows": 12,
-              "target_dc_kwp": 48646.08, "n_blocks": 6, "modules_per_string": 28, "strings_per_inverter": 24},
-    "autobuild": {"template": "utility_string", "module": "waaree-bin-21-635", "inverter": "sungrow-sg350hx", "modules_per_string": 28, "inverters_per_block": 20},
+              "target_dc_kwp": 48361.6, "n_blocks": 7, "modules_per_string": 28, "strings_per_inverter": 20},
+    "autobuild": {"template": "utility_string", "module": "waaree-bin-21-635", "inverter": "huawei-sun2000-330ktl-h1", "modules_per_string": 28, "strings_per_inverter": 20,
+                  "inverters_per_block": 20},
     "lps": {"method": "ese", "level": "III", "ese_delta_t_us": 60, "mast_height_m": 6},
 }  # fmt: skip
 
 
 HYBRID = {
     "create": {
-        "name": "Kutch Hybrid 20 MWac PV + 10 MW 20 MWh BESS", "client": "Kutch Hybrid Power Pvt Ltd", "segment": "hybrid", "site": "Kutch, Gujarat",
+        "name": "Kutch Hybrid 20 MWac PV + 8 MW 16 MWh BESS", "client": "Kutch Hybrid Power Pvt Ltd", "segment": "hybrid", "site": "Kutch, Gujarat",
         "grid_voltage_v": 33000, "state": "Gujarat", "utility": "GETCO", "client_code": "KHP", "project_id": "kutch-hybrid", "ambient_min_c": 5, "ambient_max_c": 46,
         "altitude_m": 20, "vdrop_dc_max": 0.015, "vdrop_ac_max": 0.02, "dc_ac_ratio_target": 1.1, "power_factor": 0.95,
     },
@@ -87,8 +89,8 @@ HYBRID = {
     "place": {"module": "vikram-solar-hypersol-m10r-144-590-wp", "mounting": "fixed_tilt", "tilt_deg": 23, "table_rows": 2, "modules_per_string": 27,
               "strings_per_inverter": 24, "n_blocks": 3, "target_dc_kwp": 21792.24, "road_every_rows": 12},
     "autobuild": {"template": "hybrid", "ac_kw": 20064, "module": "vikram-solar-hypersol-m10r-144-590-wp", "inverter": "sungrow-sg350hx", "modules_per_string": 27,
-                  "strings_per_inverter": 24, "inverters_per_block": 19, "bess_kw": 10000, "bess_kwh": 20000, "pcs": "sungrow-st5015kwh-2500kw-2h",
-                  "battery": "sungrow-st5015kwh", "export_limit_kw": 30000},
+                  "strings_per_inverter": 24, "inverters_per_block": 19, "bess_kw": 8000, "bess_kwh": 16000, "pcs": "sungrow-st5015kwh-2500kw-2h",
+                  "battery": "sungrow-st5015kwh", "export_limit_kw": 20000},
     "lps": {"method": "ese", "level": "III", "ese_delta_t_us": 60, "mast_height_m": 6},
 }  # fmt: skip
 
@@ -125,10 +127,15 @@ async def scenario(c: Client, s: dict) -> dict:
     await c.call("site_import", project_id=pid, file_path=str(s["site"]), **s.get("site_origin", {}))
     await c.call("site_set_setbacks", project_id=pid, **s["setbacks"])
     await c.call("layout_place", project_id=pid, **s["place"])
-    await c.call("network_autobuild", project_id=pid, **s["autobuild"])
+    built = await c.call("network_autobuild", project_id=pid, **s["autobuild"])
+    over = next((a for a in built["assumptions"] if a.startswith("Export limit not met")), None)
+    if over is not None:
+        target = float(over.split("target_dc_kwp <= ")[1].split(" ")[0])
+        await c.call("layout_place", project_id=pid, **(s["place"] | {"target_dc_kwp": target}))
+        built = await c.call("network_autobuild", project_id=pid, **s["autobuild"])
     await c.call("earthing_design", project_id=pid)
     await c.call("lps_design", project_id=pid, **s["lps"])
-    run = {"checked": await c.call("validate", project_id=pid)}
+    run = {"checked": await c.call("validate", project_id=pid), "built": built, "export_limit_kw": s["autobuild"].get("export_limit_kw"), "bess": s["autobuild"].get("bess_kw")}
     run["drawn"] = await c.call("drawings_render", project_id=pid, kinds=["all"], formats=["dxf", "pdf", "dwg"])
     run["cables"] = await c.call("cable_schedule", project_id=pid, format="xlsx")
     run["bom"] = await c.call("bom", project_id=pid, format="xlsx")
@@ -158,6 +165,10 @@ def check(run: dict) -> None:
         assert files and all(str(f).endswith(".xlsx") and Path(f).is_file() for f in files), out
     check_string_cables_are_each_strings_own_run(run)
     check_bom_carries_the_earthing_and_lps_design(run)
+    check_lt_feeders_breakers_and_terminals(run)
+    check_string_fuses(run)
+    check_capacity_against_the_intent(run)
+    check_bom_leaves_out_cables_by_others(run)
 
 
 def table(path: str, sheet: str) -> list[dict]:
@@ -206,6 +217,76 @@ def check_bom_carries_the_earthing_and_lps_design(run: dict) -> None:
     terminals = [ln for ln in lines if ln["CATEGORY"] == "LIGHTNING PROTECTION"]
     assert [ln["QUANTITY"] for ln in terminals] == [lps["terminal_count"]] * 2 and lps["terminal_count"] > 0
     assert terminals[0]["ITEM"].startswith("ESE lightning arrester") and terminals[1]["ITEM"].startswith("Mast")
+
+
+def warnings_of(run: dict, rule_id: str) -> list[dict]:
+    return [f for f in run["checked"]["findings"] if f["rule_id"] == rule_id and f["severity"] == "warning"]
+
+
+def catalog():
+    from unicad.catalog import load_catalog
+
+    return load_catalog()
+
+
+def check_lt_feeders_breakers_and_terminals(run: dict) -> None:
+    """Close-e2e-4 M2/M3: an inverter breaker rated above the 400 A frame has a protection.oversize warning that names the reason; every LT cable fits the terminals
+    of the breaker it lands on (cables.terminals, so validate has no error) in at most three sizes per circuit type."""
+    cat = catalog()
+    net = run["project"]["network"]
+    over = {s for f in warnings_of(run, "protection.oversize") for s in f["subjects"]}
+    assert all("force" in f["message"] or "would do" in f["message"] for f in warnings_of(run, "protection.oversize"))
+    for n in net["nodes"]:
+        if n["id"].startswith("inv_brk") and n["spec"]:
+            spec = cat.get(n["spec"])
+            assert spec.rated_current <= 400 or n["id"] in over, (n["tag"], spec.id)
+    for e in net["edges"]:
+        if e["service"] == "lv_ac":
+            assert len(e.get("bands") or ()) <= 2, e["id"]
+
+
+def check_string_fuses(run: dict) -> None:
+    """Close-e2e-4 M4: gPV string fuses 1.5 x Isc < In < 2.4 x Isc and In <= the module's max series fuse, in both poles, with one string fuse box per fused inverter in the BOM."""
+    cat = catalog()
+    net = run["project"]["network"]
+    fuses = [n for n in net["nodes"] if n["kind"] == "fuse" and n["spec"]]
+    if not fuses:
+        return
+    strings = {n["id"]: n for n in net["nodes"] if n["kind"] == "pv_string"}
+    module = cat.get(next(iter(strings.values()))["spec"])
+    for n in fuses:
+        rated = cat.get(n["spec"]).rated_current
+        assert 1.5 * module.isc < rated < 2.4 * module.isc and rated <= module.max_series_fuse, (rated, module.isc)
+        assert n["attributes"].get("fused_poles") == 2
+    lines = table(run["bom"]["files"][0], "BOM")
+    boxes = sum(ln["QUANTITY"] for ln in lines if ln["ITEM"].startswith("STRING FUSE BOX"))
+    assert boxes == run["built"]["design"]["inverters"]
+
+
+def check_capacity_against_the_intent(run: dict) -> None:
+    """Close-e2e-4 M6 and C: the BESS differs from the request only as ratio.bess_intent states; the PV AC capacity is within the export limit after the layout fix the
+    autobuild note names; a DC/AC ratio below the band says the inverter inputs are full."""
+    design = run["built"]["design"]
+    if run["export_limit_kw"]:
+        assert design["ac_kva"] <= run["export_limit_kw"], design
+        assert not warnings_of(run, "ratio.export_limit")
+    if run["bess"]:
+        (intent,) = warnings_of(run, "ratio.bess_intent")
+        assert "asked (" in intent["message"]
+        assert any(a.startswith("BESS: ") and "asked (" in a for a in run["built"]["assumptions"])
+    for f in warnings_of(run, "ratio.dc_ac_plant"):
+        if f["measured"] < f["limit"]:
+            assert "string inputs is used" in f["message"], f["message"]
+
+
+def check_bom_leaves_out_cables_by_others(run: dict) -> None:
+    """Close-e2e-4 m4: cables the schedule marks 'by others' (the DISCOM service connection) are not ordered: each cable's BOM metres are the other rows' metres plus wastage."""
+    rows = table(run["cables"]["files"][0], "Cable schedule")
+    lines = table(run["bom"]["files"][0], "BOM")
+    for ref in {r["CATALOG ID"] for r in rows}:
+        mine = sum(r["CABLE TO SUPPLY"] or 0 for r in rows if r["CATALOG ID"] == ref and "by others" not in str(r["REMARKS"] or "").lower())
+        got = sum(ln["QUANTITY"] for ln in lines if ln["CATALOG ID"] == ref and ln["CATEGORY"] == "CABLES")
+        assert got == (math.ceil(mine * 1.05) if mine else 0) or abs(got - mine * 1.05) <= 1, (ref, got, mine)
 
 
 SCENARIOS = [("rooftop", ROOFTOP), ("utility", UTILITY), ("hybrid", HYBRID)]

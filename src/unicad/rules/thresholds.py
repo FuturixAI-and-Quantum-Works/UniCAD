@@ -109,8 +109,15 @@ FAULT_CLEARING_DEFAULT = Threshold(
     0.01,
     10.0,
 )
+STRING_FUSE_SOURCE = (
+    "IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in "
+    "M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR "
+    "for a fuse protecting one string; the standards' own text was not available."
+)
+STRING_FUSE_MIN = Threshold("string_fuse_min", 1.5, "", f"String fuse rating In > 1.5 x Isc(STC) of the module ({STRING_FUSE_SOURCE}).", 1.0, 3.0)
+STRING_FUSE_MAX = Threshold("string_fuse_max", 2.4, "", f"String fuse rating In < 2.4 x Isc(STC) of the module ({STRING_FUSE_SOURCE}).", 1.5, 5.0)
 
-ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, FAULT_CLEARING_DEFAULT)
+ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, FAULT_CLEARING_DEFAULT, STRING_FUSE_MIN, STRING_FUSE_MAX)
 
 BY_NAME = {t.name: t for t in ALL}
 

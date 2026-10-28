@@ -176,7 +176,40 @@ def _layout_of(layout: PlacementResult | ArrayLayout | None) -> ArrayLayout | No
     return layout
 
 
-def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpec, module: ModuleSpec, catalog: Catalog, layout: ArrayLayout | None, basis: DesignBasis) -> PvPlan:
+def _margin(ac_kva: float, limit_kw: float) -> str:
+    return f"{limit_kw - ac_kva:g} kVA ({(limit_kw - ac_kva) / limit_kw:.1%}) below the limit, taking kVA as kW at unity power factor"
+
+
+def _plan_under_export(
+    plan: PvPlan, layout: ArrayLayout, mps: int, spi: int, spi_cap: int, per_block_cap: int | None, string_kwp: float, inverter: InverterSpec, limit: float, notes: list[str]
+) -> PvPlan:
+    """The layout's strings on fewer, fuller inverters so the AC capacity stays within the export limit; when even full inverters exceed it, the plan is kept and the
+    note says which layout target fits."""
+    fit = math.floor(limit / inverter.ac_rated_kva + 1e-9)
+    over = f"{plan.inverters} x {inverter.ac_rated_kva:g} kVA = {plan.inverters * inverter.ac_rated_kva:g} kVA is above the {limit:g} kW export limit"
+    for more in range(spi + 1, spi_cap + 1):
+        try:
+            p = from_layout(layout, mps, more, spi_cap, per_block_cap, string_kwp)
+        except DesignError:
+            continue
+        if p.inverters * inverter.ac_rated_kva <= limit + 1e-9:
+            notes.append(
+                f"Export limit: the layout's {plan.strings} strings at {spi} per inverter need {over}; they are put on {p.inverters} inverters of up to {more} strings "
+                f"({p.inverters * inverter.ac_rated_kva:g} kVA, {_margin(p.inverters * inverter.ac_rated_kva, limit)})."
+            )
+            return p
+    dc = fit * spi * string_kwp
+    notes.append(
+        f"Export limit not met: the layout's {plan.strings} strings need {over}, and {inverter.id} takes at most {spi_cap} strings, so no fewer inverters carry them. "
+        f"Re-run layout_place with target_dc_kwp <= {dc:.2f} ({fit} inverters x {spi} strings x {string_kwp:g} kWp; {fit * inverter.ac_rated_kva:g} kVA, "
+        f"{_margin(fit * inverter.ac_rated_kva, limit)}), or model export control."
+    )
+    return plan
+
+
+def _plan(
+    template: str, intent: Intent, sd: StringDesign, inverter: InverterSpec, module: ModuleSpec, catalog: Catalog, layout: ArrayLayout | None, basis: DesignBasis, notes: list[str]
+) -> PvPlan:
     target, kv = basis.dc_ac_ratio_target, basis.grid.voltage_v / 1000
     mps = sd.modules_per_string
     string_kwp = mps * module.pmax / 1000
@@ -198,7 +231,11 @@ def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpe
     if layout is not None:
         if template == "residential":
             raise DesignError("the residential template does not take a layout")
-        return from_layout(layout, mps, spi, spi_cap, per_block_cap, mps * module.pmax / 1000)
+        plan = from_layout(layout, mps, spi, spi_cap, per_block_cap, mps * module.pmax / 1000)
+        limit = intent.export_limit_kw
+        if limit and plan.inverters * inverter.ac_rated_kva > limit + 1e-9:
+            plan = _plan_under_export(plan, layout, mps, spi, spi_cap, per_block_cap, string_kwp, inverter, limit, notes)
+        return plan
     if template == "residential":
         dc = intent.dc_kwp or (intent.ac_kw or 0) * target
         strings = max(1, round(dc / string_kwp))
@@ -206,6 +243,15 @@ def _plan(template: str, intent: Intent, sd: StringDesign, inverter: InverterSpe
         return uniform(1, n_inv, math.ceil(strings / n_inv), mps)
     if intent.ac_kw:
         n_inv = math.ceil(intent.ac_kw / inverter.ac_rated_kva - 1e-9)
+        if intent.export_limit_kw and n_inv * inverter.ac_rated_kva > intent.export_limit_kw + 1e-9:
+            fit = math.floor(intent.export_limit_kw / inverter.ac_rated_kva + 1e-9)
+            if fit < 1:
+                raise DesignError(f"export_limit_kw {intent.export_limit_kw:g} is below one {inverter.id} ({inverter.ac_rated_kva:g} kVA)")
+            notes.append(
+                f"ac_kw {intent.ac_kw:g} needs {n_inv} x {inverter.ac_rated_kva:g} kVA = {n_inv * inverter.ac_rated_kva:g} kVA, above the {intent.export_limit_kw:g} kW export limit: "
+                f"built with {fit} inverters ({fit * inverter.ac_rated_kva:g} kVA, {_margin(fit * inverter.ac_rated_kva, intent.export_limit_kw)})."
+            )
+            n_inv = fit
         if intent.dc_kwp and not intent.strings_per_inverter:
             spi = min(spi_cap, math.ceil(intent.dc_kwp / string_kwp / n_inv))
     elif intent.dc_kwp:
@@ -312,7 +358,7 @@ def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: Place
         module = _module(catalog, intent.module, notes)
         inverter = _inverter(catalog, intent.inverter, template, project, module, (intent.ac_kw or (intent.dc_kwp or 0.0) / basis.dc_ac_ratio_target), notes)
         sd = size_strings(module, inverter, basis, intent.modules_per_string)
-        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis)
+        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis, notes)
         short = [(b.name or b.part, ic.strings) for b in plan.blocks for ic in b.invs if plan.from_layout and ic.strings < max(i.strings for i in b.invs)]
         if short:
             spi = max(i.strings for b in plan.blocks for i in b.invs)
@@ -349,7 +395,10 @@ def _autobuild(project: Project, catalog: Catalog, intent: Intent, layout: Place
         if not kw:
             raise DesignError(f"template {template} needs bess_kw{' or ac_kw' if template == 'bess_ac' else ''}")
         bp = T.plan_bess(catalog, kw, intent.bess_kwh, intent.pcs, intent.battery)
-        notes.append(f"BESS: {bp.blocks} blocks x {bp.pcs_per_block} x {bp.pcs.id} with {bp.batteries_per_pcs} x {bp.battery.id} each: {bp.kw:g} kVA, {bp.kwh:g} kWh.")
+        notes.append(
+            f"BESS: {bp.blocks} blocks x {bp.pcs_per_block} x {bp.pcs.id} with {bp.batteries_per_pcs} x {bp.battery.id} each: {bp.kw:g} kVA, {bp.kwh:g} kWh "
+            f"against the {kw:g} kW{f' / {intent.bess_kwh:g} kWh' if intent.bess_kwh else ''} asked ({bp.kw / kw - 1:+.1%}{f', {bp.kwh / intent.bess_kwh - 1:+.1%}' if intent.bess_kwh else ''})."
+        )
         if template == "bess_ac":
             T.bess_ac(ctx, bp, intent.block_switch, intent.auxiliary, intent.export_limit_kw)
         else:

@@ -27,6 +27,7 @@ from unicad.design.select import (
 )
 from unicad.design.strings import DesignError, fuses_needed
 from unicad.rules.faults import transformer_fault_ka
+from unicad.rules.ratio import BESS_KW_ASKED, BESS_KWH_ASKED
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR
 
 V = Service
@@ -144,8 +145,14 @@ def inline_assumption(tag: str, spec: TransformerSpec, windings: int) -> str:
 
 
 STRING_FUSES = (
-    "Each string has its own gPV fuse in a string fuse box at the inverter (STR-FUSE), rated at least 1.25 x Isc and at most the module's maximum series fuse, "
-    "because more strings share an MPPT than the module's reverse-current rating allows unfused (IEC 62548 practice; pv_strings.string_fuses)."
+    "Each string has its own gPV fuse in a string fuse box at the inverter (STR-FUSE), rated above 1.5 x Isc, below 2.4 x Isc and at most the module's maximum series fuse "
+    "(protection.string_fuse_rating), because more strings share an MPPT than the module's reverse-current rating allows unfused (pv_strings.string_fuses)."
+)
+FUSED_POLES = "fused_poles"
+FLOATING = (
+    "String inverters are taken as transformerless, so their PV array is not connected to earth (floating): each string is fused in both the + and - poles, "
+    "because a double earth fault can drive reverse current through either pole (M. Mitolo, Distributed Generation & Alternative Energy Journal, 2025, on IEC 60364-7-712). "
+    "Confirm the inverter's DC earthing arrangement; a functionally earthed array needs a fuse in the unearthed pole only."
 )
 
 
@@ -163,10 +170,13 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
     spd = b.node(f"dcspd{sfx}", "DC-SPD", NodeKind.DC_SPD, group=group, hint=NodeHint("dc_spd"))
     ways = f"{n_strings} string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
     if fused:
-        fu = b.node(f"sfuse{sfx}", "STR-FUSE", NodeKind.FUSE, group=group, count=n_strings, hint=NodeHint("string_fuse", poles=(1,)), title="gPV STRING FUSE (STRING FUSE BOX)")
+        fu = b.node(
+            f"sfuse{sfx}", "STR-FUSE", NodeKind.FUSE, group=group, count=n_strings, hint=NodeHint("string_fuse", poles=(1,)),
+            title="gPV STRING FUSES, + AND - POLES (STRING FUSE BOX)", attributes={FUSED_POLES: 2},
+        )  # fmt: skip
         b.edge(f"e_str{sfx}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("string"), laying)
         b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
-        b.assume(STRING_FUSES)
+        b.assume(STRING_FUSES, FLOATING)
         if not isolator:
             b.edge(f"e_fuse_inv{sfx}", f"{fu}:out", f"{inv_id}:dc", V.DC, EdgeHint(DC_STRING_FAMILY), c.L("iso_inv"), Laying.TRAY, remarks="string fuse box to inverter input, one pair per string")
             b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
@@ -600,6 +610,8 @@ class BessPlan:
     blocks: int
     pcs_per_block: int
     batteries_per_pcs: int
+    requested_kw: float | None = None
+    requested_kwh: float | None = None
 
     @property
     def kw(self) -> float:
@@ -618,7 +630,10 @@ def bess_blocks(c: Ctx, bp: BessPlan, kv: float, switch: str) -> None:
     g = b.group("bess_block", "BESS BLOCK", count=bp.blocks, title=f"BESS BLOCK {n * pcs.rated_kva / 1000:g} MVA")
     pg = b.group("pcs_sec", "PCS", count=n, within=g, title=f"{pcs.rated_kva:g} kVA {pcs.model}")
     b.node("bat", "BAT", NodeKind.BATTERY, group=pg, count=bp.batteries_per_pcs, spec=bat.id, title=f"{bat.energy_kwh:g} kWh BATTERY CONTAINER")
-    b.node("pcs", "PCS", NodeKind.PCS, group=pg, spec=pcs.id)
+    asked = {k: v for k, v in ((BESS_KW_ASKED, bp.requested_kw), (BESS_KWH_ASKED, bp.requested_kwh)) if v}
+    b.node("pcs", "PCS", NodeKind.PCS, group=pg, spec=pcs.id, attributes=asked)
+    if asked:
+        b.assume(BESS_FIT)
     i_dc = pcs.rated_kva * 1000 / bat.voltage_min / bp.batteries_per_pcs
     b.edge("e_bat_pcs", "bat:out", "pcs:dc", V.DC, EdgeHint(DC_FAMILY, nominal_a=i_dc / 1.25), c.L("bat_pcs"), Laying.TRENCH)
     b.node("pcs_dcspd", "BESS-DC-SPD", NodeKind.DC_SPD, group=pg, hint=NodeHint("dc_spd", voltage_v=bat.voltage_max))
@@ -639,7 +654,7 @@ def bess_blocks(c: Ctx, bp: BessPlan, kv: float, switch: str) -> None:
     b.assume(
         inline_assumption("BESS-TR-nn", spec, n),
         f"Battery DC current is not in the {bat.id} datasheet; the battery-to-PCS cable is sized for the PCS rating at the battery minimum voltage, "
-        f"{pcs.rated_kva:g} kVA / {bat.voltage_min:g} V = {pcs.rated_kva * 1000 / bat.voltage_min:.0f} A per PCS (rules do not check it).",
+        f"{pcs.rated_kva:g} kVA / {bat.voltage_min:g} V = {pcs.rated_kva * 1000 / bat.voltage_min:.0f} A per PCS (cables.battery_dc checks it).",
         "Battery DC switchgear is integrated in the battery container (not modelled).",
     )
 
@@ -676,7 +691,42 @@ class DcBattery:
         )
 
 
-def plan_bess(catalog: Catalog, kw: float, kwh: float | None, pcs_id: str | None, battery_id: str | None, pcs_per_block: int = 2) -> BessPlan:
+BESS_TOLERANCE = 0.10
+BESS_FIT = (
+    f"BESS size: the catalog unit count closest to the requested power and energy is used (largest relative difference of the two minimised, at most "
+    f"{BESS_TOLERANCE:.0%}, a design tolerance, not a cited limit); ratio.bess_intent reports the difference."
+)
+
+
+@dataclass(frozen=True)
+class BessFit:
+    n_pcs: int
+    batteries_per_pcs: int
+    kw: float
+    kwh: float
+    d_kw: float
+    d_kwh: float
+
+    @property
+    def worst(self) -> float:
+        return max(abs(self.d_kw), abs(self.d_kwh))
+
+    def text(self) -> str:
+        return f"{self.n_pcs} PCS x {self.batteries_per_pcs} battery: {self.kw:g} kVA ({self.d_kw:+.1%}), {self.kwh:g} kWh ({self.d_kwh:+.1%})"
+
+
+def bess_fits(pcs: PCSSpec, bat: BatterySpec, kw: float, kwh: float | None) -> list[BessFit]:
+    """Whole-unit configurations around the request (PCS count and batteries per PCS rounded down and up), closest first."""
+    out = []
+    for n in {max(1, math.floor(kw / pcs.rated_kva + 1e-9)), max(1, math.ceil(kw / pcs.rated_kva - 1e-9))}:
+        want = kwh if kwh else bat.energy_kwh * n
+        for per in {max(1, math.floor(want / (bat.energy_kwh * n) + 1e-9)), max(1, math.ceil(want / (bat.energy_kwh * n) - 1e-9))}:
+            got_kw, got_kwh = n * pcs.rated_kva, n * per * bat.energy_kwh
+            out.append(BessFit(n, per, got_kw, got_kwh, got_kw / kw - 1, got_kwh / want - 1))
+    return sorted(out, key=lambda f: (round(f.worst, 6), -f.kw, -f.kwh))
+
+
+def plan_bess(catalog: Catalog, kw: float, kwh: float | None, pcs_id: str | None, battery_id: str | None) -> BessPlan:
     pcs_list = [p for p in catalog.filter("pcs") if isinstance(p, PCSSpec)]
     bats = [x for x in catalog.filter("battery") if isinstance(x, BatterySpec)]
     def fits(x: BatterySpec, p: PCSSpec) -> bool:
@@ -696,11 +746,16 @@ def plan_bess(catalog: Catalog, kw: float, kwh: float | None, pcs_id: str | None
         raise DesignError(f"no catalog battery inside the DC window of {pcs.id} ({pcs.dc_voltage_min:g}..{pcs.dc_voltage_max:g} V)")
     if bat.voltage_min < pcs.dc_voltage_min - 1e-6 or bat.voltage_max > pcs.dc_voltage_max + 1e-6:
         raise DesignError(f"{bat.id} ({bat.voltage_min:g}..{bat.voltage_max:g} V) is outside the DC window of {pcs.id} ({pcs.dc_voltage_min:g}..{pcs.dc_voltage_max:g} V)")
-    n_pcs = math.ceil(kw / pcs.rated_kva - 1e-9)
-    blocks = math.ceil(n_pcs / pcs_per_block)
-    n_pcs = blocks * pcs_per_block
-    per = max(1, math.ceil((kwh or bat.energy_kwh * n_pcs) / (bat.energy_kwh * n_pcs) - 1e-9))
-    return BessPlan(pcs, bat, blocks, pcs_per_block, per)
+    options = bess_fits(pcs, bat, kw, kwh)
+    best = options[0]
+    if best.worst > BESS_TOLERANCE + 1e-9:
+        listed = "; ".join(f.text() for f in options)
+        raise DesignError(
+            f"no whole number of {pcs.id} ({pcs.rated_kva:g} kVA) and {bat.id} ({bat.energy_kwh:g} kWh) units comes within {BESS_TOLERANCE:.0%} of {kw:g} kW / "
+            f"{kwh if kwh else '-'} kWh. Options: {listed}. Pass bess_kw and bess_kwh for one of them, or another pcs or battery"
+        )
+    per_block = 2 if best.n_pcs % 2 == 0 else 1
+    return BessPlan(pcs, bat, best.n_pcs // per_block, per_block, best.batteries_per_pcs, kw, kwh)
 
 
 def bess_dc_battery(catalog: Catalog, inverter: InverterSpec, n_inverters: int, kw: float, kwh: float | None, battery_id: str | None) -> DcBattery:

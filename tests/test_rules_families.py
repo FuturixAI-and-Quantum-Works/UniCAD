@@ -329,10 +329,13 @@ def _with_string_fuse(spec_id):
 
 
 def test_string_fuse_rating_window():
-    # In >= 1.25 x 13.65 = 17.06 A and In <= max_series_fuse 30 A
+    # IEC 62548 window: 1.5 x 13.65 = 20.48 A < In < 2.4 x 13.65 = 32.76 A and In <= max_series_fuse 30 A
     (low,) = findings(variant("rooftop_500kwp", _with_string_fuse("eaton-bussmann-pv-15a10f")), "protection.string_fuse_rating")
-    assert low.measured == 15 and low.limit == pytest.approx(1.25 * 13.65, abs=0.01)
-    assert not findings(variant("rooftop_500kwp", _with_string_fuse("eaton-bussmann-pv-20a10f")), "protection.string_fuse_rating")
+    assert low.measured == 15 and low.limit == pytest.approx(1.5 * 13.65, abs=0.01)
+    (twenty,) = findings(variant("rooftop_500kwp", _with_string_fuse("eaton-bussmann-pv-20a10f")), "protection.string_fuse_rating")
+    assert twenty.measured == 20 and "is not above 1 x 1.5 x 13.65 A" in twenty.message
+    ok = CATALOG.get("eaton-bussmann-pv-20a10f").model_copy(update={"id": "test-gpv-25a", "rated_current": 25.0})
+    assert not findings(variant("rooftop_500kwp", _with_string_fuse(ok.id), with_specs(ok)), "protection.string_fuse_rating", with_specs(ok))
     big = CATALOG.get("eaton-bussmann-pv-20a10f").model_copy(update={"id": "test-gpv-32a", "rated_current": 32.0})
     cat = with_specs(big)
     (high,) = findings(variant("rooftop_500kwp", _with_string_fuse(big.id), cat), "protection.string_fuse_rating", cat)

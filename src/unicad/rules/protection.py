@@ -11,7 +11,7 @@ from unicad.rules.faults import prospective_fault
 from unicad.rules.model import Finding, Quantity, Severity
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.registry import rule
-from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR
+from unicad.rules.thresholds import CONTINUOUS_FACTOR, STRING_FUSE_MAX, STRING_FUSE_MIN
 from unicad.rules.topology import GENERATORS, design_current, exports, is_dc, label, per_instance, string_feeds, zone_at
 
 CURRENT_RATED = frozenset({NodeKind.BREAKER, NodeKind.VCB, NodeKind.FUSE, NodeKind.ISOLATOR, NodeKind.DC_ISOLATOR})
@@ -113,6 +113,59 @@ def fault_level(project: Project, catalog: Catalog) -> Iterator[Finding]:
         yield Finding(
             rule_id="protection.fault_level", severity=Severity.INFO, subjects=(),
             message=f"breaking capacities not checked against a fault level: none in design_basis.fault_levels for {listed}",
+        )  # fmt: skip
+
+
+LV_BREAKER_DEVICES = ("mcb", "mccb", "acb")
+
+
+@rule("protection.oversize", "LT breakers are not rated above what the design current needs without a stated reason")
+def oversize(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """An LT breaker (MCB, MCCB, ACB) on an export path rated above the smallest catalog breaker that covers k x Ib at its voltage and poles is a warning, because the
+    cable it protects must then carry In, not Ib (cables.protection). The finding says why the larger device is there: no smaller catalog breaker breaks the prospective
+    fault at its bus (protection.fault_level), or the smaller frames' terminals do not take the cable it lands (cables.terminals), or neither (a smaller one fits)."""
+    from unicad.rules.cables import cable_of
+
+    net = project.network
+    pool = [s for s in catalog.filter("protection") if isinstance(s, ProtectionSpec) and s.device in LV_BREAKER_DEVICES and s.rated_current is not None]
+    for n in net.by_kind(NodeKind.BREAKER):
+        spec = _protection(catalog, n)
+        if spec is None or spec.device not in LV_BREAKER_DEVICES or spec.rated_current is None or is_dc(net, n.id):
+            continue
+        ib = design_current(project, catalog, n.id)
+        zone = zone_at(net, n.id)
+        if ib is None or zone is None or zone.voltage_v is None:
+            continue
+        need = CONTINUOUS_FACTOR.value * ib.value
+        fits = [s for s in pool if s.rated_current >= need - 1e-9 and s.poles == spec.poles and s.rated_voltage >= zone.voltage_v]
+        smallest = min((s.rated_current for s in fits), default=None)
+        if smallest is None or spec.rated_current <= smallest + 1e-9:
+            continue
+        fault = prospective_fault(project, catalog, n.id)
+        breaking = [s for s in fits if fault is None or covers_fault(s, fault.ka)]
+        smallest_breaking = min(breaking, key=lambda s: (s.rated_current, s.id), default=None)
+        if fault is not None and smallest_breaking is not None and smallest_breaking.rated_current >= spec.rated_current - 1e-9:
+            why = (f"the catalog forces it: no catalog breaker rated below {spec.rated_current:g} A at {zone.voltage_v:g} V with {spec.poles} poles breaks the "
+                   f"{fault.ka:g} kA fault at its bus (the smallest that covers {need:.0f} A, {smallest:g} A, breaks less)")
+        else:
+            landed = [e for e in net.edges_at(n.id) if e.is_power and e.cable is not None]
+            small = smallest_breaking
+            blocked = [
+                e for e in landed
+                if small is not None and (c := cable_of(catalog, e)) is not None
+                and ((small.terminal_max_mm2 is not None and c.size_mm2 > small.terminal_max_mm2 + 1e-9) or (small.terminal_cables_per_pole is not None and e.runs > small.terminal_cables_per_pole))
+            ]  # fmt: skip
+            if blocked and small is not None:
+                c = cable_of(catalog, blocked[0])
+                cap = f"{small.terminal_cables_per_pole or 1} x {small.terminal_max_mm2:g} sq.mm" if small.terminal_max_mm2 is not None else f"{small.terminal_cables_per_pole} cable(s)"
+                why = f"the terminals force it: {small.model} would break the fault but takes at most {cap} per pole, not the {blocked[0].runs} x {c.callout()} voltage drop needs"
+            else:
+                why = f"a smaller catalog breaker ({small.model if small else f'{smallest:g} A'}) would do"
+        yield Finding(
+            rule_id="protection.oversize", severity=Severity.WARNING, subjects=(n.id,),
+            message=f"{label(net, n.id)} {spec.model}: rated {spec.rated_current:g} A for a design requirement of {need:.1f} A ({CONTINUOUS_FACTOR.value:g} x Ib {ib.value:.1f} A); {why}; its cables are sized for In",
+            measured=spec.rated_current, limit=smallest, unit="A", formula=f"In <= smallest catalog In >= k x Ib; {ib.formula}",
+            inputs=(*ib.inputs, Quantity(name="In", value=spec.rated_current, unit="A", source=spec.id)), assumptions=(*ib.assumptions, CONTINUOUS_FACTOR.assumption),
         )  # fmt: skip
 
 
@@ -235,48 +288,47 @@ def earthing(project: Project, catalog: Catalog) -> Iterator[Finding]:
 
 @rule("protection.string_fuse_rating", "String fuse rating between string current and module limit", clause="IEC 62548")
 def string_fuse_rating(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """A gPV fuse carrying n strings must be rated at least n x 1.25 x Isc, and a fuse protecting a single string must not exceed the module's maximum series fuse rating."""
+    """A gPV fuse protecting one string must be rated 1.5 x Isc < In < 2.4 x Isc and In <= the module's maximum series fuse rating (IMOD_MAX_OCPR); a fuse protecting a
+    group of N strings 1.5 x N x Isc < In < IMOD_MAX_OCPR - (N - 1) x Isc. Isc is the module short-circuit current at STC. The factors are the string_fuse_min and
+    string_fuse_max thresholds, whose text names the sources the clause was read from."""
     net = project.network
     for n in net.by_kind(NodeKind.FUSE):
         spec = _protection(catalog, n)
         if spec is None or spec.device != "fuse_gpv" or spec.rated_current is None:
             continue
+        seen: set[tuple[int, str]] = set()
         for f in string_feeds(project, catalog):
             if n.id not in f.path:
                 continue
             k = per_instance(net, f.string.id, n.id)
-            need = k * ISC_FACTOR.value * f.module.isc
+            if (k, f.module.id) in seen:
+                continue
+            seen.add((k, f.module.id))
+            isc, lo, hi = f.module.isc, STRING_FUSE_MIN.value, STRING_FUSE_MAX.value
             base = (
                 Quantity(name="n_strings", value=k, source="network"),
-                Quantity(name="k_Isc", value=ISC_FACTOR.value, source=f"threshold.{ISC_FACTOR.name}"),
-                Quantity(name="Isc", value=f.module.isc, unit="A", source=f.module.id),
+                Quantity(name="Isc", value=isc, unit="A", source=f.module.id),
                 Quantity(name="In", value=spec.rated_current, unit="A", source=spec.id),
+                Quantity(name="k_min", value=lo, source=f"threshold.{STRING_FUSE_MIN.name}"),
             )
-            if spec.rated_current < need:
+            ocpr = f.module.max_series_fuse
+            checks = [(spec.rated_current > k * lo * isc + 1e-9, f"is not above {k} x {lo:g} x {isc:g} A = {k * lo * isc:.1f} A", k * lo * isc, "In > n_strings x k_min x Isc", ())]
+            if k == 1:
+                checks.append((spec.rated_current < hi * isc - 1e-9, f"is not below {hi:g} x {isc:g} A = {hi * isc:.1f} A", hi * isc, "In < k_max x Isc", (Quantity(name="k_max", value=hi, source=f"threshold.{STRING_FUSE_MAX.name}"),)))
+                if ocpr is not None:
+                    checks.append((spec.rated_current <= ocpr + 1e-9, f"exceeds module max series fuse {ocpr:g} A", ocpr, "In <= max_series_fuse", (Quantity(name="max_series_fuse", value=ocpr, unit="A", source=f.module.id),)))
+            elif ocpr is not None:
+                top = ocpr - (k - 1) * isc
+                checks.append((spec.rated_current < top - 1e-9, f"is not below max series fuse {ocpr:g} A - ({k} - 1) x {isc:g} A = {top:.1f} A", top, "In < max_series_fuse - (n_strings - 1) x Isc", (Quantity(name="max_series_fuse", value=ocpr, unit="A", source=f.module.id),)))
+            for ok, what, limit, formula, extra in checks:
+                if ok:
+                    continue
                 yield Finding(
-                    rule_id="protection.string_fuse_rating",
-                    severity=Severity.ERROR,
-                    subjects=(n.id, f.string.id),
-                    message=f"{label(net, n.id)} {spec.model}: rated {spec.rated_current:g} A is below {k} x {ISC_FACTOR.value:g} x {f.module.isc:g} A = {need:.1f} A",
-                    measured=spec.rated_current,
-                    limit=round(need, 2),
-                    unit="A",
-                    formula="In >= n_strings x k_Isc x Isc",
-                    inputs=base,
-                    assumptions=(ISC_FACTOR.assumption,),
-                )
-            if k == 1 and f.module.max_series_fuse is not None and spec.rated_current > f.module.max_series_fuse:
-                yield Finding(
-                    rule_id="protection.string_fuse_rating",
-                    severity=Severity.ERROR,
-                    subjects=(n.id, f.string.id),
-                    message=f"{label(net, n.id)} {spec.model}: rated {spec.rated_current:g} A exceeds module max series fuse {f.module.max_series_fuse:g} A",
-                    measured=spec.rated_current,
-                    limit=f.module.max_series_fuse,
-                    unit="A",
-                    formula="In <= max_series_fuse",
-                    inputs=(*base, Quantity(name="max_series_fuse", value=f.module.max_series_fuse, unit="A", source=f.module.id)),
-                )
+                    rule_id="protection.string_fuse_rating", severity=Severity.ERROR, subjects=(n.id, f.string.id),
+                    message=f"{label(net, n.id)} {spec.model}: rated {spec.rated_current:g} A {what}",
+                    measured=spec.rated_current, limit=round(limit, 2), unit="A", formula=formula, inputs=(*base, *extra),
+                    assumptions=(STRING_FUSE_MIN.assumption,),
+                )  # fmt: skip
 
 
 MV_PROTECTIVE = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.BREAKER, NodeKind.FUSE})
