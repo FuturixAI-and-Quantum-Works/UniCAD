@@ -15,7 +15,7 @@ from unicad.mcp.workspace import Workspace
 from unicad.render import RenderError, preview
 from unicad.sets import ALL_KINDS, BUILDERS, render_set
 from unicad.sets.render import INDEX
-from unicad.tenants.store import load_profile
+from unicad.tenants.store import drawing_profile
 
 WRITES_FILES = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True)
 Format = Literal["dxf", "pdf", "dwg"]
@@ -40,7 +40,7 @@ def _render(ws: Workspace, project_id: str, revision, kinds: list[str], formats:
     out = _out_dir(ws, project_id, rev)
     with _render_lock:
         try:
-            index = render_set(p, out, kinds=_kinds(kinds), formats=tuple(dict.fromkeys(formats)), profile=load_profile(p.company_profile, ws.config.workspace), catalog=ws.catalog)
+            index = render_set(p, out, kinds=_kinds(kinds), formats=tuple(dict.fromkeys(formats)), profile=drawing_profile(p.company_profile, ws.config.workspace), catalog=ws.catalog)
         except RenderError as exc:
             raise ToolError(f"rendering failed: {exc}; formats=['dxf'] writes the DXF without LibreCAD") from None
     return {"project_id": project_id, "revision": rev, "out_dir": str(out)} | index.as_dict(absolute=True)

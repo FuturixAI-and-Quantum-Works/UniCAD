@@ -232,9 +232,16 @@ ANSI_CIRCLE_CHARS = 4
 _ANSI_SPLIT = re.compile(r"[,;\s]+")
 
 
+_ANSI_KEYS = ("ansi_functions", "ansi", "functions")
+_ANSI_IN_TITLE = re.compile(r"\b\d{2}[A-Z]{0,2}(?:/\d{2}[A-Z]{0,2})+\b")
+
+
 def ansi_functions(node: Node) -> tuple[str, ...]:
-    """ANSI device numbers from node.attributes['ansi'], one per circle: '50/51, 50N/51N' -> 50 51 50N 51N."""
-    raw = node.attributes.get("ansi")
+    """ANSI device numbers of a relay, one per circle: '50/51, 50N/51N' -> 50 51 50N 51N. From the node's ANSI field or attribute, else
+    the slash-joined run of device numbers its title names ('NUMERICAL RELAY 50/51/67/67N')."""
+    raw = attr_value(node, _ANSI_KEYS)
+    if raw is None and node.kind is NodeKind.RELAY and node.title and (m := _ANSI_IN_TITLE.search(node.title.upper())):
+        raw = m.group()
     items = raw if isinstance(raw, list | tuple) else _ANSI_SPLIT.split(str(raw)) if raw else []
     return tuple(f for item in items for f in re.split(r"/(?=\d)", str(item).strip().upper()) if f)
 
@@ -246,6 +253,76 @@ def _ansi_texts(node: Node) -> dict[str, str]:
     if len(functions) == 1 and fits:
         return out | {"ANSI": fits[0]}
     return out | {f"ANSI{i + 1}": f for i, f in enumerate(fits)}
+
+
+def attr_value(node: Node, keys: tuple[str, ...]):
+    """The first of `keys` the node holds, as a typed field or else as an attribute."""
+    for k in keys:
+        if (v := getattr(node, k, None)) is not None:
+            return v
+    return next((node.attributes[k] for k in keys if node.attributes.get(k) not in (None, "")), None)
+
+
+def _text(v, unit: str = "") -> str:
+    if isinstance(v, bool):
+        return ""
+    if isinstance(v, int | float):
+        return f"{v:g}{unit}"
+    if isinstance(v, list | tuple):
+        return ", ".join(_text(x, unit) for x in v)
+    return prose(str(v))
+
+
+_CORE_KEY = re.compile(r"^core_?(\d+)$")
+
+
+def _cores(node: Node) -> str:
+    """'C1 CL 0.2S 15 VA, C2 PS' from a cores field or attribute (one entry per core) or core_1, core_2... attributes."""
+    listed = attr_value(node, ("cores", "core_details"))
+    if isinstance(listed, list | tuple):
+        return ", ".join(f"C{i} {_text(c)}" for i, c in enumerate(listed, start=1))
+    numbered = sorted((int(m.group(1)), v) for k, v in node.attributes.items() if (m := _CORE_KEY.match(k)))
+    if numbered:
+        return ", ".join(f"C{i} {_text(v)}" for i, v in numbered)
+    if isinstance(listed, int) and not isinstance(listed, bool):
+        return f"{listed} CORES"
+    return _text(listed) if listed else ""
+
+
+def _ka_with_time(node: Node, ka_keys: tuple[str, ...], s_keys: tuple[str, ...]) -> str:
+    ka = attr_value(node, ka_keys)
+    if ka is None:
+        return ""
+    secs = attr_value(node, s_keys)
+    return _text(ka, " kA") + (f" / {_text(secs, ' s')}" if isinstance(secs, int | float) else "")
+
+
+BUS_KINDS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})
+
+
+def standard_attributes(node: Node) -> tuple[str, ...]:
+    """The standard ratings an engineer reads beside the symbol, from the node's typed fields or its attributes: busbar rating and fault
+    level of a panel or bus, ratio and cores of a CT or PT, protocol of a relay or meter, In and Imax of an SPD."""
+    k = node.kind
+    out: list[str] = []
+    if k in BUS_KINDS:
+        bus = attr_value(node, ("busbar_rating", "busbar"))
+        if isinstance(bus, int | float) and not isinstance(bus, bool):
+            out.append(f"BUSBAR {bus:g} A")
+        elif bus:
+            out.append(f"BUSBAR {_text(bus)}")
+        fault = attr_value(node, ("fault_level",))
+        out.append(f"FAULT LEVEL {_text(fault, ' kA')}" if fault is not None else _ka_with_time(node, ("fault_level_ka", "busbar_fault_ka"), ("fault_duration_s", "busbar_fault_s")))
+    elif k in (NodeKind.CT, NodeKind.PT):
+        ratio = attr_value(node, ("ratio", f"{k.value}_ratio"))
+        out += [f"RATIO {_text(ratio)}" if ratio is not None else "", _cores(node)]
+    elif k in (NodeKind.AC_SPD, NodeKind.DC_SPD):
+        i_n = attr_value(node, ("in_ka", "nominal_discharge_ka", "nominal_discharge_current_ka"))
+        i_max = attr_value(node, ("imax_ka", "max_discharge_ka", "max_discharge_current_ka"))
+        out += [f"In {_text(i_n, ' kA')}" if i_n is not None else "", f"Imax {_text(i_max, ' kA')}" if i_max is not None else ""]
+    if k in (NodeKind.RELAY, NodeKind.METER) and (proto := attr_value(node, ("protocol", "communication"))):
+        out.append(_text(proto))
+    return tuple(x for x in out if x)
 
 
 def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> dict[str, str]:
@@ -298,6 +375,8 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
                 rating = volts(node.voltage_v)
             if unspecified(node):
                 rating = _join(rating or None, UNSPECIFIED)
+    if node.kind not in BUS_KINDS:
+        rating = _join(rating, *(a for a in standard_attributes(node) if a not in rating.upper() and a not in desc.upper()))
     out = {"TAG": node_tag(net, node), "RATING": rating, "DESC": desc, "VECTOR": vector}
     if node.kind is NodeKind.RELAY:
         ansi = _ansi_texts(node)
@@ -342,9 +421,10 @@ def bus_rating(node: Node) -> str:
 def bus_texts(net: ElectricalNetwork, node: Node) -> tuple[str, ...]:
     head = f"{node_tag(net, node)}  {prose(node.title) if node.title else kind_label(node.kind)}"
     rating = bus_rating(node)
+    extra = tuple(a for a in standard_attributes(node) if a not in head and a not in rating)
     if rating:
-        return (head, rating)
-    return (head, f"{volts(node.voltage_v)} BUS") if node.voltage_v else (head,)
+        return (head, rating, *extra)
+    return (head, f"{volts(node.voltage_v)} BUS", *extra) if node.voltage_v else (head, *extra)
 
 
 REMARK_INLINE_CHARS = 42
@@ -495,11 +575,6 @@ def prose(text: str, basis: DesignBasis | None = None) -> str:
 
 _UNITS = {u.upper(): u for u in ("kV", "kVA", "MVA", "kW", "MW", "kWp", "MWp", "MWac", "MWdc", "kWh", "MWh", "Wp", "Hz", "mm", "sq.mm", "kA")}
 _UNIT = re.compile(r"(\d\s?)(" + "|".join(re.escape(u) for u in sorted(_UNITS, key=len, reverse=True)) + r")\b")
-
-
-def assumption_notes(project: Project) -> tuple[str, ...]:
-    basis = project.design_basis
-    return tuple(f"ASSUMPTION: {prose(a, basis)}" for a in basis.assumptions)
 
 
 def _fmt_power(kw: float, unit: str) -> str:

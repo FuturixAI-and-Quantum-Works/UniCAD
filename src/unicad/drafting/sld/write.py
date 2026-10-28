@@ -16,12 +16,13 @@ LAYERS: dict[str, tuple[int, str, int]] = {
     "E-SLD-AC": (7, "CONTINUOUS", 35),
     "E-SLD-DC": (7, "CONTINUOUS", 35),
     "E-SLD-CTRL": (4, "DASHED2", 18),
+    "E-SLD-COMM": (6, "DASHDOT2", 18),
     "E-SLD-EARTH": (3, "CONTINUOUS", 25),
     "E-SLD-BUS": (7, "CONTINUOUS", 70),
     "E-SLD-FRAME": (3, "DASHED", 25),
     "E-SLD-TEXT": (7, "CONTINUOUS", 18),
 }
-_WIRE_LAYER = {WireKind.AC: "E-SLD-AC", WireKind.DC: "E-SLD-DC", WireKind.CONTROL: "E-SLD-CTRL", WireKind.EARTH: "E-SLD-EARTH"}
+_WIRE_LAYER = {WireKind.AC: "E-SLD-AC", WireKind.DC: "E-SLD-DC", WireKind.CONTROL: "E-SLD-CTRL", WireKind.COMMS: "E-SLD-COMM", WireKind.EARTH: "E-SLD-EARTH"}
 _ALIGN = {
     "left": TextEntityAlignment.MIDDLE_LEFT,
     "right": TextEntityAlignment.MIDDLE_RIGHT,

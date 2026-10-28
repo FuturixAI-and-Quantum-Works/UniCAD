@@ -43,7 +43,7 @@
           "number": "UDEMO-DIPL-RT500-EE-003",
           "paper": "A3",
           "rev": "00",
-          "scale": "1:1000",
+          "scale": "1:800",
           "title": "MODULE LAYOUT"
         },
         {
@@ -53,7 +53,7 @@
           "number": "UDEMO-DIPL-RT500-EE-301",
           "paper": "A2",
           "rev": "00",
-          "scale": "1:1000",
+          "scale": "1:800",
           "title": "EARTHING LAYOUT"
         },
         {
@@ -179,7 +179,7 @@
       "warnings": []
     },
     {
-      "drawing_scale": "1:1000",
+      "drawing_scale": "1:800",
       "files": {
         "dwg": null,
         "dxf": "03-UDEMO-DIPL-RT500-EE-003.dxf",
@@ -200,7 +200,7 @@
       "warnings": []
     },
     {
-      "drawing_scale": "1:1000",
+      "drawing_scale": "1:800",
       "files": {
         "dwg": null,
         "dxf": "04-UDEMO-DIPL-RT500-EE-301.dxf",

@@ -9,6 +9,21 @@ from unicad.drafting.symbols.install import TEXT_LAYER, install
 from unicad.drafting.symbols.library.kit import LAYER, TEXT_STYLE
 
 LEGEND_TEXT_MIN = 1.2
+LINE_SAMPLES = {"line.comms": "E-SLD-COMM", "line.route": "L-CABLE-ROUTE"}
+"""Legend keys drawn as a sample of a wire layer's line style instead of a symbol."""
+COMMS_LEGEND = ("line.comms", "COMMUNICATION LINK (DATA CABLE)")
+
+
+def _line_sample(layout: BaseLayout, layer: str, cell: Region) -> bool:
+    from unicad.drafting.sld.write import LAYERS
+
+    doc = layout.doc
+    if layer not in doc.layers and layer in LAYERS:
+        colour, linetype, lw = LAYERS[layer]
+        doc.layers.add(layer, color=colour, linetype=linetype if linetype in doc.linetypes else "CONTINUOUS", lineweight=lw)
+    y = (cell.y0 + cell.y1) / 2
+    layout.add_line((cell.x0 + 0.1 * (cell.x1 - cell.x0), y), (cell.x1 - 0.1 * (cell.x1 - cell.x0), y), dxfattribs={"layer": layer})
+    return True
 
 
 def legend_drawer(layout: BaseLayout, fill: float = 0.8) -> SymbolDrawer:
@@ -16,6 +31,8 @@ def legend_drawer(layout: BaseLayout, fill: float = 0.8) -> SymbolDrawer:
     of the symbol's face (an ANSI number in a relay circle) is shown with a sample value."""
 
     def draw(key: str, cell: Region) -> bool:
+        if key in LINE_SAMPLES:
+            return _line_sample(layout, LINE_SAMPLES[key], cell)
         sym = REGISTRY.get(key)
         if sym is None:
             return False

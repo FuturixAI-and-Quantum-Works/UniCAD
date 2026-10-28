@@ -9,12 +9,12 @@ from ezdxf.document import Drawing
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Segment, Sheet, SheetKind
+from unicad.drafting import assumptions, project_fields
 from unicad.drafting.legend import legend_drawer
 from unicad.drafting.sheets.canvas import Region
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
 from unicad.drafting.sheets.render import render_sheet
-from unicad.drafting.sheets.titleblock import compose_location
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.sld.sheet import save_deterministic
 from unicad.drafting.string_diagram import draw
@@ -187,16 +187,14 @@ def sheet_spec(
     revs = project.revisions
     latest = revs[-1] if revs else None
     issued = IssuedFor[latest.issued_for.name] if latest and latest.issued_for else IssuedFor.INFORMATION
-    site = project.site
     tb = TitleBlockData(
-        client=prose(project.client.name), project_title=prose(project.name),
-        location=prose(compose_location(site.name, site.address, site.state)), drawing_title=title, drawing_number=number,
+        **project_fields.project_fields(project), drawing_title=title, drawing_number=number,
         revision=latest.rev if latest else "00", scale="NTS", sheet_no=sheet_no, sheet_count=sheet_count, paper=paper,
         drawn_by=(latest.drawn or "") if latest else "", checked_by=(latest.checked or "") if latest else "",
         approved_by=(latest.approved or "") if latest else "", drawn_date=latest.date if latest else drawn_on, issued_for=issued,
     )  # fmt: skip
     return SheetSpec(
-        paper=paper, title_block=tb, legend=legend_for(t), notes=notes_for(t), parameters=parameters_for(t),
+        paper=paper, title_block=tb, legend=legend_for(t), notes=notes_for(t), parameters=parameters_for(t), assumptions=assumptions.sheet_assumptions(project, "strings"),
         revisions=tuple(Revision(rev=r.rev, date=r.date, description=prose(r.remarks), by=r.drawn or "", checked=r.checked or "", approved=r.approved or "") for r in revs),
     )  # fmt: skip
 

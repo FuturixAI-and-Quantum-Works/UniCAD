@@ -57,6 +57,7 @@ class WireKind(StrEnum):
     DC = "dc"
     AC = "ac"
     CONTROL = "control"
+    COMMS = "comms"
     EARTH = "earth"
 
 

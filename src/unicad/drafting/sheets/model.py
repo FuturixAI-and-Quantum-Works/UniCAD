@@ -100,6 +100,8 @@ class SignatoryRoles(_Frozen):
     approved: str = "APPROVED"
 
 
+EPC_NOT_SET = "EPC COMPANY: NOT SET"
+EPC_NOT_SET_HINT = "NO EPC COMPANY PROFILE IS ASSIGNED TO THIS PROJECT: ONBOARD THE EPC COMPANY AND ASSIGN ITS PROFILE BEFORE ISSUE."
 DRAWING_NUMBER_FIELDS = frozenset({"company", "client", "project", "discipline", "seq"})
 PROFILE_VERSION = 2
 _V2_FIELDS = ("thresholds", "symbol_overrides", "layer_map", "title_block", "numbering", "revision_marks")
@@ -233,6 +235,15 @@ class CompanyProfile(_Frozen):
             raise ValueError(f"{used} need profile version 2")
         return self
 
+    def without_company(self) -> Self:
+        """This profile with no company identity on the sheets: the title block says the EPC company is not set instead of naming the
+        demo company. Numbering, layers and symbols are kept so drawing numbers stay stable once the real profile is assigned."""
+        return self.model_copy(update={"name": EPC_NOT_SET, "address": EPC_NOT_SET_HINT, "logo": None, "confidentiality_note": None})
+
+    @property
+    def company_set(self) -> bool:
+        return self.name != EPC_NOT_SET
+
     def threshold_settings(self) -> "dict[str, Setting]":
         return {k: _setting(t) for k, t in self.thresholds.items()}
 
@@ -298,6 +309,7 @@ Text = Annotated[str, Field(min_length=1)]
 
 class TitleBlockData(_Frozen):
     client: Text
+    developer: str | None = Field(default=None, description="The project developer, when it is not the owner")
     consultant: str | None = None
     project_title: Text
     location: Text
@@ -344,6 +356,7 @@ class SheetSpec(_Frozen):
     parameters: tuple[tuple[str, str], ...] = Field(
         default=(), description="(label, value) rows of the system parameters table"
     )
+    assumptions: tuple[str, ...] = Field(default=(), description="Inputs the sheet is drawn from that are assumed, not cited; drawn as their own block")
 
     @model_validator(mode="after")
     def _paper_agrees(self) -> Self:

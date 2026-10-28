@@ -39,7 +39,7 @@
    "kind": "layout",
    "title": "ROOFTOP SOLAR PV MODULE LAYOUT",
    "paper": "A3",
-   "drawing_scale": "1:1000",
+   "drawing_scale": "1:800",
    "sheet_of": "3 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
@@ -49,7 +49,7 @@
    "kind": "earthing",
    "title": "EARTHING LAYOUT",
    "paper": "A2",
-   "drawing_scale": "1:1000",
+   "drawing_scale": "1:800",
    "sheet_of": "4 of 11",
    "kind_sheet_of": "1 of 1",
    "warnings": []
