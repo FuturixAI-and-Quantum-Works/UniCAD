@@ -103,21 +103,32 @@ def _assign(points: list[XY], cents: list[XY], where: list[int]) -> list[int]:
     return where
 
 
-def _score(points: list[XY], groups: list[list[int]]) -> tuple[float, float]:
-    reaches = [reach([points[i] for i in g]) for g in groups if g]
-    return max(reaches), sum(reaches)
+def _radius(points: list[XY]) -> float:
+    cx, cy = sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points)
+    return max(abs(x - cx) + abs(y - cy) for x, y in points)
 
 
-def patches(items: list[Item], sizes: list[int]) -> list[list[StringAssignment]]:
-    """`items` split into groups of exactly `sizes` (in that order) that are compact in the array frame: recursive bisection, refined by capacitated
-    Lloyd rounds (centroids, then the optimal size-keeping reassignment); the grouping whose worst patch reach along the array axes is least wins."""
-    if len(sizes) <= 1:
-        return [[a for _, a in items]]
-    if sum(sizes) != len(items):
-        raise ValueError(f"patch sizes {sizes} do not add up to {len(items)} strings")
-    points = [p for p, _ in items]
-    groups = _bisect(list(enumerate(points)), sizes)
-    best, best_score = groups, _score(points, groups)
+def _score(points: list[XY], groups: list[list[int]], at_centroid: bool) -> tuple[float, float]:
+    measure = _radius if at_centroid else reach
+    rs = [measure([points[i] for i in g]) for g in groups if g]
+    return max(rs), sum(rs)
+
+
+def _seeded(points: list[XY], sizes: list[int]) -> list[list[int]]:
+    """Each group starts at the point farthest from the centre of those left and takes its nearest neighbours (along the array axes)."""
+    left, out = list(range(len(points))), []
+    for size in sizes:
+        cx, cy = sum(points[i][0] for i in left) / len(left), sum(points[i][1] for i in left) / len(left)
+        seed = max(left, key=lambda i: (abs(points[i][0] - cx) + abs(points[i][1] - cy), -i))
+        near = sorted(left, key=lambda i: (abs(points[i][0] - points[seed][0]) + abs(points[i][1] - points[seed][1]), i))[:size]
+        taken = set(near)
+        left = [i for i in left if i not in taken]
+        out.append(near)
+    return out
+
+
+def _lloyd(points: list[XY], groups: list[list[int]], sizes: list[int], at_centroid: bool):
+    best, best_score = groups, _score(points, groups, at_centroid)
     where = [0] * len(points)
     for k, g in enumerate(groups):
         for i in g:
@@ -129,7 +140,21 @@ def patches(items: list[Item], sizes: list[int]) -> list[list[StringAssignment]]
             break
         where = moved
         groups = [[i for i in range(len(points)) if where[i] == k] for k in range(len(sizes))]
-        score = _score(points, groups)
+        score = _score(points, groups, at_centroid)
         if score < best_score:
             best, best_score = groups, score
+    return best, best_score
+
+
+def patches(items: list[Item], sizes: list[int], at_centroid: bool = False) -> list[list[StringAssignment]]:
+    """`items` split into groups of exactly `sizes` (in that order) that are compact in the array frame: recursive bisection and seeded groups, each
+    refined by capacitated Lloyd rounds (centroids, then the optimal size-keeping reassignment). The grouping whose worst patch is least wins: measured
+    from the point nearest all its strings along the array axes, or from its centroid with `at_centroid` (a combiner that stands at the centroid)."""
+    if len(sizes) <= 1:
+        return [[a for _, a in items]]
+    if sum(sizes) != len(items):
+        raise ValueError(f"patch sizes {sizes} do not add up to {len(items)} strings")
+    points = [p for p, _ in items]
+    starts = (_bisect(list(enumerate(points)), sizes), _seeded(points, sizes))
+    best = min((_lloyd(points, g, sizes, at_centroid) for g in starts), key=lambda gs: gs[1])[0]
     return [[items[i][1] for i in g] for g in best]

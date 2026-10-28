@@ -283,7 +283,7 @@ def _link_strings(net: ElectricalNetwork, links, layout: ArrayLayout, notes: lis
         if PATCHES not in notes:
             notes.append(PATCHES)
         if scbs and all(len(sl) == sum(scbs) for sl in per_inv):
-            per_inv = [[a for g in patches([(centre(layout, a), a) for a in sl], scbs) for a in g] for sl in per_inv]
+            per_inv = [[a for g in patches([(centre(layout, a), a) for a in sl], scbs, at_centroid=True) for a in g] for sl in per_inv]
             if SCB_PATCHES not in notes:
                 notes.append(SCB_PATCHES)
         for j in range(count):
