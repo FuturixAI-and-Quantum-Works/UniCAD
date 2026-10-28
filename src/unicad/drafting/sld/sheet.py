@@ -26,14 +26,16 @@ from unicad.drafting.sheets.model import (
 )
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sld import annotate
-from unicad.drafting.sld.layout import layout_sld, plan_pages, stack_rows
+from unicad.drafting.sld.layout import layout_sld, plan_pages, rows_win, stack_rows
 from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage
 from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
 
 NOTES = annotate.GENERAL_NOTES
-ROWS_GAIN = 1.15
-"""How much larger stacked rows must draw a diagram than one row before the sheet uses them."""
+
+
+def unreadable_note(scale: float, minimum: float, paper: str) -> str:
+    return f"WARNING: THIS DIAGRAM IS DRAWN AT SCALE {scale:.2f} ON {paper}, BELOW THE {minimum:.2f} AT WHICH ITS SMALLEST TEXT PRINTS READABLY. SPLIT OR RE-LAY IT OUT BEFORE ISSUE."
 
 
 @dataclass(frozen=True)
@@ -133,7 +135,7 @@ def fit_layout(
         layout = layout_sld(project.network, catalog, opts, scope, xrefs)
         scale = layout.fit_scale(area.width, area.height, opts)
         rows = stack_rows(project.network, catalog, opts, scope, xrefs, area.width, area.height) if scale < opts.max_scale else None
-        if rows is not None and rows.fit_scale(area.width, area.height, opts) >= ROWS_GAIN * scale:
+        if rows is not None and rows_win(scale, rows.fit_scale(area.width, area.height, opts)):
             return rows, rows.fit_scale(area.width, area.height, opts)
         return layout, scale
 
@@ -173,12 +175,16 @@ def render_sld(
     `xrefs` maps each cut edge id to the number of the sheet that continues it."""
     sheet = next(s for s in (project.sheets if sheets is None else sheets) if s.id == sheet_id)
     scope = nodes if nodes is not None else _scope(project, sheet)
-    layout, options, _ = fit_layout(project, catalog, sheet.paper, scope, options, xrefs)
+    layout, options, fitted = fit_layout(project, catalog, sheet.paper, scope, options, xrefs)
     if doc is None:
         doc = ezdxf.new("R2018", setup=["linetypes"])
     spec = sheet_spec(project, sheet, layout, catalog, sheets, drawn_on)
     n = len(project.design_basis.assumptions)
     kept = NOTES + layout.notes
+    if fitted < options.min_scale:
+        warning = unreadable_note(fitted, options.min_scale, sheet.paper)
+        kept = (warning, *kept)
+        spec = spec.model_copy(update={"notes": (warning, *spec.notes)})
     fallbacks = (kept + (f"{n} DESIGN BASIS ASSUMPTIONS ARE LISTED IN THE PROJECT RECORD.",) if n else kept, kept)
     for notes in fallbacks:
         scratch = ezdxf.new("R2018", setup=["linetypes"])

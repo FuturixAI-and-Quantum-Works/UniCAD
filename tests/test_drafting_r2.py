@@ -22,6 +22,7 @@ from unicad.drafting.tables.draw import ROW_PAD_Y
 from unicad.drafting.tables.plan import plan_table
 from unicad.schedules import LengthMode, build_schedule
 from unicad.schedules.dxf import schedule_tables
+from unicad.sets.numbering import Numberer
 from unicad.sets.registry import builder
 from unicad.sets.render import load_profile
 from unicad.sets.render import plan_set
@@ -181,3 +182,52 @@ def test_r6_m2_part_numbers_in_titles_are_the_title_block_numbers():
         found = re.search(r"\(PART (\d+) OF (\d+)\)$", b.sheet.title)
         k, n = found.groups() if found else ("1", "1")
         assert f"{k} of {n}" in texts, (b.sheet.title, sorted(t for t in texts if " of " in t))
+
+
+# ---------------- R6-m7: a diagram drawn below the readable scale is flagged on the sheet and in the set ----------------
+
+import ezdxf as _ezdxf
+from unicad.drafting.sld import SldOptions
+from unicad.sets import render_set
+from unicad.sets.registry import BUILDERS
+from unicad.sets.sld import SldBuilder
+
+
+def test_r6_m7_an_unreadable_sld_says_so_on_the_sheet_and_in_the_set_warnings(monkeypatch, tmp_path):
+    monkeypatch.setitem(BUILDERS, "sld", SldBuilder(SldOptions(min_scale=2.0)))
+    rooftop = fixture("rooftop_500kwp")
+    index = render_set(rooftop, tmp_path, kinds=("sld",), formats=("dxf",), catalog=CATALOG)
+    flagged = [e for e in index.sheets if e["readable"] is False]
+    assert flagged
+    for e in flagged:
+        doc = _ezdxf.readfile(tmp_path / e["files"]["dxf"])
+        assert any(t.dxf.text.startswith("WARNING: THIS DIAGRAM IS DRAWN AT SCALE") for t in doc.modelspace().query("TEXT")), e["number"]
+        assert any(w.startswith(f"{e['number']}: NOT READABLE") for w in index.warnings)
+
+
+def test_r6_m7_a_readable_sld_carries_no_warning(tmp_path):
+    index = render_set(fixture("rooftop_500kwp"), tmp_path, kinds=("sld",), formats=("dxf",), catalog=CATALOG)
+    assert all(e["readable"] for e in index.sheets)
+    assert not [w for w in index.warnings if "NOT READABLE" in w]
+    doc = _ezdxf.readfile(tmp_path / index.sheets[0]["files"]["dxf"])
+    assert not any(t.dxf.text.startswith("WARNING: THIS DIAGRAM") for t in doc.modelspace().query("TEXT"))
+
+
+def test_r6_m7_a_page_the_split_plan_calls_readable_but_the_sheet_is_not_is_planned_again_with_a_margin(monkeypatch):
+    """B SLD 001: plan_pages found one readable page (0.911) but the sheet, which also draws the off-sheet markers, came to 0.84 on A0 and was
+    issued as it was. The planner now asks plan_pages again with a minimum raised by the shortfall."""
+    import unicad.sets.sld as sets_sld
+
+    seen = []
+    real = sets_sld.plan_pages
+
+    def spy(network, catalog, width, height, options, scope=None):
+        seen.append(options.min_scale)
+        pages = real(network, catalog, width, height, options, scope)
+        return pages[:1] if options.min_scale <= 3.0 else pages
+
+    monkeypatch.setattr(sets_sld, "plan_pages", spy)
+    profile = load_profile(utility.company_profile)
+    planned = SldBuilder(SldOptions(min_scale=3.0)).plan(utility, profile, CATALOG, Numberer.for_project(utility, profile))
+    assert planned and len(seen) >= 2
+    assert seen[0] == 3.0 and seen[1] > seen[0]

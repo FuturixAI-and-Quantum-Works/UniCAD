@@ -210,6 +210,7 @@ def check(run: dict) -> None:
     for out in (cables, bom):
         files = out.get("files") or [out.get("path")]
         assert files and all(str(f).endswith(".xlsx") and Path(f).is_file() for f in files), out
+    check_every_sld_is_readable_or_flagged(run)
     check_string_cables_are_each_strings_own_run(run)
     check_bom_carries_the_earthing_and_lps_design(run)
     check_lt_feeders_breakers_and_terminals(run)
@@ -217,6 +218,15 @@ def check(run: dict) -> None:
     check_capacity_against_the_intent(run)
     check_bom_leaves_out_cables_by_others(run)
     check_lt_cables_are_protected_and_grouped(run)
+
+
+def check_every_sld_is_readable_or_flagged(run: dict) -> None:
+    """R6-m7: B's SLD 001 was drawn at scale 0.84 on A0 (readable: false) and issued without a word."""
+    drawn = run["drawn"]
+    for s in drawn["sheets"]:
+        if s["kind"] == "sld" and s.get("readable") is False:
+            assert any(w.startswith(f"{s['number']}: NOT READABLE") for w in drawn["warnings"]), s["number"]
+            raise AssertionError(f"{s['number']} is drawn below the readable scale: {s['warnings']}")
 
 
 def table(path: str, sheet: str) -> list[dict]:
