@@ -39,6 +39,15 @@ class Spec(BaseModel):
         raise NotImplementedError
 
 
+class Dimensions(BaseModel):
+    """Outer size as a datasheet gives it (W x H x D), in mm. The plan footprint is width x depth."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    width: Mm
+    height: Mm
+    depth: Mm
+
+
 class CellTech(StrEnum):
     MONO_PERC = "mono_perc"
     TOPCON = "topcon"
@@ -110,6 +119,7 @@ class InverterSpec(Spec):
     max_efficiency: float | None = Field(default=None, gt=0, le=1)
     ac_terminal_max_mm2: float | None = Field(default=None, gt=0, description="largest AC cable per pole the output terminals take (sq.mm), from the datasheet; None when it is silent")
     ac_terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most AC cables per pole the output terminals take, from the datasheet; None when it is silent")
+    dimensions: Dimensions | None = Field(default=None, description="outer size from the datasheet (for a station or skid, the whole enclosure); None when the entry has not been read for it")
 
     @model_validator(mode="before")
     @classmethod
@@ -153,6 +163,7 @@ class BatterySpec(Spec):
     voltage_min: Volts
     voltage_max: Volts
     max_continuous_current: Amps | None = None
+    dimensions: Dimensions | None = Field(default=None, description="outer size of the container or cabinet from the datasheet; None when the entry has not been read for it")
 
 
 class PCSSpec(Spec):
@@ -166,6 +177,7 @@ class PCSSpec(Spec):
     ac_voltage: Volts
     dc_voltage_min: Volts
     dc_voltage_max: Volts
+    dimensions: Dimensions | None = Field(default=None, description="outer size of the PCS enclosure or the BESS container it is integrated in, from the datasheet; None when the entry has not been read for it")
 
 
 class TransformerSpec(Spec):
@@ -339,7 +351,7 @@ class DataLoggerSpec(Spec):
     ac_supply_v: tuple[Volts, Volts] | None = Field(default=None, description="(lowest, highest) AC auxiliary supply, 50/60 Hz; None when the logger has no AC input")
     dc_supply_v: tuple[Volts, Volts] | None = Field(default=None, description="(lowest, highest) DC auxiliary supply")
     ip_rating: str | None = None
-    dimensions_mm: tuple[Mm, Mm, Mm] | None = Field(default=None, description="(length, width, height) as the datasheet gives them")
+    dimensions: Dimensions | None = Field(default=None, description="outer size from the datasheet; the Solis sheet orders it L x W x H, taken here as width, depth, height")
 
     @model_validator(mode="after")
     def _ranges(self) -> "DataLoggerSpec":

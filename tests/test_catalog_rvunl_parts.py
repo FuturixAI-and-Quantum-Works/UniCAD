@@ -83,7 +83,7 @@ def test_data_logger_is_its_own_kind_with_the_solis_s3_ratings(catalog):
     log = catalog.get("solis-s3-logger")
     assert isinstance(log, DataLoggerSpec) and log.kind == "logger" and log.symbol == "inst.datalogger" and log.symbol in REGISTRY
     assert (log.rs485_ports, log.max_devices, log.max_devices_per_rs485_port, log.ethernet_ports) == (4, 60, 15, 1)
-    assert log.ac_supply_v == (100, 240) and log.dc_supply_v == (9, 36) and log.dimensions_mm == (89, 121, 27)
+    assert log.ac_supply_v == (100, 240) and log.dc_supply_v == (9, 36) and (log.dimensions.width, log.dimensions.depth, log.dimensions.height) == (89, 121, 27)
     assert "Modbus-RTU" in log.rs485_protocols and "IEC60870-5-104" in log.ethernet_protocols
     assert "Solis_S3-Logger_DS.pdf p.2" in log.source.ref
 

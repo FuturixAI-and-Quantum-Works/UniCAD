@@ -25,6 +25,7 @@ from unicad.domain.catalog import (  # noqa: E402
     CableSpec,
     CellTech,
     DataLoggerSpec,
+    Dimensions,
     EquipmentSpec,
     InverterSpec,
     MeterSpec,
@@ -108,6 +109,14 @@ def source(kind: str, raw: str, csv_name: str, row: int, page: str | int | None 
     where = f"{raw} p.{page}" if page else raw
     ref = f"{where}; {EXTRACTED_REL}/{csv_name} row {row}" + (f"; {extra}" if extra else "")
     return Source(kind=kind, ref=ref, retrieved=LATER_RETRIEVED if Path(raw).name.startswith(LATER_DATASHEETS) else RETRIEVED)
+
+
+def dimensions(text: str | None) -> Dimensions | None:
+    """'6058x2896x2438' as written W x H x D in the datasheet."""
+    if not text:
+        return None
+    w, h, d = (float(x) for x in text.split("x"))
+    return Dimensions(width=w, height=h, depth=d)
 
 
 def missing(**fields: object) -> list[str]:
@@ -288,7 +297,7 @@ def import_inverters(b: Build) -> None:
             id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
             source=source("datasheet", r["source_file"], "inverter_datasheets.csv", line, r["pdf_page"], extra),
             topology="central" if "central" in r["note"] or "skid" in r["note"] else "string", phases=3,
-            start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, **fields,
+            start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, dimensions=dimensions(r["dimensions_mm"]), **fields,
         )
     import_residential_inverters(b)
     cec = read_csv("cec_inverters_core.csv")
@@ -337,6 +346,7 @@ def import_bess(b: Build) -> None:
             "pcs", ref, PCSSpec, id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
             source=source("datasheet", raw, "bess_pcs_datasheets.csv", line, page),
             rated_kva=num(r["ac_power_kva"]), ac_voltage=num(r["ac_voltage_v"]), dc_voltage_min=vmin, dc_voltage_max=vmax,
+            dimensions=dimensions(r["dimensions_mm"]),
         )
         if not r["energy_kwh"]:
             continue
@@ -350,6 +360,7 @@ def import_bess(b: Build) -> None:
             source=source("datasheet", raw, "bess_pcs_datasheets.csv", line, page, "nominal voltage = series cells x cell voltage; datasheet gives no DC current"),
             chemistry="lfp", energy_kwh=num(r["energy_kwh"]),
             nominal_voltage=round(int(series[1]) * float(cell_v[1]), 1), voltage_min=vmin, voltage_max=vmax,
+            dimensions=dimensions(r["dimensions_mm"]),
         )
 
 
@@ -674,10 +685,11 @@ def import_switchgear(b: Build) -> None:
         )
     otdc_pdf = "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf"
     for line, r in read_csv("abb_otdc_switch_disconnectors.csv"):
-        s2 = r["series"] == "S2.0"
+        parallel = r["circuits"] == "1" and r["poles"] == "4"
         extra = (
             f"OTDC {r['series']}, {r['circuits']} circuit(s) on {r['poles']} poles, rated current is DC-21B at {r['voltage_vdc']} V DC"
-            + (f"; DC-PV2 rating is {r['dc_pv2_a']} A at 1500 V" if s2 else "")
+            + ("; two poles in parallel per polarity (ABB connection bar kit, installation mandatory)" if parallel else "")
+            + (f"; DC-PV2 rating is {r['dc_pv2_a']} A at 1500 V" if r["dc_pv2_a"] else "")
             + f"; Icw {r['icw_ka']} kA for {r['icw_s']} s from the technical-data table on pdf p.{r['tech_pdf_page']}"
         )
         b.add(
@@ -732,6 +744,25 @@ def import_switchgear(b: Build) -> None:
             device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
             max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
+    s0 = json.loads((EXTRACTED / "protection_s0.json").read_text())
+    sfu = s0["sfu_36kv"]
+    b.add(
+        "protection", "protection_s0.json sfu_36kv", ProtectionSpec,
+        id="abb-safeplus-36-f-module-200a", manufacturer="ABB", model="SafePlus 36 F-module switch-fuse-disconnector",
+        source=Source(
+            kind="catalog", retrieved=LATER_RETRIEVED,
+            ref=f"{sfu['source']} p.{sfu['pdf_page']}; {EXTRACTED_REL}/protection_s0.json sfu_36kv; {sfu['standard']}; rated voltage {sfu['rated_voltage_kv']} kV (a 33 kV system); "
+                f"rated normal current {sfu['rated_normal_current_a']} A depends on the fuse-link; breaking current {sfu['breaking_current_ka']} kA is limited by the HV fuse-links; "
+                f"transfer current {sfu['transfer_current_a']} A; fuse-links to {sfu['fuse_link_standard']} up to {sfu['max_fuse_link_rated_current_a']} A rated (p.{sfu['fuse_pdf_page']}); "
+                f"busbars {sfu['busbar_short_time_withstand_ka']} kA for {sfu['busbar_short_time_s']} s",
+        ),
+        device="sfu", rated_current=sfu["rated_normal_current_a"], rated_voltage=sfu["rated_voltage_kv"] * 1000, poles=3,
+        breaking_capacity_ka=sfu["breaking_current_ka"],
+    )
+    b.notes.append(
+        "33 kV fuse-switch: ABB SafePlus 36 F-module (36 kV, 200 A, breaking current 20 kA limited by the fuse-links, fuse-links up to 63 A). It is a gas-insulated RMU module, not an outdoor pole-mounted fuse switch; "
+        "no datasheet for an outdoor 33 kV fuse-switch was found."
+    )
     pt = phase2["pt_33kv"]
     b.add(
         "protection", "protection_phase2.json pt_33kv", ProtectionSpec,
@@ -820,6 +851,14 @@ def import_p5_protection(b: Build) -> None:
         rated_voltage=la["ur_kv"] * 1000, poles=1, nominal_discharge_current_ka=la["nominal_discharge_current_ka"],
     )
     b.notes.append(
+        "1500 V DC switch for a string combiner outgoing circuit around 500 A: ABB OTDC M-series (315, 400, 500, 630, 800 A two-pole; 800 and 1000 A as two poles in parallel per polarity), "
+        "DC-21B at 1500 V, DC-PV2 500 A for the 630 and 800 A sizes, Icw 10 kA for 1 s. Before this the largest 1500 V DC switch was the 250 A OTDC S2.0."
+    )
+    b.notes.append(
+        "800 V ~400 A breakers beyond EasyPact: none added. Schneider ComPacT NSX400K (Icu 36 kA at 800 V AC) appears in Schneider's online user guide, which refused the download (HTTP 403); "
+        "the 2014 ComPacT NSX catalogue found elsewhere has no 800 V breaking-capacity row. ABB Tmax T5 V 400 A (1150 V AC, Icu 12 kA) remains the other 400 A entry at this voltage."
+    )
+    b.notes.append(
         "800 V-class LT breakers: Schneider MasterPacT MTZ2 H10 (1150 V AC, 800-4000 A, 3P, Icu 50 kA), ABB Tmax T4/T5 V and T6 L (1000-1150 V AC, 100-800 A, 3P/4P, Icu 12 kA) and Schneider EasyPact Solar MCCB 400/800 (800 V AC, 125-800 A, 3P, Icu 25/36/50 kA) are catalogued. "
         "Siemens 3WL / 3VA and Schneider ComPacT NSX/NS at 800 V and above were not found in a text-extractable source."
     )
@@ -888,7 +927,7 @@ def import_loggers(b: Build) -> None:
             rs485_protocols=tuple(p.strip() for p in r["rs485_protocols"].split(";") if p.strip()), ethernet_ports=int(r["ethernet_ports"] or 0),
             ethernet_protocols=tuple(p.strip() for p in r["ethernet_protocols"].split(";") if p.strip()),
             ac_supply_v=span(r, "ac_supply_v"), dc_supply_v=span(r, "dc_supply_v"), ip_rating=r["ip_rating"] or None,
-            dimensions_mm=(num(r["length_mm"]), num(r["width_mm"]), num(r["height_mm"])) if r["length_mm"] else None,
+            dimensions=Dimensions(width=num(r["length_mm"]), depth=num(r["width_mm"]), height=num(r["height_mm"])) if r["length_mm"] else None,
         )
 
 

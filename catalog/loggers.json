@@ -32,10 +32,10 @@
       36.0
     ],
     "ip_rating": "IP20",
-    "dimensions_mm": [
-      89.0,
-      121.0,
-      27.0
-    ]
+    "dimensions": {
+      "width": 89.0,
+      "height": 27.0,
+      "depth": 121.0
+    }
   }
 ]

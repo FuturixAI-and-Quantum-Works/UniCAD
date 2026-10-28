@@ -28,7 +28,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": null,
     "ac_terminal_max_mm2": 240.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "growatt-min-3000tl-x",
@@ -59,7 +60,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.982,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "growatt-min-5000tl-x",
@@ -90,7 +92,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9840000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "growatt-min-6000tl-x",
@@ -121,7 +124,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9840000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "growatt-mod-3000tl3-x",
@@ -152,7 +156,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.983,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "growatt-mod-6000tl3-x",
@@ -183,7 +188,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.983,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "growatt-mod-9000tl3-x",
@@ -214,7 +220,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.986,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "havells-enviro-gti-11000tx",
@@ -245,7 +252,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "havells-enviro-gti-3000-ng",
@@ -276,7 +284,8 @@
     "max_dc_short_circuit_current": 15.0,
     "max_efficiency": 0.977,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "havells-enviro-gti-5000-d",
@@ -307,7 +316,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.98,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "havells-enviro-gti-6600tx",
@@ -338,7 +348,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "huawei-sun2000-100ktl-m2",
@@ -369,7 +380,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.986,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "huawei-sun2000-330ktl-h1",
@@ -400,7 +412,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9903,
     "ac_terminal_max_mm2": 400.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "polycab-psis-3k0",
@@ -431,7 +444,8 @@
     "max_dc_short_circuit_current": 30.0,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "polycab-psis-5k-sm2",
@@ -462,7 +476,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.982,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "polycab-psit-10k-sm2",
@@ -493,7 +508,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.982,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "polycab-psit-5k-sm2",
@@ -524,7 +540,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.982,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "polycab-psit10ksm1r2",
@@ -555,7 +572,8 @@
     "max_dc_short_circuit_current": 30.0,
     "max_efficiency": 0.978,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sma-sc-4000-up",
@@ -586,7 +604,8 @@
     "max_dc_short_circuit_current": 8400.0,
     "max_efficiency": 0.988,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sma-sc-4400-up",
@@ -617,7 +636,8 @@
     "max_dc_short_circuit_current": 8400.0,
     "max_efficiency": 0.988,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sma-sc-4600-up",
@@ -648,7 +668,8 @@
     "max_dc_short_circuit_current": 8400.0,
     "max_efficiency": 0.9890000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "solis-s5-gc100k",
@@ -679,7 +700,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.987,
     "ac_terminal_max_mm2": 185.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "solis-s6-gc3p150k07-nv-nd",
@@ -710,7 +732,12 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.988,
     "ac_terminal_max_mm2": 400.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": {
+      "width": 1035.5,
+      "height": 869.0,
+      "depth": 396.0
+    }
   },
   {
     "id": "solis-s6-gr1p1k-m",
@@ -741,7 +768,8 @@
     "max_dc_short_circuit_current": 22.0,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "solis-s6-gr1p3k",
@@ -772,7 +800,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "solis-s6-gr1p3k-m",
@@ -803,7 +832,8 @@
     "max_dc_short_circuit_current": 24.0,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "solis-s6-gr1p5k",
@@ -834,7 +864,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "solis-s6-gr1p6k",
@@ -865,7 +896,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": null,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg10rt",
@@ -896,7 +928,8 @@
     "max_dc_short_circuit_current": 48.0,
     "max_efficiency": 0.985,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg110cx",
@@ -927,7 +960,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.987,
     "ac_terminal_max_mm2": 240.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg110cx-p2",
@@ -958,7 +992,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.985,
     "ac_terminal_max_mm2": 240.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg3.0rs",
@@ -989,7 +1024,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9790000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg3125hv-30",
@@ -1020,7 +1056,8 @@
     "max_dc_short_circuit_current": 10000.0,
     "max_efficiency": 0.99,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg3125hv-mv-20",
@@ -1051,7 +1088,12 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.99,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": {
+      "width": 6058.0,
+      "height": 2896.0,
+      "depth": 2438.0
+    }
   },
   {
     "id": "sungrow-sg350hx",
@@ -1082,7 +1124,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9902,
     "ac_terminal_max_mm2": 400.0,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg5.0rs",
@@ -1113,7 +1156,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9790000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg5.0rt",
@@ -1144,7 +1188,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9840000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg6.0rs",
@@ -1175,7 +1220,8 @@
     "max_dc_short_circuit_current": null,
     "max_efficiency": 0.9790000000000001,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   },
   {
     "id": "sungrow-sg8.0rt",
@@ -1206,6 +1252,7 @@
     "max_dc_short_circuit_current": 48.0,
     "max_efficiency": 0.985,
     "ac_terminal_max_mm2": null,
-    "ac_terminal_cables_per_pole": null
+    "ac_terminal_cables_per_pole": null,
+    "dimensions": null
   }
 ]
