@@ -7,16 +7,18 @@ from pydantic import Field
 
 from unicad.arrays import FillOrder, PlacementResult, PlacementSpec, block_summaries, place_array, plan_length, table_centre
 from unicad.arrays.geometry import frame
+from unicad.arrays.shortfall import shortfall
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Orientation, StringAssignment
 from unicad.domain.network import NodeKind
-from unicad.design.placement import BESS_PITCH_M, _bess_units
+from unicad.design.placement import BESS_PITCH_M, _bess_units, stations_exist
 from unicad.domain.project import Project, Segment
 from unicad.domain.site import SiteGeometry
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import MountingArg, PitchMethodArg, RegionModeArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Problem, Workspace
+from unicad.routing.panels import live_panels, panel_routes
 from unicad.rules.structure import BESS_SEPARATION_M
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
@@ -245,6 +247,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
             )  # fmt: skip
             result = place_array(site, spec, mod)
             problems = [_problem("warning", "layout", w) for w in result.warnings] + string_problems(spec)
+            short = shortfall(site, target_dc_kwp, result.metrics.dc_kwp, result.metrics.buildable_m2) if target_dc_kwp is not None else None
+            if short is not None:
+                problems.insert(0, _problem("warning", "layout", short.message()))
             planned = result.layout.strings
             linked: tuple[StringAssignment, ...] = ()
             if network_ids:
@@ -260,6 +265,13 @@ def register(server: MCPServer, ws: Workspace) -> None:
             updated = Project.model_validate(data, context={"catalog": ws.catalog})
             extra = _result_json(result)
             extra["assumptions"] = notes + extra["assumptions"]
+            if short is not None:
+                extra["shortfall"] = {
+                    "target_kwp": short.target_kwp, "placed_kwp": short.placed_kwp, "short_kwp": round(short.short_kwp, 3), "short_pct": round(100 * short.short_kwp / short.target_kwp, 1),
+                    "buildable_m2": short.buildable_m2, "needed_buildable_m2": round(short.needed_buildable_m2, 1),
+                    "plot_that_fits_m": None if short.plot_m is None else [round(short.plot_m[0], 1), round(short.plot_m[1], 1)],
+                    "plot_now_m": None if short.plot_now_m is None else [round(short.plot_now_m[0], 1), round(short.plot_now_m[1], 1)],
+                }
             extra |= {
                 "strings_planned": len(planned),
                 "strings_linked": len(linked),
@@ -310,6 +322,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
             "strings_linked": len(layout.strings),
             "switchyard": None if layout.switchyard is None else {"x": layout.switchyard.at.x, "y": layout.switchyard.at.y, "basis": layout.switchyard.basis},
             "field_equipment": dict(Counter(e.kind for e in layout.equipment)),
+            "lt_panels": [{"tag": e.tag, "kind": e.kind, "x": e.at.x, "y": e.at.y, "basis": e.basis} for e in live_panels(p)],
+            "lt_route": [{"edge": r.edge, "from": r.from_tag, "to": r.to_tag, "length_m": r.length_m, "points": [list(q) for q in r.points]} for r in panel_routes(p)],
+            "block_stations_are_equipment": stations_exist(p),
         }
 
     @server.tool(annotations=READ_ONLY)

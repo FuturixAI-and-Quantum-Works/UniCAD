@@ -27,7 +27,7 @@ def _lps_json(d) -> dict[str, Any]:
     ok, n = coverage_points(d)
     return {
         "method": d.method, "level": d.level, "radius_m": d.radius_m, "mast_height_m": d.mast_height_m,
-        "terminals": [{"tag": t.tag, "x": t.at.x, "y": t.at.y, "on_roof": t.on_roof} for t in d.terminals[:LIST_CAP]],
+        "terminals": [{"tag": t.tag, "x": t.at.x, "y": t.at.y, "on_roof": t.on_roof, "shade_m2": t.shade_m2} for t in d.terminals[:LIST_CAP]],
         "terminal_count": len(d.terminals), "tables_covered": ok, "tables": n, "coverage": [{"class": c.label, "covered": c.covered, "total": c.total} for c in d.coverage()],
         "uncovered": [t.id for t in d.uncovered[:LIST_CAP]],
         "uncovered_count": len(d.uncovered), "steps": [s.model_dump() for s in d.steps], "assumptions": list(d.assumptions),

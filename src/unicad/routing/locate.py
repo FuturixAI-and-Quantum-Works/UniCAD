@@ -15,6 +15,7 @@ GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 BUSES = frozenset({NodeKind.BUSBAR, NodeKind.HT_PANEL, NodeKind.LT_PANEL, NodeKind.ACDB, NodeKind.POI_GRID})
 CO_LOCATED_M = 1.0
 PANEL_KINDS = frozenset({NodeKind.VCB, NodeKind.CT, NodeKind.BREAKER, NodeKind.RMU, NodeKind.ISOLATOR, NodeKind.FUSE})
+PANEL_BUSES = frozenset({NodeKind.BUSBAR, NodeKind.ACDB})
 
 
 @dataclass(frozen=True)
@@ -163,11 +164,11 @@ class Locator:
         return None
 
     def panel_bus(self, node_id: str) -> str | None:
-        """The busbar a switchgear node feeds through bus wiring alone (no cable): the switchboard panel it is part of, so it stands with that bus."""
+        """The busbar or AC combiner a switchgear node feeds through bus wiring alone (no cable): the switchboard panel it is part of, so it stands with that bus."""
         if self.net.node(node_id).kind not in PANEL_KINDS:
             return None
         for n in self._wired[node_id]:
-            if self.net.node(n).kind is NodeKind.BUSBAR:
+            if self.net.node(n).kind in PANEL_BUSES:
                 return n
             if (bus := self.panel_bus(n)) is not None:
                 return bus

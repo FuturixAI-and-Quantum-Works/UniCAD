@@ -13,9 +13,9 @@ from unicad.arrays import siting
 from unicad.arrays.geometry import frame, table_corners
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec
-from unicad.domain.layout import ArrayLayout, PlacedEquipment, Point
+from unicad.domain.layout import ArrayLayout, Mounting, PlacedEquipment, Point
 from unicad.domain.network import ElectricalNetwork, NodeKind
-from unicad.domain.project import Project
+from unicad.domain.project import Project, Segment
 from unicad.domain.site import ROOF_CARVE_KINDS, FeatureKind, buildable_area, shape_of
 from unicad.routing import RouteAssumptions
 from unicad.routing.locate import Locator, manhattan
@@ -150,6 +150,60 @@ def _roof_room(site, taken) -> list[tuple[Polygon, BaseGeometry]]:
     return out
 
 
+MV_PLANT_KINDS = frozenset({NodeKind.TRANSFORMER, NodeKind.VCB, NodeKind.RMU, NodeKind.HT_PANEL, NodeKind.AUX_TRANSFORMER})
+LT_PANEL_SPACING_M = 10.0
+LT_PANEL_CLEAR_M = 2.0
+LT_PANELS = (
+    f"On a ground LT plant (no MV equipment) the ACCB stands at the layout's switchyard location, which layout_place keeps free of tables, and the client panel (the point "
+    f"of connection, else the LT panel) at the free spot nearest it at least {LT_PANEL_SPACING_M:g} m away, {LT_PANEL_CLEAR_M:g} m clear of tables, roads and exclusions and inside the boundary "
+    "(assumed spacing for access and cable termination, not a cited figure; the client's panel position is not given). Their cable runs along the array axes, round the tables."
+)
+
+
+def lt_ground_plant(project: Project) -> bool:
+    """A ground-mount plant that connects at LT through an AC combiner: no MV equipment in the network, an ACDB and a tabled ground layout."""
+    layout, site = project.array_layout, project.site.geometry
+    if layout is None or not layout.blocks or project.segment in (Segment.RESIDENTIAL, Segment.CI_ROOFTOP):
+        return False
+    if any(t.mounting is Mounting.ROOF_FLUSH for t in layout.table_by_id.values()) or (site is not None and site.of_kind(FeatureKind.ROOF)):
+        return False
+    kinds = {n.kind for n in project.network.nodes}
+    return NodeKind.ACDB in kinds and not kinds & MV_PLANT_KINDS
+
+
+def _lt_panels(net: ElectricalNetwork, layout: ArrayLayout, project: Project) -> tuple[list[PlacedEquipment], list[str]]:
+    """The ACCB at the layout's switchyard and the client panel beside it, outside the tables."""
+    site = project.site.geometry
+    acdb = [n for n in net.nodes if n.kind is NodeKind.ACDB]
+    rest = [n for n in net.nodes if n.kind is NodeKind.POI_GRID] or [n for n in net.nodes if n.kind is NodeKind.LT_PANEL]
+    if layout.switchyard is None or site is None or not acdb:
+        return [], []
+    tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()])
+    at = layout.switchyard.at
+    out = [PlacedEquipment(node=n.id, tag=n.tag, kind=n.kind.value, at=at, basis=f"the layout's switchyard location ({layout.switchyard.basis.split(';')[0]})") for n in acdb[:1]]
+    taken = [(at.x, at.y)]
+    for n in acdb[1:] + rest:
+        free = siting.room(site, unary_union([tables, *(ShapelyPoint(q).buffer(LT_PANEL_SPACING_M) for q in taken)]), LT_PANEL_CLEAR_M)
+        spot = siting.nearest_in(free, taken[0])
+        if spot is None:
+            return out, [f"{n.tag} is not placed: no free ground {LT_PANEL_SPACING_M:g} m from the other LT panels outside the tables"]
+        out.append(PlacedEquipment(node=n.id, tag=n.tag, kind=n.kind.value, at=spot, basis=f"free ground nearest the ACCB, {LT_PANEL_SPACING_M:g} m or more from it and outside the tables"))
+        taken.append((spot.x, spot.y))
+    return out, [LT_PANELS]
+
+
+def stations_exist(project: Project) -> bool:
+    """Whether any network equipment stands at a block's inverter station. False when the network has equipment and all of it stands in the field
+    or at the LT panels (string inverters in the field, their breakers inside one ACCB): the stations the layout holds for each block are indicative
+    only and a drawing must not show them as equipment."""
+    layout = project.array_layout
+    if layout is None or not layout.blocks or not project.network.nodes:
+        return True
+    expanded = project.network.expand()
+    loc = Locator(layout, expanded, RouteAssumptions())
+    return any((p := loc.location(n.id)) is not None and p.where.startswith("station ") for n in expanded.nodes)
+
+
 BESS_KINDS = (NodeKind.TRANSFORMER, NodeKind.PCS, NodeKind.BATTERY)
 BESS_SEPARATION = f"BESS units stand outside the MV switchyard earth mat, clear of its edge by {BESS_SEPARATION_SOURCE} Confirm with the BESS vendor's fire layout and the CEIG."
 ASSUMED_YARD_M = (60.0, 45.0)
@@ -239,6 +293,10 @@ def place_equipment(project: Project, catalog: Catalog, bess_at: Point | None = 
         if inv:
             placed += inv
             notes.append(FIELD_INVERTERS)
+    if lt_ground_plant(project):
+        panels, more = _lt_panels(project.network, layout, project)
+        placed += panels
+        notes += more
     extra = []
     yard = switchyard_area(project)
     if yard is not None:

@@ -21,6 +21,9 @@ WIDE_GAP_RATIO = 2.5
 REGION_BALANCE = 0.10
 MAX_GROWTH = 1.5
 SWAP_WINDOW = 40
+COMPACT_REACH = 3.0
+COMPACT_NEIGHBOURS = 12
+COMPACT_PASSES = 50
 
 
 def block_count(total_kwp: float, n_blocks: int | None, block_dc_kwp: float | None, n_tables: int) -> int:
@@ -134,7 +137,77 @@ def partition(
             lo_side, hi_side = exact(lo_side, hi_side, k, axis)
         return split(lo_side, k_lo) + split(hi_side, k - k_lo)
 
-    return [g for g in split(list(range(len(tables))), n) if g]
+    groups = [g for g in split(list(range(len(tables))), n) if g]
+    classes = [(units[i] if units else 0, round(weights[i], 6)) for i in range(len(tables))]
+    return compact(groups, pts, classes)
+
+
+def compact(groups: list[list[int]], pts: Sequence[tuple[float, float]], classes: Sequence[object]) -> list[list[int]]:
+    """Swap tables of equal class (same strings and capacity) between blocks while that lowers the sum of squared distances of the tables to
+    their block centres. The cuts of `partition` run through rows in table order, which leaves staircase edges and, where the placed set is
+    ragged, blocks in two pieces; swaps keep every block's capacity and strings exactly and pull each block into one compact patch."""
+    if len(groups) < 2:
+        return groups
+    owner = {i: g for g, idx in enumerate(groups) for i in idx}
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    spacing = math.sqrt(max((max(xs) - min(xs)) * (max(ys) - min(ys)), 1e-9) / len(pts))
+
+    def grid(size: float) -> dict[tuple[int, int], list[int]]:
+        cells: dict[tuple[int, int], list[int]] = {}
+        for i in sorted(owner):
+            cells.setdefault((int(pts[i][0] // size), int(pts[i][1] // size)), []).append(i)
+        return cells
+
+    def within(cells: dict[tuple[int, int], list[int]], size: float, i: int) -> list[int]:
+        cx, cy = int(pts[i][0] // size), int(pts[i][1] // size)
+        return [j for dx in (-1, 0, 1) for dy in (-1, 0, 1) for j in cells.get((cx + dx, cy + dy), ()) if j != i]
+
+    coarse = 2.0 * spacing
+    cells = grid(coarse)
+    nearest = [d for i in owner if (d := min((math.dist(pts[i], pts[j]) for j in within(cells, coarse, i)), default=0.0)) > 0]
+    if not nearest:
+        return groups
+    reach = COMPACT_REACH * _median(nearest)
+    cells = grid(reach)
+    around = {
+        i: sorted((j for j in within(cells, reach, i) if classes[j] == classes[i] and math.dist(pts[i], pts[j]) <= reach), key=lambda j: (math.dist(pts[i], pts[j]), j))[:COMPACT_NEIGHBOURS]
+        for i in owner
+    }
+    size = [len(g) for g in groups]
+    sx = [sum(pts[i][0] for i in g) for g in groups]
+    sy = [sum(pts[i][1] for i in g) for g in groups]
+    sq = [sum(pts[i][0] ** 2 + pts[i][1] ** 2 for i in g) for g in groups]
+
+    def spread(g: int, dx: float, dy: float, dq: float) -> float:
+        return sq[g] + dq - ((sx[g] + dx) ** 2 + (sy[g] + dy) ** 2) / size[g]
+
+    for _ in range(COMPACT_PASSES):
+        moved = False
+        for i in sorted(owner):
+            a = owner[i]
+            best = None
+            for j in around[i]:
+                b = owner[j]
+                if b == a:
+                    continue
+                dx, dy = pts[j][0] - pts[i][0], pts[j][1] - pts[i][1]
+                dq = pts[j][0] ** 2 + pts[j][1] ** 2 - pts[i][0] ** 2 - pts[i][1] ** 2
+                gain = spread(a, 0, 0, 0) + spread(b, 0, 0, 0) - spread(a, dx, dy, dq) - spread(b, -dx, -dy, -dq)
+                if gain > 1e-6 and (best is None or gain > best[0] + 1e-9):
+                    best = (gain, j, dx, dy, dq)
+            if best is not None:
+                _, j, dx, dy, dq = best
+                b = owner[j]
+                sx[a] += dx; sy[a] += dy; sq[a] += dq
+                sx[b] -= dx; sy[b] -= dy; sq[b] -= dq
+                owner[i], owner[j] = b, a
+                moved = True
+        if not moved:
+            break
+    out: list[list[int]] = [[] for _ in groups]
+    for i in sorted(owner):
+        out[owner[i]].append(i)
+    return out
 
 
 def _shed(t: Table, mps: int) -> int:

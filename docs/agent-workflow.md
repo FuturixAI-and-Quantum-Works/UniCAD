@@ -712,7 +712,7 @@ lps_design(
     "level": "III",
     "radius_m": 97.49,
     "mast_height_m": 6.0,
-    "terminals": [{"tag": "ESE-01", "x": 47.5, "y": 35.5, "on_roof": true}],
+    "terminals": [{"tag": "ESE-01", "x": 48.51, "y": 38.502, "on_roof": true, "shade_m2": 0.0}],
     "terminal_count": 1,
     "tables_covered": 22,
     "tables": 22,
@@ -727,7 +727,9 @@ lps_design(
     "assumptions": [
       "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise a...",
       "equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer)...",
-      "terminals keep 1.5 m clear of every table (room for the mast foundation and its lightning earth pit; assume..."
+      "terminals keep 1.5 m clear of every table (room for the mast foundation and its lightning earth pit; assume...",
+      "ESE-01 is the only terminal: it covers every target on its own over a 97.49 m radius, so the whole plant re...",
+      "... 2 more"
     ]
   },
   "problems": []
