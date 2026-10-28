@@ -637,6 +637,7 @@ def import_protection(b: Build) -> None:
             id=slug("finder", v["code"]), manufacturer="Finder", model=v["code"],
             source=src(spd, extra="3 varistor modules (+, -, PE) per catalogue page 12"),
             device="spd_dc", rated_voltage=v["ucpv_vdc"], poles=3, spd_type="2",
+            nominal_discharge_current_ka=v["in_ka"], max_discharge_current_ka=v["imax_ka"],
         )
 
 
@@ -685,7 +686,8 @@ def import_switchgear(b: Build) -> None:
             "protection", "protection_phase2.json spd_ac_finder", ProtectionSpec,
             id=slug("finder", v["code"]), manufacturer="Finder", model=v["code"],
             source=src(finder, f"{finder['note']} Maximum backup fuse {v['max_backup_fuse_a']} A gG; Up {v['up_in_kv']} kV at In; Imax {v['imax_ka']} kA"),
-            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
+            max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
     dehn = phase2["spd_ac_dehn"]
     for v in dehn["variants"]:
@@ -701,7 +703,8 @@ def import_switchgear(b: Build) -> None:
             "protection", "protection_phase2.json spd_ac_dehn_3p", ProtectionSpec,
             id=slug("dehn", v["code"]), manufacturer="DEHN", model=f"DEHNguard {v['code']}",
             source=src(dehn3, f"part no. {v['part_no']}; {dehn3['note']} Up <= {v['up_kv']} kV; Imax {v['imax_ka']} kA; max mains-side backup fuse {v['max_backup_fuse_a']} A gG; remote signalling {v['remote_signalling']}"),
-            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
+            max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
     it = phase2["spd_ac_dehn_it"]
     req = it["it_requirement"]
@@ -711,7 +714,8 @@ def import_switchgear(b: Build) -> None:
             id=slug("dehn", v["code"], f"{v['units']}x"), manufacturer="DEHN", model=f"{v['units']} x DEHNguard {v['code']} (3-0 circuit)",
             source=src(it, f"part no. {v['part_no']} x {v['units']}; {it['note']} IT requirement: '{req['text']}', {req['url']} (printed p.{req['printed_page']}, Figure {req['figure']}); "
                        f"Up <= {v['up_kv']} kV; Imax {v['imax_ka']} kA; max mains-side backup fuse {v['max_backup_fuse_a']} A gG; remote signalling {v['remote_signalling']}"),
-            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
+            max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
     pt = phase2["pt_33kv"]
     b.add(

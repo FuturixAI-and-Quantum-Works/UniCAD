@@ -294,13 +294,20 @@ class ProtectionSpec(Spec):
     ratio: str | None = Field(default=None, description="CT or PT ratio as published, e.g. 200-100/1-1 A")
     accuracy_class: str | None = None
     burden_va: float | None = Field(default=None, gt=0)
-    nominal_discharge_current_ka: float | None = Field(default=None, gt=0)
+    nominal_discharge_current_ka: float | None = Field(default=None, gt=0, description="In (8/20 us) of an SPD, or the nominal discharge current of an arrester")
+    max_discharge_current_ka: float | None = Field(default=None, gt=0, description="Imax (8/20 us) of an SPD, the single-shot surge it survives; distinct from and not below In")
     curve: str | None = None
     spd_type: Literal["1", "2", "1+2", "3"] | None = None
     surge_counter: bool | None = Field(default=None, description="lightning arrester supplied with a discharge counter; None when the source is silent")
     terminal_max_mm2: float | None = Field(default=None, gt=0, description="largest cable per pole the terminals take (sq.mm); None when the source is silent")
     terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most cables per pole the terminals take")
     break_time_s: float | None = Field(default=None, gt=0, description="total breaking time (opening + arcing) of a circuit-breaker, as the datasheet gives it")
+
+    @model_validator(mode="after")
+    def _discharge(self) -> "ProtectionSpec":
+        if self.max_discharge_current_ka is not None and self.nominal_discharge_current_ka is not None and self.max_discharge_current_ka < self.nominal_discharge_current_ka:
+            raise ValueError("Imax (max_discharge_current_ka) is below In (nominal_discharge_current_ka)")
+        return self
 
 
 class MeterSpec(Spec):

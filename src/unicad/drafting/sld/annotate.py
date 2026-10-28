@@ -124,6 +124,15 @@ def _switching_rating(spec: ProtectionSpec) -> str:
     return _join(*parts)
 
 
+def _spd_rating(spec: ProtectionSpec) -> str:
+    i_n, i_max = spec.nominal_discharge_current_ka, spec.max_discharge_current_ka
+    if i_n and i_max:
+        discharge = f"In/Imax {i_n:g}/{i_max:g} kA"
+    else:
+        discharge = f"In {i_n:g} kA" if i_n else f"Imax {i_max:g} kA" if i_max else None
+    return _join(_switching_rating(spec), discharge)
+
+
 def _rmu_rating(spec: ProtectionSpec) -> str:
     withstand = spec.short_time_withstand_ka
     duration = f" {spec.short_time_duration_s:g} s" if spec.short_time_duration_s else ""
@@ -191,8 +200,8 @@ PROTECTION_TEXT: Final[dict[str, ProtectionText]] = {
     "fuse_hrc": ("HRC FUSE", _switching_rating),
     "dc_isolator": ("DC ISOLATOR", _switching_rating),
     "ac_isolator": ("AC ISOLATOR", _switching_rating),
-    "spd_dc": ("DC SPD", _switching_rating),
-    "spd_ac": ("AC SPD", _switching_rating),
+    "spd_dc": ("DC SPD", _spd_rating),
+    "spd_ac": ("AC SPD", _spd_rating),
     "sfu": ("SWITCH FUSE UNIT", _switching_rating),
     "rmu": ("RING MAIN UNIT", _rmu_rating),
     "ct": ("CURRENT TRANSFORMER", _instrument_rating),
