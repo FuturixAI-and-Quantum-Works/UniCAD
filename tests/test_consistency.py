@@ -182,7 +182,7 @@ def test_cable_schedule_sheets_list_the_string_tags_the_network_defines(projects
     else:
         by_dst: dict[str, list] = {}
         for r in rows:
-            by_dst.setdefault(r.dst, []).append(r)
+            by_dst.setdefault(r.stem or r.dst, []).append(r)
         for group in by_dst.values():
             assert any(group[0].from_tag in t and group[-1].from_tag in t for t in shown), (group[0].from_tag, group[-1].from_tag)
 

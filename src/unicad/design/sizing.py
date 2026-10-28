@@ -335,7 +335,7 @@ REFRAME = (
 )
 
 
-REFRAME_MAX = 2.0
+REFRAME_MAX = 3.0
 REFRAME_CAP = (
     f"A breaker is moved to a larger frame for voltage drop only up to {REFRAME_MAX:g} x its design requirement (1.25 x Ib) (design choice: a feeder breaker rated "
     "several times its current to land a larger cable is not sensible); beyond that the drop is met on other cables or reported."
