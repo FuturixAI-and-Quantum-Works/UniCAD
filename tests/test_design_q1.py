@@ -1,6 +1,7 @@
 """String-inverter patches: compact contiguous groups of strings per inverter, the inverter at the run-minimising free spot, and a precise blocker."""
 
-from test_design_e2e3 import C, C_HUAWEI, C_HUAWEI_PLACE, project, run, site_c
+from shapely.geometry import Point as ShapelyPoint
+from test_design_e2e3 import A, A_BUILD, A_PLACE, C, C_HUAWEI, C_HUAWEI_PLACE, project, run, site_a, site_c
 from test_mcp import connect
 
 from unicad.arrays.geometry import frame
@@ -8,6 +9,7 @@ from unicad.design.patches import patches, reach
 from unicad.design.placement import string_runs
 from unicad.domain.layout import SlotSpan, StringAssignment
 from unicad.domain.project import Project
+from unicad.domain.site import FeatureKind, shape_of
 from unicad.routing import RouteAssumptions
 from unicad.routing.locate import Locator
 
@@ -80,5 +82,26 @@ def test_c1_a_block_that_cannot_meet_the_drop_limit_names_its_worst_inverter_pat
             assert hits, built["blockers"]
             for b in hits:
                 assert "against the 0.8 % limit" in b and "strings_per_inverter <= " in b and "inverters_per_block" in b and "vdrop_dc_max of at least" in b, b
+
+    run(go())
+
+
+def test_rooftop_field_inverters_keep_the_site_roof_edge_setback_and_the_obstacle_setback(tmp_path):
+    async def go():
+        async with connect(tmp_path / "ws") as c:
+            await site_a(c)
+            await c.call("layout_place", **A_PLACE)
+            await c.call("network_autobuild", **A_BUILD)
+            p = Project.model_validate(await project(c, A))
+            site = p.site.geometry
+            roofs = [shape_of(f) for f in site.of_kind(FeatureKind.ROOF)]
+            obstacles = [shape_of(f) for f in site.of_kind(FeatureKind.OBSTACLE) if f.polygon]
+            invs = [e for e in p.array_layout.equipment if e.kind == "inverter"]
+            assert invs
+            for e in invs:
+                pt = ShapelyPoint(e.at.x, e.at.y)
+                roof = next(r for r in roofs if r.covers(pt))
+                assert roof.exterior.distance(pt) >= 1.0 - 1e-6, (e.tag, roof.exterior.distance(pt))
+                assert all(o.distance(pt) >= 0.6 - 1e-6 for o in obstacles), e.tag
 
     run(go())
