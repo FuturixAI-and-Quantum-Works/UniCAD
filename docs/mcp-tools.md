@@ -143,6 +143,8 @@ Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="
 
 Find equipment in the catalog; returns compact rows with the key ratings. Use the row `id` as a node `spec` or edge `cable`.
 
+When nothing matches, `note` says where the catalog's range of that kind ends (for example the largest module) and `range`, `nearest_below`, `nearest_above` give the numbers.
+
 Example: catalog_search(kind="inverter", min_power=90, max_power=110).
 
 Read-only.
