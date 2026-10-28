@@ -1,8 +1,9 @@
 """String sizing from catalog module and inverter specs and the design basis, using the rules engine's temperature models."""
 
 import math
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from unicad.domain.catalog import InverterSpec, ModuleSpec
 from unicad.domain.project import DesignBasis
@@ -230,3 +231,125 @@ def size_strings(module: ModuleSpec, inverter: InverterSpec, basis: DesignBasis,
         margins=margins,
         assumptions=tuple(dict.fromkeys(assumptions)),
     )
+
+
+class InverterStrings(_Frozen):
+    """`count` identical inverters whose strings are given per MPPT: `mppts[k]` lists the modules per string of each string on MPPT k + 1,
+    e.g. [[18, 19], [18, 19], [18]] is two strings (18 and 19 modules) on MPPT 1 and 2 and one of 18 on MPPT 3."""
+
+    count: int = Field(default=1, gt=0)
+    mppts: tuple[tuple[Annotated[int, Field(gt=0)], ...], ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _no_empty_mppt(self) -> "InverterStrings":
+        if any(not mp for mp in self.mppts):
+            raise ValueError("every listed MPPT needs at least one string; leave unused MPPTs off the end of the list")
+        return self
+
+    @property
+    def strings(self) -> int:
+        return sum(len(mp) for mp in self.mppts)
+
+    @property
+    def modules(self) -> int:
+        return sum(sum(mp) for mp in self.mppts)
+
+    def lengths(self) -> dict[int, tuple[int, ...]]:
+        """Modules per string -> the MPPT (1-based) of each string of that length, in MPPT order; the most common length first."""
+        out: dict[int, list[int]] = {}
+        for k, mp in enumerate(self.mppts, start=1):
+            for n in mp:
+                out.setdefault(n, []).append(k)
+        return {n: tuple(out[n]) for n in sorted(out, key=lambda n: (-len(out[n]), n))}
+
+
+class LengthCheck(_Frozen):
+    """One string length against the inverter's voltage window: the string voltages and margins at the coldest and hottest cell, or why it does not fit."""
+
+    modules_per_string: int
+    fits: bool
+    voltages: StringVoltages | None = None
+    margins: dict[str, float] = {}
+    problem: str | None = None
+
+
+class InverterStringsCheck(_Frozen):
+    count: int
+    strings: int
+    modules: int
+    mppts_used: int
+    strings_per_mppt_max: int
+    dc_kwp: float
+    dc_ac_ratio: float
+    string_fuses: bool
+    problems: tuple[str, ...] = ()
+
+
+class MixedStringDesign(_Frozen):
+    """Strings given per inverter and MPPT (InverterStrings), checked against the module, the inverter and the design basis: every length's Voc at the coldest
+    cell and MPPT window (as size_strings), the MPPT count, strings per MPPT against the per-MPPT current limit, and the DC/AC ratio per inverter class."""
+
+    module: str
+    inverter: str
+    lengths: tuple[LengthCheck, ...]
+    inverters: tuple[InverterStringsCheck, ...]
+    inverter_count: int
+    modules: int
+    dc_kwp: float
+    ac_kva: float
+    dc_ac_ratio: float
+    problems: tuple[str, ...]
+    assumptions: tuple[str, ...]
+
+    @property
+    def ok(self) -> bool:
+        return not self.problems
+
+
+def check_inverter_strings(module: ModuleSpec, inverter: InverterSpec, basis: DesignBasis, classes: tuple[InverterStrings, ...] | list[InverterStrings]) -> MixedStringDesign:
+    """Check strings given by hand, with per-inverter and per-MPPT string lengths that may differ (e.g. 18 and 19 modules on one inverter)."""
+    hot = cell_temp_max(basis, module)
+    lengths, problems = [], []
+    assumptions = list(dict.fromkeys((*cell_temp_min(basis).assumptions, *(hot.assumptions if hot else ()))))
+    for n in sorted({n for c in classes for mp in c.mppts for n in mp}):
+        try:
+            d = size_strings(module, inverter, basis, n)
+        except DesignError as e:
+            lengths.append(LengthCheck(modules_per_string=n, fits=False, problem=str(e)))
+            problems.append(f"strings of {n} modules: {e}")
+            continue
+        lengths.append(LengthCheck(modules_per_string=n, fits=True, voltages=d.voltages, margins={k: v for k, v in d.margins.items() if k.endswith("_v")}))
+    per_mppt, s_max, why, notes = strings_cap(module, inverter)
+    assumptions += notes
+    unfused = unfused_per_mppt(module)
+    checks = []
+    for i, c in enumerate(classes, start=1):
+        own = []
+        if len(c.mppts) > inverter.mppt_count:
+            own.append(f"lists {len(c.mppts)} MPPTs; {inverter.id} has {inverter.mppt_count}")
+        widest = max(len(mp) for mp in c.mppts)
+        if per_mppt is not None and widest > per_mppt:
+            own.append(f"puts {widest} strings on one MPPT; {inverter.id} takes at most {per_mppt} ({why.split(' x ')[0]})")
+        if c.strings > s_max:
+            own.append(f"has {c.strings} strings; {inverter.id} takes at most {s_max} ({why})")
+        kwp = c.modules * module.pmax / 1000
+        fused = unfused is not None and widest > unfused
+        problems += [f"inverter class {i} ({c.count} x {c.strings} strings) {p}" for p in own]
+        checks.append(InverterStringsCheck(
+            count=c.count, strings=c.strings, modules=c.modules, mppts_used=len(c.mppts), strings_per_mppt_max=widest, dc_kwp=round(kwp, 3),
+            dc_ac_ratio=round(kwp / inverter.ac_rated_kva, 4), string_fuses=fused, problems=tuple(own),
+        ))  # fmt: skip
+    mixed_mppt = sorted({n for c in classes for mp in c.mppts if len(set(mp)) > 1 for n in mp})
+    if mixed_mppt:
+        assumptions.append(
+            f"Strings of different length ({', '.join(map(str, mixed_mppt))} modules) share an MPPT as the brief gives them: the MPPT runs them at one voltage, so the "
+            "shorter strings work off their maximum power point (a mismatch loss the energy yield must account for); each length is checked on its own voltage window."
+        )
+    n_inv = sum(c.count for c in classes)
+    modules = sum(c.count * c.modules for c in classes)
+    dc = modules * module.pmax / 1000
+    ac = n_inv * inverter.ac_rated_kva
+    return MixedStringDesign(
+        module=module.id, inverter=inverter.id, lengths=tuple(lengths), inverters=tuple(checks), inverter_count=n_inv, modules=modules,
+        dc_kwp=round(dc, 3), ac_kva=round(ac, 3), dc_ac_ratio=round(dc / ac, 4), problems=tuple(problems), assumptions=tuple(dict.fromkeys(assumptions)),
+    )  # fmt: skip

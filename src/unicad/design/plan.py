@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from unicad.arrays.strings import assign_strings, string_id
 from unicad.domain.layout import ArrayLayout, StringAssignment
 from unicad.design.patches import centre, patches, spanning
-from unicad.design.strings import DesignError
+from unicad.design.strings import DesignError, InverterStrings
 
 STRING_ID = re.compile(r"^(?P<block>.+)-I(?P<inv>\d+)-S(?P<s>\d+)$")
 
@@ -24,6 +24,7 @@ class InvClass:
     strings: int
     part: str | None = None
     slots: list[list[StringAssignment]] = field(default_factory=list)
+    mppts: tuple[tuple[int, ...], ...] | None = None
 
 
 @dataclass
@@ -58,6 +59,17 @@ class PvPlan:
     @property
     def strings(self) -> int:
         return sum(b.count * b.strings for b in self.blocks)
+
+
+def given(classes: "list[InverterStrings] | tuple[InverterStrings, ...]") -> PvPlan:
+    """A one-block plan from strings given per inverter and MPPT, inverters numbered in the order given: the first class as one repeated group
+    (01..n), every later inverter on its own with its number, as merged plans number them."""
+    first, rest = classes[0], [c for c in classes[1:] for _ in range(c.count)]
+    invs = [InvClass("a", first.count, first.strings, None if first.count > 1 else "01", mppts=first.mppts)]
+    for k, c in enumerate(rest, start=first.count + 1):
+        invs.append(InvClass(f"x{k:02d}", 1, c.strings, f"{k:02d}", mppts=c.mppts))
+    lengths = Counter(n for c in classes for mp in c.mppts for n in mp for _ in range(c.count))
+    return PvPlan([BlockClass("", 1, invs)], lengths.most_common(1)[0][0])
 
 
 def uniform(n_blocks: int, inv_per_block: int, strings_per_inverter: int, mps: int) -> PvPlan:

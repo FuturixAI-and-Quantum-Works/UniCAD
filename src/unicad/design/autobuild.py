@@ -13,20 +13,20 @@ from unicad.arrays import PlacementResult
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec, ModuleSpec
 from unicad.domain.layout import ArrayLayout, Point, StringAssignment
-from unicad.domain.network import ElectricalNetwork, NodeKind
+from unicad.domain.network import ElectricalNetwork, NodeKind, RelayRating
 from unicad.domain.project import BessRating, DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.placement import place_equipment, string_runs
 from unicad.design.patches import PATCHES, SCB_PATCHES, SIDES, centre, keep_out_sides, patches
-from unicad.design.plan import PvPlan, from_layout, uniform
+from unicad.design.plan import PvPlan, from_layout, given, uniform
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
 from unicad.design.sizing import band_cables, size_network
-from unicad.design.strings import DesignError, StringDesign, size_strings
+from unicad.design.strings import DesignError, InverterStrings, MixedStringDesign, StringDesign, check_inverter_strings, size_strings
 from unicad.rules import Finding, Severity, run_rules
 from unicad.rules.ratio import PPC, plant_capacity
 from unicad.rules.thresholds import VOLTAGE_TOLERANCE, Setting, using
 
-Template = Literal["residential", "ci_rooftop", "utility_string", "utility_central", "bess_ac", "bess_dc", "hybrid"]
+Template = Literal["residential", "ci_rooftop", "utility_lt", "utility_string", "utility_central", "bess_ac", "bess_dc", "hybrid"]
 SEGMENT_TEMPLATE = {
     Segment.RESIDENTIAL: "residential",
     Segment.CI_ROOFTOP: "ci_rooftop",
@@ -35,10 +35,12 @@ SEGMENT_TEMPLATE = {
     Segment.HYBRID: "hybrid",
 }
 TEMPLATE_SEGMENT = {
-    "residential": Segment.RESIDENTIAL, "ci_rooftop": Segment.CI_ROOFTOP, "utility_string": Segment.UTILITY, "utility_central": Segment.UTILITY,
+    "residential": Segment.RESIDENTIAL, "ci_rooftop": Segment.CI_ROOFTOP, "utility_lt": Segment.UTILITY, "utility_string": Segment.UTILITY, "utility_central": Segment.UTILITY,
     "bess_ac": Segment.BESS, "bess_dc": Segment.BESS, "hybrid": Segment.HYBRID,
 }  # fmt: skip
-PV_TEMPLATES = frozenset({"residential", "ci_rooftop", "utility_string", "utility_central", "bess_dc", "hybrid"})
+PV_TEMPLATES = frozenset({"residential", "ci_rooftop", "utility_lt", "utility_string", "utility_central", "bess_dc", "hybrid"})
+GIVEN_STRINGS_TEMPLATES = frozenset({"residential", "ci_rooftop", "utility_lt"})
+LT_GRID_MAX_V = 1000.0
 CI_STEP_UP_KW = 1000.0
 
 
@@ -72,6 +74,11 @@ class Intent(BaseModel):
     lengths: dict[str, float] = Field(default_factory=dict, description="Override cable route lengths in m by role (string, scb_inv, vcb_bus, ...)")
     bess_x: float | None = Field(default=None, description="Local x (m) of the BESS area centre; default the free area nearest the switchyard")
     bess_y: float | None = None
+    inverter_strings: tuple[InverterStrings, ...] | None = Field(
+        default=None, description="Strings given per inverter and MPPT instead of sized ones: inverter classes in numbering order, each a count and the modules per string of every string on each MPPT"
+    )
+    relay: RelayRating | None = Field(default=None, description="utility_lt: add a bus PT and a protection relay with these ANSI functions on the ACCB outgoing")
+    data_logger: bool = Field(default=False, description="utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter")
 
     @model_validator(mode="after")
     def _bess_xy(self) -> "Intent":
@@ -86,6 +93,7 @@ class AutobuildResult(BaseModel):
     project: Project
     template: str
     strings: StringDesign | None
+    given_strings: MixedStringDesign | None = None
     counts: dict[str, int]
     findings: tuple[Finding, ...]
     blockers: tuple[str, ...]
@@ -162,6 +170,8 @@ def _template(project: Project, intent: Intent, catalog: Catalog) -> str:
     if project.segment is Segment.UTILITY:
         if intent.inverter and getattr(catalog.get(intent.inverter), "topology", None) == "central":
             return "utility_central"
+        if project.design_basis.grid.voltage_v <= LT_GRID_MAX_V:
+            return "utility_lt"
         return "utility_string" if intent.inverter else "utility_central"
     return SEGMENT_TEMPLATE[project.segment]
 
@@ -425,15 +435,40 @@ def _autobuild(
     ctx = T.Ctx(project, catalog, lengths, frozenset(intent.lengths), scb_strings)
     if lay is not None and (intent.ac_kw or intent.dc_kwp):
         notes.append("A layout is given: the PV plan follows its blocks and strings; ac_kw and dc_kwp are not used to size the PV plant.")
-    sd = None
+    sd, mixed = None, None
+    if template in ("utility_string", "utility_central", "bess_ac", "bess_dc", "hybrid") and basis.grid.voltage_v <= LT_GRID_MAX_V:
+        raise DesignError(
+            f"template {template} exports at MV through block transformers, but the grid is {basis.grid.voltage_v:g} V (LT): for a ground-mount plant feeding a client's "
+            "415 V LT panel use template utility_lt (string inverters -> ACCB -> client LT panel), or ci_rooftop for a net-metered C&I connection; or set grid_voltage_v to the MV export voltage"
+        )
+    if intent.inverter_strings and template not in GIVEN_STRINGS_TEMPLATES:
+        raise DesignError(f"inverter_strings works with the LT templates {sorted(GIVEN_STRINGS_TEMPLATES)}; template {template} sizes uniform strings into blocks")
     if template in PV_TEMPLATES:
-        if not (intent.ac_kw or intent.dc_kwp or lay is not None):
-            raise DesignError(f"template {template} needs ac_kw, dc_kwp or a layout")
+        if not (intent.ac_kw or intent.dc_kwp or lay is not None or intent.inverter_strings):
+            raise DesignError(f"template {template} needs ac_kw, dc_kwp or a layout (or inverter_strings)")
         module = _module(catalog, intent.module, notes)
         inverter = _inverter(catalog, intent.inverter, template, project, module, (intent.ac_kw or (intent.dc_kwp or 0.0) / basis.dc_ac_ratio_target), notes)
-        sd = size_strings(module, inverter, basis, intent.modules_per_string)
-        sides = keep_out_sides(lay, project.site.geometry) if lay is not None else {}
-        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis, notes, sides)
+        sides = {}
+        if intent.inverter_strings:
+            mixed = check_inverter_strings(module, inverter, basis, intent.inverter_strings)
+            if mixed.problems:
+                raise DesignError(f"inverter_strings do not fit {inverter.id} with {module.id}: " + "; ".join(mixed.problems))
+            plan = given(intent.inverter_strings)
+            sd = size_strings(module, inverter, basis, plan.modules_per_string)
+            notes.append(
+                f"Strings as given (inverter_strings): {mixed.inverter_count} inverters, {mixed.modules} modules, {mixed.dc_kwp:g} kWp, DC/AC {mixed.dc_ac_ratio:g}; "
+                f"lengths {', '.join(str(x.modules_per_string) for x in mixed.lengths)} modules each checked for Voc at the coldest cell and the MPPT window."
+            )
+            notes += list(mixed.assumptions)
+            if lay is not None:
+                notes.append("inverter_strings sets the strings by hand, so the network's strings are not linked to the layout's string slots.")
+                lay = None
+            if intent.ac_kw or intent.dc_kwp or intent.modules_per_string or intent.strings_per_inverter:
+                notes.append("inverter_strings is given: ac_kw, dc_kwp, modules_per_string and strings_per_inverter are not used to size the PV plant.")
+        else:
+            sd = size_strings(module, inverter, basis, intent.modules_per_string)
+            sides = keep_out_sides(lay, project.site.geometry) if lay is not None else {}
+            plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis, notes, sides)
         if sides:
             notes += [SIDES, *plan.notes]
         short = [(b.name or b.part, ic.strings) for b in plan.blocks for ic in b.invs if plan.from_layout and ic.strings < max(i.strings for i in b.invs)]
@@ -457,6 +492,8 @@ def _autobuild(
         if step is None and (intent.ac_kw or 0) > CI_STEP_UP_KW:
             notes.append(f"Above {CI_STEP_UP_KW:g} kW an HT connection (step_up_kv) is usual; this build stays at LT because the grid is {basis.grid.voltage_v:g} V.")
         T.ci_rooftop(ctx, plan, inverter, module, step, intent.connection, intent.metering)
+    elif template == "utility_lt":
+        T.utility_lt(ctx, plan, inverter, module, intent.relay, intent.data_logger)
     elif template == "utility_string":
         T.utility_string(ctx, plan, inverter, module, intent.block_switch, intent.auxiliary, intent.export_limit_kw)
     elif template == "utility_central":
@@ -538,10 +575,13 @@ def _autobuild(
         notes.extend(routed.notes)
     if sd is not None:
         summary |= {"modules_per_string": plan.modules_per_string, "inverters": plan.inverters, "strings": plan.strings}
+    if mixed is not None:
+        summary["string_lengths"] = dict(sorted(Counter(n for c in intent.inverter_strings for mp in c.mppts for n in mp for _ in range(c.count)).items()))
     return AutobuildResult(
         project=sized,
         template=template,
         strings=sd,
+        given_strings=mixed,
         counts=report.counts,
         findings=findings,
         blockers=tuple(dict.fromkeys([*built.blockers, *sizing.blockers])),
