@@ -17,6 +17,7 @@ from unicad.domain.catalog import (
 )
 from unicad.domain.network import Node, NodeKind, Service
 from unicad.domain.project import Project
+from unicad.rules.protection import isolator_devices
 from unicad.rules.topology import per_instance
 from unicad.schedules.earthing_bom import EARTHING, LIGHTNING, earthing_lines
 from unicad.schedules.lines import BomLine
@@ -43,6 +44,7 @@ CABLES = "CABLES"
 ACCESSORIES = "CABLE ACCESSORIES"
 CATEGORY_ORDER = tuple(c for c, _ in CATEGORIES) + (LIGHTNING, CABLES, ACCESSORIES)
 BY_OTHERS = "by others"
+NOT_SUPPLIED = ("existing", "by_others")
 FUSED_POLES = "fused_poles"
 
 
@@ -101,7 +103,7 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
     strings: dict[tuple[str, str | None, str], dict[int, int]] = {}
     for category, kinds in CATEGORIES:
         for n in net.nodes:
-            if n.kind not in kinds or n.kind in skip:
+            if n.kind not in kinds or n.kind in skip or not_supplied(n):
                 continue
             count = net.instance_count(n.id)
             remarks = ""
@@ -114,9 +116,13 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
                 count *= n.modules_in_series
             elif n.kind is NodeKind.FUSE and isinstance(poles := n.attributes.get(FUSED_POLES), int) and poles > 1:
                 count *= poles
-                remarks = f"{poles} fuse links per string (+ and - poles)"
+                remarks = f"{poles} fuse links per string (+ and - poles)" + (" in the SCB" if any(net.node(m).kind is NodeKind.SCB for m in net.downstream(n.id)[:1]) else "")
+            elif n.kind is NodeKind.DC_ISOLATOR and n.spec is not None and (split := isolator_devices(n, catalog.get(n.spec))) is not None:
+                ways, per, devices = split
+                count *= devices
+                remarks = f"{ways} string circuits per inverter on {devices} x {2 * per}-pole switch-disconnectors ({per} circuit(s) each)"
             elif n.kind in (NodeKind.SCB, NodeKind.DC_FUSE_BOX):
-                inputs = sum(per_instance(net, e.src_node, n.id) for e in net.edges if e.is_power and e.dst_node == n.id and net.node(e.src_node).kind is NodeKind.PV_STRING)
+                inputs = sum(per_instance(net, s, n.id) for s in net.upstream(n.id) if net.node(s).kind is NodeKind.PV_STRING)
                 remarks = f"{inputs} string inputs" if inputs else ""
             if n.spec is None:
                 key = (category, None, n.title or n.kind.value.replace("_", " ").upper())
@@ -139,13 +145,18 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
     return [BomLine(c, item, cid, float(q), "nos", remark((c, cid, item))) for (c, cid, item), q in totals.items()] + _fuse_box_lines(project)
 
 
+def not_supplied(node: Node) -> bool:
+    """Existing equipment or equipment by others (node attribute `existing` or `by_others` true) is shown on the drawings but not billed."""
+    return any(node.attributes.get(k) is True for k in NOT_SUPPLIED)
+
+
 def _fuse_box_lines(project: Project) -> list[BomLine]:
     """One string fuse box enclosure per inverter whose strings land on their own gPV fuses (a FUSE node fed by strings, without an SCB or DC fuse box node)."""
     net = project.network
     boxes: dict[tuple[int, int], int] = defaultdict(int)
     for n in net.by_kind(NodeKind.FUSE):
         fed = [e for e in net.edges if e.is_power and e.dst_node == n.id and net.node(e.src_node).kind is NodeKind.PV_STRING]
-        if not fed:
+        if not fed or any(net.node(e.dst_node).kind in (NodeKind.SCB, NodeKind.DC_FUSE_BOX) for e in net.edges if e.is_power and e.src_node == n.id):
             continue
         poles = n.attributes.get(FUSED_POLES)
         boxes[(n.count, poles if isinstance(poles, int) else 1)] += net.instance_count(n.id) // max(1, n.count)
@@ -249,7 +260,7 @@ def build_bom(project: Project, catalog: Catalog, schedule: Schedule, wastage_pc
         f"Cable wastage of {wastage_pct:g} % is added to the routed metres and the result rounded up to whole metres: a procurement allowance, not a design value.",
         "Cable metres count every run and every loaded conductor: +ve and -ve for DC single-core, three phases for three-phase single-core, one cable per run for multicore. Neutral and earth conductors are not scheduled.",
         "Lugs are one per conductor end and glands one per cable end for DC and LV cables; MV cable ends take one termination kit each. String cables are terminated with an MC4-type connector at the string end.",
-        "Existing supply, loads and generators (POI, load and DG nodes) are not part of the bill, nor are cables the schedule marks 'by others' (the DISCOM service connection, existing consumer wiring). "
+        "Existing supply, loads and generators (POI, load and DG nodes) and equipment marked existing or by others (the consumer LT panel or DB the plant connects to) are not part of the bill, nor are cables the schedule marks 'by others' (the DISCOM service connection, existing consumer wiring). "
         "Mounting structures, trays, conduits and ferrules are not scheduled.",
         "Items without a catalog id come from network nodes that name no equipment, or from the earthing and lightning designs; their description is the node title or the design's.",
         *earth_assumptions,

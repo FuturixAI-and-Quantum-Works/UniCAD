@@ -61,7 +61,7 @@ def test_n10_breaker_protects_the_cable_beyond_its_isolator(tmp_path):
             await c.call("network_update", project_id="sgt-chakan", id="e_iso_ltp", fields={"cable": "polycab-lt-xlpe-al-1c-300-arm", "runs": 2})
             v = await c.call("validate", project_id="sgt-chakan", families=["cables"])
             hits = [f for f in v["findings"] if f["rule_id"] == "cables.protection"]
-            assert len(hits) == 1 and hits[0]["subjects"] == ["acdb_brk", "e_iso_ltp"] and hits[0]["measured"] == 1250, hits
+            assert {h["subjects"][0] for h in hits} == {"acdb_brk", "inc_brk"} and all(h["subjects"][1] == "e_iso_ltp" and h["measured"] == 1250 for h in hits), hits
 
     run(go())
 

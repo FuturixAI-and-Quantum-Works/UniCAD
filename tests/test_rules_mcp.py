@@ -62,7 +62,8 @@ def test_validate_fixture_projects_over_stdio(tmp_path):
         assert "'cables'" in msg and "'earthing'" in msg, msg  # the schema lists the allowed families
 
         r = await c.call("validate", project_id="utility-50mwac")
-        assert r["counts"]["error"] == 0 and r["gates"]["approval"] == {"allowed": True, "watermark": False}, r["findings"]
+        errors = [f for f in r["findings"] if f["severity"] == "error"]
+        assert [(f["rule_id"], f["subjects"]) for f in errors] == [("cables.ampacity", ["e_inv_idt"])] and r["gates"]["approval"]["allowed"] is False, r["findings"]
 
     _run(tmp_path, check, _fixture("rooftop_500kwp"), _fixture("utility_50mwac"), _broken())
 

@@ -137,7 +137,7 @@ def steps() -> list[Step]:
         ),
         Step(
             "network_update",
-            p | {"id": "e_brk_ct", "fields": {"cable": "polycab-lt-xlpe-al-1c-630-arm"}},
+            p | {"id": "e_brk_ct", "fields": {"cable": "polycab-lt-xlpe-al-1c-630-arm", "runs": 3}},
             "Upsize the longest, most loaded AC run (the example's choice).",
             keep=("revision", "changed", "problems"),
         ),

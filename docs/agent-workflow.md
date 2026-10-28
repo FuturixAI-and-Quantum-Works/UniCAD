@@ -389,11 +389,11 @@ network_autobuild(
 {
   "revision": 7,
   "design": {
-    "templates": {"groups": 1, "nodes": 19, "edges": 20},
+    "templates": {"groups": 1, "nodes": 20, "edges": 21},
     "instances": {
       "ac_spd": 2,
       "acdb": 1,
-      "breaker": 3,
+      "breaker": 4,
       "ct": 2,
       "dc_fuse_box": 2,
       "dc_isolator": 2,
@@ -417,7 +417,7 @@ network_autobuild(
     "inverters": 2,
     "strings": 22
   },
-  "rules": {"error": 0, "warning": 2, "info": 20},
+  "rules": {"error": 0, "warning": 2, "info": 21},
   "findings": [
     {
       "rule_id": "cables.missing",
@@ -435,8 +435,8 @@ network_autobuild(
   "blockers": [],
   "summary": {
     "groups": 1,
-    "nodes": 19,
-    "edges": 20,
+    "nodes": 20,
+    "edges": 21,
     "site_features": 11,
     "layout_blocks": 1,
     "layout_tables": 22,
@@ -456,7 +456,7 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 7,
-  "counts": {"error": 0, "warning": 2, "info": 20},
+  "counts": {"error": 0, "warning": 2, "info": 21},
   "blocking": false,
   "findings": [
     {
@@ -502,15 +502,15 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 8,
-  "counts": {"error": 1, "warning": 1, "info": 22},
+  "counts": {"error": 1, "warning": 1, "info": 23},
   "blocking": true,
   "findings": [
     {
       "rule_id": "vdrop.ac",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.50 + 1.32 + 0.11 + 0.57 = 2.50 % exceeds vdrop_ac_max...",
-      "measured": 2.497,
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.84 + 0.86 + 0.11 + 0.57 = 2.38 % exceeds vdrop_ac_max...",
+      "measured": 2.379,
       "limit": 2.0,
       "unit": "%"
     },
@@ -541,18 +541,18 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
       "title": "AC voltage drop from inverter to the point of interconnection within the design basis",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.50 + 1.32 + 0.11 + 0.57 = 2.50 % exceeds vdrop_ac_max...",
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.84 + 0.86 + 0.11 + 0.57 = 2.38 % exceeds vdrop_ac_max...",
       "formula": "dV%_total = sum(dV%_segment)",
       "inputs": [
         {
           "name": "dV%[e_inv_brk_b01a]",
-          "value": 0.497,
+          "value": 0.8371,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
         {
           "name": "dV%[e_brk_ct]",
-          "value": 1.3175,
+          "value": 0.8595,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
@@ -570,7 +570,7 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
         },
         "... 1 more"
       ],
-      "measured": 2.497,
+      "measured": 2.379,
       "limit": 2.0,
       "unit": "%",
       "assumptions": [
@@ -592,7 +592,7 @@ Upsize the longest, most loaded AC run (the example's choice).
 network_update(
     project_id="pune-midc-factory-roof",
     id="e_brk_ct",
-    fields={"cable": "polycab-lt-xlpe-al-1c-630-arm"},
+    fields={"cable": "polycab-lt-xlpe-al-1c-630-arm", "runs": 3},
 )
 ```
 
@@ -611,7 +611,7 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 9,
-  "counts": {"error": 0, "warning": 1, "info": 23},
+  "counts": {"error": 0, "warning": 1, "info": 24},
   "blocking": false,
   "findings": [
     {
@@ -645,7 +645,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
     "pits_needed_by_resistance": 0,
     "pits_needed_by_current": 0,
     "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
-    "resistance_ohm": 0.8187,
+    "resistance_ohm": 0.8174,
     "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-st...",
     "target_ohm": 2.0,
     "tables": 22,
@@ -661,7 +661,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 450.0,
+        "quantity": 452.0,
         "unit": "m"
       },
       {
@@ -673,7 +673,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 26.0,
+        "quantity": 25.0,
         "unit": "m"
       },
       "... 1 more"
@@ -745,7 +745,7 @@ validate(project_id="pune-midc-factory-roof")
 ```json
 {
   "revision": 11,
-  "counts": {"error": 0, "warning": 4, "info": 29},
+  "counts": {"error": 0, "warning": 4, "info": 30},
   "blocking": false,
   "gates": {
     "proposal": {"allowed": true, "watermark": false},
@@ -772,12 +772,12 @@ cable_schedule(project_id="pune-midc-factory-roof")
   "rows": 31,
   "totals": {
     "rows": 31.0,
-    "cable_m": 2404.53,
-    "loss_w": 5483.87,
-    "cable_m_dc": 2059.77,
-    "cable_m_lv_ac": 344.76
+    "cable_m": 2390.84,
+    "loss_w": 5201.61,
+    "cable_m_dc": 1640.52,
+    "cable_m_lv_ac": 750.32
   },
-  "length_sources": {"estimated": 26, "network": 5},
+  "length_sources": {"estimated": 25, "network": 6},
   "warnings": []
 }
 ```
@@ -795,12 +795,12 @@ bom(project_id="pune-midc-factory-roof")
   "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-bom.xlsx"],
   "summary": {
-    "lines": 35,
+    "lines": 34,
     "modules": 440.0,
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 2400.0
+    "cable_m_ordered": 2386.0
   },
   "warnings": []
 }
@@ -871,7 +871,7 @@ drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dx
   "sheet_count": 10,
   "sheets": {
     "ACME/DI/PMFR/EL/000": "register, A3: DRAWING REGISTER",
-    "ACME/DI/PMFR/EL/001": "sld, A1: SINGLE LINE DIAGRAM",
+    "ACME/DI/PMFR/EL/001": "sld, A2: SINGLE LINE DIAGRAM",
     "ACME/DI/PMFR/EL/101": "layout, A3: ROOFTOP SOLAR PV MODULE LAYOUT",
     "ACME/DI/PMFR/EL/301": "earthing, A2: EARTHING LAYOUT",
     "ACME/DI/PMFR/EL/302": "lps, A3: LIGHTNING ARRESTER (LA) LAYOUT",

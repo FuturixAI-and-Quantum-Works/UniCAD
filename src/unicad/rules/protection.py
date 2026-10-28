@@ -21,6 +21,19 @@ EARTH_EXPECTED = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL,
 SINGLE_PHASE_POLES = "Devices with one or two poles are taken as phase-to-neutral connected and need only V_zone / sqrt(3)."
 
 
+ISOLATOR_WAYS = "isolator_ways"
+
+
+def isolator_devices(node: Node, spec: ProtectionSpec) -> tuple[int, int, int] | None:
+    """For a DC isolator node standing for several separate string circuits (attribute isolator_ways): (circuits, circuits per device, devices).
+    A DC switch-disconnector switches one circuit per two poles (+ and -), as the ABB OTDC E11 (2 poles, 1 circuit) and E22 (4 poles, 2 circuits) types."""
+    ways = node.attributes.get(ISOLATOR_WAYS)
+    if node.kind is not NodeKind.DC_ISOLATOR or not isinstance(ways, int) or isinstance(ways, bool) or ways < 1:
+        return None
+    per = max(1, spec.poles // 2)
+    return ways, per, math.ceil(ways / per)
+
+
 def _protection(catalog: Catalog, node: Node) -> ProtectionSpec | None:
     if node.spec is None:
         return None
@@ -30,7 +43,7 @@ def _protection(catalog: Catalog, node: Node) -> ProtectionSpec | None:
 
 @rule("protection.rated_current", "Device rated current covers the design current", clause="IS 732")
 def rated_current(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """A breaker, fuse or switch on an export path must be rated for the current it carries: on the AC side In >= 1.25 x the maximum current of the inverters behind it, on the DC side In >= 1.25 x Isc of the strings behind it. String fuses (gPV) are checked by protection.string_fuse_rating. The upper bound In <= cable ampacity belongs to cable sizing, which reuses the same design current."""
+    """A breaker, fuse or switch on an export path must be rated for the current it carries: on the AC side In >= 1.25 x the maximum current of the inverters behind it, on the DC side In >= 1.25 x Isc of the strings behind it. A DC isolator node standing for several separate string circuits (isolator_ways) is checked per device: each switches poles / 2 circuits and carries their share. String fuses (gPV) are checked by protection.string_fuse_rating. The upper bound In <= cable ampacity belongs to cable sizing, which reuses the same design current."""
     net = project.network
     for n in net.nodes:
         spec = _protection(catalog, n)
@@ -41,8 +54,11 @@ def rated_current(project: Project, catalog: Catalog) -> Iterator[Finding]:
             continue
         dc = is_dc(net, n.id)
         factor = 1.0 if dc else CONTINUOUS_FACTOR.value
+        if (split := isolator_devices(n, spec)) is not None:
+            ways, per, _ = split
+            factor *= min(per, ways) / ways
         need = factor * ib.value
-        if spec.rated_current >= need:
+        if spec.rated_current >= need - 1e-9:
             continue
         side = "DC" if dc else "AC"
         yield Finding(
@@ -397,6 +413,62 @@ def mv_cable(project: Project, catalog: Catalog) -> Iterator[Finding]:
             message=f"MV cable {e.id} ({label(net, e.src_node)} -> {label(net, e.dst_node)}) has no breaker or fuse at its {'grid (bus)' if export else 'supply'} end {label(net, end)}; "
             "add a feeder panel breaker there",
             assumptions=(SOURCE_END,),
+        )
+
+
+LV_IN_LINE = frozenset({NodeKind.CT, NodeKind.METER, NodeKind.ISOLATOR})
+TAPS_LV = frozenset({NodeKind.AC_SPD, NodeKind.DC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
+LV_OVERCURRENT = frozenset({"mcb", "mccb", "acb", "fuse_hrc"})
+BOTH_ENDS = (
+    "An LT cable on an export path is fed from both ends: by the generators upstream and by the grid (or a transformer) downstream. A fault on it is fed from "
+    "the grid end at the full prospective current, so an overcurrent device must stand at that end (reached through CTs, meters and isolators only); a breaker "
+    "at the generator end clears only the generators' contribution. A transformer at the grid end counts: its HV-side breaker clears the fault (protection.mv_cable)."
+)
+
+
+def _grid_end_device(project: Project, catalog: Catalog, node_id: str) -> tuple[str, str | None]:
+    """Walk downstream from `node_id` through in-line CTs, meters and isolators; returns (first other node, the LT overcurrent device or transformer if that is one)."""
+    net = project.network
+    at = node_id
+    for _ in range(len(net.nodes)):
+        node = net.node(at)
+        spec = _protection(catalog, node)
+        if spec is not None and spec.device in LV_OVERCURRENT:
+            return at, at
+        if node.kind in TRANSFORMERS:
+            return at, at
+        if node.kind not in LV_IN_LINE:
+            return at, None
+        nxt = [e.dst_node for e in net.edges if e.is_power and e.src_node == at and net.node(e.dst_node).kind not in TAPS_LV]
+        if len(nxt) != 1:
+            return at, None
+        at = nxt[0]
+    return at, None
+
+
+@rule("protection.lv_both_ends", "LT export cables are protected at the grid end", clause="IS 732 / IEC 60364-4-43")
+def lv_both_ends(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """An LT AC cable between the generators and the grid is fed from both ends. It needs an MCB, MCCB, ACB or fuse at its grid end (downstream, through
+    in-line CTs, meters and isolators), or a transformer there whose HV breaker clears the fault. A cable whose only overcurrent device is at the generator end
+    (an ACDB outgoing breaker) while its grid end lands on a panel or busbar is a warning: add the solar incomer breaker at the panel. A cable that ends at the
+    supply point itself (the DISCOM service connection) is protected by the supply's own device, by others, and is not checked.
+
+    Worked example: ACDB ACB -> cable -> CT -> isolator -> cable -> consumer LT panel. Both cables reach the panel through the CT and isolator only, so both are
+    flagged until an incomer breaker is placed at the LT panel end."""
+    net = project.network
+    for e in net.edges:
+        if e.service is not Service.LV_AC or e.cable is None or not e.is_power or not exports(net, e.dst_node):
+            continue
+        end, dev = _grid_end_device(project, catalog, e.dst_node)
+        if dev is not None or net.node(end).kind is NodeKind.POI_GRID:
+            continue
+        yield Finding(
+            rule_id="protection.lv_both_ends",
+            severity=Severity.WARNING,
+            subjects=(e.id, end),
+            message=f"LT cable {e.id} ({label(net, e.src_node)} -> {label(net, e.dst_node)}) is fed from both ends but has no breaker or fuse at its grid end: "
+            f"the grid-fed fault reaches it from {label(net, end)} through CTs and isolators only. Add a solar incomer breaker at {label(net, end)}",
+            assumptions=(BOTH_ENDS,),
         )
 
 

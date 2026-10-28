@@ -1,6 +1,7 @@
 """Build the cable schedule of a project from its network, the rules engine's per-edge results and the route estimates."""
 
 from collections import defaultdict
+from dataclasses import replace
 from statistics import fmean
 
 from unicad.catalog.store import Catalog
@@ -170,6 +171,9 @@ def build_schedule(
                     flags=_flags(be, iz, pos, vd), stem=string_id.stem if string_id else "",
                 )
             )  # fmt: skip
+        if rows and src_node.kind is NodeKind.FUSE and net.instance_count(e.src_node) > net.instance_count(e.dst_node):
+            rows = _merge_fan_in(rows)
+            sl = rows[-1].sl
         if rows:
             pair_sizes[(e.service, kinds[position[e.id][1]])] |= sizes
             pending.append((e, cable, tuple(rows)))
@@ -193,6 +197,37 @@ def build_schedule(
         project_id=project.id, project_name=project.name, sections=tuple(sections), basis=basis, vd_summary=summary,
         assumptions=tuple(dict.fromkeys(notes)), warnings=estimate.warnings, gaps=tuple(gaps), template_lengths=estimate.templates(),
     )  # fmt: skip
+
+
+MERGED = "one row per destination: {n} identical circuits (one per string or source) of the same cable and length, listed as {n} runs"
+
+
+def _total(rows: list[CableRow], name: str) -> float | None:
+    vals = [getattr(r, name) for r in rows]
+    return None if any(v is None for v in vals) else sum(vals)
+
+
+def _merge_fan_in(rows: list[CableRow]) -> list[CableRow]:
+    """Rows of a string fuse box to inverter edge (one fuse instance per string, fanning in to the inverter) that share the destination, cable and length become one
+    row whose runs are the string circuits, so the schedule does not repeat a row per string for the short identical link."""
+    groups: dict[tuple, list[CableRow]] = defaultdict(list)
+    for r in rows:
+        groups[(r.dst, r.cable_ref, r.length_pos_m, r.length_neg_m, r.cables_per_run)].append(r)
+    if all(len(g) == 1 for g in groups.values()):
+        return rows
+    first_sl = rows[0].sl
+    out = []
+    for g in groups.values():
+        head = g[0]
+        if len(g) == 1:
+            out.append(head)
+            continue
+        note = MERGED.format(n=len(g))
+        out.append(replace(
+            head, runs=sum(r.runs for r in g), ib_a=_total(g, "ib_a"), iz_a=_total(g, "iz_a"), loss_w=_total(g, "loss_w"),
+            from_tag=f"{head.from_tag} .. {g[-1].from_tag}", remarks="; ".join(x for x in (head.remarks, note) if x),
+        ))  # fmt: skip
+    return [replace(r, sl=first_sl + i) for i, r in enumerate(out)]
 
 
 def _estimate_where_routed(project: Project, catalog: Catalog, assumptions: RouteAssumptions, cabled: list[Edge], mode: LengthMode) -> RouteEstimate:

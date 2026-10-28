@@ -180,6 +180,8 @@ class Locator:
             return Place(p.at.x, p.at.y, self.block_frame.get(self._block_near(p.at), 180.0), f"{p.tag} ({p.basis})")
         if (bus := self.panel_bus(node_id)) is not None:
             return self.location(bus)
+        if kind in PANEL_KINDS and (box := next((n for n in self._wired[node_id] if self.net.node(n).kind in COMBINERS), None)) is not None:
+            return self.location(box)
         below = self.strings_below(node_id)
         if kind is NodeKind.PV_STRING:
             p = self.strings.get(node_id)

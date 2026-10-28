@@ -51,10 +51,11 @@ def _ip(row: CableRow) -> str:
 
 
 def _summarise(rows: list[CableRow]) -> list[tuple[str, ...]]:
-    """One display row per combiner for string cables: lengths, drop and Ib/Iz are the worst of the strings, power loss their sum."""
+    """One display row per combiner for string cables (its string fuses included: the rows share the combiner's cable id stem): lengths, drop and Ib/Iz are
+    the worst of the strings, power loss their sum."""
     groups: dict[str, list[CableRow]] = defaultdict(list)
     for r in rows:
-        groups[r.dst].append(r)
+        groups[r.stem or r.dst].append(r)
     out = []
     for group in groups.values():
         first = group[0]
@@ -65,7 +66,7 @@ def _summarise(rows: list[CableRow]) -> list[tuple[str, ...]]:
         ident = f"{first.stem}-{_ip(first)}..{_ip(group[-1])}-{first.size_mm2:g} sqmm"
         out.append(
             (
-                ident, f"{first.from_tag}..{group[-1].from_tag}", first.to_tag, first.callout, str(first.runs),
+                ident, f"{first.from_tag}..{group[-1].from_tag}", first.to_tag if first.to_tag == group[-1].to_tag else f"{first.to_tag}..{group[-1].to_tag}", first.callout, str(first.runs),
                 _num(max(lengths) if lengths else None), _num(max(negs) if negs else None), _laying(first),
                 _num(first.ib_a, 1), _num(first.iz_a, 1), _num(max(drops) if drops else None), _num(sum(losses) if losses else None),
                 f"MAX OF {len(group)}. {_remarks(first)}",

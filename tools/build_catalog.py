@@ -588,9 +588,9 @@ def import_protection(b: Build) -> None:
             b.add(
                 "protection", "protection_ladders.json vcb_36kv", ProtectionSpec,
                 id=slug("abb-vd4", "36kv", f"{variant['in_a']}a", f"{isc:g}ka"), manufacturer="ABB", model=code,
-                source=src(vcb, extra="fixed version, IEC 62271-100; short-time withstand (3 s) equals rated Isc per p.18"),
+                source=src(vcb, extra=f"fixed version, IEC 62271-100; short-time withstand (3 s) equals rated Isc per p.18; total breaking time <= {vcb['total_breaking_time_ms']} ms per p.{vcb['total_breaking_time_page']}"),
                 device="vcb", rated_current=variant["in_a"], rated_voltage=vcb["rated_voltage_kv"] * 1000, poles=3,
-                breaking_capacity_ka=isc, short_time_withstand_ka=isc, short_time_duration_s=3,
+                breaking_capacity_ka=isc, short_time_withstand_ka=isc, short_time_duration_s=3, break_time_s=vcb["total_breaking_time_ms"] / 1000,
             )
     b.notes.append(
         "VCB 36 kV: ABB VD4 offers 630 A at 16 and 20 kA only; 25 kA starts at 1250 A, so there is no 630 A / 25 kA entry. 1600, 2000 and 2500 A are catalogued at 25, 31.5 and 40 kA "

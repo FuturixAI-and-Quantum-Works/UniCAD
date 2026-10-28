@@ -146,26 +146,57 @@ def bess_intent(project: Project, catalog: Catalog) -> Iterator[Finding]:
         )  # fmt: skip
 
 
+EXPORT_CONTROL_ATTR = "export_control"
+PPC = (
+    "Export control declared (POI export_control = ppc): a power plant controller measures the export at the point of interconnection and curtails the PV inverters "
+    "and the BESS PCS so the export stays within the limit; its make, set-points and the DISCOM's acceptance are to be confirmed (assumption)."
+)
+
+
+def export_sources(project: Project, catalog: Catalog) -> tuple[float, float]:
+    """(PV inverter kVA, BESS PCS kVA) installed, from instance counts."""
+    net = project.network
+    _, pv = plant_capacity(project, catalog)
+    pcs = sum(getattr(catalog.get(n.spec), "rated_kva", 0.0) * net.instance_count(n.id) for n in net.by_kind(NodeKind.PCS) if n.spec is not None)
+    return pv, pcs
+
+
 @rule("ratio.export_limit", "Plant AC capacity within the grid connection limit")
 def export_limit(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """When a poi_grid node carries an `export_limit_kva` attribute (sanctioned or contracted export capacity), total rated inverter AC kVA above it is a warning: the plant needs export limiting or a smaller AC capacity."""
+    """When a poi_grid node carries an `export_limit_kva` attribute (sanctioned or contracted export capacity), the AC capacity that can export through it, rated
+    PV inverter kVA plus BESS PCS kVA (a discharging battery exports like the PV), is compared with it. Above it is a warning: the plant needs export control or a
+    smaller AC capacity. With `export_control` = "ppc" on the POI (a declared power plant controller limiting the export), the excess is an info finding that states
+    the controller assumption. Within the limit is an info finding giving the sum."""
     net = project.network
-    _, ac = plant_capacity(project, catalog)
+    pv, pcs = export_sources(project, catalog)
+    ac = pv + pcs
     sizes = {spec.ac_rated_kva for inv in net.by_kind(*GENERATORS) if (spec := inverter_spec(catalog, inv)) is not None}
     for poi in net.by_kind(NodeKind.POI_GRID):
         limit = poi.attributes.get(EXPORT_LIMIT_ATTR)
-        if not isinstance(limit, (int, float)) or isinstance(limit, bool) or ac <= limit:
+        if not isinstance(limit, (int, float)) or isinstance(limit, bool):
             continue
-        fit = f"; at most {int(limit // next(iter(sizes)))} x {next(iter(sizes)):g} kVA inverters fit" if len(sizes) == 1 else ""
+        parts = f"PV inverters {pv:g} kVA" + (f" + BESS PCS {pcs:g} kVA" if pcs else "")
+        common = {
+            "subjects": (poi.id,), "measured": ac, "limit": float(limit), "unit": "kVA", "formula": "sum(n_inverters x ac_rated_kva) + sum(n_pcs x rated_kva) <= export_limit_kva",
+            "inputs": (Quantity(name="S_pv", value=pv, unit="kVA", source="network"), Quantity(name="S_pcs", value=pcs, unit="kVA", source="network"),
+                       Quantity(name=EXPORT_LIMIT_ATTR, value=limit, unit="kVA", source=f"network.{poi.id}.attributes")),
+        }  # fmt: skip
+        if ac <= limit:
+            yield Finding(rule_id="ratio.export_limit", severity=Severity.INFO, message=f"{parts} = {ac:g} kVA within the {poi.tag} export limit {limit:g} kVA", assumptions=(AC_IS_KVA,), **common)
+            continue
+        if poi.attributes.get(EXPORT_CONTROL_ATTR) == "ppc":
+            yield Finding(
+                rule_id="ratio.export_limit", severity=Severity.INFO,
+                message=f"{parts} = {ac:g} kVA is above the {poi.tag} export limit {limit:g} kVA by {ac - limit:g} kVA; the declared power plant controller limits the export",
+                assumptions=(AC_IS_KVA, PPC), **common,
+            )  # fmt: skip
+            continue
+        fit = f"; {'without the BESS, ' if pcs else ''}at most {int(limit // next(iter(sizes)))} x {next(iter(sizes)):g} kVA inverters fit" if len(sizes) == 1 else ""
         yield Finding(
             rule_id="ratio.export_limit",
             severity=Severity.WARNING,
-            subjects=(poi.id,),
-            message=f"plant AC capacity {ac:g} kVA exceeds the {poi.tag} export limit {limit:g} kVA by {ac - limit:g} kVA ({ac / limit - 1:.1%}){fit}; export control or a smaller AC capacity is needed",
-            measured=ac,
-            limit=float(limit),
-            unit="kVA",
-            formula="sum(n_inverters x ac_rated_kva) <= export_limit_kva",
-            inputs=(Quantity(name="S_ac_total", value=ac, unit="kVA", source="network"), Quantity(name=EXPORT_LIMIT_ATTR, value=limit, unit="kVA", source=f"network.{poi.id}.attributes")),
+            message=f"AC capacity that can export, {parts} = {ac:g} kVA, exceeds the {poi.tag} export limit {limit:g} kVA by {ac - limit:g} kVA ({ac / limit - 1:.1%}){fit}; "
+            "export control (network_autobuild export_control='ppc': a power plant controller) or a smaller AC capacity is needed",
             assumptions=(AC_IS_KVA,),
+            **common,
         )

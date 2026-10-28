@@ -107,8 +107,8 @@ def test_cable_without_rating_for_its_laying_warns():
 def test_utility_lv_cable_uses_inverter_voltage_when_zone_is_undeclared():
     p = variant("utility_50mwac", lambda data: node(data, "inv_acspd").pop("voltage_v"))
     (f,) = [f for f in findings(p, "cables.ampacity") if f.subjects == ("e_inv_idt",)]
-    # SC 4400 UP: 4400 kVA / (sqrt(3) x 660 V) = 3849.0 A <= 8 runs x 589 A
-    assert f.measured == pytest.approx(4400e3 / (math.sqrt(3) * 660), abs=0.01) and f.limit == 8 * 589
+    # SC 4400 UP: 4400 kVA / (sqrt(3) x 660 V) = 3849.0 A against 8 runs x 589 A x 0.81 (3 racks of trefoils in a trench, KEI single core table B)
+    assert f.measured == pytest.approx(4400e3 / (math.sqrt(3) * 660), abs=0.01) and f.limit == pytest.approx(8 * 589 * 0.81, abs=0.01)
     assert any("rated AC voltage" in a for a in f.assumptions)
 
 

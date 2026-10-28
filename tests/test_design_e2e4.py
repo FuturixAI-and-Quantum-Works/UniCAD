@@ -200,7 +200,8 @@ def test_m6_bess_is_the_closest_whole_unit_size_and_c_export_limit_and_dc_ac_say
     assert "at most 42 x 352 kVA inverters fit" in export["message"]
     assert target == pytest.approx(42 * 24 * 27 * 0.58, abs=0.01)
     assert fixed["design"]["ac_kva"] <= 15000 and fixed["design"]["inverters"] == 42
-    assert not warnings(v2, "ratio.export_limit")
+    (left,) = warnings(v2, "ratio.export_limit")
+    assert "PV inverters 14784 kVA + BESS PCS 7560 kVA = 22344 kVA" in left["message"] and "export_control='ppc'" in left["message"]
 
 
 def test_m6_plan_bess_refuses_with_options_when_no_whole_unit_count_is_close():

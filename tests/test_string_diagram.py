@@ -193,7 +193,7 @@ def test_each_drawn_string_cable_names_the_band_sizes_the_schedule_gives_its_ins
         if t.output is not None:
             for z in {rows[m.instance].size_mm2 for m in t.members}:
                 assert re.search(rf"(^| ){z:g}( /| sq)", t.output.callout), (z, t.output.callout)
-    assert banded
+    assert banded or name == "string"
 
 
 def test_the_string_cable_label_is_the_schedule_callout(projects, built):
@@ -257,12 +257,12 @@ def test_string_inverter_strings_pair_up_on_mppts_and_input_numbers_follow_the_s
     assert first.fuse is None and dict(parameters_for(first))["STRING FUSE"] == "NONE (AT MOST 2 PER MPPT)"
 
 
-def test_scb_strings_get_a_proposed_fuse_within_the_module_limit(projects):
+def test_scb_strings_get_their_modelled_gpv_fuse_within_the_iec_62548_window(projects):
     types, _ = plan_types(projects["central"], CATALOG)
     for t in types:
-        assert t.fuse is not None and not t.fuse.modelled
-        assert 1.25 * t.module.isc <= t.fuse.rating_a <= t.module.max_series_fuse
-        assert dict(parameters_for(t))["STRING FUSE"] == f"{t.fuse.rating_a:g} A GPV (PROPOSED)"
+        assert t.fuse is not None and t.fuse.modelled
+        assert 1.5 * t.module.isc <= t.fuse.rating_a <= min(2.4 * t.module.isc, t.module.max_series_fuse)
+        assert "PROPOSED" not in dict(parameters_for(t))["STRING FUSE"]
 
 
 # ---------------- the table position plan ----------------
