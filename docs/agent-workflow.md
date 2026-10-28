@@ -790,12 +790,12 @@ bom(project_id="pune-midc-factory-roof")
   "revision": 11,
   "files": ["<workspace>/pune-midc-factory-roof/exports/pune-midc-factory-roof-bom.xlsx"],
   "summary": {
-    "lines": 38,
+    "lines": 35,
     "modules": 440.0,
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 2526.0
+    "cable_m_ordered": 2400.0
   },
   "warnings": []
 }

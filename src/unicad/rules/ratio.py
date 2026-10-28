@@ -15,6 +15,28 @@ AC_IS_KVA = "AC capacity taken as inverter rated kVA (unity power factor)."
 EXPORT_LIMIT_ATTR = "export_limit_kva"
 
 
+def string_inputs(spec) -> int | None:
+    """DC string inputs of an inverter: the catalog total, else MPPTs x inputs per MPPT."""
+    if spec.dc_input_count is not None:
+        return spec.dc_input_count
+    return spec.mppt_count * spec.inputs_per_mppt if spec.inputs_per_mppt is not None else None
+
+
+def _full(project: Project, catalog: Catalog) -> dict[str, str]:
+    """For inverters whose every string input is used, why their DC/AC ratio cannot rise: the largest DC they take."""
+    out = {}
+    for f in string_feeds(project, catalog):
+        cap = string_inputs(f.spec) if f.spec.topology != "central" else None
+        if cap is None or f.strings_per_inverter < cap:
+            continue
+        kwp = cap * f.n_series * f.module.pmax / 1000
+        out[f.inverter.id] = (
+            f"every one of the {cap} string inputs is used ({cap} x {f.n_series} x {f.module.pmax:g} Wp = {kwp:g} kWp), so the ratio cannot rise with this module "
+            "and string length: the band needs longer strings, a higher-power module, an inverter with more DC inputs or a lower dc_ac_ratio_target"
+        )
+    return out
+
+
 def _dc_kwp(project: Project, catalog: Catalog) -> dict[str, float]:
     out: dict[str, float] = defaultdict(float)
     for f in string_feeds(project, catalog):
@@ -22,16 +44,17 @@ def _dc_kwp(project: Project, catalog: Catalog) -> dict[str, float]:
     return out
 
 
-def _band_finding(rule_id: str, subjects: tuple[str, ...], what: str, ratio: Calc, target: float) -> Finding | None:
+def _band_finding(rule_id: str, subjects: tuple[str, ...], what: str, ratio: Calc, target: float, why_low: str = "") -> Finding | None:
     lo, hi = target * (1 - DC_AC_BAND.value), target * (1 + DC_AC_BAND.value)
     if lo <= ratio.value <= hi:
         return None
     side, limit = ("below", lo) if ratio.value < lo else ("above", hi)
+    why = f"; {why_low}" if why_low and side == "below" else ""
     return Finding(
         rule_id=rule_id,
         severity=Severity.WARNING,
         subjects=subjects,
-        message=f"{what}: DC/AC ratio {ratio.value:.3f} is {side} the design band {lo:.3f}..{hi:.3f} (target {target:g})",
+        message=f"{what}: DC/AC ratio {ratio.value:.3f} is {side} the design band {lo:.3f}..{hi:.3f} (target {target:g}){why}",
         measured=round(ratio.value, 4),
         limit=round(limit, 4),
         unit="",
@@ -46,6 +69,7 @@ def dc_ac_inverter(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """DC kWp feeding one inverter (strings x modules in series x Pmax) over its rated AC kVA, compared with the design basis dc_ac_ratio_target. Outside the band is a warning."""
     net = project.network
     dc = _dc_kwp(project, catalog)
+    full = _full(project, catalog)
     for inv in net.by_kind(*GENERATORS):
         spec = inverter_spec(catalog, inv)
         if spec is None or inv.id not in dc:
@@ -57,7 +81,7 @@ def dc_ac_inverter(project: Project, catalog: Catalog) -> Iterator[Finding]:
             inputs=(Quantity(name="P_dc", value=round(dc[inv.id], 3), unit="kWp", source="network"), Quantity(name="ac_rated_kva", value=spec.ac_rated_kva, unit="kVA", source=spec.id)),
             assumptions=(AC_IS_KVA,),
         )
-        if (f := _band_finding("ratio.dc_ac_inverter", (inv.id,), f"inverter {inv.id} ({label(net, inv.id)}, {spec.model})", ratio, project.design_basis.dc_ac_ratio_target)) is not None:
+        if (f := _band_finding("ratio.dc_ac_inverter", (inv.id,), f"inverter {inv.id} ({label(net, inv.id)}, {spec.model})", ratio, project.design_basis.dc_ac_ratio_target, full.get(inv.id, ""))) is not None:
             yield f
 
 
@@ -83,8 +107,43 @@ def dc_ac_plant(project: Project, catalog: Catalog) -> Iterator[Finding]:
         inputs=(Quantity(name="P_dc_total", value=round(dc, 3), unit="kWp", source="network"), Quantity(name="S_ac_total", value=ac, unit="kVA", source="network")),
         assumptions=(AC_IS_KVA,),
     )
-    if (f := _band_finding("ratio.dc_ac_plant", (), f"plant {project.id} ({dc:.1f} kWp / {ac:g} kVA)", ratio, project.design_basis.dc_ac_ratio_target)) is not None:
+    full = _full(project, catalog)
+    gens = [g.id for g in project.network.by_kind(*GENERATORS) if inverter_spec(catalog, g) is not None]
+    why = next(iter(full.values())) if gens and all(g in full for g in gens) else ""
+    if (f := _band_finding("ratio.dc_ac_plant", (), f"plant {project.id} ({dc:.1f} kWp / {ac:g} kVA)", ratio, project.design_basis.dc_ac_ratio_target, why)) is not None:
         yield f
+
+
+BESS_KW_ASKED, BESS_KWH_ASKED = "bess_kw_requested", "bess_kwh_requested"
+BESS_INFO_BAND = 0.01
+
+
+@rule("ratio.bess_intent", "BESS power and energy as asked")
+def bess_intent(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """When PCS nodes carry the requested storage size (bess_kw_requested / bess_kwh_requested, set by network_autobuild), the built PCS kVA and battery kWh are
+    compared with it, because whole catalog units rarely add up to the request exactly: a difference above 1 % in either is a warning that states it, a smaller one an info finding."""
+    net = project.network
+    pcs = [n for n in net.by_kind(NodeKind.PCS) if n.spec is not None]
+    asked_kw = next((n.attributes.get(BESS_KW_ASKED) for n in pcs if n.attributes.get(BESS_KW_ASKED)), None)
+    asked_kwh = next((n.attributes.get(BESS_KWH_ASKED) for n in pcs if n.attributes.get(BESS_KWH_ASKED)), None)
+    if not asked_kw and not asked_kwh:
+        return
+    kw = sum(getattr(catalog.get(n.spec), "rated_kva", 0.0) * net.instance_count(n.id) for n in pcs)
+    kwh = sum(getattr(catalog.get(n.spec), "energy_kwh", 0.0) * net.instance_count(n.id) for n in net.by_kind(NodeKind.BATTERY) if n.spec is not None)
+    parts, inputs, worst = [], [], 0.0
+    for what, got, asked, unit in (("power", kw, asked_kw, "kVA"), ("energy", kwh, asked_kwh, "kWh")):
+        if not asked:
+            continue
+        inputs += [Quantity(name=f"{what}_built", value=round(got, 1), unit=unit, source="network"), Quantity(name=f"{what}_asked", value=asked, unit=unit, source="network_autobuild intent")]
+        if abs(got / asked - 1) > 1e-6:
+            worst = max(worst, abs(got / asked - 1))
+            parts.append(f"{what} {got:g} {unit} against {asked:g} asked ({got / asked - 1:+.1%})")
+    if parts:
+        yield Finding(
+            rule_id="ratio.bess_intent", severity=Severity.WARNING if worst > BESS_INFO_BAND else Severity.INFO, subjects=tuple(n.id for n in pcs[:1]),
+            message=f"BESS built with whole catalog units differs from the request: {'; '.join(parts)}; check the project title and the contracted storage size",
+            formula="built = n_pcs x rated_kva, n_batteries x energy_kwh", inputs=tuple(inputs),
+        )  # fmt: skip
 
 
 @rule("ratio.export_limit", "Plant AC capacity within the grid connection limit")
@@ -92,15 +151,17 @@ def export_limit(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """When a poi_grid node carries an `export_limit_kva` attribute (sanctioned or contracted export capacity), total rated inverter AC kVA above it is a warning: the plant needs export limiting or a smaller AC capacity."""
     net = project.network
     _, ac = plant_capacity(project, catalog)
+    sizes = {spec.ac_rated_kva for inv in net.by_kind(*GENERATORS) if (spec := inverter_spec(catalog, inv)) is not None}
     for poi in net.by_kind(NodeKind.POI_GRID):
         limit = poi.attributes.get(EXPORT_LIMIT_ATTR)
         if not isinstance(limit, (int, float)) or isinstance(limit, bool) or ac <= limit:
             continue
+        fit = f"; at most {int(limit // next(iter(sizes)))} x {next(iter(sizes)):g} kVA inverters fit" if len(sizes) == 1 else ""
         yield Finding(
             rule_id="ratio.export_limit",
             severity=Severity.WARNING,
             subjects=(poi.id,),
-            message=f"plant AC capacity {ac:g} kVA exceeds the {poi.tag} export limit {limit:g} kVA; export control or a smaller AC capacity is needed",
+            message=f"plant AC capacity {ac:g} kVA exceeds the {poi.tag} export limit {limit:g} kVA by {ac - limit:g} kVA ({ac / limit - 1:.1%}){fit}; export control or a smaller AC capacity is needed",
             measured=ac,
             limit=float(limit),
             unit="kVA",

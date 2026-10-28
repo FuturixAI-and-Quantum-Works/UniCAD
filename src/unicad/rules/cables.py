@@ -13,7 +13,7 @@ from unicad.rules.grouping import grouping
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
-from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, zone_at
+from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, per_instance, zone_at
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
 PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR})
@@ -364,6 +364,108 @@ def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
                 assumptions=z.assumptions,
             )
 
+
+@dataclass(frozen=True)
+class Terminals:
+    """The largest cable per pole and the most cables per pole the switchgear at an edge's ends takes (the tighter device of the two ends)."""
+
+    max_mm2: float | None
+    per_pole: int | None
+    devices: tuple[ProtectionSpec, ...]
+
+    def admits(self, cable: CableSpec, runs: int) -> bool:
+        return (self.max_mm2 is None or cable.size_mm2 <= self.max_mm2 + 1e-9) and (self.per_pole is None or runs <= self.per_pole)
+
+    def text(self) -> str:
+        return f"{self.per_pole or 'any number of'} x {self.max_mm2:g} sq.mm per pole" if self.max_mm2 is not None else f"{self.per_pole} cable(s) per pole"
+
+
+def terminals(project: Project, catalog: Catalog, e: Edge) -> Terminals | None:
+    """Terminal capacity of the protective devices an edge lands on (catalog terminal_max_mm2 / terminal_cables_per_pole), or None when neither end has one."""
+    net = project.network
+    specs = []
+    for nid in (e.src_node, e.dst_node):
+        n = net.node(nid)
+        spec = (n.spec if not isinstance(n.spec, str) else catalog.get(n.spec)) if n.spec is not None else None
+        if isinstance(spec, ProtectionSpec) and (spec.terminal_max_mm2 is not None or spec.terminal_cables_per_pole is not None):
+            specs.append(spec)
+    if not specs:
+        return None
+    sizes = [s.terminal_max_mm2 for s in specs if s.terminal_max_mm2 is not None]
+    counts = [s.terminal_cables_per_pole for s in specs if s.terminal_cables_per_pole is not None]
+    return Terminals(min(sizes) if sizes else None, min(counts) if counts else None, tuple(specs))
+
+
+@rule("cables.terminals", "Cables fit the terminals of the switchgear they land on")
+def terminal_capacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """A cable landing on a breaker or switch must fit its terminals: conductor size per pole at most the device's largest terminal cable and parallel runs at most
+    its cables per pole, as the catalog gives them from the device datasheet (or as a labelled assumption in the catalog source where the datasheet is silent).
+    Every length band of a template edge is checked too. An error when a cable does not fit."""
+    net = project.network
+    for e in net.edges:
+        if not e.is_power or e.cable is None:
+            continue
+        t = terminals(project, catalog, e)
+        if t is None:
+            continue
+        runs = [(cable_of(catalog, e), e.runs, "")] + [(catalog.get(b.cable) if isinstance(b.cable, str) else b.cable, b.runs, f" (band up to {b.upto_m:g} m)") for b in e.bands]
+        for cable, n, where in runs:
+            if not isinstance(cable, CableSpec) or t.admits(cable, n):
+                continue
+            dev = ", ".join(dict.fromkeys(s.model for s in t.devices))
+            yield Finding(
+                rule_id="cables.terminals", severity=Severity.ERROR, subjects=(e.id,),
+                message=f"{edge_label(net, e)}{where}: {n} x {cable.callout()} per pole does not fit the terminals of {dev} ({t.text()})",
+                measured=cable.size_mm2, limit=t.max_mm2, unit="mm2", formula="size <= terminal_max_mm2; runs <= terminal_cables_per_pole",
+                inputs=tuple(Quantity(name="terminal_max_mm2", value=s.terminal_max_mm2 or 0.0, unit="mm2", source=s.id) for s in t.devices),
+            )  # fmt: skip
+
+BATTERY_PROTECTION = (
+    "No DC breaker or fuse is modelled between battery and PCS: the battery container's integrated DC switchgear is taken to protect the cable "
+    "(rated at least Ib and breaking the battery short-circuit current); confirm with the battery datasheet."
+)
+
+
+@rule("cables.battery_dc", "Battery DC cables carry the PCS current at the battery's lowest voltage")
+def battery_dc(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """A battery-to-PCS (or battery-to-DC-DC converter) cable must carry the battery's maximum continuous current when the catalog gives it, else the converter's rated
+    power at the battery's minimum voltage, shared by the batteries in parallel on that converter: Ib = P / V_min / n. Iz below Ib is an error. Where no DC breaker or fuse
+    is modelled on the cable, the finding states that the container's integrated DC switchgear is relied on; a modelled device must have In >= Ib (protection.rated_current)."""
+    from unicad.domain.catalog import BatterySpec
+
+    net = project.network
+    for e in net.edges:
+        if e.service is not Service.DC or not e.is_power or net.node(e.src_node).kind is not NodeKind.BATTERY:
+            continue
+        bat_node, conv = net.node(e.src_node), net.node(e.dst_node)
+        bat = catalog.get(bat_node.spec) if bat_node.spec is not None else None
+        if not isinstance(bat, BatterySpec):
+            continue
+        n = max(1, per_instance(net, bat_node.id, conv.id))
+        conv_spec = catalog.get(conv.spec) if conv.spec is not None else None
+        p_kw = getattr(conv_spec, "rated_kva", None) or conv.attributes.get("rated_kw")
+        if bat.max_continuous_current is not None:
+            ib, formula, inputs = bat.max_continuous_current, "Ib = battery max continuous current", (Quantity(name="I_bat", value=bat.max_continuous_current, unit="A", source=bat.id),)
+        elif isinstance(p_kw, (int, float)) and p_kw:
+            ib = p_kw * 1000 / bat.voltage_min / n
+            formula = "Ib = P / V_min / n"
+            inputs = (Quantity(name="P", value=p_kw, unit="kVA", source=getattr(conv_spec, "id", None) or f"network.{conv.id}.attributes"),
+                      Quantity(name="V_min", value=bat.voltage_min, unit="V", source=bat.id), Quantity(name="n", value=n, source="network"))  # fmt: skip
+        else:
+            continue
+        iz = edge_ampacity(project, catalog, e)
+        if iz is None:
+            continue
+        z = iz.calc()
+        protected = any(net.node(m).kind in (NodeKind.FUSE, NodeKind.BREAKER, NodeKind.DC_ISOLATOR) for m in (zone_at(net, e.src_node).node_ids if zone_at(net, e.src_node) else ()))
+        ok = z.value >= ib - 1e-9
+        yield Finding(
+            rule_id="cables.battery_dc", severity=Severity.INFO if ok else Severity.ERROR, subjects=(e.id,),
+            message=f"{edge_label(net, e)} {iz.cable.callout()} x {e.runs}: Iz {z.value:.0f} A {'carries' if ok else 'is below'} Ib {ib:.0f} A"
+            + ("" if protected else "; DC protection: integrated in the battery container (not modelled)"),
+            measured=round(z.value, 1), limit=round(ib, 1), unit="A", formula=f"Iz >= Ib; {formula}; {z.formula}", inputs=(*inputs, *z.inputs),
+            assumptions=(*z.assumptions, *(() if protected else (BATTERY_PROTECTION,))),
+        )  # fmt: skip
 
 
 @rule("cables.short_circuit", "Cable conductor withstands the prospective fault", clause=OVERLOAD)
