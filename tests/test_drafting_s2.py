@@ -252,3 +252,16 @@ def test_rv_m3_a_plant_with_stations_keeps_them():
 
     text = words(built(load("thar_45mw"), "layout")[0].doc)
     assert "INVERTER STATION (INDICATIVE LOCATION)" in text
+
+
+# ---------------- 11.6: the rooftop fixture SLD is one readable DISCOM sheet ----------------
+
+
+@pytest.mark.parametrize("profile", ["default", "acme"])
+def test_the_rooftop_fixture_sld_is_a_single_readable_sheet(profile, tmp_path):
+    from test_design import fixture
+
+    p = fixture("rooftop_500kwp").model_copy(update={"company_profile": profile})
+    index = render_set(p, tmp_path, kinds=["sld"], formats=("dxf",), catalog=CATALOG)
+    assert [(s["id"], s["readable"]) for s in index.sheets] == [("sld", True)], index.sheets
+    assert not any("NOT READABLE" in w for w in index.warnings)
