@@ -35,15 +35,15 @@ SHADE_HOURS = (9.0, 15.0)
 RELOCATE_SPACING_M = 2.0
 RELOCATE_EVALUATIONS = 120
 RELOCATE_INSET_M = 0.002
-ENVELOPE_M = {"inverter": 2.0}
+ENVELOPE_M = {"inverter": 2.0, "acdb": 2.0, "lt_panel": 2.0, "poi_grid": 2.0}
 ENVELOPE_DEFAULT_M = 8.0
 CLASS_LABEL = {
-    "table": "tables", "station": "inverter stations", "switchyard": "MV switchyard", "bess": "BESS units", "field_inverter": "string inverters",
+    "table": "tables", "station": "inverter stations", "switchyard": "MV switchyard", "bess": "BESS units", "field_inverter": "string inverters", "lt_panel": "LT panels",
     "roof": "roofs", "building": "buildings",
 }
 ENVELOPE_ASSUMPTION = (
     f"equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer) is protected as a {ENVELOPE_DEFAULT_M:g} m square "
-    f"centred on its stored position and each string inverter as a {ENVELOPE_M['inverter']:g} m square (assumed envelopes, not datasheet sizes)"
+    f"centred on its stored position and each string inverter and LT panel as a {ENVELOPE_M['inverter']:g} m square (assumed envelopes, not datasheet sizes)"
 )
 MAST_ASSUMPTION = (
     f"terminals keep {MAST_CLEAR_M:g} m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure), "
@@ -148,12 +148,17 @@ def _footprint_targets(gid: str, kind: str, poly: Polygon) -> list[Target]:
     return [Target(f"{gid}#{i}", kind, (round(x, 3), round(y, 3))) for i, (x, y) in enumerate(_samples(poly))]
 
 
+def _equipment_class(kind: str) -> str:
+    return "field_inverter" if kind == "inverter" else "lt_panel" if kind in ENVELOPE_M else "bess"
+
+
 def placed_equipment(project: Project) -> list[tuple[str, str, str, tuple[float, float]]]:
     """(class, id, kind, position) of the equipment the layout places in the field: string inverters and BESS units."""
     layout = project.array_layout
     if layout is None:
         return []
-    return [("field_inverter" if e.kind == "inverter" else "bess", e.node, e.kind, (e.at.x, e.at.y)) for e in layout.equipment]
+    nodes = {n.id for n in project.network.nodes}
+    return [(_equipment_class(e.kind), e.node, e.kind, (e.at.x, e.at.y)) for e in layout.equipment if not project.network.nodes or e.node.split("@")[0] in nodes]
 
 
 def targets(project: Project, extra: tuple[Target, ...] = ()) -> tuple[Target, ...]:
@@ -163,8 +168,11 @@ def targets(project: Project, extra: tuple[Target, ...] = ()) -> tuple[Target, .
         for t in layout.table_by_id.values():
             out.append(Target(t.id, "table", table_centre(t)))
             out += [Target(f"{t.id}#{i}", "table_corner", c) for i, c in enumerate(table_corners(t))]
+        from unicad.design.placement import stations_exist
+
+        has_stations = stations_exist(project)
         for b in layout.blocks:
-            if b.station is not None:
+            if b.station is not None and has_stations:
                 out += _footprint_targets(f"{b.id}~station", "station", equipment_footprint("station", (b.station.x, b.station.y)))
         for cls, node, kind, at in placed_equipment(project):
             out += _footprint_targets(node, cls, equipment_footprint(kind, at))
@@ -374,7 +382,7 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
     uncovered = tuple(tg[i] for i in cover.uncovered) if cover is not None else ()
     if basis.method == "ese":
         assumptions.append("ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius")
-    if any(t.kind in ("station", "bess", "field_inverter") for t in tg):
+    if any(t.kind in ("station", "bess", "field_inverter", "lt_panel") for t in tg):
         assumptions.append(ENVELOPE_ASSUMPTION)
     if any(t.kind == "switchyard" for t in tg) and switchyard_footprint(project) is None:
         assumptions.append("MV switchyard size unknown (switchyard_m or a marked area): only its location is checked for lightning cover")

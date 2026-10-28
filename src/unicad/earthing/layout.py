@@ -34,9 +34,11 @@ TOL = 1e-3
 CONNECTIONS: dict[NodeKind, int] = {
     NodeKind.INVERTER: 2, NodeKind.PCS: 2, NodeKind.BATTERY: 2, NodeKind.TRANSFORMER: 2, NodeKind.AUX_TRANSFORMER: 2,
     NodeKind.ACDB: 2, NodeKind.LT_PANEL: 2, NodeKind.HT_PANEL: 2, NodeKind.RMU: 2, NodeKind.VCB: 2, NodeKind.DG: 2,
-    NodeKind.SCB: 2, NodeKind.DC_FUSE_BOX: 1, NodeKind.LIGHTNING_ARRESTER: 1, NodeKind.PT: 1, NodeKind.CT: 1,
+    NodeKind.SCB: 2, NodeKind.DC_FUSE_BOX: 1, NodeKind.LIGHTNING_ARRESTER: 1, NodeKind.PT: 1, NodeKind.CT: 1, NodeKind.POI_GRID: 2,
 }  # fmt: skip
-BONDED_KINDS = frozenset(CONNECTIONS)
+PLACED_ONLY_KINDS = frozenset({NodeKind.POI_GRID})
+BONDED_KINDS = frozenset(CONNECTIONS) - PLACED_ONLY_KINDS
+LT_PANEL_KINDS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.POI_GRID})
 # Dedicated pits per equipment item (transformers 2 body + 2 neutral, panels 2: practice quoted by J. Parmar, EEP part 1; LA and PT
 # untreated pits as on the CIL/Refex layout).
 PITS: dict[NodeKind, tuple[PitRole, ...]] = {
@@ -192,8 +194,9 @@ def equipment(project: Project) -> tuple[dict[int, list[Instance]], list[Instanc
     insts = list(_instances(project))
     unit_block = _unit_blocks(project, insts) if n_blocks > 1 else {}
     away = _housed_away(project.network)
+    placed = layout.equipment_by_node if layout is not None else {}
     for iid, tag, kind, unit in insts:
-        if kind not in BONDED_KINDS:
+        if kind not in BONDED_KINDS and not (kind in PLACED_ONLY_KINDS and iid in placed):
             continue
         if iid.split("@")[0] in away:
             plant.append((iid, tag, kind))
@@ -645,6 +648,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             _risers(lay, segs, tables[0].azimuth_deg, sizes.main, 1.6 * (pitch or 10), buried=True)
     placed = layout.equipment_by_node if layout is not None else {}
     field_items = [it for it in plant if it[0] in placed] + [it for items in per_block.values() for it in items if it[0] in placed]
+    in_field = {i for i, items in per_block.items() if any(it[0] in placed for it in items)}
     plant = [it for it in plant if it[0] not in placed]
     per_block = {i: [it for it in items if it[0] not in placed] for i, items in per_block.items()}
     yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
@@ -666,6 +670,8 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         scbs = [it for it in items if it[2] in FIELD_BOXES]
         rest = [it for it in items if it[2] not in FIELD_BOXES] + (hosted if i == host else [])
         if not rest:
+            if i in in_field:
+                continue
             rest = [(f"{b.id}~station", f"{b.name} STATION", NodeKind.INVERTER)]
         at = _xy(b.station)
         roof = next((p for _, p in roof_polys if p.contains(SPoint(*at))), None)
@@ -681,9 +687,9 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             if not lay.rooftop:
                 lay.pit(PitRole.EP, (p[0] + 1.0, p[1] + 0.6), (iid,))
                 lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (p[0] + 1.0, p[1] + 0.6)], (iid,))
-    bess_items = [it for it in field_items if it[2] is not NodeKind.INVERTER]
+    bess_items = [it for it in field_items if it[2] is not NodeKind.INVERTER and it[2] not in LT_PANEL_KINDS]
     for iid, tag, kind in field_items:
-        if kind is NodeKind.INVERTER:
+        if kind is NodeKind.INVERTER or kind in LT_PANEL_KINDS:
             _field_item(lay, iid, tag, kind, _xy(placed[iid].at), array_runs, sizes)
     if yard_items:
         _switchyard(lay, switchyard[0], switchyard[1], yard_items, sizes, perimeter_pits)

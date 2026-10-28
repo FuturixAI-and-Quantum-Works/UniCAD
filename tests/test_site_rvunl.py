@@ -100,3 +100,67 @@ def test_rvunl_single_mast_stands_where_it_shades_least_and_says_so(tmp_path):
     assert mast["shade_m2"] == pytest.approx(swept_shadow_m2(mast["x"], mast["y"], tables, lat, 6.0), rel=0.02)
     notes = " ".join(lps["assumptions"])
     assert "only terminal" in notes and "mast shadow over tables" in notes and "protection circle beyond the plot" in notes
+
+
+INVERTER = "huawei-sun2000-100ktl-m2"
+
+
+async def rvunl_lt_plant(c, tmp_path: Path) -> str:
+    pid = await rvunl_plot(c, tmp_path)
+    await c.call("layout_place", project_id=pid, **LAYOUT)
+    await c.call(
+        "network_autobuild", project_id=pid, template="ci_rooftop", dc_kwp=1371.6, module=MODULE, inverter=INVERTER, modules_per_string=18,
+        strings_per_inverter=10, grid_voltage_v=415,
+    )  # fmt: skip
+    await c.call("network_remove", project_id=pid, ids=["ac_iso", "net_ct", "net_meter", "inc_brk", "ltp", "load"])
+    await c.call(
+        "network_connect", project_id=pid, src="solar_ct:out", dst="poi:in", service="lv_ac", cable="polycab-lt-xlpe-al-3.5c-300-arm", runs=9,
+        length_m=60, laying="tray", edge_id="e_ct_poi",
+    )  # fmt: skip
+    await c.call("project_design_basis", project_id=pid, earthing={"soil_resistivity_ohm_m": 100, "fault_current_ka": 10, "fault_clearing_s": 1})
+    return pid
+
+
+def loaded(tmp_path: Path, pid: str):
+    import unicad.earthing  # noqa: F401
+    from unicad.mcp import Config
+    from unicad.mcp.workspace import Workspace
+
+    ws = Workspace(Config(workspace=tmp_path / "ws"))
+    return ws, ws.load(pid, None)[0]
+
+
+def test_rvunl_earthing_has_no_station_details_for_string_inverters(tmp_path):
+    from unicad.earthing import design_earthing
+
+    pid = run(tmp_path, lambda c: rvunl_lt_plant(c, tmp_path))
+    ws, p = loaded(tmp_path, pid)
+    assert len(p.array_layout.equipment_by_node) >= 12
+    d = design_earthing(p, catalog=ws.catalog)
+    assert [g.name for g in d.layout.stations if g.kind == "station"] == []
+    assert not [i for i in d.layout.items if i.id.endswith("~station")]
+    tags = {i.tag for i in d.layout.items}
+    assert {"ACCB-01"} <= tags or any(i.kind == "acdb" for i in d.layout.items)
+
+
+def test_rvunl_accb_and_client_panel_stand_outside_the_tables_with_a_route(tmp_path):
+    async def scenario(c):
+        pid = await rvunl_lt_plant(c, tmp_path)
+        return pid, await c.call("layout_summary", project_id=pid)
+
+    pid, summary = run(tmp_path, scenario)
+    ws, p = loaded(tmp_path, pid)
+    union = unary_union([Polygon(table_corners(t)) for t in p.array_layout.table_by_id.values()])
+    panels = {e.kind: e for e in p.array_layout.equipment if e.kind in ("acdb", "poi_grid")}
+    assert set(panels) == {"acdb", "poi_grid"}
+    for e in panels.values():
+        assert union.distance(Point(e.at.x, e.at.y)) >= 1.5, f"{e.tag} stands on or against the tables"
+    assert math.dist((panels["acdb"].at.x, panels["acdb"].at.y), (panels["poi_grid"].at.x, panels["poi_grid"].at.y)) >= 5
+    assert summary["field_equipment"]["acdb"] == 1 and summary["field_equipment"]["poi_grid"] == 1
+    route = summary["lt_route"]
+    assert len(route) == 1 and route[0]["from"] == panels["acdb"].tag
+    pts = route[0]["points"]
+    assert pts[0] == [panels["acdb"].at.x, panels["acdb"].at.y] and pts[-1] == [panels["poi_grid"].at.x, panels["poi_grid"].at.y]
+    from shapely.geometry import LineString
+
+    assert LineString(pts).intersection(union).length == 0

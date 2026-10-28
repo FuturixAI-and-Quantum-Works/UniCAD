@@ -10,13 +10,14 @@ from unicad.arrays.geometry import frame
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Orientation, StringAssignment
 from unicad.domain.network import NodeKind
-from unicad.design.placement import BESS_PITCH_M, _bess_units
+from unicad.design.placement import BESS_PITCH_M, _bess_units, stations_exist
 from unicad.domain.project import Project, Segment
 from unicad.domain.site import SiteGeometry
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import MountingArg, PitchMethodArg, RegionModeArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Problem, Workspace
+from unicad.routing.panels import live_panels, panel_routes
 from unicad.rules.structure import BESS_SEPARATION_M
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
@@ -310,6 +311,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
             "strings_linked": len(layout.strings),
             "switchyard": None if layout.switchyard is None else {"x": layout.switchyard.at.x, "y": layout.switchyard.at.y, "basis": layout.switchyard.basis},
             "field_equipment": dict(Counter(e.kind for e in layout.equipment)),
+            "lt_panels": [{"tag": e.tag, "kind": e.kind, "x": e.at.x, "y": e.at.y, "basis": e.basis} for e in live_panels(p)],
+            "lt_route": [{"edge": r.edge, "from": r.from_tag, "to": r.to_tag, "length_m": r.length_m, "points": [list(q) for q in r.points]} for r in panel_routes(p)],
+            "block_stations_are_equipment": stations_exist(p),
         }
 
     @server.tool(annotations=READ_ONLY)
