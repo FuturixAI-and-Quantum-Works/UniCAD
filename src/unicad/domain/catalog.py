@@ -108,6 +108,8 @@ class InverterSpec(Spec):
     max_dc_input_current: Amps | None = None
     max_dc_short_circuit_current: Amps | None = None
     max_efficiency: float | None = Field(default=None, gt=0, le=1)
+    ac_terminal_max_mm2: float | None = Field(default=None, gt=0, description="largest AC cable per pole the output terminals take (sq.mm), from the datasheet; None when it is silent")
+    ac_terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most AC cables per pole the output terminals take, from the datasheet; None when it is silent")
 
     @model_validator(mode="before")
     @classmethod

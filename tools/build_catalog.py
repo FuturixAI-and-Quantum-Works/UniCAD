@@ -264,6 +264,10 @@ def import_inverters(b: Build) -> None:
         extra = "inputs per MPPT differ between trackers; smallest used" if len(set(strings)) > 1 else ""
         if int(r["mppt_count"]) > 1 and not r["idc_max_per_mppt_a"]:
             extra = "datasheet gives DC input totals only; per-MPPT currents left empty"
+        if r["ac_terminal_max_mm2"]:
+            fields["ac_terminal_max_mm2"] = num(r["ac_terminal_max_mm2"])
+            t = f"AC terminal from p.{r['ac_terminal_pdf_page']}: '{r['ac_terminal_text']}'; cables per pole not stated"
+            extra = f"{extra}; {t}" if extra else t
         b.add(
             "inverter", ref, InverterSpec,
             id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
@@ -699,6 +703,16 @@ def import_switchgear(b: Build) -> None:
             source=src(dehn3, f"part no. {v['part_no']}; {dehn3['note']} Up <= {v['up_kv']} kV; Imax {v['imax_ka']} kA; max mains-side backup fuse {v['max_backup_fuse_a']} A gG; remote signalling {v['remote_signalling']}"),
             device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
         )
+    it = phase2["spd_ac_dehn_it"]
+    req = it["it_requirement"]
+    for v in it["variants"]:
+        b.add(
+            "protection", "protection_phase2.json spd_ac_dehn_it", ProtectionSpec,
+            id=slug("dehn", v["code"], f"{v['units']}x"), manufacturer="DEHN", model=f"{v['units']} x DEHNguard {v['code']} (3-0 circuit)",
+            source=src(it, f"part no. {v['part_no']} x {v['units']}; {it['note']} IT requirement: '{req['text']}', {req['url']} (printed p.{req['printed_page']}, Figure {req['figure']}); "
+                       f"Up <= {v['up_kv']} kV; Imax {v['imax_ka']} kA; max mains-side backup fuse {v['max_backup_fuse_a']} A gG; remote signalling {v['remote_signalling']}"),
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+        )
     pt = phase2["pt_33kv"]
     b.add(
         "protection", "protection_phase2.json pt_33kv", ProtectionSpec,
@@ -717,7 +731,7 @@ def import_switchgear(b: Build) -> None:
         device="lightning_arrester", rated_voltage=la["ur_kv"] * 1000, poles=1, nominal_discharge_current_ka=la["nominal_discharge_current_ka"], surge_counter=True,
     )
     b.notes.append("Isolators: ABB OT E-series (AC, 200-2500 A, 3/4P) and OTDC (DC, 100-250 A, 1000 V S1.0 and 1500 V S2.0, 2/4P). The 1250-2500 A OT frames carry no short-time withstand because the text layer of their table columns is ambiguous.")
-    b.notes.append("AC SPD Type 2: Finder 7P.23/7P.25 for 230/400 V systems and DEHN DG SE CI 440 FM (single pole, for 400/690 V systems). DC SPD 1500 V is the Finder 7P.23.9.500.x015 entry above.")
+    b.notes.append("AC SPD Type 2: Finder 7P.23/7P.25 for 230/400 V systems, DEHN DG SE CI 440 FM (single pole, for 400/690 V systems), DEHN DG M WE 600 (3+0) and a set of three DEHN DG SE H 1000 FM (Uc 1000 V, 3-0 circuit) for IT buses up to 909 V. DC SPD 1500 V is the Finder 7P.23.9.500.x015 entry above.")
     b.notes.append("33 kV PT and the 36 kV class arrester with discharge counter come from purchaser specifications (WBSEDCL; a buyer's switchgear surge-arrester specification whose issuer the document does not name), not manufacturer datasheets.")
 
 

@@ -5,11 +5,11 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 from unicad.catalog.store import Catalog
-from unicad.domain.catalog import CableSpec, Conductor, ProtectionSpec
+from unicad.domain.catalog import CableSpec, Conductor, InverterSpec, ProtectionSpec
 from unicad.domain.network import Edge, ElectricalNetwork, Laying, NodeKind, Service
 from unicad.domain.project import Project
 from unicad.rules.faults import LV_BREAKER_CLEARING, LV_BREAKER_CLEARING_S, default_clearing, fault_at, prospective_in
-from unicad.rules.grouping import grouping
+from unicad.rules.derating import Derating, derating
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
@@ -29,7 +29,7 @@ COLUMN = {
     Laying.CONDUIT: "duct",
 }
 COLUMN_NOTES = {
-    Laying.TRENCH: "Cables in a trench are rated with the in-air ampacity column; apply trench grouping through the edge derating.",
+    Laying.TRENCH: "Cables in a covered trench are rated with the in-air ampacity column times the KEI covered-trench rating factor for the circuits laid together.",
     Laying.CONDUIT: "Cables in conduit are rated with the in-duct ampacity column.",
     Laying.OVERHEAD: "Overhead cables are rated with the in-air ampacity column.",
 }
@@ -85,6 +85,7 @@ class Ampacity:
     runs: int
     assumptions: tuple[str, ...]
     grouping_source: str | None = None
+    parts: Derating | None = None
 
     @property
     def value(self) -> float:
@@ -123,13 +124,12 @@ def edge_ampacity(project: Project, catalog: Catalog, e: Edge) -> Ampacity | Non
     base, column, notes = table_ampacity(cable, e.laying, phases(project, catalog, e))
     if base is None:
         return None
-    given = e.derating is not None
-    if given:
+    if e.derating is not None:
         return Ampacity(cable, base, column, e.derating, True, e.runs, notes)
-    g = grouping(cable, e.laying, e.runs, e.service is Service.DC)
-    if g is not None and g.factor is not None:
-        return Ampacity(cable, base, column, g.factor, False, e.runs, (*notes, f"No derating on the edge: the {g.source} is applied; ambient and depth corrections are not."), g.source)
-    return Ampacity(cable, base, column, 1.0, False, e.runs, (*notes, NO_DERATING, *((g.source,) if g else ())))
+    d = derating(cable, e.laying, e.runs, e.service is Service.DC, project.design_basis.ambient_max_c)
+    if d.factor != 1.0 or d.source:
+        return Ampacity(cable, base, column, d.factor, False, e.runs, (*notes, f"No derating on the edge: {d.source}.", *d.notes), d.source, d)
+    return Ampacity(cable, base, column, 1.0, False, e.runs, (*notes, NO_DERATING))
 
 
 @rule("cables.missing", "Power connections have a cable and a length")
@@ -147,6 +147,16 @@ def missing(project: Project, catalog: Catalog) -> Iterator[Finding]:
                 subjects=(e.id,),
                 message=f"{edge_label(net, e)} ({e.service}) has no {' or '.join(gaps)}; cable sizing and voltage drop are not checked for it",
             )
+
+
+def _taken(iz: Ampacity) -> str:
+    d = iz.parts
+    if d is None:
+        return "taken as 1.0"
+    parts = [f"temperature factor {d.temperature:g}"] if d.temperature != 1.0 else []
+    if d.group != 1.0:
+        parts.append(f"group rating factor {d.group:g} for {iz.runs} parallel runs" if iz.runs > 1 else f"covered-trench factor {d.group:g}")
+    return f"derating {iz.derating:g} = " + " x ".join(parts) if parts else f"derating {iz.derating:g} ({d.source})"
 
 
 @rule("cables.ampacity", "Cable current-carrying capacity covers the design current", clause=IS_732)
@@ -184,13 +194,13 @@ def ampacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
             "unit": "A",
             "formula": f"Ib <= Iz; {ib.formula}; {z.formula}",
             "inputs": (*ib.inputs, *z.inputs),
-            "assumptions": (*ib.assumptions, *z.assumptions),
+            "assumptions": (*ib.assumptions, *z.assumptions, *((f"Sized above its current: {e.sized_for}",) if e.sized_for else ())),
         }
         working = f"Iz = {iz.base:g} A ({iz.column}) x {iz.derating:g} x {iz.runs} = {z.value:.1f} A"
         if ib.value > z.value:
             yield Finding(rule_id="cables.ampacity", severity=Severity.ERROR, message=f"{where}: Ib {ib.value:.1f} A exceeds {working}", **common)
         elif not iz.derating_given:
-            taken = f"group rating factor {iz.derating:g} for {iz.runs} parallel runs" if iz.grouping_source else "taken as 1.0"
+            taken = _taken(iz)
             yield Finding(rule_id="cables.ampacity", severity=Severity.INFO, message=f"{where}: derating not specified, {taken}; Ib {ib.value:.1f} A within {working}", **common)
 
 
@@ -388,12 +398,23 @@ def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
 
 
 @dataclass(frozen=True)
+class TerminalLimit:
+    """What one device at an edge's end takes per pole, from its catalog entry."""
+
+    id: str
+    model: str
+    max_mm2: float | None
+    per_pole: int | None
+    inverter: bool = False
+
+
+@dataclass(frozen=True)
 class Terminals:
-    """The largest cable per pole and the most cables per pole the switchgear at an edge's ends takes (the tighter device of the two ends)."""
+    """The largest cable per pole and the most cables per pole the equipment at an edge's ends takes (the tighter device of the two ends)."""
 
     max_mm2: float | None
     per_pole: int | None
-    devices: tuple[ProtectionSpec, ...]
+    devices: tuple[TerminalLimit, ...]
 
     def admits(self, cable: CableSpec, runs: int) -> bool:
         return (self.max_mm2 is None or cable.size_mm2 <= self.max_mm2 + 1e-9) and (self.per_pole is None or runs <= self.per_pole)
@@ -402,27 +423,40 @@ class Terminals:
         return f"{self.per_pole or 'any number of'} x {self.max_mm2:g} sq.mm per pole" if self.max_mm2 is not None else f"{self.per_pole} cable(s) per pole"
 
 
-def terminals(project: Project, catalog: Catalog, e: Edge) -> Terminals | None:
-    """Terminal capacity of the protective devices an edge lands on (catalog terminal_max_mm2 / terminal_cables_per_pole), or None when neither end has one."""
+def _limit(spec, port: str) -> TerminalLimit | None:
+    if isinstance(spec, ProtectionSpec) and (spec.terminal_max_mm2 is not None or spec.terminal_cables_per_pole is not None):
+        return TerminalLimit(spec.id, spec.model, spec.terminal_max_mm2, spec.terminal_cables_per_pole)
+    if isinstance(spec, InverterSpec) and port == "ac" and (spec.ac_terminal_max_mm2 is not None or spec.ac_terminal_cables_per_pole is not None):
+        return TerminalLimit(spec.id, f"{spec.manufacturer} {spec.model} AC output", spec.ac_terminal_max_mm2, spec.ac_terminal_cables_per_pole, True)
+    return None
+
+
+def terminals(project: Project, catalog: Catalog, e: Edge, switchgear: bool = True, equipment: bool = True) -> Terminals | None:
+    """Terminal capacity of the switchgear (catalog terminal_max_mm2 / terminal_cables_per_pole) and of the inverter AC outputs (ac_terminal_max_mm2 /
+    ac_terminal_cables_per_pole) an edge lands on, or None when neither end has one."""
     net = project.network
-    specs = []
-    for nid in (e.src_node, e.dst_node):
+    limits = []
+    for nid, port in ((e.src_node, e.src_port), (e.dst_node, e.dst_port)):
         n = net.node(nid)
         spec = (n.spec if not isinstance(n.spec, str) else catalog.get(n.spec)) if n.spec is not None else None
-        if isinstance(spec, ProtectionSpec) and (spec.terminal_max_mm2 is not None or spec.terminal_cables_per_pole is not None):
-            specs.append(spec)
-    if not specs:
+        if (isinstance(spec, ProtectionSpec) and not switchgear) or (isinstance(spec, InverterSpec) and not equipment):
+            continue
+        if (lim := _limit(spec, port)) is not None:
+            limits.append(lim)
+    if not limits:
         return None
-    sizes = [s.terminal_max_mm2 for s in specs if s.terminal_max_mm2 is not None]
-    counts = [s.terminal_cables_per_pole for s in specs if s.terminal_cables_per_pole is not None]
-    return Terminals(min(sizes) if sizes else None, min(counts) if counts else None, tuple(specs))
+    sizes = [x.max_mm2 for x in limits if x.max_mm2 is not None]
+    counts = [x.per_pole for x in limits if x.per_pole is not None]
+    return Terminals(min(sizes) if sizes else None, min(counts) if counts else None, tuple(limits))
 
 
-@rule("cables.terminals", "Cables fit the terminals of the switchgear they land on")
+@rule("cables.terminals", "Cables fit the terminals of the switchgear and inverter outputs they land on")
 def terminal_capacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """A cable landing on a breaker or switch must fit its terminals: conductor size per pole at most the device's largest terminal cable and parallel runs at most
     its cables per pole, as the catalog gives them from the device datasheet (or as a labelled assumption in the catalog source where the datasheet is silent).
-    Every length band of a template edge is checked too. An error when a cable does not fit."""
+    Every length band of a template edge is checked too. An error when a cable does not fit. The same holds for an inverter's AC output terminals where its
+    datasheet gives the largest cable (and cables per pole); where it gives the size but not the number of cables per pole, more than one cable per pole is a
+    warning to confirm with the manufacturer."""
     net = project.network
     for e in net.edges:
         if not e.is_power or e.cable is None:
@@ -434,12 +468,21 @@ def terminal_capacity(project: Project, catalog: Catalog) -> Iterator[Finding]:
         for cable, n, where in runs:
             if not isinstance(cable, CableSpec) or t.admits(cable, n):
                 continue
-            dev = ", ".join(dict.fromkeys(s.model for s in t.devices))
+            dev = ", ".join(dict.fromkeys(d.model for d in t.devices))
             yield Finding(
                 rule_id="cables.terminals", severity=Severity.ERROR, subjects=(e.id,),
                 message=f"{edge_label(net, e)}{where}: {n} x {cable.callout()} per pole does not fit the terminals of {dev} ({t.text()})",
                 measured=cable.size_mm2, limit=t.max_mm2, unit="mm2", formula="size <= terminal_max_mm2; runs <= terminal_cables_per_pole",
-                inputs=tuple(Quantity(name="terminal_max_mm2", value=s.terminal_max_mm2 or 0.0, unit="mm2", source=s.id) for s in t.devices),
+                inputs=tuple(Quantity(name="terminal_max_mm2", value=d.max_mm2 or 0.0, unit="mm2", source=d.id) for d in t.devices),
+            )  # fmt: skip
+        silent = [d for d in t.devices if d.inverter and d.per_pole is None]
+        many = max([e.runs, *(b.runs for b in e.bands)])
+        if silent and many > 1:
+            yield Finding(
+                rule_id="cables.terminals", severity=Severity.WARNING, subjects=(e.id,),
+                message=f"{edge_label(net, e)}: {many} cables per pole land on the {', '.join(d.model for d in silent)}, whose datasheet gives the largest cable "
+                f"({silent[0].max_mm2:g} sq.mm) but not how many cables per pole the terminal takes; confirm with the manufacturer",
+                measured=many, unit="runs", inputs=tuple(Quantity(name="terminal_max_mm2", value=d.max_mm2 or 0.0, unit="mm2", source=d.id) for d in silent),
             )  # fmt: skip
 
 BATTERY_PROTECTION = (

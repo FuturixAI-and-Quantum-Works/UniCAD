@@ -3,7 +3,7 @@ distinct block type, and further sheets wherever a sheet would not be readable o
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from pydantic import BaseModel
@@ -273,6 +273,12 @@ class SldBuilder:
             tried.add((s.id, drawn))
             area = metrics_for(PaperSize(papers[-1])).drawing_area
             pages = plan_pages(shown.network, catalog, area.width, area.height, self.options, drawn)
+            achieved = max(scales[papers[-1]], 1e-6)
+            for margin in (1.02, 1.2, 1.5):
+                if len(pages) > 1:
+                    break
+                # the plan measures a page without its off-sheet markers, which the sheet then draws; a page the plan finds just readable is not
+                pages = plan_pages(shown.network, catalog, area.width, area.height, replace(self.options, min_scale=self.options.min_scale * max(1.0, self.options.min_scale / achieved) * margin), drawn)
             taken = {sid for sid in (x.id for x in sheets)}
             extra = []
             for pg in pages[1:]:

@@ -19,6 +19,7 @@ from shapely import STRtree
 from shapely.geometry import LineString, MultiPolygon, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
+from shapely.prepared import prep
 
 from unicad.arrays.geometry import frame, plan_depth, plan_length, table_corners
 from unicad.arrays.spec import PlacementResult, RoadLine
@@ -26,7 +27,7 @@ from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Table
 from unicad.domain.site import FeatureKind, SiteFeature, SiteGeometry, shape_of
 from unicad.drafting.dxfrules import MIN_LINEWEIGHT, plain
-from unicad.drafting.labels import Label, LabelPlacer
+from unicad.drafting.labels import Label, LabelPlacer, _segment_hits, nearest_on
 from unicad.drafting.legend import legend_drawer
 from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.layout import SheetMetrics, metrics_for
@@ -161,6 +162,15 @@ def _view_extent(d: LayoutDrawing, view: View) -> tuple[float, float, float, flo
     return unary_union(shapes).bounds
 
 
+def _segments_cross(a: tuple[tuple[float, float], tuple[float, float]], b: tuple[tuple[float, float], tuple[float, float]]) -> bool:
+    (p, q), (r, t) = a, b
+
+    def side(o, u, v):
+        return (u[0] - o[0]) * (v[1] - o[1]) - (u[1] - o[1]) * (v[0] - o[0])
+
+    return side(p, q, r) * side(p, q, t) < 0 and side(r, t, p) * side(r, t, q) < 0
+
+
 class _Plan:
     """Site metres to paper millimetres."""
 
@@ -189,6 +199,7 @@ class LayoutSheetWriter:
         self.table_blocks: dict[tuple, str] = {}
         self.clip: Region | None = None
         self.placer: LabelPlacer | None = None
+        self._fence: list = []
 
     def _placer(self, room: Region) -> LabelPlacer:
         self.placer = LabelPlacer(room, max_leader=10 * self.m.th, gap=0.15 * self.m.th, cell=2 * self.m.th)
@@ -209,13 +220,13 @@ class LayoutSheetWriter:
         return [list(p.coords) for p in parts if isinstance(p, LineString) and not p.is_empty and p.length > 0]
 
     def _label_text(self, lines: Sequence[str], anchor: tuple[float, float], h: float, clear: float, key: str, layer: str = L_LABEL.name,
-                    colour: int | None = None, mask: bool = False, cost=None, hs: Sequence[float] | None = None) -> bool:  # fmt: skip
+                    colour: int | None = None, mask: bool = False, cost=None, hs: Sequence[float] | None = None, allow=None) -> bool:  # fmt: skip
         """Place a (multi-line) label beside `anchor` with the placer; a leader joins it when it had to move away. False if it found no room."""
         hs = list(hs or [h] * len(lines))
         pad = 0.15 * h
         w = max(text_width(t, hh) for t, hh in zip(lines, hs)) + 2 * pad
         ht = sum(1.45 * hh for hh in hs) - 0.45 * hs[-1] + 2 * pad
-        p = self.placer.place(Label(key, anchor, w, ht, clear), cost=cost)
+        p = self.placer.place(Label(key, anchor, w, ht, clear), cost=cost, allow=allow)
         if p is None:
             return False
         b = p.box
@@ -320,7 +331,9 @@ class LayoutSheetWriter:
         self._equipment(P)
         self._areas(P)
         self._feature_labels(P, compact=False)
-        self._block_drawing(P)
+        self._block_outlines(P)
+        self._equipment_tags(P)
+        self._block_tables(P)
         self._feature_labels(P, compact=True)
         self.msp.add_line((panel.x0 - th, area.y0), (panel.x0 - th, area.y1), dxfattribs={"layer": self.profile.layer(LayerRole.FRAME).name})
         self._panel(panel)
@@ -382,17 +395,40 @@ class LayoutSheetWriter:
                 layer = L_WATER if f.kind is FeatureKind.WATER else L_OBST if f.kind is FeatureKind.OBSTACLE else L_EXCL
                 self._poly(P.ring(g.exterior.coords[:-1]), layer.name)
 
-    def _block_drawing(self, P: _Plan) -> None:
-        """Outlines of roofs, obstacles and buildings and the modules are obstacles for their labels; roads, water and the like are labelled along or inside themselves first."""
+    def _tag_zone(self, P: _Plan) -> None:
+        """Where equipment tags may go: inside the site boundary (the fence), off its line, and preferably off the module tables. The tables
+        are only ranked here, not yet blocked, so a tag that finds no room clear of them is still placed over them."""
+        th = self.m.th
+        self._fence = []
+        for f in self.d.site.features:
+            if f.kind is FeatureKind.BOUNDARY:
+                for part in _polygons(shape_of(f)):
+                    ring = P.ring(part.exterior.coords[:-1])
+                    self._fence.append(ring)
+                    self.placer.block_path(ring, closed=True, thickness=0.1 * th, step=0.5 * th)
+        self._table_grid = LabelPlacer(self.placer.bounds, self.placer.max_leader, cell=self.placer.cell)
+        for r in self._table_regions(P):
+            self._table_grid.block(r)
+
+    def _table_regions(self, P: _Plan) -> list[Region]:
+        out = []
+        for t in self.d.layout.table_by_id.values():
+            pts = P.ring(table_corners(t))
+            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+            out.append(Region(min(xs), min(ys), max(xs), max(ys)))
+        return out
+
+    def _block_outlines(self, P: _Plan) -> None:
+        """Outlines of roofs, obstacles and buildings are obstacles for their labels; roads, water and the like are labelled along or inside themselves first."""
         th = self.m.th
         for f in self.d.site.features:
             if f.kind in COMPACT and f.polygon and (self.view == "site" or f.kind in (FeatureKind.ROOF, FeatureKind.OBSTACLE)):
                 for part in _polygons(shape_of(f)):
                     self.placer.block_path(P.ring(part.exterior.coords[:-1]), closed=True, thickness=0.1 * th, step=0.5 * th)
-        for t in self.d.layout.table_by_id.values():
-            pts = P.ring(table_corners(t))
-            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
-            self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
+
+    def _block_tables(self, P: _Plan) -> None:
+        for r in self._table_regions(P):
+            self.placer.block(r)
 
     def _feature_labels(self, P: _Plan, compact: bool | None = None) -> None:
         """Labels of the compact features (`compact`), of the others (`not compact`) or of all in feature order (None)."""
@@ -577,25 +613,103 @@ class LayoutSheetWriter:
             self._mask(r)
             self._poly([(r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1)], L_STATION.name, lineweight=35)
             self.placer.block(r)
-        self._tag_clusters([(e.tag, P(e.at.x, e.at.y)) for e in self.d.layout.equipment], 0.5 * th, side / 2)
+        self._tag_each([(e.tag, P(e.at.x, e.at.y)) for e in self.d.layout.equipment if e.kind == "inverter"], 0.5 * th, side / 2)
 
-    def _tag_clusters(self, items: Sequence[tuple[str, tuple[float, float]]], h: float, clear: float, **kw) -> None:
-        """Tag each piece of equipment; pieces standing closer than two text heights on the paper share one label listing their tags."""
+    def _equipment_tags(self, P: _Plan) -> None:
+        """BESS units are tagged inside the fence and, where there is room, clear of the module tables."""
         th = self.m.th
-        groups: list[list[tuple[str, tuple[float, float]]]] = []
-        for tag, at in items:
-            near = [g for g in groups if any(math.dist(at, q) < 2.5 * th for _, q in g)]
-            merged = [x for g in near for x in g] + [(tag, at)]
-            groups = [g for g in groups if g not in near] + [merged]
-        for g in groups:
-            tags = [t for t, _ in g]
-            lines = [", ".join(tags[i : i + 3]) for i in range(0, len(tags), 3)]
-            xs, ys = [q[0] for _, q in g], [q[1] for _, q in g]
-            at = ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)
-            spread = max(max(xs) - min(xs), max(ys) - min(ys)) / 2
-            if not self._label_text(lines, at, h, clear + spread, f"equipment {tags[0]}", mask=True, **kw) and len(tags) > 1:
-                self.placer.overflow.pop()
-                self._label_text([f"{tags[0]}..{tags[-1]} ({len(tags)} NOS)"], at, h, clear + spread, f"equipment {tags[0]}", mask=True, **kw)
+        self._tag_zone(P)
+        self._tag_each([(e.tag, P(e.at.x, e.at.y)) for e in self.d.layout.equipment if e.kind != "inverter"], 0.5 * th, 0.3 * th)
+
+    def _tag_each(self, items: Sequence[tuple[str, tuple[float, float]]], h: float, clear: float, **kw) -> None:
+        """Tag each piece of equipment with its own label beside it, or joined back to it by a leader when its neighbours leave no room.
+        Pieces whose own label found no room are tagged in a stack beside the group, one leader each. With a tag zone, a label and its
+        leader stay inside the fence, and clear of the module tables unless no such place exists."""
+        left = list(items)
+        for allow in self._tag_vetoes():
+            rest = []
+            for tag, at in left:
+                if not self._label_text([tag], at, h, clear, f"equipment {tag}", mask=True, allow=allow, **kw):
+                    self.placer.overflow.pop()
+                    rest.append((tag, at))
+            if rest:
+                rest = self._tag_stack(rest, h, clear, allow, **kw)
+            left = rest
+            if not left:
+                return
+        self.placer.overflow += [Label(f"equipment {t}", a, 0.0, 0.0, clear) for t, a in left]
+
+    def _tag_vetoes(self) -> list:
+        fence = self._inside_fence()
+        grid = getattr(self, "_table_grid", None)
+        if fence is None or grid is None:
+            return [fence]
+        return [lambda b, at: fence(b, at) and grid._free(b), fence]
+
+    def _inside_fence(self):
+        """Veto for labels: a label (and its leader) stays on the plant's side of the site boundary; None when there is no boundary."""
+        if not self._fence:
+            return None
+        zone = prep(unary_union([Polygon(r) for r in self._fence]))
+
+        def allow(b: Region, at: tuple[float, float]) -> bool:
+            return zone.contains(box(b.x0, b.y0, b.x1, b.y1)) and zone.contains(LineString([at, nearest_on(b, at)]))
+
+        return allow
+
+    def _tag_stack(self, items: Sequence[tuple[str, tuple[float, float]]], h: float, clear: float, allow=None, layer: str = L_LABEL.name) -> list:
+        """Stack labels for `items` in a column or row beside them; returns the items it found no room for."""
+        pad = 0.15 * h
+        ht, gap = h + 2 * pad, 0.15 * h
+        sizes = [text_width(t, h) + 2 * pad for t, _ in items]
+        xs, ys = [a[0] for _, a in items], [a[1] for _, a in items]
+        x0, x1, y0, y1 = min(xs) - clear, max(xs) + clear, min(ys) - clear, max(ys) + clear
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        step = max(h, 0.5 * self.placer.max_leader / 6)
+        d = clear
+        shifts = [0.0] + [k * s * (ht + gap) for k in range(1, 9) for s in (1, -1)]
+        squares = [Region(a[0] - clear, a[1] - clear, a[0] + clear, a[1] + clear) for _, a in items]
+        while d <= self.placer.max_leader + 1e-9:
+            best: tuple[float, float, dict[int, Region]] | None = None
+            for side in ("E", "W", "N", "S"):
+                column = side in "EW"
+                total = (ht + gap) * len(items) - gap if column else sum(sizes) + gap * (len(items) - 1)
+                for sign in (1, -1):
+                    order = sorted(range(len(items)), key=lambda i: (-items[i][1][1], sign * items[i][1][0]) if column else (items[i][1][0], sign * items[i][1][1]))
+                    for shift in shifts:
+                        boxes: dict[int, Region] = {}
+                        pos = (cy + total / 2 + shift) if column else (cx - total / 2 + shift)
+                        for i in order:
+                            w = sizes[i]
+                            if column:
+                                bx = x1 + d if side == "E" else x0 - d - w
+                                boxes[i] = Region(bx, pos - ht, bx + w, pos)
+                                pos -= ht + gap
+                            else:
+                                by = y1 + d if side == "N" else y0 - d - ht
+                                boxes[i] = Region(pos, by, pos + w, by + ht)
+                                pos += w + gap
+                        if not all(self.placer._free(b) and (allow is None or allow(b, items[i][1])) for i, b in boxes.items()):
+                            continue
+                        legs = [(items[i][1], nearest_on(boxes[i], items[i][1])) for i in range(len(items))]
+                        crossings = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
+                        crossings += sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j)
+                        key = (crossings, abs(shift))
+                        if best is None or key < best[:2]:
+                            best = (*key, boxes)
+            if best is not None:
+                for i, (tag, at) in enumerate(items):
+                    b = best[2][i]
+                    tip = nearest_on(b, at)
+                    ln = math.dist(at, tip) or 1.0
+                    start = (at[0] + (tip[0] - at[0]) * clear / ln, at[1] + (tip[1] - at[1]) * clear / ln)
+                    self.placer.fixed(Label(f"equipment {tag}", at, b.width, b.height, clear), b)
+                    self._mask(b)
+                    self.msp.add_line(start, tip, dxfattribs={"layer": layer})
+                    self._text(tag, (b.x0 + pad, b.y0 + pad), h, layer=layer, align="BL")
+                return []
+            d += step
+        return list(items)
 
     def _areas(self, P: _Plan) -> None:
         th = self.m.th

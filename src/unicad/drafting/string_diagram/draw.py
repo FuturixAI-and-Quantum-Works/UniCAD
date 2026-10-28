@@ -442,7 +442,9 @@ def _inverter_side(ink: Ink, t: DiagramType, lines: tuple[StringLine, ...], rows
     ink.text(t.inverter_tags, env.x0, env.y1 + 3.4 * u, 0.85 * u, tag="inv tags")
     ink.text(f"{inv.ac_rated_kva:g} kVA {inv.model}", env.x0, env.y1 + 2.25 * u, 0.8 * u, tag="inv model")
     assert t.mppt is not None
-    ink.text(f"{t.mppt.used} OF {t.mppt.mppt_count} MPPT USED, {t.mppt.inputs_per_mppt} INPUT PER MPPT", env.x0, env.y1 + 1.1 * u, 0.7 * u, tag="inv mppt")
+    low = t.mppt.inputs // t.mppt.used if t.mppt.used else t.mppt.inputs_per_mppt
+    share = f"{t.mppt.inputs_per_mppt} INPUT PER MPPT" if low >= t.mppt.inputs_per_mppt else f"{low}-{t.mppt.inputs_per_mppt} INPUTS PER MPPT"
+    ink.text(f"{t.mppt.used} OF {t.mppt.mppt_count} MPPT USED, {share}", env.x0, env.y1 + 1.1 * u, 0.7 * u, tag="inv mppt")
 
 
 def _scb_side(ink: Ink, t: DiagramType, rows: list[Row], x_sink: float, u: float) -> None:

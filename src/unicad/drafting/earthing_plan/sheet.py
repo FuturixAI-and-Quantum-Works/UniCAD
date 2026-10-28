@@ -361,8 +361,12 @@ class EarthingSheetWriter(_Writer):
         for p, x, y in drawn:
             colour = LE_COLOUR if p.role is PitRole.LE else PIT_COLOUR[p.role.treated]
             self._label_text([p.tag], (x, y), tag_h, r, p.tag, layer=L_PIT_TAG, colour=colour, mask=True)
+        lay_equipment = self.d.layout.equipment if self.d.layout else ()
         field = [(f"{tag} ({', '.join(at_item[iid])})" if iid in at_item else tag, (x, y)) for iid, (x, y, tag) in placed.items()]
-        self._tag_clusters(field, 0.45 * th, sq, layer=L_PIT_TAG)
+        bess = {e.node for e in lay_equipment if e.kind != "inverter"}
+        self._tag_each([f for iid, f in zip(placed, field) if iid not in bess], 0.45 * th, sq, layer=L_PIT_TAG)
+        self._tag_zone(P)
+        self._tag_each([f for iid, f in zip(placed, field) if iid in bess], 0.45 * th, sq, layer=L_PIT_TAG)
         self._feature_labels(P)
         self.clip = None
         self._panel_e(panel, groups)
@@ -682,7 +686,8 @@ class LpsSheetWriter(_Writer):
             self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
             if cls == "bess":
                 bess.append((tags.get(node, node), P(*at)))
-        self._tag_clusters(bess, 0.45 * th, 0.3 * th, layer=L_PIT_TAG)
+        self._tag_zone(P)
+        self._tag_each(bess, 0.45 * th, 0.3 * th, layer=L_PIT_TAG)
 
     def _view(self, P: _Plan) -> Region:
         """The plan window: the drawn extent with a margin, inside the plan room. Protection circles are cut at its border, which is

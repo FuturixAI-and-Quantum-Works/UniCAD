@@ -196,4 +196,4 @@ def test_unverified_thresholds_are_flagged_as_assumptions():
     for f in report.by_rule("protection.rated_current"):
         assert any("1.25 x maximum inverter current" in a for a in f.assumptions)
     clauses = {r.clause for r in REGISTRY.values()} - {None}
-    assert clauses == {"IEC 62548", "IS 732", "IS 3043", "IS 732 / IEC 60364-4-43", "IEEE 80", "IS/IEC 62305; NF C 17-102 for ESE"}
+    assert clauses == {"IEC 62548", "IS 732", "IS 3043", "IS 732 / IEC 60364-4-43", "IEEE 80", "IS/IEC 62305; NF C 17-102 for ESE", "IEC 60364-5-53"}

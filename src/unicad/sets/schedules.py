@@ -41,10 +41,12 @@ def _paper(project: Project, kind: SheetKind, profile: CompanyProfile) -> PaperS
 
 
 def _plan_pages(parts: Sequence[tuple[str, TableSpec]], paper: PaperSize, numbers: Numberer, kind: SheetKind, block: str, sid: str) -> tuple[Sheet, ...]:
+    counts = [table_pages(spec, paper) for _, spec in parts]
+    total = sum(counts)
     plan = []
-    for title, spec in parts:
-        n = table_pages(spec, paper)
-        plan += [title + (f" (PART {k} OF {n})" if n > 1 else "") for k in range(1, n + 1)]
+    for (title, _), n in zip(parts, counts):
+        first = len(plan)
+        plan += [title + (f" (PART {first + k} OF {total})" if n > 1 else "") for k in range(1, n + 1)]
     out = []
     for i, title in enumerate(plan, start=1):
         old = numbers.reuse(kind.value)

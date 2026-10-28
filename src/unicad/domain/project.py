@@ -119,6 +119,32 @@ class FaultLevel(_Frozen):
     source: str | None = Field(default=None, description="where the level comes from, e.g. 'DISCOM feasibility letter' or 'fault study rev B'")
 
 
+class BessRating(_Frozen):
+    """The storage the network was built with and the size the brief asked for (set by network_autobuild), so drawings and schedules can state both."""
+
+    built_kva: float = Field(gt=0, description="PCS kVA built: whole PCS units")
+    built_kwh: float = Field(gt=0, description="battery energy built, kWh: whole battery units")
+    brief_kw: float | None = Field(default=None, gt=0, description="storage power the brief asked for, kW")
+    brief_kwh: float | None = Field(default=None, gt=0, description="storage energy the brief asked for, kWh")
+
+    @property
+    def kw_deviation(self) -> float | None:
+        return self.built_kva / self.brief_kw - 1 if self.brief_kw else None
+
+    @property
+    def kwh_deviation(self) -> float | None:
+        return self.built_kwh / self.brief_kwh - 1 if self.brief_kwh else None
+
+    def text(self) -> str:
+        """e.g. '10.08 MVA / 20.06 MWh built against the brief's 9 MW / 18 MWh (+12.0 % / +11.4 %)'."""
+        built = f"{self.built_kva / 1000:g} MVA / {self.built_kwh / 1000:g} MWh built"
+        if self.brief_kw is None and self.brief_kwh is None:
+            return built
+        brief = " / ".join(x for x in (f"{self.brief_kw / 1000:g} MW" if self.brief_kw else "", f"{self.brief_kwh / 1000:g} MWh" if self.brief_kwh else "") if x)
+        dev = " / ".join(f"{d:+.1%}".replace("%", " %") for d in (self.kw_deviation, self.kwh_deviation) if d is not None)
+        return f"{built} against the brief's {brief} ({dev})"
+
+
 class DesignBasis(_Frozen):
     """Site and grid inputs to the rules engine. `assumptions` names every value not taken from a cited source."""
 
@@ -134,6 +160,7 @@ class DesignBasis(_Frozen):
     earthing: EarthingBasis | None = None
     lps: LpsBasis | None = None
     fault_levels: tuple[FaultLevel, ...] = ()
+    bess: BessRating | None = Field(default=None, description="storage built and asked for; set by network_autobuild")
     assumptions: tuple[str, ...] = ()
 
     @model_validator(mode="after")
