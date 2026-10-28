@@ -51,7 +51,8 @@ def test_b4_ci_rooftop_autobuild_on_a_six_block_layout_numbers_inverters_once(tm
             r = await c.call("network_autobuild", **A_AUTOBUILD)
             # the roof holds 6 x 12 strings without row walkways; with the maintenance walkway every 2 rows (close-e2e-3 R1) it holds whole inverters only
             inv = r["design"]["instances"]["inverter"]
-            assert r["rules"]["error"] == 0 and inv >= 5 and r["design"]["strings_linked"] == 12 * inv
+            # the roof holds 661 of the brief's 793 kWp, so layout.shortfall (RV-M6) is the one error
+            assert [f["rule_id"] for f in r["findings"] if f["severity"] == "error"] == ["layout.shortfall"] and inv >= 5 and r["design"]["strings_linked"] == 12 * inv
             net = await c.call("project_get", project_id="sgt-chakan", full=True)
             tags = Counter(n["tag"] for n in net["project"]["network"]["nodes"])
             assert all(v == 1 for v in tags.values()), tags
@@ -154,7 +155,7 @@ def test_m13_fault_levels_added_after_autobuild_ask_for_a_rebuild_and_the_rebuil
             errs = [f for f in v["findings"] if f["severity"] == "error"]
             assert errs and "network_autobuild" in v.get("next", ""), v.get("next")
             again = await c.call("network_autobuild", **A_AUTOBUILD)
-            assert again["rules"]["error"] == 0, again["findings"]
+            assert [f["rule_id"] for f in again["findings"] if f["severity"] == "error"] == ["layout.shortfall"], again["findings"]
 
     run(go())
 

@@ -254,7 +254,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                     linked = _link(planned, network_ids)
                     if len(network_ids) != len(planned):
                         problems.append(_problem("warning", "layout", f"network has {len(network_ids)} pv_string instances, the layout has slots for {len(planned)} strings; {min(len(network_ids), len(planned))} linked"))
-            layout = result.layout.model_copy(update={"strings": linked})
+            layout = result.layout.model_copy(update={"strings": linked, "target_dc_kwp": target_dc_kwp})
             data = p.model_dump(mode="json")
             data["array_layout"] = layout.model_dump(mode="json")
             updated = Project.model_validate(data, context={"catalog": ws.catalog})

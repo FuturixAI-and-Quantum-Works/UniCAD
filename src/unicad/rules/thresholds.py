@@ -116,8 +116,17 @@ STRING_FUSE_SOURCE = (
 )
 STRING_FUSE_MIN = Threshold("string_fuse_min", 1.5, "", f"String fuse rating In > 1.5 x Isc(STC) of the module ({STRING_FUSE_SOURCE}).", 1.0, 3.0)
 STRING_FUSE_MAX = Threshold("string_fuse_max", 2.4, "", f"String fuse rating In < 2.4 x Isc(STC) of the module ({STRING_FUSE_SOURCE}).", 1.5, 5.0)
+LAYOUT_SHORTFALL = Threshold(
+    "layout_shortfall",
+    0.02,
+    "",
+    "A placed array may fall short of the layout_place target by one table (whole tables only) plus 2 % of the target (design tolerance, not a cited figure); a larger shortfall "
+    "means the site does not hold the brief's capacity.",
+    0.0,
+    0.5,
+)
 
-ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, FAULT_CLEARING_DEFAULT, STRING_FUSE_MIN, STRING_FUSE_MAX)
+ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, FAULT_CLEARING_DEFAULT, STRING_FUSE_MIN, STRING_FUSE_MAX, LAYOUT_SHORTFALL)
 
 BY_NAME = {t.name: t for t in ALL}
 

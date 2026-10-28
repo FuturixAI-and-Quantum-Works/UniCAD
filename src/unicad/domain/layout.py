@@ -134,6 +134,11 @@ class ArrayLayout(_Frozen):
     strings: tuple[StringAssignment, ...] = ()
     switchyard: Located | None = None
     equipment: tuple[PlacedEquipment, ...] = ()
+    target_dc_kwp: float | None = Field(default=None, gt=0, description="DC capacity layout_place was asked to reach, kWp; the rules compare the placed capacity against it")
+
+    @property
+    def module_count(self) -> int:
+        return sum(t.slot_count for t in self.table_by_id.values())
 
     @property
     def equipment_by_node(self) -> dict[str, PlacedEquipment]:

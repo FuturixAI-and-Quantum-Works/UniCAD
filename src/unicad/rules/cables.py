@@ -12,6 +12,7 @@ from unicad.rules.faults import LV_BREAKER_CLEARING, LV_BREAKER_CLEARING_S, defa
 from unicad.rules.derating import Derating, derating
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
+from unicad.rules.settings import trip_current
 from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
 from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, per_instance, zone_at
 
@@ -251,8 +252,9 @@ def protectors(project: Project, catalog: Catalog) -> dict[str, list[tuple[str, 
 
 
 def protecting_in(project: Project, catalog: Catalog) -> dict[str, float]:
-    """Largest rated current In of the overcurrent devices protecting each edge, by edge id."""
-    return {eid: max(s.rated_current for _, s in devs) for eid, devs in protectors(project, catalog).items()}
+    """Largest trip current (the long-time setting Ir where one is set, else In) of the overcurrent devices protecting each edge, by edge id."""
+    net = project.network
+    return {eid: max(trip_current(net.node(nid), s) for nid, s in devs) for eid, devs in protectors(project, catalog).items()}
 
 
 LV_MAX_V = 1000.0
@@ -369,7 +371,7 @@ def _protected_cables(project: Project, catalog: Catalog, node_id: str) -> Itera
 
 @rule("cables.protection", "Overcurrent device rating does not exceed the cable ampacity", clause=OVERLOAD)
 def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
+    """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse (or the long-time setting Ir of an MCCB or ACB set below its frame, node field long_time_setting_a) must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
     A device protects the cables connected to it and those reached from it through in-line CTs, meters and isolators (which do not interrupt overload current), up to the next panel, switching device
     or equipment. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
 
@@ -379,20 +381,23 @@ def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
         spec = overload_device(catalog, n)
         if spec is None:
             continue
+        rated = trip_current(n, spec)
+        setting = rated != spec.rated_current
+        sym = "Ir" if setting else "In"
         for e, iz in _protected_cables(project, catalog, n.id):
             z = iz.calc()
-            if spec.rated_current <= z.value:
+            if rated <= z.value:
                 continue
             yield Finding(
                 rule_id="cables.protection",
                 severity=Severity.ERROR,
                 subjects=(n.id, e.id),
-                message=f"{label(net, n.id)} {spec.model}: In {spec.rated_current:g} A exceeds the ampacity of {edge_label(net, e)} {iz.cable.callout()}: Iz = {iz.base:g} A x {iz.derating:g} x {iz.runs} = {z.value:.1f} A",
-                measured=spec.rated_current,
+                message=f"{label(net, n.id)} {spec.model}: {sym} {rated:g} A{f' (frame {spec.rated_current:g} A)' if setting else ''} exceeds the ampacity of {edge_label(net, e)} {iz.cable.callout()}: Iz = {iz.base:g} A x {iz.derating:g} x {iz.runs} = {z.value:.1f} A",
+                measured=rated,
                 limit=round(z.value, 2),
                 unit="A",
-                formula=f"In <= Iz; {z.formula}",
-                inputs=(Quantity(name="In", value=spec.rated_current, unit="A", source=spec.id), *z.inputs),
+                formula=f"{sym} <= Iz; {z.formula}",
+                inputs=(Quantity(name=sym, value=rated, unit="A", source=f"network.{n.id}.long_time_setting_a" if setting else spec.id), *z.inputs),
                 assumptions=z.assumptions,
             )
 

@@ -19,6 +19,7 @@ COMBINERS = frozenset({NodeKind.SCB})
 STRING_FUSE_HOLDERS = frozenset({NodeKind.FUSE, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
 EVEN_MPPT = "Strings (or combiner outputs) are spread evenly over the inverter's MPPTs (mppt_split); the network does not record the MPPT allocation."
+RECORDED_MPPT = "Strings per MPPT as the network records them (pv_string field mppt)."
 AC_SERVICES = frozenset({Service.LV_AC, Service.MV_AC, Service.HV_AC})
 FAN_OUT = "One source instance feeds several instances of this edge; each is taken to carry the full source current (conservative)."
 PASS_THROUGH_NOTE = "DC fuse boxes, isolators and fuses pass strings through one-to-one; strings are paralleled only in SCBs or at the inverter MPPT."
@@ -118,10 +119,17 @@ class StringFeed:
     strings_per_inverter: int
     inverter_inputs: int
     strings_per_input: int
+    mppt_inputs: tuple[int, ...] | None = None
 
     @property
     def inputs_per_mppt(self) -> int:
+        if self.mppt_inputs is not None:
+            return max(self.mppt_inputs, default=0)
         return max(mppt_split(self.inverter_inputs, self.spec.mppt_count), default=0)
+
+    @property
+    def mppt_source(self) -> str:
+        return RECORDED_MPPT if self.mppt_inputs is not None else EVEN_MPPT
 
     @property
     def strings_per_mppt(self) -> int:
@@ -139,8 +147,8 @@ class StringFeed:
             Quantity(name="inverter_dc_inputs", value=self.inverter_inputs, source="network"),
             Quantity(name="strings_per_input", value=self.strings_per_input, source="network"),
             Quantity(name="mppt_count", value=self.spec.mppt_count, source=self.spec.id),
-            Quantity(name="dc_inputs_per_mppt", value=self.inputs_per_mppt, source=EVEN_MPPT),
-            Quantity(name="strings_per_mppt", value=self.strings_per_mppt, source=EVEN_MPPT),
+            Quantity(name="dc_inputs_per_mppt", value=self.inputs_per_mppt, source=self.mppt_source),
+            Quantity(name="strings_per_mppt", value=self.strings_per_mppt, source=self.mppt_source),
         )
 
 
@@ -158,6 +166,18 @@ def inverter_spec(catalog: Catalog, node: Node) -> InverterSpec | None:
     return spec if isinstance(spec, InverterSpec) else None
 
 
+def recorded_mppt(net: ElectricalNetwork, inverter_id: str, inputs: list[str]) -> tuple[int, ...] | None:
+    """Strings on each MPPT (1-based order) of one instance of `inverter_id`, when every input feeding it is a pv_string recording its MPPT (field mppt), else None."""
+    nodes = [net.node(u) for u in inputs]
+    if not nodes or any(n.kind is not NodeKind.PV_STRING or n.mppt is None or per_instance(net, n.id, inverter_id) != n.count for n in nodes):
+        return None
+    per: dict[int, int] = {}
+    for n in nodes:
+        for k in n.mppt:
+            per[k] = per.get(k, 0) + 1
+    return tuple(per.get(k, 0) for k in range(1, max(per) + 1))
+
+
 def string_feeds(project: Project, catalog: Catalog) -> list[StringFeed]:
     net = project.network
     feeds = []
@@ -167,6 +187,7 @@ def string_feeds(project: Project, catalog: Catalog) -> list[StringFeed]:
             continue
         inputs = nearest_upstream(net, inv.id, "dc", frozenset({NodeKind.PV_STRING, NodeKind.PV_ARRAY_BLOCK, *COMBINERS}))
         total_inputs = sum(per_instance(net, u, inv.id) for u, _ in inputs)
+        recorded = recorded_mppt(net, inv.id, [u for u, _ in inputs])
         for u, path in inputs:
             unit = net.node(u)
             if unit.kind is NodeKind.PV_STRING:
@@ -194,6 +215,7 @@ def string_feeds(project: Project, catalog: Catalog) -> list[StringFeed]:
                         strings_per_inverter=per_instance(net, s, inv.id),
                         inverter_inputs=total_inputs,
                         strings_per_input=per_input,
+                        mppt_inputs=recorded,
                     )
                 )
     return feeds

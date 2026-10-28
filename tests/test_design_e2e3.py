@@ -269,7 +269,9 @@ def test_s1_a4_string_and_lt_cables_are_sized_per_length_band_and_the_schedule_a
             banded = {e["id"]: e for e in net["edges"] if e.get("bands")}
             assert any(i.startswith("e_inv_brk") for i in banded), sorted(banded)
             v = await c.call("validate", project_id=A)
-            assert v["counts"]["error"] == 0 and not [f for f in v["findings"] if f["rule_id"] == "vdrop.bands"], v["findings"]
+            errors = [f["rule_id"] for f in v["findings"] if f["severity"] == "error"]
+            # the roof with its maintenance walkways holds less than the 616.55 kWp target, so layout.shortfall (RV-M6) is the one error
+            assert errors == ["layout.shortfall"] and not [f for f in v["findings"] if f["rule_id"] == "vdrop.bands"], v["findings"]
             rows = _sheet((await c.call("cable_schedule", project_id=A, format="xlsx"))["files"][0], "Cable schedule")
             for eid, e in banded.items():
                 mine = [r for r in rows if r["NETWORK EDGE"] == eid]

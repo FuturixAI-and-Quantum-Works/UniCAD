@@ -23,6 +23,7 @@ from unicad.rules.cables import K_BY_CABLE, cable_fault, edge_label, needs_cable
 from unicad.rules.faults import prospective_fault
 from unicad.rules.protection import ISOLATOR_WAYS, SPD_IT, SPD_TN, covers_fault, spd_uc_need
 from unicad.rules.pv import cell_temp_min, string_voltage
+from unicad.rules.settings import trip_current
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR, STRING_FUSE_MAX, STRING_FUSE_MIN
 from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, label, per_instance, string_feeds, zone_at
 from unicad.rules.vdrop import segment_drop
@@ -162,7 +163,7 @@ def _need(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing
         s.assumptions.append(NOMINAL_ASSUMPTION)
     if s.guards is None:
         s.guards = protectors(project, catalog)
-    return max([amps, *(spec.rated_current for _, spec in s.guards.get(e.id, []))])
+    return max([amps, *(trip_current(project.network.node(nid), spec) for nid, spec in s.guards.get(e.id, []))])
 
 
 def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:
