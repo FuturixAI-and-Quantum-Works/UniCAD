@@ -332,6 +332,10 @@ class _Builder:
                 comp_roots, poi = poi, []
             else:
                 comp_roots = [nid for nid in free if not any(e.dst_node not in placed for e in down[nid])][:1] or free[:1]
+                if self.recs[comp_roots[0]].node.kind is NodeKind.LOAD:
+                    # A load feeder cut from its bus hangs from the bus marker, as it hangs from the bus on the full diagram.
+                    supply = next((m for m in free if m in self.markers and not up[m] and comp_roots[0] in self._fed_by(m, down)), None)
+                    comp_roots = [supply] if supply is not None else comp_roots
             roots += comp_roots
             self._rank_component(comp_roots, placed)
         self.roots = roots
@@ -361,6 +365,16 @@ class _Builder:
         for rec in self.recs.values():
             rec.sats.sort(key=lambda s: (s.kind == "tap", not self._west_pinned(s), self.order[s.edge.id]))
             rec.children.sort(key=lambda c: (not self.recs[c].in_r, self.order[self.recs[c].tree_edge.id]))
+
+    @staticmethod
+    def _fed_by(start: str, down: Mapping[str, list[Edge]]) -> set[str]:
+        seen, todo = set(), [start]
+        while todo:
+            n = todo.pop()
+            if n not in seen:
+                seen.add(n)
+                todo += [e.dst_node for e in down[n]]
+        return seen
 
     def _west_pinned(self, s: _Sat) -> bool:
         rec = self.recs[s.node_id]

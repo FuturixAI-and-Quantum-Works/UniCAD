@@ -323,3 +323,33 @@ def test_m10_sld_notes_list_each_cable_remark_once(projects):
     assert not [(a, b) for a in lay.notes for b in lay.notes if a != b and (a.startswith(b) or b.startswith(a))], lay.notes
     callouts = [lb.text for c in lay.callouts for lb in c.labels]
     assert any("L = " in t and ".." in t for t in callouts)
+
+
+def test_q1_a_load_feeder_in_a_later_stacked_row_hangs_from_its_bus_marker_with_the_load_at_the_bottom(projects):
+    """Wave 5: in row 2 of the B overall SLD the plant auxiliary feeder was drawn upside down, the load on top and the bus marker at the bottom."""
+    s, lay, *_ = next(x for x in _sld_sheets(projects[B]) if x[0].title.startswith("OVERALL"))
+    net = projects[B].network
+    y = {sym.node_id: sym.body.y0 for sym in lay.symbols if sym.node_id}
+    feed = [n.id for n in net.nodes if n.tag.startswith("VCB-AUX") and n.id in y]
+    assert feed, sorted(y)
+    for vcb in feed:
+        for d in net.downstream(vcb):
+            if d in y:
+                assert y[d] < y[vcb], (vcb, d, y[vcb], y[d])
+
+
+def test_q1_the_lps_sheet_draws_and_tags_the_bess_units_it_counts_as_covered(projects):
+    """Wave 5: the C LPS sheet listed BESS units 9 of 9 covered but did not draw them."""
+    from unicad.sets.plans import LpsBuilder
+
+    p = projects[C]
+    profile = load_profile(p.company_profile)
+    b = LpsBuilder()
+    sheets = b.plan(p, profile, CATALOG, Numberer.for_project(p, profile))
+    (built,) = b.build(p, sheets, sheets, profile, CATALOG)
+    msp = built.doc.modelspace()
+    boxes = [e for e in msp.query("LWPOLYLINE") if e.dxf.layer == "E-EQUIPMENT" and e.closed]
+    bess = [e for e in p.array_layout.equipment if e.kind in ("transformer", "pcs", "battery")]
+    assert bess and len(boxes) >= len(p.array_layout.equipment), (len(boxes), len(p.array_layout.equipment))
+    text = " ".join(e.dxf.text for e in msp.query("TEXT"))
+    assert all(e.tag in text for e in bess), [e.tag for e in bess if e.tag not in text]

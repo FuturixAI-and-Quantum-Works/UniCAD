@@ -33,6 +33,7 @@ from unicad.earthing.design import GOVERNING_CURRENT, GOVERNING_PRACTICE, GOVERN
 from unicad.earthing.layout import StationGroup
 from unicad.earthing.sizing import FLAT_BY_NAME
 from unicad.lps import LpsDesign
+from unicad.lps.design import equipment_footprint, placed_equipment
 
 TXT = LayerRole.TEXT
 UNDERLAY = 8
@@ -661,12 +662,27 @@ class LpsSheetWriter(_Writer):
             self.placer.block(Region(x - 0.99 * th, y - 0.99 * th, x + 0.99 * th, y + 0.99 * th))
             pts.append((t, x, y))
         self._areas(P)
+        self._equipment(P)
         for t, x, y in pts:
             self._label_text([t.tag], (x, y), h, 0.99 * th, t.tag, layer=L_LPS, colour=LPS_COLOUR, mask=True)
         self._feature_labels(P)
         self.clip = None
         self._panel_l(panel)
         return self._done(scale)
+
+    def _equipment(self, P: _Plan) -> None:
+        """The placed field equipment the coverage rule checks (BESS units, string inverters), each drawn as its assumed protected envelope; BESS units tagged."""
+        th = self.m.th
+        tags = {e.node: e.tag for e in self.d.layout.equipment} if self.d.layout else {}
+        bess = []
+        for cls, node, kind, at in placed_equipment(self.project):
+            ring = P.ring(list(equipment_footprint(kind, at).exterior.coords)[:-1])
+            self._poly(ring, L_EQUIP)
+            xs, ys = [x for x, _ in ring], [y for _, y in ring]
+            self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
+            if cls == "bess":
+                bess.append((tags.get(node, node), P(*at)))
+        self._tag_clusters(bess, 0.45 * th, 0.3 * th, layer=L_PIT_TAG)
 
     def _view(self, P: _Plan) -> Region:
         """The plan window: the drawn extent with a margin, inside the plan room. Protection circles are cut at its border, which is
