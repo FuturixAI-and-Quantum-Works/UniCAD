@@ -1509,6 +1509,9 @@ def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[B
     ix = {x: i for i, x in enumerate(xs)}
     iy = {y: i for i, y in enumerate(ys)}
     steps = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    window = Box(xs[0] - 1, ys[0] - 1, xs[-1] + 1, ys[-1] + 1)
+    bodies = [bd for bd in bodies if bd.overlaps(window)]
+    outlines = [edge for edge in outlines if _seg_touches(window, edge)]
 
     def move_cost(p: Point, q: Point) -> float:
         seg = Box(min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
@@ -1521,17 +1524,25 @@ def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[B
     best: dict[tuple[int, int, int], float] = {}
     came: dict[tuple[int, int, int], tuple[int, int, int] | None] = {}
     queue: list[tuple[float, int, tuple[int, int, int]]] = []
+    closed: set[tuple[int, int, int]] = set()
+    gx, gy = goal
+
+    def h(state: tuple[int, int, int]) -> float:
+        return abs(xs[state[0]] - gx) + abs(ys[state[1]] - gy)
+
     tie = 0
     for d in range(4):
         state = (*begin, d)
         best[state], came[state] = 0.0, None
-        heapq.heappush(queue, (0.0, tie, state))
+        heapq.heappush(queue, (h(state), tie, state))
         tie += 1
     final = None
     while queue:
-        cost, _, state = heapq.heappop(queue)
-        if cost > best[state]:
+        _, _, state = heapq.heappop(queue)
+        cost = best[state]
+        if state in closed:
             continue
+        closed.add(state)
         x, y, d = state
         if (x, y) == end:
             final = state
@@ -1544,7 +1555,7 @@ def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[B
             nxt = (nx, ny, nd)
             if cost + step < best.get(nxt, math.inf):
                 best[nxt], came[nxt] = cost + step, state
-                heapq.heappush(queue, (cost + step, tie, nxt))
+                heapq.heappush(queue, (cost + step + h(nxt), tie, nxt))
                 tie += 1
     path: list[Point] = []
     state = final
