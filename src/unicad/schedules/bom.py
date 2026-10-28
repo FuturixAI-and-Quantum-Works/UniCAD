@@ -9,6 +9,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import (
     BatterySpec,
     CableSpec,
+    DataLoggerSpec,
     InverterSpec,
     MeterSpec,
     ModuleSpec,
@@ -110,6 +111,8 @@ def _describe(spec: object, node: Node, utility: str | None = None) -> str:
             return f"{spec.manufacturer} {spec.model}, {spec.device.upper().replace('_', ' ')}{rating}, {spec.rated_voltage:g} V"
         case MeterSpec():
             return f"{spec.manufacturer} {spec.model}, {spec.function} meter, class {spec.accuracy_class}"
+        case DataLoggerSpec():
+            return f"{spec.manufacturer} {spec.model}, data logger, {spec.rs485_ports} x RS-485"
     return node.title or node.kind.value.replace("_", " ").upper()
 
 

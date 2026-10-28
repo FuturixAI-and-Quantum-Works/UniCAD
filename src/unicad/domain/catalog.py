@@ -39,6 +39,15 @@ class Spec(BaseModel):
         raise NotImplementedError
 
 
+class Dimensions(BaseModel):
+    """Outer size as a datasheet gives it (W x H x D), in mm. The plan footprint is width x depth."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    width: Mm
+    height: Mm
+    depth: Mm
+
+
 class CellTech(StrEnum):
     MONO_PERC = "mono_perc"
     TOPCON = "topcon"
@@ -110,6 +119,7 @@ class InverterSpec(Spec):
     max_efficiency: float | None = Field(default=None, gt=0, le=1)
     ac_terminal_max_mm2: float | None = Field(default=None, gt=0, description="largest AC cable per pole the output terminals take (sq.mm), from the datasheet; None when it is silent")
     ac_terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most AC cables per pole the output terminals take, from the datasheet; None when it is silent")
+    dimensions: Dimensions | None = Field(default=None, description="outer size from the datasheet (for a station or skid, the whole enclosure); None when the entry has not been read for it")
 
     @model_validator(mode="before")
     @classmethod
@@ -153,6 +163,7 @@ class BatterySpec(Spec):
     voltage_min: Volts
     voltage_max: Volts
     max_continuous_current: Amps | None = None
+    dimensions: Dimensions | None = Field(default=None, description="outer size of the container or cabinet from the datasheet; None when the entry has not been read for it")
 
 
 class PCSSpec(Spec):
@@ -166,6 +177,7 @@ class PCSSpec(Spec):
     ac_voltage: Volts
     dc_voltage_min: Volts
     dc_voltage_max: Volts
+    dimensions: Dimensions | None = Field(default=None, description="outer size of the PCS enclosure or the BESS container it is integrated in, from the datasheet; None when the entry has not been read for it")
 
 
 class TransformerSpec(Spec):
@@ -294,7 +306,8 @@ class ProtectionSpec(Spec):
     ratio: str | None = Field(default=None, description="CT or PT ratio as published, e.g. 200-100/1-1 A")
     accuracy_class: str | None = None
     burden_va: float | None = Field(default=None, gt=0)
-    nominal_discharge_current_ka: float | None = Field(default=None, gt=0)
+    nominal_discharge_current_ka: float | None = Field(default=None, gt=0, description="In (8/20 us) of an SPD, or the nominal discharge current of an arrester")
+    max_discharge_current_ka: float | None = Field(default=None, gt=0, description="Imax (8/20 us) of an SPD, the single-shot surge it survives; distinct from and not below In")
     curve: str | None = None
     spd_type: Literal["1", "2", "1+2", "3"] | None = None
     surge_counter: bool | None = Field(default=None, description="lightning arrester supplied with a discharge counter; None when the source is silent")
@@ -302,20 +315,55 @@ class ProtectionSpec(Spec):
     terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most cables per pole the terminals take")
     break_time_s: float | None = Field(default=None, gt=0, description="total breaking time (opening + arcing) of a circuit-breaker, as the datasheet gives it")
 
+    @model_validator(mode="after")
+    def _discharge(self) -> "ProtectionSpec":
+        if self.max_discharge_current_ka is not None and self.nominal_discharge_current_ka is not None and self.max_discharge_current_ka < self.nominal_discharge_current_ka:
+            raise ValueError("Imax (max_discharge_current_ka) is below In (nominal_discharge_current_ka)")
+        return self
+
 
 class MeterSpec(Spec):
     kind: Literal["meter"] = "meter"
 
     @classmethod
     def symbol_for(cls, data: dict) -> str:
-        return {"net": "inst.net_meter", "generation": "inst.kwh", "abt": "inst.abt", "check": "inst.kwh"}[data["function"]]
+        return {"net": "inst.net_meter", "generation": "inst.kwh", "abt": "inst.abt", "check": "inst.kwh", "multifunction": "inst.mfm"}[data["function"]]
 
-    function: Literal["net", "generation", "abt", "check"]
+    function: Literal["net", "generation", "abt", "check", "multifunction"]
     accuracy_class: str
     connection: Literal["direct", "ct", "ct_pt"]
+    communication: str | None = Field(default=None, description="serial or network interface the datasheet states, e.g. 'RS-485 Modbus RTU'; None when the meter has none or the source is silent")
+
+
+class DataLoggerSpec(Spec):
+    kind: Literal["logger"] = "logger"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "inst.datalogger"
+
+    rs485_ports: int = Field(gt=0, description="RS-485 ports for inverters, meters and weather stations")
+    max_devices: int | None = Field(default=None, gt=0, description="most devices the datasheet lets one logger manage")
+    max_devices_per_rs485_port: int | None = Field(default=None, gt=0)
+    rs485_protocols: tuple[str, ...] = Field(default=(), description="protocols as the datasheet names them")
+    ethernet_ports: int = Field(default=0, ge=0)
+    ethernet_protocols: tuple[str, ...] = ()
+    ac_supply_v: tuple[Volts, Volts] | None = Field(default=None, description="(lowest, highest) AC auxiliary supply, 50/60 Hz; None when the logger has no AC input")
+    dc_supply_v: tuple[Volts, Volts] | None = Field(default=None, description="(lowest, highest) DC auxiliary supply")
+    ip_rating: str | None = None
+    dimensions: Dimensions | None = Field(default=None, description="outer size from the datasheet; the Solis sheet orders it L x W x H, taken here as width, depth, height")
+
+    @model_validator(mode="after")
+    def _ranges(self) -> "DataLoggerSpec":
+        for rng in (self.ac_supply_v, self.dc_supply_v):
+            if rng is not None and rng[0] > rng[1]:
+                raise ValueError("a supply range is (lowest, highest)")
+        if self.max_devices is not None and self.max_devices_per_rs485_port is not None and self.max_devices_per_rs485_port > self.max_devices:
+            raise ValueError("max_devices_per_rs485_port exceeds max_devices")
+        return self
 
 
 EquipmentSpec = Annotated[
-    ModuleSpec | InverterSpec | BatterySpec | PCSSpec | TransformerSpec | CableSpec | ProtectionSpec | MeterSpec,
+    ModuleSpec | InverterSpec | BatterySpec | PCSSpec | TransformerSpec | CableSpec | ProtectionSpec | MeterSpec | DataLoggerSpec,
     Field(discriminator="kind"),
 ]

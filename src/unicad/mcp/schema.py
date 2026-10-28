@@ -22,7 +22,7 @@ def values(enum: type[StrEnum]) -> str:
     return ", ".join(e.value for e in enum)
 
 
-CatalogKind = Literal["module", "inverter", "battery", "pcs", "transformer", "cable", "protection", "meter"]
+CatalogKind = Literal["module", "inverter", "battery", "pcs", "transformer", "cable", "protection", "meter", "logger"]
 DrawingKind = Literal["all", "register", "sld", "layout", "earthing", "lps", "strings", "cable_schedule", "bom"]
 RuleFamily = Literal["structure", "pv_strings", "ratio", "protection", "cables", "vdrop", "earthing", "lps"]
 SiteFormatName = Literal["kml", "kmz", "geojson", "dxf", "coords"]
@@ -40,7 +40,7 @@ PitchMethodArg = Annotated[PitchMethod, Field(description=f"Row pitch method: {v
 FillOrderArg = Annotated[FillOrder, Field(description=f"With a target: {values(FillOrder)}. rows fills the front rows first, nearest fills closest to fill_from")]
 OrientationArg = Annotated[Orientation, Field(description=f"Module orientation on the table: {values(Orientation)}")]
 RegionModeArg = Annotated[RegionMode, Field(description="Where to place: auto (roofs for rooftop mountings, else ground), ground or roofs")]
-CatalogKindArg = Annotated[CatalogKind | None, Field(description="Catalog kind: module, inverter, battery, pcs, transformer, cable, protection or meter")]
+CatalogKindArg = Annotated[CatalogKind | None, Field(description="Catalog kind: module, inverter, battery, pcs, transformer, cable, protection, meter or logger (data logger)")]
 DrawingKindsArg = Annotated[list[DrawingKind], Field(description="Drawing kinds in set order, or 'all' for the complete set: all, register, sld, layout, earthing, lps, strings, cable_schedule, bom")]
 RuleFamiliesArg = Annotated[list[RuleFamily] | None, Field(description="Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps")]
 SiteFormatArg = Annotated[SiteFormatName | None, Field(description="Site file format: kml, kmz, geojson, dxf or coords; guessed from the extension when omitted")]

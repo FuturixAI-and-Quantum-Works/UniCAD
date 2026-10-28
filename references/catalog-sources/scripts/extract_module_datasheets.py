@@ -101,6 +101,16 @@ SHEETS = [
           length_mm=2456, width_mm=1134, thickness_mm=35, weight_kg=31, max_system_v=1500, max_series_fuse_a=25,
           const_page=2,
           note="Text layer lacks row labels; STC order and all constants verified against the rendered page")),
+    ("Avaada_Enlume_AVN66G12G_G2G_TOPCon_700-720.pdf", "Avaada Electro",
+     lambda f: label_rows(f, {"pmax_w": r"Capacity rating . Pmax \(Wp\*\)", "vmp_v": r"Rated voltage - Vmp\(V\)",
+                              "imp_a": r"Rated current - Imp\(A\)", "voc_v": r"Open circuit voltage - Voc\(V\)",
+                              "isc_a": r"Short circuit current - Isc\(A\)", "efficiency_pct": r"Module efficiency \(%\)"},
+                          5, "AVN66G12G-{p}"),
+     dict(technology="N-type TOPCon bifacial, glass-glass, G12 132 half-cut", cells=132, bifaciality_pct="80±5",
+          alpha_isc_pct_per_c=0.04, beta_voc_pct_per_c=-0.25, gamma_pmax_pct_per_c=-0.30, noct_c="45±2",
+          length_mm=2384, width_mm=1303, thickness_mm=35, weight_kg=38, max_system_v=1500, max_series_fuse_a="",
+          const_page=2,
+          note="Datasheet gives no maximum series fuse rating")),
 ]
 
 FIELDS = ["source_file", "manufacturer", "model", "pmax_w", "vmp_v", "imp_a", "voc_v", "isc_a", "efficiency_pct",

@@ -24,6 +24,8 @@ from unicad.domain.catalog import (  # noqa: E402
     BatterySpec,
     CableSpec,
     CellTech,
+    DataLoggerSpec,
+    Dimensions,
     EquipmentSpec,
     InverterSpec,
     MeterSpec,
@@ -37,6 +39,8 @@ from unicad.domain.catalog import (  # noqa: E402
 EXTRACTED = ROOT / "references" / "catalog-sources" / "extracted"
 EXTRACTED_REL = "references/catalog-sources/extracted"
 RETRIEVED = "2026-10-26"
+LATER_RETRIEVED = "2026-10-29"
+LATER_DATASHEETS = ("Avaada_", "Solis_S6-GC3P150-200K", "Secure_Elite440", "Solis_S3-Logger")
 ALMM_REF = "ALMM List-I"
 
 KIND_FILES = {
@@ -48,6 +52,7 @@ KIND_FILES = {
     "cable": "cables.json",
     "protection": "protection.json",
     "meter": "meters.json",
+    "logger": "loggers.json",
 }
 ADAPTER = TypeAdapter(EquipmentSpec)
 
@@ -103,7 +108,15 @@ def slug(*parts: object) -> str:
 def source(kind: str, raw: str, csv_name: str, row: int, page: str | int | None = None, extra: str = "") -> Source:
     where = f"{raw} p.{page}" if page else raw
     ref = f"{where}; {EXTRACTED_REL}/{csv_name} row {row}" + (f"; {extra}" if extra else "")
-    return Source(kind=kind, ref=ref, retrieved=RETRIEVED)
+    return Source(kind=kind, ref=ref, retrieved=LATER_RETRIEVED if Path(raw).name.startswith(LATER_DATASHEETS) else RETRIEVED)
+
+
+def dimensions(text: str | None) -> Dimensions | None:
+    """'6058x2896x2438' as written W x H x D in the datasheet."""
+    if not text:
+        return None
+    w, h, d = (float(x) for x in text.split("x"))
+    return Dimensions(width=w, height=h, depth=d)
 
 
 def missing(**fields: object) -> list[str]:
@@ -167,6 +180,7 @@ DATASHEET_ALMM_CODE = {
     "Adani_": lambda r: f"ASB-M10-144-{r['pmax_w']}",
     "VikramSolar_": lambda r: f"HYPERSOL VSMDH.72.{r['pmax_w']}.05",
     "TataPowerSolar_": lambda r: f"TP{r['pmax_w']}LG10TB",
+    "Avaada_": lambda r: f"AVN66G12G{r['pmax_w']}",
 }
 
 
@@ -179,6 +193,10 @@ def almm_code_for(row: dict[str, str]) -> str | None:
 
 
 def import_modules(b: Build, almm: Almm) -> None:
+    b.notes.append(
+        "720 Wp class: Avaada Electro AVN66G12G (ENLUME G12, N-type TOPCon bifacial glass-glass, 132 half-cut cells of 210 mm, 2384 x 1303 mm), 700-720 Wp, ALMM List-I enlisted. A 720 Wp TOPCon module is G12 (full 210 mm "
+        "cells); the G12R modules in the catalog stop at 635 Wp. The datasheet states no maximum series fuse rating, so `max_series_fuse` is empty and the string-fuse rule warns above two strings per MPPT."
+    )
     for line, r in read_csv("module_datasheets.csv"):
         ref = f"module_datasheets.csv row {line} ({r['manufacturer']} {r['model']})"
         listed, match = almm.lookup(almm_code_for(r))
@@ -240,6 +258,10 @@ def import_modules(b: Build, almm: Almm) -> None:
 
 
 def import_inverters(b: Build) -> None:
+    b.notes.append(
+        "150 kW class: Solis S6-GC3P150K07-NV-ND (150 kW / 165 kVA, 400 V, 7 MPPT, 21 strings = 3 inputs per MPPT, 54 A and 75 A per MPPT). The RVUNL brief asked for 7 MPPT with 2 strings each; "
+        "no datasheet found with 7 x 2 inputs, so the closest real unit is catalogued and two strings per MPPT stay within its limits for the 720 Wp module."
+    )
     for line, r in read_csv("inverter_datasheets.csv"):
         ref = f"inverter_datasheets.csv row {line} ({r['manufacturer']} {r['model']})"
         if "transformer" in r["note"]:
@@ -264,6 +286,8 @@ def import_inverters(b: Build) -> None:
         extra = "inputs per MPPT differ between trackers; smallest used" if len(set(strings)) > 1 else ""
         if int(r["mppt_count"]) > 1 and not r["idc_max_per_mppt_a"]:
             extra = "datasheet gives DC input totals only; per-MPPT currents left empty"
+        if "(derived)" in r["note"]:
+            extra = f"{extra}; {r['note']}" if extra else r["note"]
         if r["ac_terminal_max_mm2"]:
             fields["ac_terminal_max_mm2"] = num(r["ac_terminal_max_mm2"])
             t = f"AC terminal from p.{r['ac_terminal_pdf_page']}: '{r['ac_terminal_text']}'; cables per pole not stated"
@@ -273,7 +297,7 @@ def import_inverters(b: Build) -> None:
             id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
             source=source("datasheet", r["source_file"], "inverter_datasheets.csv", line, r["pdf_page"], extra),
             topology="central" if "central" in r["note"] or "skid" in r["note"] else "string", phases=3,
-            start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, **fields,
+            start_voltage=num(r["start_voltage_v"]), max_efficiency=eff / 100 if eff else None, dimensions=dimensions(r["dimensions_mm"]), **fields,
         )
     import_residential_inverters(b)
     cec = read_csv("cec_inverters_core.csv")
@@ -322,6 +346,7 @@ def import_bess(b: Build) -> None:
             "pcs", ref, PCSSpec, id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
             source=source("datasheet", raw, "bess_pcs_datasheets.csv", line, page),
             rated_kva=num(r["ac_power_kva"]), ac_voltage=num(r["ac_voltage_v"]), dc_voltage_min=vmin, dc_voltage_max=vmax,
+            dimensions=dimensions(r["dimensions_mm"]),
         )
         if not r["energy_kwh"]:
             continue
@@ -335,6 +360,7 @@ def import_bess(b: Build) -> None:
             source=source("datasheet", raw, "bess_pcs_datasheets.csv", line, page, "nominal voltage = series cells x cell voltage; datasheet gives no DC current"),
             chemistry="lfp", energy_kwh=num(r["energy_kwh"]),
             nominal_voltage=round(int(series[1]) * float(cell_v[1]), 1), voltage_min=vmin, voltage_max=vmax,
+            dimensions=dimensions(r["dimensions_mm"]),
         )
 
 
@@ -637,6 +663,7 @@ def import_protection(b: Build) -> None:
             id=slug("finder", v["code"]), manufacturer="Finder", model=v["code"],
             source=src(spd, extra="3 varistor modules (+, -, PE) per catalogue page 12"),
             device="spd_dc", rated_voltage=v["ucpv_vdc"], poles=3, spd_type="2",
+            nominal_discharge_current_ka=v["in_ka"], max_discharge_current_ka=v["imax_ka"],
         )
 
 
@@ -658,10 +685,11 @@ def import_switchgear(b: Build) -> None:
         )
     otdc_pdf = "raw/datasheets/protection/ABB_OTDC_DC_switch-disconnectors_1SCC301022C0201_2024-06.pdf"
     for line, r in read_csv("abb_otdc_switch_disconnectors.csv"):
-        s2 = r["series"] == "S2.0"
+        parallel = r["circuits"] == "1" and r["poles"] == "4"
         extra = (
             f"OTDC {r['series']}, {r['circuits']} circuit(s) on {r['poles']} poles, rated current is DC-21B at {r['voltage_vdc']} V DC"
-            + (f"; DC-PV2 rating is {r['dc_pv2_a']} A at 1500 V" if s2 else "")
+            + ("; two poles in parallel per polarity (ABB connection bar kit, installation mandatory)" if parallel else "")
+            + (f"; DC-PV2 rating is {r['dc_pv2_a']} A at 1500 V" if r["dc_pv2_a"] else "")
             + f"; Icw {r['icw_ka']} kA for {r['icw_s']} s from the technical-data table on pdf p.{r['tech_pdf_page']}"
         )
         b.add(
@@ -685,7 +713,8 @@ def import_switchgear(b: Build) -> None:
             "protection", "protection_phase2.json spd_ac_finder", ProtectionSpec,
             id=slug("finder", v["code"]), manufacturer="Finder", model=v["code"],
             source=src(finder, f"{finder['note']} Maximum backup fuse {v['max_backup_fuse_a']} A gG; Up {v['up_in_kv']} kV at In; Imax {v['imax_ka']} kA"),
-            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
+            max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
     dehn = phase2["spd_ac_dehn"]
     for v in dehn["variants"]:
@@ -701,7 +730,8 @@ def import_switchgear(b: Build) -> None:
             "protection", "protection_phase2.json spd_ac_dehn_3p", ProtectionSpec,
             id=slug("dehn", v["code"]), manufacturer="DEHN", model=f"DEHNguard {v['code']}",
             source=src(dehn3, f"part no. {v['part_no']}; {dehn3['note']} Up <= {v['up_kv']} kV; Imax {v['imax_ka']} kA; max mains-side backup fuse {v['max_backup_fuse_a']} A gG; remote signalling {v['remote_signalling']}"),
-            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
+            max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
     it = phase2["spd_ac_dehn_it"]
     req = it["it_requirement"]
@@ -711,8 +741,28 @@ def import_switchgear(b: Build) -> None:
             id=slug("dehn", v["code"], f"{v['units']}x"), manufacturer="DEHN", model=f"{v['units']} x DEHNguard {v['code']} (3-0 circuit)",
             source=src(it, f"part no. {v['part_no']} x {v['units']}; {it['note']} IT requirement: '{req['text']}', {req['url']} (printed p.{req['printed_page']}, Figure {req['figure']}); "
                        f"Up <= {v['up_kv']} kV; Imax {v['imax_ka']} kA; max mains-side backup fuse {v['max_backup_fuse_a']} A gG; remote signalling {v['remote_signalling']}"),
-            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"], spd_type="2",
+            device="spd_ac", rated_voltage=v["uc_vac"], poles=v["poles"], nominal_discharge_current_ka=v["in_ka"],
+            max_discharge_current_ka=v["imax_ka"], spd_type="2",
         )
+    s0 = json.loads((EXTRACTED / "protection_s0.json").read_text())
+    sfu = s0["sfu_36kv"]
+    b.add(
+        "protection", "protection_s0.json sfu_36kv", ProtectionSpec,
+        id="abb-safeplus-36-f-module-200a", manufacturer="ABB", model="SafePlus 36 F-module switch-fuse-disconnector",
+        source=Source(
+            kind="catalog", retrieved=LATER_RETRIEVED,
+            ref=f"{sfu['source']} p.{sfu['pdf_page']}; {EXTRACTED_REL}/protection_s0.json sfu_36kv; {sfu['standard']}; rated voltage {sfu['rated_voltage_kv']} kV (a 33 kV system); "
+                f"rated normal current {sfu['rated_normal_current_a']} A depends on the fuse-link; breaking current {sfu['breaking_current_ka']} kA is limited by the HV fuse-links; "
+                f"transfer current {sfu['transfer_current_a']} A; fuse-links to {sfu['fuse_link_standard']} up to {sfu['max_fuse_link_rated_current_a']} A rated (p.{sfu['fuse_pdf_page']}); "
+                f"busbars {sfu['busbar_short_time_withstand_ka']} kA for {sfu['busbar_short_time_s']} s",
+        ),
+        device="sfu", rated_current=sfu["rated_normal_current_a"], rated_voltage=sfu["rated_voltage_kv"] * 1000, poles=3,
+        breaking_capacity_ka=sfu["breaking_current_ka"],
+    )
+    b.notes.append(
+        "33 kV fuse-switch: ABB SafePlus 36 F-module (36 kV, 200 A, breaking current 20 kA limited by the fuse-links, fuse-links up to 63 A). It is a gas-insulated RMU module, not an outdoor pole-mounted fuse switch; "
+        "no datasheet for an outdoor 33 kV fuse-switch was found."
+    )
     pt = phase2["pt_33kv"]
     b.add(
         "protection", "protection_phase2.json pt_33kv", ProtectionSpec,
@@ -801,6 +851,14 @@ def import_p5_protection(b: Build) -> None:
         rated_voltage=la["ur_kv"] * 1000, poles=1, nominal_discharge_current_ka=la["nominal_discharge_current_ka"],
     )
     b.notes.append(
+        "1500 V DC switch for a string combiner outgoing circuit around 500 A: ABB OTDC M-series (315, 400, 500, 630, 800 A two-pole; 800 and 1000 A as two poles in parallel per polarity), "
+        "DC-21B at 1500 V, DC-PV2 500 A for the 630 and 800 A sizes, Icw 10 kA for 1 s. Before this the largest 1500 V DC switch was the 250 A OTDC S2.0."
+    )
+    b.notes.append(
+        "800 V ~400 A breakers beyond EasyPact: none added. Schneider ComPacT NSX400K (Icu 36 kA at 800 V AC) appears in Schneider's online user guide, which refused the download (HTTP 403); "
+        "the 2014 ComPacT NSX catalogue found elsewhere has no 800 V breaking-capacity row. ABB Tmax T5 V 400 A (1150 V AC, Icu 12 kA) remains the other 400 A entry at this voltage."
+    )
+    b.notes.append(
         "800 V-class LT breakers: Schneider MasterPacT MTZ2 H10 (1150 V AC, 800-4000 A, 3P, Icu 50 kA), ABB Tmax T4/T5 V and T6 L (1000-1150 V AC, 100-800 A, 3P/4P, Icu 12 kA) and Schneider EasyPact Solar MCCB 400/800 (800 V AC, 125-800 A, 3P, Icu 25/36/50 kA) are catalogued. "
         "Siemens 3WL / 3VA and Schneider ComPacT NSX/NS at 800 V and above were not found in a text-extractable source."
     )
@@ -835,6 +893,41 @@ def import_meters(b: Build) -> None:
             manufacturer="Generic (CEA metering regulations)",
             model=f"{function.upper() if function == 'abt' else function.capitalize()} meter {connection.upper()} class {cls}",
             source=METER_SOURCE, function=function, accuracy_class=cls, connection=connection,
+        )
+
+
+def import_meter_datasheets(b: Build) -> None:
+    b.notes.append(
+        "Multifunction meter: Secure Elite 440 (Secure Meters, India), RS-485 Modbus RTU, CT operated, classes 0.2S / 0.5S / 1.0. The datasheet lists the three classes without tying them to model numbers 441-448, "
+        "so one entry per class carries the family name. Schneider EasyLogic PM2230 was not catalogued: its datasheet host refused the download (HTTP 403)."
+    )
+    for line, r in read_csv("meter_datasheets.csv"):
+        b.add(
+            "meter", f"meter_datasheets.csv row {line}", MeterSpec, id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
+            source=source("datasheet", r["source_file"], "meter_datasheets.csv", line, r["pdf_page"], r["note"]),
+            function=r["function"], accuracy_class=r["accuracy_class"], connection=r["connection"], communication=r["communication"] or None,
+        )
+
+
+def import_loggers(b: Build) -> None:
+    b.notes.append(
+        "Data logger: a catalog kind of its own (`logger`, DataLoggerSpec), drawn with the inst.datalogger symbol. Solis S3-Logger (India edition datasheet) is the only entry: it reads Solis inverters, meters and weather stations "
+        "over four RS-485 ports, so it matches the Solis inverter catalogued for the 150 kW class. A logger of another make needs its own datasheet; the Huawei SmartLogger and Sungrow Logger1000 sheets were not fetched."
+    )
+    def span(r: dict[str, str], key: str) -> tuple[float, float] | None:
+        lo, hi = num(r[f"{key}_min"]), num(r[f"{key}_max"])
+        return (lo, hi) if lo is not None and hi is not None else None
+
+    for line, r in read_csv("logger_datasheets.csv"):
+        b.add(
+            "logger", f"logger_datasheets.csv row {line}", DataLoggerSpec, id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
+            source=source("datasheet", r["source_file"], "logger_datasheets.csv", line, r["pdf_page"], r["note"]),
+            rs485_ports=int(r["rs485_ports"]), max_devices=int(r["max_devices"]) if r["max_devices"] else None,
+            max_devices_per_rs485_port=int(r["max_devices_per_rs485_port"]) if r["max_devices_per_rs485_port"] else None,
+            rs485_protocols=tuple(p.strip() for p in r["rs485_protocols"].split(";") if p.strip()), ethernet_ports=int(r["ethernet_ports"] or 0),
+            ethernet_protocols=tuple(p.strip() for p in r["ethernet_protocols"].split(";") if p.strip()),
+            ac_supply_v=span(r, "ac_supply_v"), dc_supply_v=span(r, "dc_supply_v"), ip_rating=r["ip_rating"] or None,
+            dimensions=Dimensions(width=num(r["length_mm"]), depth=num(r["width_mm"]), height=num(r["height_mm"])) if r["length_mm"] else None,
         )
 
 
@@ -902,6 +995,8 @@ def build(out: Path) -> Build:
     import_switchgear(b)
     import_p5_protection(b)
     import_meters(b)
+    import_meter_datasheets(b)
+    import_loggers(b)
 
     ids = Counter(s.id for specs in b.entries.values() for s in specs)
     if dupes := [i for i, n in ids.items() if n > 1]:

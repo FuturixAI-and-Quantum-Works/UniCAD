@@ -1,0 +1,41 @@
+[
+  {
+    "id": "solis-s3-logger",
+    "manufacturer": "Solis",
+    "model": "S3-Logger",
+    "symbol": "inst.datalogger",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/loggers/Solis_S3-Logger_DS.pdf p.2; references/catalog-sources/extracted/logger_datasheets.csv row 2; India edition (solisinverters.com/in). Manages Solis inverters, meters and weather stations; the sheet says inverters must first be daisy-chained hand-in-hand on RS485. Power consumption 5 W; rail or desktop mounting; operating -40 to +80 C. The S3-Logger-EPM variant of the same sheet adds zero power output and is not catalogued.",
+      "retrieved": "2026-10-29"
+    },
+    "kind": "logger",
+    "rs485_ports": 4,
+    "max_devices": 60,
+    "max_devices_per_rs485_port": 15,
+    "rs485_protocols": [
+      "Modbus-RTU",
+      "IEC60870-5-103",
+      "DLT645"
+    ],
+    "ethernet_ports": 1,
+    "ethernet_protocols": [
+      "Modbus-TCP",
+      "IEC60870-5-104"
+    ],
+    "ac_supply_v": [
+      100.0,
+      240.0
+    ],
+    "dc_supply_v": [
+      9.0,
+      36.0
+    ],
+    "ip_rating": "IP20",
+    "dimensions": {
+      "width": 89.0,
+      "height": 27.0,
+      "depth": 121.0
+    }
+  }
+]

@@ -15,6 +15,11 @@
     "nominal_voltage": 1331.2,
     "voltage_min": 1123.2,
     "voltage_max": 1497.6,
-    "max_continuous_current": null
+    "max_continuous_current": null,
+    "dimensions": {
+      "width": 6058.0,
+      "height": 2896.0,
+      "depth": 2438.0
+    }
   }
 ]

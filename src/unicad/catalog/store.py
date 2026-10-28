@@ -17,6 +17,7 @@ KIND_FILES = {
     "cable": "cables.json",
     "protection": "protection.json",
     "meter": "meters.json",
+    "logger": "loggers.json",
 }
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "catalog"
 _ADAPTER: TypeAdapter[EquipmentSpec] = TypeAdapter(EquipmentSpec)

@@ -1,0 +1,21 @@
+{
+  "_about": "Hand transcription from pdftotext -layout of the cited pages of raw/datasheets/protection/, read on 2026-10-29 for the RVUNL Heerapura catalog gaps (PLAN.md 11.1).",
+  "sfu_36kv": {
+    "source": "raw/datasheets/protection/ABB_SafeRing_SafePlus_36kV_catalogue_1YVA000080_RevB.pdf",
+    "pdf_page": 13,
+    "fuse_pdf_page": 15,
+    "product": "ABB SafePlus 36 F-module (switch-fuse-disconnector with earthing switch), SF6-insulated, 36 kV column of the technical-data table",
+    "standard": "IEC 62271-105 switch-fuse combination",
+    "rated_voltage_kv": 36,
+    "rated_normal_current_a": 200,
+    "rated_normal_current_note": "table footnote 4: depending on the current rating of the fuse-link",
+    "breaking_current_ka": 20,
+    "breaking_current_note": "table footnote 5: limited by the high-voltage fuse-links",
+    "transfer_current_a": 840,
+    "max_fuse_link_rated_current_a": 63,
+    "fuse_link_standard": "IEC 60282-1 type 1 / DIN 43625",
+    "busbar_short_time_withstand_ka": 20,
+    "busbar_short_time_s": 3,
+    "note": "Operating voltage on the 36 kV fuse selection table is 30 kV; the rated 36 kV covers a 33 kV system."
+  }
+}

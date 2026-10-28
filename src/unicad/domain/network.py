@@ -149,7 +149,7 @@ SPEC_KINDS: dict[NodeKind, frozenset[str]] = {
     NodeKind.BATTERY: frozenset({"battery"}),
     NodeKind.TRANSFORMER: frozenset({"transformer"}),
     NodeKind.AUX_TRANSFORMER: frozenset({"transformer"}),
-    NodeKind.METER: frozenset({"meter"}),
+    NodeKind.METER: frozenset({"meter", "logger"}),
     NodeKind.BREAKER: frozenset({"protection"}),
     NodeKind.VCB: frozenset({"protection"}),
     NodeKind.ISOLATOR: frozenset({"protection"}),
