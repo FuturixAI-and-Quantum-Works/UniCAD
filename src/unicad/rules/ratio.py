@@ -120,7 +120,8 @@ BESS_INFO_BAND = 0.01
 
 @rule("ratio.bess_intent", "BESS power and energy as asked")
 def bess_intent(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """When PCS nodes carry the requested storage size (bess_kw_requested / bess_kwh_requested, set by network_autobuild), the built PCS kVA and battery kWh are
+    """When PCS nodes carry the requested storage size (bess_kw_requested / bess_kwh_requested, set by network_autobuild from bess_brief_kw / bess_brief_kwh, else
+    bess_kw / bess_kwh; design_basis.bess holds both for the drawings), the built PCS kVA and battery kWh are
     compared with it, because whole catalog units rarely add up to the request exactly: a difference above 1 % in either is a warning that states it, a smaller one an info finding."""
     net = project.network
     pcs = [n for n in net.by_kind(NodeKind.PCS) if n.spec is not None]
