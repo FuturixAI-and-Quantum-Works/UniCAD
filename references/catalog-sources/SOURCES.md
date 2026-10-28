@@ -18,7 +18,7 @@ python3 scripts/extract_module_datasheets.py
 
 The datasheet helper `unicad.ingest.datasheet` (`extract_text_and_tables`, `draft_spec`) reads further PDFs on demand; its output is not committed here.
 
-`extracted/inverter_datasheets.csv`, `extracted/inverter_residential_datasheets.csv`, `extracted/bess_pcs_datasheets.csv`, `extracted/protection_ladders.json`, `extracted/protection_phase2.json`, `extracted/protection_p5.json` and `extracted/idt_impedance_citations.csv`, `extracted/meter_datasheets.csv`, `extracted/logger_datasheets.csv` and `extracted/protection_s0.json` were transcribed by hand from `pdftotext -layout` output of the cited pages. They have no script.
+`extracted/inverter_datasheets.csv`, `extracted/inverter_residential_datasheets.csv`, `extracted/bess_pcs_datasheets.csv`, `extracted/protection_ladders.json`, `extracted/protection_phase2.json`, `extracted/protection_p5.json`, `extracted/idt_impedance_citations.csv`, `extracted/meter_datasheets.csv`, `extracted/logger_datasheets.csv` and `extracted/protection_s0.json` were transcribed by hand from `pdftotext -layout` output of the cited pages. They have no script.
 
 Licence column: what the source itself states. "Unstated" means the file and its landing page carry no licence or terms we could read. Read the licence notes at the end before shipping any of this.
 
