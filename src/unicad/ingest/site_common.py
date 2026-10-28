@@ -271,7 +271,7 @@ def place(
     """Classify the parsed shapes and place them in local metres, merged into `existing` (or a new geometry).
 
     Features previously imported from the same `source` are replaced; features from other sources or added by hand are kept.
-    With `replace`, `existing` is discarded and a new origin is chosen.
+    With `replace`, `existing` is discarded and a new origin is chosen; its default setbacks carry over to the new geometry.
     """
     kept, skipped = resolve_kinds(parsed, parse_kind_mapping(kind_mapping))
     base = None if replace else existing
@@ -322,7 +322,8 @@ def place(
             merged.append(f)
     kept_ids = {m.id for m in merged}
     merged += [f for f in features if f.id not in kept_ids]
-    geometry = base.with_features(merged) if base is not None else SiteGeometry(crs=crs, origin=origin, features=tuple(merged))
+    carried = existing.setbacks if replace and existing is not None else None
+    geometry = base.with_features(merged) if base is not None else SiteGeometry(crs=crs, origin=origin, features=tuple(merged), **({"setbacks": carried} if carried else {}))
     removed = sorted({f.id for f in [*previous, *discarded] if f not in keep_old and f.id not in new})
     return Placed(geometry, list(new), replaced, removed, skipped, list(parsed.warnings))
 

@@ -171,12 +171,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
         source_crs: Annotated[str | None, Field(description="EPSG code when a DXF or coordinate list holds projected metres, e.g. 'EPSG:32643'; omit for local metres")] = None,
         units: DrawingUnitArg = None,
         coordinate_system: Annotated[CoordinateSystem | None, Field(description="Coordinate lists only: lonlat, latlon or local (metres). Guessed when omitted")] = None,
-        replace: Annotated[bool, Field(description="Discard the existing site geometry first and start a new local frame")] = False,
+        replace: Annotated[bool, Field(description="Discard the existing site geometry first and start a new local frame; the default setbacks are kept")] = False,
     ) -> dict[str, Any]:
         """Import site geometry (boundary, roofs, exclusions, roads, obstacles) from KML/KMZ, GeoJSON, DXF or a coordinate list into local metres.
 
         The local frame is the UTM zone of the site; its origin (the lon/lat of local 0,0) is stored with the geometry. Shapes are classified by name, folder or
-        layer (see kind_mapping). Importing the same file again replaces what it imported before; features from other files or added by hand are kept.
+        layer (see kind_mapping). Importing the same file again replaces what it imported before; features from other files or added by hand are kept. With replace=true the old features go but the default setbacks (site_set_setbacks) are kept.
         Closed polygons become areas; open paths become roads, setback lines or transmission lines.
         Example: site_import(project_id="p1", file_path="/data/site.kml", kind_mapping={"Plot": "boundary"})."""
 
@@ -189,7 +189,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 )  # fmt: skip
             except OSError as e:
                 raise ToolError(f"cannot read {file_path}: {e.strerror or e}") from None
-            return _edit(p, placed, path.name, moved=replace)
+            edit = _edit(p, placed, path.name, moved=replace)
+            kept = p.site.geometry.setbacks if replace and p.site.geometry is not None else None
+            if kept is not None and kept.model_dump() != Setbacks().model_dump():
+                note = _problem("info", "setbacks", f"replace kept the previous default setbacks {kept.model_dump()} (site_set_setbacks changes them)")
+                edit = Edit(edit.project, edit.touched, edit.extra | {"setbacks_kept": True}, (*edit.problems, note))
+            return edit
 
         return ws.mutate(project_id, change)
 

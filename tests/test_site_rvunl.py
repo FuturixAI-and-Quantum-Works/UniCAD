@@ -164,3 +164,51 @@ def test_rvunl_accb_and_client_panel_stand_outside_the_tables_with_a_route(tmp_p
     from shapely.geometry import LineString
 
     assert LineString(pts).intersection(union).length == 0
+
+
+PLOT_170X110 = "75.7187380, 26.8865184\n75.7203509, 26.8865184\n75.7203509, 26.8875082\n75.7187380, 26.8875082\n"
+
+
+def test_site_import_replace_keeps_the_setbacks(tmp_path):
+    async def scenario(c):
+        pid = await rvunl_plot(c, tmp_path, setback=5)
+        before = await c.call("site_set_setbacks", project_id=pid, boundary_m=5, exclusion_m=3)
+        smaller = tmp_path / "smaller.csv"
+        smaller.write_text("# boundary smaller\n" + PLOT_170X110)
+        again = await c.call("site_import", project_id=pid, file_path=str(smaller), format="coords", coordinate_system="lonlat", replace=True)
+        return before, again
+
+    before, again = run(tmp_path, scenario)
+    assert again["setbacks_m"]["boundary_m"] == 5 and again["setbacks_m"]["exclusion_m"] == 3
+    assert again["buildable"]["ground"]["m2"] < again["imported"][0]["area_m2"]
+    assert any("setbacks" in p["message"] for p in again.get("problems", [])), "the kept setbacks are reported"
+
+
+PLOT_150X100 = "75.7187891, 26.8866084\n75.7202998, 26.8866084\n75.7202998, 26.8875082\n75.7187891, 26.8875082\n"
+
+
+def test_layout_place_reports_shortfall_and_a_plot_that_fits(tmp_path):
+    async def scenario(c):
+        pid = await rvunl_plot(c, tmp_path, PLOT_150X100)
+        short = await c.call("layout_place", project_id=pid, **LAYOUT)
+        w, h = short["shortfall"]["plot_that_fits_m"]
+        grown = tmp_path / "grown"
+        grown.mkdir()
+        lon = 75.7187891
+        lat = 26.8866084
+        dlon = (w / (111320 * math.cos(math.radians(lat)))) * 1.0
+        dlat = h / 110574
+        pid2 = (await c.call("project_create", **{**CREATE, "name": "grown", "segment": "utility", "grid_voltage_v": 415}))["project_id"]
+        f = grown / "plot.csv"
+        f.write_text(f"# boundary grown\n{lon}, {lat}\n{lon + dlon}, {lat}\n{lon + dlon}, {lat + dlat}\n{lon}, {lat + dlat}\n")
+        await c.call("site_import", project_id=pid2, file_path=str(f), format="coords", coordinate_system="lonlat")
+        await c.call("site_set_setbacks", project_id=pid2, boundary_m=5)
+        return short, await c.call("layout_place", project_id=pid2, **LAYOUT)
+
+    short, fitted = run(tmp_path, scenario)
+    assert short["target_reached"] is False and short["metrics"]["dc_kwp"] == pytest.approx(800.1)
+    s = short["shortfall"]
+    assert s["target_kwp"] == 1371.6 and s["short_kwp"] == pytest.approx(571.5) and s["plot_now_m"] == pytest.approx([150, 100], abs=1.5)
+    assert s["plot_that_fits_m"][0] > 150 and s["plot_that_fits_m"][1] > 100
+    assert any("fits 800.1 kWp" in p["message"] and "scaled to about" in p["message"] for p in short["problems"])
+    assert fitted["target_reached"] is True, f"the plot the shortfall names does not fit the target: {fitted['metrics']}"
