@@ -125,7 +125,7 @@ class LayoutBuilder:
             drawing = LayoutDrawing(project.site.geometry, layout, _module(project, catalog), max(t.cols for t in layout.table_by_id.values()), pitch,
                                     notes=layout_notes(project, pitch), areas=plant_areas(project))  # fmt: skip
             doc = ezdxf.new("R2018", setup=True)
-            res = render_layout_sheet(doc, drawing, sheet_spec(project, s, i, len(sheets), drawn_on=drawn_on), profile, view=view)  # type: ignore[arg-type]
+            res = render_layout_sheet(doc, drawing, sheet_spec(project, s, i, len(sheets), drawn_on=drawn_on, kind="layout"), profile, view=view)  # type: ignore[arg-type]
             warnings = list(res.warnings)
             if view == "site":
                 warnings.append("internal roads are not stored with the array layout, so the sheet shows only the roads imported with the site")
@@ -163,7 +163,7 @@ class EarthingBuilder:
         out = []
         for i, s in enumerate(sheets, start=1):
             doc = ezdxf.new("R2018", setup=True)
-            res = render_earthing_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=earthing_notes(d), drawn_on=drawn_on), profile)
+            res = render_earthing_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=earthing_notes(d), drawn_on=drawn_on, kind="earthing"), profile)
             meta = {"pits": len(d.layout.pits), "resistance_ohm": round(d.resistance_ohm, 3), "target_ohm": d.target_ohm, "unbonded": len(d.unbonded)}
             out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(dict.fromkeys([*d.warnings, *res.warnings])), meta))
         return out
@@ -187,7 +187,7 @@ class LpsBuilder:
         out = []
         for i, s in enumerate(sheets, start=1):
             doc = ezdxf.new("R2018", setup=True)
-            res = render_lps_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=lps_notes(d), drawn_on=drawn_on), profile,
+            res = render_lps_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=lps_notes(d), drawn_on=drawn_on, kind="lps"), profile,
                                    areas=plant_areas(project))  # fmt: skip
             meta = {"terminals": len(d.terminals), "radius_m": d.radius_m, "uncovered": len(d.uncovered)}
             out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(res.warnings), meta))

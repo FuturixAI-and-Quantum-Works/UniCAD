@@ -47,6 +47,7 @@ def _values(d: TitleBlockData, p: CompanyProfile) -> dict[str, Callable[[], str]
     return {
         "OWNER": lambda: d.client,
         "CLIENT": lambda: d.client,
+        "DEVELOPER": lambda: d.developer or "",
         "CONSULTANT": lambda: d.consultant or "",
         "PROJECT_TITLE": lambda: d.project_title,
         "LOCATION": lambda: compose_location(d.location),
@@ -80,7 +81,7 @@ _ISSUED_NAMES = frozenset(f"ISSUED_{o.name}" for o in IssuedFor)
 _WRAPPED = frozenset({"LOCATION"})
 """Placeholders whose value wraps onto smaller lines to fit its cell rather than being cut."""
 KNOWN_PLACEHOLDERS = frozenset(
-    "OWNER CLIENT CONSULTANT PROJECT_TITLE LOCATION LOA_NO TITLE DRAWING_TITLE DRAWING_NO REV SCALE SHEET SHEET_NO SHEET_COUNT "
+    "OWNER CLIENT DEVELOPER CONSULTANT PROJECT_TITLE LOCATION LOA_NO TITLE DRAWING_TITLE DRAWING_NO REV SCALE SHEET SHEET_NO SHEET_COUNT "
     "PAPER DRAWN CHECKED APPROVED DRAWN_DATE CHECKED_DATE APPROVED_DATE DATE ISSUED_FOR COMPANY ADDRESS CONFIDENTIALITY "
     "SHORT_CODE LOGO".split()
 ) | _ISSUED_NAMES
@@ -376,6 +377,8 @@ class ImportedTitleBlock:
             self._fill(f, values[f.name]() if f.name != "LOGO" else "", y_bottom)
         names = self.template.names
         unmapped = [n for n in REPORTED_WHEN_MISSING if n not in names and not (n == "OWNER" and "CLIENT" in names) and values[n]()]
+        if self.data.developer and "DEVELOPER" not in names:
+            unmapped.append("DEVELOPER")
         if self.data.consultant and "CONSULTANT" not in names:
             unmapped.append("CONSULTANT")
         if self.data.loa_no and "LOA_NO" not in names:

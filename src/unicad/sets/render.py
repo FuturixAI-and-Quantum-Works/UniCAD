@@ -19,6 +19,7 @@ from unicad.render import DwgConverter, LibreCadRenderer, RenderError, Renderer
 from unicad.render import Sheet as RenderSheet
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, builder
+from unicad.tenants.store import drawing_profile
 
 PROFILES = Path(__file__).resolve().parents[3] / "profiles"
 Format = Literal["dxf", "pdf", "dwg"]
@@ -131,7 +132,7 @@ def render_set(
     out_dir.mkdir(parents=True, exist_ok=True)
     _clear_previous(out_dir)
     catalog = catalog if catalog is not None else load_catalog()
-    profile = profile if profile is not None else load_profile(project.company_profile)
+    profile = profile if profile is not None else drawing_profile(project.company_profile)
     drawn_on = drawn_on or today_ist()
     planned = plan_set(project, kinds, profile, catalog, drawn_on)
     warnings: list[str] = missing_kinds(project, kinds, catalog)

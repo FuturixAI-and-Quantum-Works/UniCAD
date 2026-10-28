@@ -5,7 +5,8 @@ from datetime import date
 
 from unicad.domain.project import IssueRevision, Project, Segment, Sheet
 from unicad.drafting.sheets.model import IssuedFor, PaperSize, Revision, SheetSpec, TitleBlockData
-from unicad.drafting.sheets.titleblock import compose_location
+from unicad.drafting.assumptions import sheet_assumptions
+from unicad.drafting.project_fields import location as project_location, project_fields
 from unicad.drafting.sld.annotate import prose
 
 LARGE_SEGMENTS = frozenset({Segment.UTILITY, Segment.BESS, Segment.HYBRID})
@@ -25,21 +26,19 @@ def issued_for(rev: IssueRevision | None) -> IssuedFor:
 
 
 def location(project: Project) -> str:
-    site = project.site
-    return compose_location(site.name, site.address, site.state)
+    return project_location(project)
 
 
 def sheet_spec(
     project: Project, sheet: Sheet, sheet_no: int, sheet_count: int, *, scale: str | None = None, notes: Sequence[str] = (),
-    legend: Sequence[tuple[str, str]] = (), parameters: Sequence[tuple[str, str]] = (), drawn_on: date | None = None,
+    legend: Sequence[tuple[str, str]] = (), parameters: Sequence[tuple[str, str]] = (), drawn_on: date | None = None, kind: str | None = None,
 ) -> SheetSpec:  # fmt: skip
     """Company sheet for `sheet` of the set: number, title, paper and revisions from the sheet (else the project's revisions); dated
-    `drawn_on` while there is no revision."""
+    `drawn_on` while there is no revision; carrying the assumed inputs of drawing kind `kind`."""
     paper = PaperSize(sheet.paper)
     rev = latest(project, sheet)
     tb = TitleBlockData(
-        client=prose(project.client.name), project_title=prose(project.name), location=prose(location(project)) or "-",
-        drawing_title=prose(sheet.title), drawing_number=sheet.number, revision=rev.rev if rev else "00", scale=scale or sheet.scale,
+        **project_fields(project), drawing_title=prose(sheet.title), drawing_number=sheet.number, revision=rev.rev if rev else "00", scale=scale or sheet.scale,
         sheet_no=sheet_no, sheet_count=max(sheet_no, sheet_count), paper=paper, drawn_by=(rev.drawn or "") if rev else "",
         checked_by=(rev.checked or "") if rev else "", approved_by=(rev.approved or "") if rev else "", drawn_date=rev.date if rev else drawn_on,
         issued_for=issued_for(rev),
@@ -48,7 +47,13 @@ def sheet_spec(
         Revision(rev=r.rev, date=r.date, description=prose(r.remarks), by=r.drawn or "", checked=r.checked or "", approved=r.approved or "")
         for r in revisions_of(project, sheet)
     )
-    return SheetSpec(paper=paper, title_block=tb, revisions=revs, notes=tuple(notes), legend=tuple(legend), parameters=tuple(parameters))
+    return SheetSpec(paper=paper, title_block=tb, revisions=revs, notes=tuple(notes), legend=tuple(legend), parameters=tuple(parameters),
+                     assumptions=sheet_assumptions(project, kind) if kind else ())
+
+
+def finish(spec: SheetSpec, project: Project, kind: str) -> SheetSpec:
+    """A sheet drawn by the schedule tables (`unicad.schedules.dxf.SheetContext`) with the project fields and assumed inputs every set sheet carries."""
+    return spec.model_copy(update={"title_block": spec.title_block.model_copy(update=project_fields(project)), "assumptions": sheet_assumptions(project, kind)})
 
 
 def dated(spec: SheetSpec, drawn_on: date | None) -> SheetSpec:

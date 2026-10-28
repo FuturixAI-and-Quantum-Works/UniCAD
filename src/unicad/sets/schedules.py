@@ -1,5 +1,6 @@
 """Cable schedule and bill of materials pages of a set: the table pages of `unicad.schedules.dxf`, one drawing number per page."""
 
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -12,9 +13,10 @@ from unicad.drafting.tables import TableSpec, render_tables
 from unicad.drafting.tables.draw import ROW_PAD_Y
 from unicad.drafting.tables.plan import plan_table
 from unicad.schedules import LengthMode, Schedule, build_bom, build_schedule
-from unicad.schedules.bom import Bom
+from unicad.drafting.sld.annotate import prose
+from unicad.schedules.bom import EXCLUDED, Bom, not_supplied
 from unicad.schedules.dxf import NOTE_SOURCE, NOTE_SUMMARY, NOTE_VALUES, NOTE_VD, SheetContext, bom_table, lists_every_string, schedule_tables
-from unicad.sets.common import dated
+from unicad.sets.common import dated, finish
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
 
@@ -56,12 +58,12 @@ def _plan_pages(parts: Sequence[tuple[str, TableSpec]], paper: PaperSize, number
 
 
 def _draw(project: Project, profile: CompanyProfile, sheets: Sequence[Sheet], parts: Sequence[TableSpec], notes: tuple[str, ...],
-          params: tuple[tuple[str, str], ...], meta: Callable[[int], dict], drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
+          params: tuple[tuple[str, str], ...], meta: Callable[[int], dict], drawn_on: date | None = None, kind: str = "cable_schedule") -> list[BuiltSheet]:  # fmt: skip
     paper = PaperSize(sheets[0].paper)
 
     def spec(page: int, pages: int, part: int):
         s = sheets[page - 1]
-        return dated(SheetContext(project, profile, s, paper, notes, params).spec(s.title, page, pages, 0), drawn_on)
+        return finish(dated(SheetContext(project, profile, s, paper, notes, params).spec(s.title, page, pages, 0), drawn_on), project, kind)
 
     render = render_tables([(p, paper) for p in parts], profile, spec)
     if render.pages != len(sheets):
@@ -102,6 +104,16 @@ class ScheduleBuilder:
         return _draw(project, profile, sheets, parts, notes, params, lambda i: meta if i == 0 else {}, drawn_on)
 
 
+def client_scope(project: Project) -> tuple[str, ...]:
+    """A note naming the equipment the drawings show but this bill leaves to the client or others."""
+    net = project.network
+    left = [n for n in net.nodes if n.kind in EXCLUDED or not_supplied(n)]
+    if not left:
+        return ()
+    names = [prose(f"{re.sub(r'{[^}]*}', 'xx', n.tag)} {n.title or n.kind.value}" + (f" (x {k})" if (k := net.instance_count(n.id)) > 1 else "")) for n in left]
+    return (f"CLIENT SCOPE OR BY OTHERS, SHOWN ON THE DRAWINGS BUT NOT IN THIS BOM: {'; '.join(names)}.",)
+
+
 @dataclass(frozen=True)
 class BomBuilder:
     def _bom(self, project: Project, catalog: Catalog) -> Bom:
@@ -125,8 +137,8 @@ class BomBuilder:
         bom = self._bom(project, catalog)
         s = bom.summary()
         params = (("MODULES", f"{s['modules']:,.0f}"), ("INVERTERS", f"{s['inverters']:,.0f}"), ("CABLE ORDERED", f"{s['cable_m_ordered'] / 1000:,.1f} km"))
-        notes = tuple(a.upper() for a in bom.assumptions)
-        built = _draw(project, profile, sheets, [bom_table(bom)], notes, params, lambda i: {"lines": len(bom.lines)} if i == 0 else {}, drawn_on)
+        notes = tuple(a.upper() for a in bom.assumptions) + client_scope(project)
+        built = _draw(project, profile, sheets, [bom_table(bom)], notes, params, lambda i: {"lines": len(bom.lines)} if i == 0 else {}, drawn_on, "bom")
         return [b if i else BuiltSheet(b.sheet, b.doc, b.scale, tuple(dict.fromkeys([*b.warnings, *bom.warnings])), b.meta) for i, b in enumerate(built)]
 
 

@@ -117,6 +117,8 @@ class TitleBlock:
         rows: list[Row] = [self._brand_row(w)]
         kv_w = 10 * th
         rows.append(self._kv_row("OWNER", d.client, 2, kv_w))
+        if d.developer:
+            rows.append(self._kv_row("DEVELOPER", d.developer, 2, kv_w))
         if d.consultant:
             rows.append(self._kv_row("CONSULTANT", d.consultant, 2, kv_w))
         rows.append(self._kv_row("PROJECT TITLE", d.project_title, 3, kv_w))
@@ -157,8 +159,9 @@ class TitleBlock:
         inner = cell.inset(0.8 * m.th)
         if not place_logo(cv, self.doc, self.profile, inner):
             cv.rect(T, inner)
-            cv.put(T, inner, self.profile.short_code, 1.4 * m.th, align="center", valign="middle",
-                   pad_x=0.3 * m.th, pad_y=0.3 * m.th)
+            if self.profile.company_set:
+                cv.put(T, inner, self.profile.short_code, 1.4 * m.th, align="center", valign="middle",
+                       pad_x=0.3 * m.th, pad_y=0.3 * m.th)
 
     def _kv_row(self, label: str, value: str, max_lines: int, kv_w: float, overflow_lines: int | None = None) -> Row:
         """`overflow_lines` lets a value that cannot be fitted in `max_lines` even condensed and shrunk wrap onto more lines rather than be cut."""

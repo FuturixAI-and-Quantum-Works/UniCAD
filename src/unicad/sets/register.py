@@ -7,12 +7,13 @@ from datetime import date
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet, SheetKind
+from unicad.drafting.project_fields import developer
 from unicad.drafting.register import NOTES, RegisterRow, register_table, set_totals
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.tables import render_tables
 from unicad.schedules.dxf import SheetContext
-from unicad.sets.common import dated, issued_for, latest, location
+from unicad.sets.common import dated, finish, issued_for, latest, location
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
 from unicad.sets.schedules import table_pages
@@ -48,7 +49,10 @@ def rows_for(project: Project, profile: CompanyProfile, drawing_set: Sequence[tu
 
 def preamble(project: Project) -> tuple[tuple[str, str], ...]:
     rev = project.revisions[-1] if project.revisions else None
-    out = [("PROJECT", prose(project.name)), ("CLIENT", prose(project.client.name)), ("LOCATION", prose(location(project)) or "-")]
+    out = [("PROJECT", prose(project.name)), ("CLIENT", prose(project.client.name))]
+    if dev := developer(project):
+        out.append(("DEVELOPER", dev))
+    out.append(("LOCATION", prose(location(project)) or "-"))
     if project.design_basis.grid.utility:
         out.append(("UTILITY", prose(project.design_basis.grid.utility)))
     out.append(("SET REVISION", f"{rev.rev} - {prose(rev.remarks)}" if rev else "00 - NOT YET ISSUED"))
@@ -105,7 +109,7 @@ class RegisterBuilder:
 
         def page_spec(page: int, pages: int, part: int):
             s = mine[page - 1]
-            return dated(SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0), drawn_on)
+            return finish(dated(SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0), drawn_on), project, "register")
 
         render = render_tables([(spec, paper)], profile, page_spec)
         meta = {"rows": [r.__dict__ for r in rows]}

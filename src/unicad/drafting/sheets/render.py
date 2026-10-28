@@ -19,6 +19,7 @@ _SCALE_STEPS = (1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6)
 _MIN_REV_ROWS = 3
 _TWO_COLUMN_BELOW = 0.8
 _MAX_REV_SHARE = 0.3
+ASSUMPTIONS_TITLE = "ASSUMED INPUTS (TO BE CONFIRMED)"
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,8 @@ def _plan_top_sections(t: Tables, spec: SheetSpec, room: float) -> list[Section]
             sections.append(t.parameters(spec.parameters, f, b("parameters")))
         if spec.notes:
             sections.append(t.notes(spec.notes, f, b("notes")))
+        if spec.assumptions:
+            sections.append(t.notes(spec.assumptions, f, b("assumptions"), ASSUMPTIONS_TITLE, "assumptions"))
         return sections
 
     for f in _SCALE_STEPS:
@@ -166,7 +169,7 @@ def render_sheet(
     row_h = 3.0 * m.th
     cap = max(1, int((col.height - tb.height) * _MAX_REV_SHARE // row_h))
     rev_rows = min(rev_rows, cap)
-    revisions = tables.revisions(spec.revisions, rev_rows, profile.date_format)
+    revisions = tables.revisions(spec.revisions, rev_rows, profile.date_format, max(cap * row_h, 2 * row_h) + 2.0 * m.th)
     revisions.draw(rev_top + revisions.height)
     if revisions.omitted:
         cv.warnings.append(f"{revisions.omitted} earliest revisions did not fit and were omitted")
@@ -174,7 +177,7 @@ def render_sheet(
     top_floor = rev_top + revisions.height
     room = col.y1 - top_floor
     sections = _plan_top_sections(tables, spec, room) if room > 4 * m.th else []
-    if sections and sections[-1].name == "notes":
+    if sections and sections[-1].name in ("notes", "assumptions"):
         used_above = sum(s.height for s in sections[:-1])
         sections[-1].with_height(room - used_above)
     y = col.y1
@@ -185,7 +188,7 @@ def render_sheet(
         slots.extend(s.slots)
         if s.omitted:
             cv.warnings.append(f"{s.omitted} {s.name} rows did not fit and were omitted")
-    wanted = (bool(spec.legend), bool(spec.parameters), bool(spec.notes))
+    wanted = (bool(spec.legend), bool(spec.parameters), bool(spec.notes), bool(spec.assumptions))
     if sum(wanted) and not sections:
         cv.warnings.append("no room for legend, parameters or notes")
 

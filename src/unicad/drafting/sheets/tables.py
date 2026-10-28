@@ -8,6 +8,7 @@ from unicad.drafting.sheets.model import LayerRole, Revision
 from unicad.drafting.sheets.text import block_height, fit
 
 TEXT_FLOOR = 0.8
+REV_LINES = 6
 TXT = LayerRole.TEXT
 TTL = LayerRole.TITLE
 
@@ -160,11 +161,11 @@ class Tables:
         section.draw = draw
         return section
 
-    def notes(self, items: Sequence[str], f: float, budget: float | None) -> Section:
+    def notes(self, items: Sequence[str], f: float, budget: float | None, title: str = "GENERAL NOTES", name: str = "notes") -> Section:
         m, th = self.m, self.m.th
         tf = max(f, TEXT_FLOOR)
         num_w = 2.8 * th * f
-        head = self._header("GENERAL NOTES", f)
+        head = self._header(title, f)
         planned: list[tuple[float, object]] = []
         used = head + m.pad_y * f
         for text in items:
@@ -175,11 +176,11 @@ class Tables:
             planned.append((rh, nf))
             used += rh
         used += m.pad_y * f
-        section = Section("notes", used, lambda top: None, omitted=len(items) - len(planned))
+        section = Section(name, used, lambda top: None, omitted=len(items) - len(planned))
 
         def draw(top: float) -> None:
             cv = self.cv
-            self._draw_header("GENERAL NOTES", top, f, head)
+            self._draw_header(title, top, f, head)
             y = top - head - m.pad_y * f
             for i, (rh, nf) in enumerate(planned):
                 num = Region(self.x0, y - rh, self.x0 + num_w, y)
@@ -192,7 +193,9 @@ class Tables:
         section.draw = draw
         return section
 
-    def revisions(self, revs: Sequence[Revision], n_rows: int, date_format: str) -> Section:
+    def revisions(self, revs: Sequence[Revision], n_rows: int, date_format: str, budget: float | None = None) -> Section:
+        """The last `n_rows` revisions, newest on top; a long description wraps onto more lines and its row grows to hold it. With
+        `budget`, the earliest revisions that would make the table taller than it are left out."""
         m, th = self.m, self.m.th
         head = 2.0 * th
         row_h = 3.0 * th
@@ -203,25 +206,36 @@ class Tables:
         for w in widths:
             edges.append(edges[-1] + w)
         titles = ["REV", "DATE", "DESCRIPTION", "BY", "CHKD", "APPD"]
-        height = head + n_rows * row_h
+        pad = 0.3 * th
         shown = list(revs)[-n_rows:] if n_rows else []
+        fitted = [fit(r.description, widths[2] - m.pad_x, 0.9 * th, max_lines=REV_LINES, min_h=0.6 * th) for r in shown]
+        heights = [max(row_h, f.block_height + 2 * pad) for f in fitted]
+        while budget is not None and len(shown) > 1 and head + sum(heights) + row_h * max(0, n_rows - len(shown)) > budget:
+            shown, fitted, heights = shown[1:], fitted[1:], heights[1:]
+        heights += [row_h] * max(0, n_rows - len(shown))
+        height = head + sum(heights)
         section = Section("revisions", height, lambda top: None, omitted=len(revs) - len(shown))
 
         def draw(top: float) -> None:
             cv = self.cv
             bottom = top - height
-            for r in range(n_rows):
-                y = bottom + head + r * row_h
+            y = bottom + head
+            for r, rh in enumerate(heights):
                 cv.hline(TTL, y, self.x0, self.x1)
                 if r < len(shown):
                     rev = shown[r]
                     cells = [rev.rev, rev.date.strftime(date_format), rev.description, initials(rev.by),
                              initials(rev.checked), initials(rev.approved)]
                     for c, text in enumerate(cells):
-                        cell = Region(edges[c], y, edges[c + 1], y + row_h)
-                        cv.put(TTL, cell, text, 0.9 * th, max_lines=2 if c == 2 else 1,
-                               align="left" if c == 2 else "center", valign="middle",
-                               pad_x=m.pad_x / 2, pad_y=0.3 * th, min_h=0.6 * th)
+                        cell = Region(edges[c], y, edges[c + 1], y + rh)
+                        if c == 2:
+                            if fitted[r].truncated:
+                                cv.warnings.append(f"text truncated to fit its cell: {text[:60]!r}")
+                            cv.draw_fitted(TTL, cell, cell.inset(m.pad_x / 2, pad), fitted[r], "left", "middle")
+                            continue
+                        cv.put(TTL, cell, text, 0.9 * th, max_lines=1, align="center", valign="middle",
+                               pad_x=m.pad_x / 2, pad_y=pad, min_h=0.6 * th)
+                y += rh
             for c, title in enumerate(titles):
                 cell = Region(edges[c], bottom, edges[c + 1], bottom + head)
                 cv.put(TTL, cell, title, m.lbl * 1.1, align="center", valign="middle",

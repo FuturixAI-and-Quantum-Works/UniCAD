@@ -15,7 +15,9 @@ from ezdxf.enums import TextEntityAlignment
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet
+from unicad.drafting.assumptions import sheet_assumptions
 from unicad.drafting.legend import legend_drawer
+from unicad.drafting.project_fields import project_fields
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import (
     CompanyProfile,
@@ -98,15 +100,11 @@ def sheet_spec(
     revs = sheet.revisions or project.revisions
     latest = revs[-1] if revs else None
     issued = IssuedFor[latest.issued_for.name] if latest and latest.issued_for else IssuedFor.INFORMATION
-    site = project.site
-    location = ", ".join(p for p in (site.name, site.address, site.state) if p)
     sheets = tuple(project.sheets if sheets is None else sheets)
     ids = [s.id for s in sheets]
     index = ids.index(sheet.id) + 1 if sheet.id in ids else 1
     tb = TitleBlockData(
-        client=annotate.prose(project.client.name),
-        project_title=annotate.prose(project.name),
-        location=annotate.prose(location),
+        **project_fields(project),
         drawing_title=annotate.prose(sheet.title),
         drawing_number=sheet.number,
         revision=latest.rev if latest else "00",
@@ -121,7 +119,7 @@ def sheet_spec(
         issued_for=issued,
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
-    notes = NOTES + layout.notes + annotate.assumption_notes(project)
+    notes = NOTES + layout.notes
     return SheetSpec(
         paper=paper,
         title_block=tb,
@@ -133,6 +131,7 @@ def sheet_spec(
         legend=legend,
         notes=notes,
         parameters=annotate.system_parameters(project, catalog),
+        assumptions=sheet_assumptions(project, "sld"),
     )
 
 
@@ -196,14 +195,13 @@ def render_sld(
     if doc is None:
         doc = ezdxf.new("R2018", setup=["linetypes"])
     spec = sheet_spec(project, sheet, layout, catalog, sheets, drawn_on)
-    n = len(project.design_basis.assumptions)
-    kept = NOTES + layout.notes
-    fallbacks = (kept + (f"{n} DESIGN BASIS ASSUMPTIONS ARE LISTED IN THE PROJECT RECORD.",) if n else kept, kept)
-    for notes in fallbacks:
+    n = len(spec.assumptions)
+    fallbacks = ((f"{n} ASSUMED INPUTS OF THIS SHEET ARE LISTED ON THE DRAWING REGISTER.",) if n else (), ())
+    for assumed in fallbacks:
         scratch = ezdxf.new("R2018", setup=["linetypes"])
         if not any("legend rows" in w for w in render_sheet(scratch, spec, profile, legend_drawer(scratch.modelspace())).warnings):
             break
-        spec = spec.model_copy(update={"notes": notes})
+        spec = spec.model_copy(update={"assumptions": assumed})
     rendered = render_sheet(doc, spec, profile, legend_drawer(doc.modelspace()))
     area = rendered.drawing_area
     placement = write_sld(doc, layout, area, block_name=f"UC_SLD_{sheet.id.upper()}", text_style=profile.text_style,

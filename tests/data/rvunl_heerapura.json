@@ -1,0 +1,3429 @@
+{
+  "id": "rvunl-heerapura",
+  "name": "1.4 MWp / 1.2 MWac Heerapura Solar PV Plant",
+  "client": {
+    "name": "RVUNL, Rajasthan",
+    "code": "RVUNL"
+  },
+  "site": {
+    "name": "Heerapura, Jaipur, Rajasthan",
+    "address": "Heerapura, Jaipur, Rajasthan",
+    "state": "Rajasthan",
+    "latitude": 26.887058,
+    "longitude": 75.719544,
+    "crs": "EPSG:32643",
+    "geometry": {
+      "crs": "EPSG:32643",
+      "origin": {
+        "lon": 75.7186312,
+        "lat": 26.8865184
+      },
+      "features": [
+        {
+          "id": "heerapura_plot_assumed_180x120",
+          "kind": "boundary",
+          "polygon": [
+            {
+              "x": 0.675,
+              "y": 0.004
+            },
+            {
+              "x": 180.731,
+              "y": 1.026
+            },
+            {
+              "x": 180.051,
+              "y": 120.628
+            },
+            {
+              "x": -0.003,
+              "y": 119.605
+            }
+          ],
+          "name": "heerapura_plot_ASSUMED_180x120",
+          "attributes": {
+            "source": "site_heerapura_180x120.csv"
+          }
+        }
+      ],
+      "setbacks": {
+        "boundary_m": 5.0
+      }
+    }
+  },
+  "design_basis": {
+    "ambient_min_c": 2.0,
+    "ambient_max_c": 47.0,
+    "cell_temp": {
+      "model": "noct"
+    },
+    "altitude_m": 430.0,
+    "grid": {
+      "voltage_v": 415.0,
+      "frequency_hz": 50.0,
+      "utility": "RVUNL (LT connection to client Main Board Panel)"
+    },
+    "vdrop_dc_max": 0.02,
+    "vdrop_ac_max": 0.02,
+    "dc_ac_ratio_target": 1.17,
+    "power_factor": 0.99,
+    "earthing": {
+      "soil_resistivity_ohm_m": 100.0,
+      "fault_current_ka": 10.0,
+      "fault_clearing_s": 1.0
+    },
+    "lps": {
+      "level": "III",
+      "ese_delta_t_us": 60.0,
+      "mast_height_m": 6.0
+    },
+    "fault_levels": [
+      {
+        "voltage_v": 415.0,
+        "fault_ka": 31.5,
+        "clearing_s": 3.0,
+        "source": "ASSUMED: ACCB busbar rating 31.5 kA / 3 s from client brief used as the LT design fault level (no short-circuit study supplied)"
+      }
+    ],
+    "assumptions": [
+      "Grid frequency 50 Hz and 3 phase(s) taken from the grid voltage 415 V.",
+      "Cell temperature uses the module NOCT from the catalog."
+    ]
+  },
+  "company_profile": "default",
+  "segment": "utility",
+  "network": {
+    "groups": [
+      {
+        "id": "inv_seca",
+        "tag": "INVERTER SECTION-{0:02d}",
+        "count": 12,
+        "title": "100 kVA SUN2000-100KTL-M2 SECTION"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "inva",
+        "tag": "INV-{0:02d}",
+        "kind": "inverter",
+        "spec": "huawei-sun2000-100ktl-m2",
+        "group": "inv_seca",
+        "ports": [
+          "dc",
+          "ac",
+          "pe",
+          "sig"
+        ]
+      },
+      {
+        "id": "stra",
+        "tag": "STR-{0:02d}-{1:02d}",
+        "kind": "pv_string",
+        "spec": "waaree-bin-21-635",
+        "count": 10,
+        "group": "inv_seca",
+        "modules_in_series": 18
+      },
+      {
+        "id": "dcspda",
+        "tag": "DC-SPD-{0:02d}",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.000.x015",
+        "group": "inv_seca"
+      },
+      {
+        "id": "dcfba",
+        "tag": "DCJB-{0:02d}",
+        "kind": "dc_fuse_box",
+        "symbol": "dc.jb",
+        "group": "inv_seca",
+        "title": "DC JUNCTION BOX"
+      },
+      {
+        "id": "dcisoa",
+        "tag": "DC-ISO-{0:02d}",
+        "kind": "dc_isolator",
+        "spec": "abb-otdc100e22",
+        "group": "inv_seca",
+        "attributes": {
+          "isolator_ways": 10
+        },
+        "title": "DC ISOLATION, 10 SEPARATE STRING CIRCUITS (+ AND - PER CIRCUIT)"
+      },
+      {
+        "id": "ep",
+        "tag": "EP-MAIN-01",
+        "kind": "earth_electrode",
+        "title": "MAIN EARTH GRID"
+      },
+      {
+        "id": "acdb",
+        "tag": "ACCB-01",
+        "kind": "acdb",
+        "voltage_v": 415.0,
+        "attributes": {
+          "busbar": "3P+N 50 Hz 2500 A Al, 31.5 kA / 3 s",
+          "fault_level": "31.5 kA / 3 s",
+          "enclosure": "IP65 outdoor"
+        },
+        "title": "ACCB 12 IN / 1 OUT, IP65; BUSBAR 3P+N 2500 A AL 31.5 kA/3 s"
+      },
+      {
+        "id": "inv_brka",
+        "tag": "MCCB-{0:02d}",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn3-400-n-320a-4p",
+        "group": "inv_seca",
+        "voltage_v": 415.0,
+        "title": "INCOMER 320 A 4P MCCB 415 V 50 kA"
+      },
+      {
+        "id": "acdb_spd",
+        "tag": "ACDB-SPD-01",
+        "kind": "ac_spd",
+        "spec": "finder-7p.25.8.275.x020",
+        "voltage_v": 415.0,
+        "title": "SPD TYPE 2, 40 kA"
+      },
+      {
+        "id": "acdb_brk",
+        "tag": "ACB-01",
+        "kind": "breaker",
+        "spec": "schneider-mtz2-h1-2500a-4p",
+        "voltage_v": 415.0,
+        "title": "OUTGOING 2500 A 4P ACB 415 V"
+      },
+      {
+        "id": "solar_ct",
+        "tag": "CT-01",
+        "kind": "ct",
+        "voltage_v": 415.0,
+        "title": "CT 2500/1 A; C1 CL 0.2S 15 VA, C2 PS, C3 CL 0.2S 15 VA"
+      },
+      {
+        "id": "solar_meter",
+        "tag": "SM-01",
+        "kind": "meter",
+        "spec": "generic-meter-abt-ct_pt-0.2s",
+        "ports": [
+          "sig"
+        ],
+        "title": "MULTIFUNCTION METER (RS-485)"
+      },
+      {
+        "id": "ac_spd",
+        "tag": "AC-SPD-01",
+        "kind": "ac_spd",
+        "spec": "finder-7p.25.8.275.x020",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "poi",
+        "tag": "POI-01",
+        "kind": "poi_grid",
+        "voltage_v": 415.0,
+        "title": "CLIENT MAIN BOARD PANEL, 415 V (LT CONNECTION)"
+      },
+      {
+        "id": "pt",
+        "tag": "PT",
+        "kind": "pt",
+        "voltage_v": 415.0,
+        "title": "PT 0.415 kV/V3 / 110 V/V3; C1 CL 0.2 15 VA, C2 CL 3P 15 VA"
+      },
+      {
+        "id": "relay",
+        "tag": "RELAY",
+        "kind": "relay",
+        "title": "NUMERICAL RELAY 50/51/67/67N/27/59/50N/51N, IEC 61850"
+      },
+      {
+        "id": "dlog",
+        "tag": "DLOG",
+        "kind": "meter",
+        "ports": [
+          "sig"
+        ],
+        "title": "DATA LOGGER; RS-485 DAISY CHAIN THROUGH ALL 12 INVERTERS"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_stra",
+        "src": "stra:out",
+        "dst": "dcfba:in",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-6mm2",
+        "length_m": 40.4,
+        "laying": "tray"
+      },
+      {
+        "id": "e_dcfb_spda",
+        "src": "dcfba:out",
+        "dst": "dcspda:line",
+        "service": "dc"
+      },
+      {
+        "id": "e_dcfb_isoa",
+        "src": "dcfba:out",
+        "dst": "dcisoa:in",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-6mm2",
+        "runs": 10,
+        "length_m": 19.1,
+        "laying": "tray",
+        "remarks": "10 string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
+      },
+      {
+        "id": "e_iso_inva",
+        "src": "dcisoa:out",
+        "dst": "inva:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-6mm2",
+        "runs": 10,
+        "length_m": 3.0,
+        "laying": "tray",
+        "remarks": "10 string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
+      },
+      {
+        "id": "pe_inva",
+        "src": "inva:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_inv_brka",
+        "src": "inva:ac",
+        "dst": "inv_brka:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-3.5c-240-arm",
+        "length_m": 29.8,
+        "laying": "tray"
+      },
+      {
+        "id": "e_brk_acdba",
+        "src": "inv_brka:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_acdb_spd",
+        "src": "acdb:out",
+        "dst": "acdb_spd:line",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_acdb_brk",
+        "src": "acdb:out",
+        "dst": "acdb_brk:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "pe_acdb",
+        "src": "acdb:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_brk_ct",
+        "src": "acdb_brk:out",
+        "dst": "solar_ct:in",
+        "service": "lv_ac",
+        "remarks": "Inside ACCB, panel busbar connection (no cable)"
+      },
+      {
+        "id": "e_ct_spd",
+        "src": "solar_ct:out",
+        "dst": "ac_spd:line",
+        "service": "lv_ac"
+      },
+      {
+        "id": "c_solar_meter",
+        "src": "solar_ct:sec",
+        "dst": "solar_meter:sig",
+        "service": "control"
+      },
+      {
+        "id": "e_ct_poi",
+        "src": "solar_ct:out",
+        "dst": "poi:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-3.5c-300-arm",
+        "runs": 9,
+        "length_m": 60.0,
+        "laying": "tray",
+        "remarks": "ACCB outgoing to client Main Board Panel; client brief 7R, 9R needed for 2500 A ACB; length ASSUMED"
+      },
+      {
+        "id": "e_ct_pt",
+        "src": "solar_ct:out",
+        "dst": "pt:in",
+        "service": "lv_ac",
+        "remarks": "PT tapped from the ACCB outgoing bus"
+      },
+      {
+        "id": "c_ct_relay",
+        "src": "solar_ct:sec",
+        "dst": "relay:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_pt_relay",
+        "src": "pt:sec",
+        "dst": "relay:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_pt_meter",
+        "src": "pt:sec",
+        "dst": "solar_meter:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_inv_dlog",
+        "src": "inva:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 daisy chain through all 12 inverters to the data logger"
+      },
+      {
+        "id": "c_meter_dlog",
+        "src": "solar_meter:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 multifunction meter to data logger"
+      },
+      {
+        "id": "pe_dcfba",
+        "src": "dcfba:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "pe_pt",
+        "src": "pt:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "pe_solar_ct",
+        "src": "solar_ct:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      }
+    ]
+  },
+  "array_layout": {
+    "blocks": [
+      {
+        "id": "B01",
+        "name": "BLOCK-01",
+        "boundary": [
+          {
+            "x": 27.297,
+            "y": 32.573
+          },
+          {
+            "x": 48.069,
+            "y": 32.573
+          },
+          {
+            "x": 48.069,
+            "y": 24.832
+          },
+          {
+            "x": 70.341,
+            "y": 24.832
+          },
+          {
+            "x": 70.341,
+            "y": 12.773
+          },
+          {
+            "x": 27.297,
+            "y": 12.773
+          }
+        ],
+        "tables": [
+          {
+            "id": "B01-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 27.2973,
+              "y": 12.7734
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B01-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 12.7734
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B01-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 27.2973,
+              "y": 20.5145
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B01-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 20.5145
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B01-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 27.2973,
+              "y": 28.2556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 48.143,
+          "y": 26.329
+        }
+      },
+      {
+        "id": "B02",
+        "name": "BLOCK-02",
+        "boundary": [
+          {
+            "x": 49.569,
+            "y": 40.315
+          },
+          {
+            "x": 70.341,
+            "y": 40.315
+          },
+          {
+            "x": 70.341,
+            "y": 32.573
+          },
+          {
+            "x": 92.613,
+            "y": 32.573
+          },
+          {
+            "x": 92.613,
+            "y": 12.773
+          },
+          {
+            "x": 71.841,
+            "y": 12.773
+          },
+          {
+            "x": 71.841,
+            "y": 28.256
+          },
+          {
+            "x": 49.569,
+            "y": 28.256
+          }
+        ],
+        "tables": [
+          {
+            "id": "B02-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 12.7734
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B02-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 20.5145
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B02-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 28.2556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B02-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 28.2556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B02-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 35.9967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 71.813,
+          "y": 26.757
+        }
+      },
+      {
+        "id": "B03",
+        "name": "BLOCK-03",
+        "boundary": [
+          {
+            "x": 49.569,
+            "y": 58.373
+          },
+          {
+            "x": 92.613,
+            "y": 58.373
+          },
+          {
+            "x": 92.613,
+            "y": 35.997
+          },
+          {
+            "x": 71.841,
+            "y": 35.997
+          },
+          {
+            "x": 71.841,
+            "y": 43.738
+          },
+          {
+            "x": 49.569,
+            "y": 43.738
+          }
+        ],
+        "tables": [
+          {
+            "id": "B03-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 35.9967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B03-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 43.7378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B03-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 43.7378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B03-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 54.0556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B03-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 54.0556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 73.318,
+          "y": 59.873
+        }
+      },
+      {
+        "id": "B04",
+        "name": "BLOCK-04",
+        "boundary": [
+          {
+            "x": 27.297,
+            "y": 103.079
+          },
+          {
+            "x": 27.297,
+            "y": 107.397
+          },
+          {
+            "x": 48.069,
+            "y": 107.397
+          },
+          {
+            "x": 48.069,
+            "y": 103.079
+          },
+          {
+            "x": 48.069,
+            "y": 97.079
+          },
+          {
+            "x": 48.069,
+            "y": 92.761
+          },
+          {
+            "x": 48.069,
+            "y": 89.338
+          },
+          {
+            "x": 48.069,
+            "y": 85.02
+          },
+          {
+            "x": 70.341,
+            "y": 73.856
+          },
+          {
+            "x": 70.341,
+            "y": 69.538
+          },
+          {
+            "x": 70.341,
+            "y": 66.115
+          },
+          {
+            "x": 70.341,
+            "y": 61.797
+          },
+          {
+            "x": 49.569,
+            "y": 61.797
+          },
+          {
+            "x": 49.569,
+            "y": 66.115
+          },
+          {
+            "x": 49.569,
+            "y": 69.538
+          },
+          {
+            "x": 49.569,
+            "y": 73.856
+          },
+          {
+            "x": 27.297,
+            "y": 85.02
+          },
+          {
+            "x": 27.297,
+            "y": 89.338
+          },
+          {
+            "x": 27.297,
+            "y": 92.761
+          },
+          {
+            "x": 27.297,
+            "y": 97.079
+          }
+        ],
+        "tables": [
+          {
+            "id": "B04-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 61.7967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B04-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 69.5378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B04-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 27.2973,
+              "y": 85.02
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B04-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 27.2973,
+              "y": 92.7611
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B04-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 27.2973,
+              "y": 103.0789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 46.592,
+          "y": 108.897
+        }
+      },
+      {
+        "id": "B05",
+        "name": "BLOCK-05",
+        "boundary": [
+          {
+            "x": 49.569,
+            "y": 89.338
+          },
+          {
+            "x": 70.341,
+            "y": 89.338
+          },
+          {
+            "x": 70.341,
+            "y": 81.597
+          },
+          {
+            "x": 92.613,
+            "y": 81.597
+          },
+          {
+            "x": 92.613,
+            "y": 61.797
+          },
+          {
+            "x": 71.841,
+            "y": 61.797
+          },
+          {
+            "x": 71.841,
+            "y": 77.279
+          },
+          {
+            "x": 49.569,
+            "y": 77.279
+          }
+        ],
+        "tables": [
+          {
+            "id": "B05-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 61.7967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B05-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 69.5378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B05-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 77.2789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B05-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 77.2789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B05-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 85.02
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 71.813,
+          "y": 75.78
+        }
+      },
+      {
+        "id": "B06",
+        "name": "BLOCK-06",
+        "boundary": [
+          {
+            "x": 49.569,
+            "y": 107.397
+          },
+          {
+            "x": 92.613,
+            "y": 107.397
+          },
+          {
+            "x": 92.613,
+            "y": 85.02
+          },
+          {
+            "x": 71.841,
+            "y": 85.02
+          },
+          {
+            "x": 71.841,
+            "y": 92.761
+          },
+          {
+            "x": 49.569,
+            "y": 92.761
+          }
+        ],
+        "tables": [
+          {
+            "id": "B06-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 85.02
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B06-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 92.7611
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B06-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 92.7611
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B06-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 49.5693,
+              "y": 103.0789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B06-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 71.8413,
+              "y": 103.0789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 73.318,
+          "y": 108.897
+        }
+      },
+      {
+        "id": "B07",
+        "name": "BLOCK-07",
+        "boundary": [
+          {
+            "x": 94.113,
+            "y": 32.573
+          },
+          {
+            "x": 114.885,
+            "y": 32.573
+          },
+          {
+            "x": 114.885,
+            "y": 24.832
+          },
+          {
+            "x": 137.157,
+            "y": 24.832
+          },
+          {
+            "x": 137.157,
+            "y": 12.773
+          },
+          {
+            "x": 94.113,
+            "y": 12.773
+          }
+        ],
+        "tables": [
+          {
+            "id": "B07-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 12.7734
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B07-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 12.7734
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B07-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 20.5145
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B07-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 20.5145
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B07-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 28.2556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 114.959,
+          "y": 26.329
+        }
+      },
+      {
+        "id": "B08",
+        "name": "BLOCK-08",
+        "boundary": [
+          {
+            "x": 94.113,
+            "y": 61.797
+          },
+          {
+            "x": 94.113,
+            "y": 66.115
+          },
+          {
+            "x": 114.885,
+            "y": 66.115
+          },
+          {
+            "x": 114.885,
+            "y": 61.797
+          },
+          {
+            "x": 114.885,
+            "y": 58.373
+          },
+          {
+            "x": 114.885,
+            "y": 54.056
+          },
+          {
+            "x": 114.885,
+            "y": 48.056
+          },
+          {
+            "x": 114.885,
+            "y": 43.738
+          },
+          {
+            "x": 114.885,
+            "y": 40.315
+          },
+          {
+            "x": 116.385,
+            "y": 32.573
+          },
+          {
+            "x": 137.157,
+            "y": 32.573
+          },
+          {
+            "x": 137.157,
+            "y": 28.256
+          },
+          {
+            "x": 116.385,
+            "y": 28.256
+          },
+          {
+            "x": 114.885,
+            "y": 35.997
+          },
+          {
+            "x": 94.113,
+            "y": 35.997
+          },
+          {
+            "x": 94.113,
+            "y": 40.315
+          },
+          {
+            "x": 94.113,
+            "y": 43.738
+          },
+          {
+            "x": 94.113,
+            "y": 48.056
+          },
+          {
+            "x": 94.113,
+            "y": 54.056
+          },
+          {
+            "x": 94.113,
+            "y": 58.373
+          }
+        ],
+        "tables": [
+          {
+            "id": "B08-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 28.2556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B08-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 35.9967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B08-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 43.7378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B08-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 54.0556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B08-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 61.7967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 108.954,
+          "y": 59.873
+        }
+      },
+      {
+        "id": "B09",
+        "name": "BLOCK-09",
+        "boundary": [
+          {
+            "x": 116.385,
+            "y": 58.373
+          },
+          {
+            "x": 159.429,
+            "y": 58.373
+          },
+          {
+            "x": 159.429,
+            "y": 43.738
+          },
+          {
+            "x": 137.157,
+            "y": 43.738
+          },
+          {
+            "x": 137.157,
+            "y": 35.997
+          },
+          {
+            "x": 116.385,
+            "y": 35.997
+          }
+        ],
+        "tables": [
+          {
+            "id": "B09-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 35.9967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B09-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 43.7378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B09-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 138.6573,
+              "y": 43.7378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B09-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 54.0556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B09-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 138.6573,
+              "y": 54.0556
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 135.68,
+          "y": 59.873
+        }
+      },
+      {
+        "id": "B10",
+        "name": "BLOCK-10",
+        "boundary": [
+          {
+            "x": 116.385,
+            "y": 69.538
+          },
+          {
+            "x": 94.113,
+            "y": 69.538
+          },
+          {
+            "x": 94.113,
+            "y": 73.856
+          },
+          {
+            "x": 159.429,
+            "y": 73.856
+          },
+          {
+            "x": 159.429,
+            "y": 61.797
+          },
+          {
+            "x": 116.385,
+            "y": 61.797
+          }
+        ],
+        "tables": [
+          {
+            "id": "B10-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 61.7967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B10-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 138.6573,
+              "y": 61.7967
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B10-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 69.5378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B10-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 69.5378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B10-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 138.6573,
+              "y": 69.5378
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 131.226,
+          "y": 75.356
+        }
+      },
+      {
+        "id": "B11",
+        "name": "BLOCK-11",
+        "boundary": [
+          {
+            "x": 94.113,
+            "y": 97.079
+          },
+          {
+            "x": 114.885,
+            "y": 97.079
+          },
+          {
+            "x": 114.885,
+            "y": 89.338
+          },
+          {
+            "x": 137.157,
+            "y": 89.338
+          },
+          {
+            "x": 137.157,
+            "y": 77.279
+          },
+          {
+            "x": 94.113,
+            "y": 77.279
+          }
+        ],
+        "tables": [
+          {
+            "id": "B11-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 77.2789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B11-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 77.2789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B11-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 85.02
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B11-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 85.02
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B11-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 92.7611
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 113.408,
+          "y": 108.897
+        }
+      },
+      {
+        "id": "B12",
+        "name": "BLOCK-12",
+        "boundary": [
+          {
+            "x": 94.113,
+            "y": 115.138
+          },
+          {
+            "x": 137.157,
+            "y": 115.138
+          },
+          {
+            "x": 137.157,
+            "y": 92.761
+          },
+          {
+            "x": 116.385,
+            "y": 92.761
+          },
+          {
+            "x": 116.385,
+            "y": 103.079
+          },
+          {
+            "x": 94.113,
+            "y": 103.079
+          }
+        ],
+        "tables": [
+          {
+            "id": "B12-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 92.7611
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B12-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 103.0789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B12-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 103.0789
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B12-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 94.1133,
+              "y": 110.82
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          },
+          {
+            "id": "B12-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 116.3853,
+              "y": 110.82
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "waaree-bin-21-635",
+            "slot_width_m": 1.154,
+            "slot_height_m": 2.402
+          }
+        ],
+        "station": {
+          "x": 117.862,
+          "y": 108.897
+        }
+      }
+    ],
+    "strings": [
+      {
+        "string": "stra@1.1",
+        "spans": [
+          {
+            "table": "B01-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.2",
+        "spans": [
+          {
+            "table": "B01-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.3",
+        "spans": [
+          {
+            "table": "B01-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.4",
+        "spans": [
+          {
+            "table": "B01-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.5",
+        "spans": [
+          {
+            "table": "B01-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.6",
+        "spans": [
+          {
+            "table": "B01-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.7",
+        "spans": [
+          {
+            "table": "B01-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.8",
+        "spans": [
+          {
+            "table": "B01-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.9",
+        "spans": [
+          {
+            "table": "B01-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@1.10",
+        "spans": [
+          {
+            "table": "B01-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.1",
+        "spans": [
+          {
+            "table": "B02-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.2",
+        "spans": [
+          {
+            "table": "B02-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.3",
+        "spans": [
+          {
+            "table": "B02-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.4",
+        "spans": [
+          {
+            "table": "B02-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.5",
+        "spans": [
+          {
+            "table": "B02-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.6",
+        "spans": [
+          {
+            "table": "B02-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.7",
+        "spans": [
+          {
+            "table": "B02-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.8",
+        "spans": [
+          {
+            "table": "B02-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.9",
+        "spans": [
+          {
+            "table": "B02-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@2.10",
+        "spans": [
+          {
+            "table": "B02-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.1",
+        "spans": [
+          {
+            "table": "B03-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.2",
+        "spans": [
+          {
+            "table": "B03-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.3",
+        "spans": [
+          {
+            "table": "B03-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.4",
+        "spans": [
+          {
+            "table": "B03-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.5",
+        "spans": [
+          {
+            "table": "B03-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.6",
+        "spans": [
+          {
+            "table": "B03-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.7",
+        "spans": [
+          {
+            "table": "B03-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.8",
+        "spans": [
+          {
+            "table": "B03-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.9",
+        "spans": [
+          {
+            "table": "B03-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@3.10",
+        "spans": [
+          {
+            "table": "B03-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.1",
+        "spans": [
+          {
+            "table": "B04-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.2",
+        "spans": [
+          {
+            "table": "B04-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.3",
+        "spans": [
+          {
+            "table": "B04-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.4",
+        "spans": [
+          {
+            "table": "B04-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.5",
+        "spans": [
+          {
+            "table": "B04-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.6",
+        "spans": [
+          {
+            "table": "B04-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.7",
+        "spans": [
+          {
+            "table": "B04-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.8",
+        "spans": [
+          {
+            "table": "B04-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.9",
+        "spans": [
+          {
+            "table": "B04-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@4.10",
+        "spans": [
+          {
+            "table": "B04-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.1",
+        "spans": [
+          {
+            "table": "B05-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.2",
+        "spans": [
+          {
+            "table": "B05-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.3",
+        "spans": [
+          {
+            "table": "B05-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.4",
+        "spans": [
+          {
+            "table": "B05-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.5",
+        "spans": [
+          {
+            "table": "B05-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.6",
+        "spans": [
+          {
+            "table": "B05-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.7",
+        "spans": [
+          {
+            "table": "B05-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.8",
+        "spans": [
+          {
+            "table": "B05-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.9",
+        "spans": [
+          {
+            "table": "B05-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@5.10",
+        "spans": [
+          {
+            "table": "B05-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.1",
+        "spans": [
+          {
+            "table": "B06-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.2",
+        "spans": [
+          {
+            "table": "B06-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.3",
+        "spans": [
+          {
+            "table": "B06-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.4",
+        "spans": [
+          {
+            "table": "B06-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.5",
+        "spans": [
+          {
+            "table": "B06-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.6",
+        "spans": [
+          {
+            "table": "B06-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.7",
+        "spans": [
+          {
+            "table": "B06-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.8",
+        "spans": [
+          {
+            "table": "B06-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.9",
+        "spans": [
+          {
+            "table": "B06-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@6.10",
+        "spans": [
+          {
+            "table": "B06-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.1",
+        "spans": [
+          {
+            "table": "B07-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.2",
+        "spans": [
+          {
+            "table": "B07-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.3",
+        "spans": [
+          {
+            "table": "B07-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.4",
+        "spans": [
+          {
+            "table": "B07-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.5",
+        "spans": [
+          {
+            "table": "B07-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.6",
+        "spans": [
+          {
+            "table": "B07-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.7",
+        "spans": [
+          {
+            "table": "B07-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.8",
+        "spans": [
+          {
+            "table": "B07-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.9",
+        "spans": [
+          {
+            "table": "B07-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@7.10",
+        "spans": [
+          {
+            "table": "B07-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.1",
+        "spans": [
+          {
+            "table": "B08-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.2",
+        "spans": [
+          {
+            "table": "B08-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.3",
+        "spans": [
+          {
+            "table": "B08-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.4",
+        "spans": [
+          {
+            "table": "B08-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.5",
+        "spans": [
+          {
+            "table": "B08-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.6",
+        "spans": [
+          {
+            "table": "B08-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.7",
+        "spans": [
+          {
+            "table": "B08-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.8",
+        "spans": [
+          {
+            "table": "B08-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.9",
+        "spans": [
+          {
+            "table": "B08-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@8.10",
+        "spans": [
+          {
+            "table": "B08-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.1",
+        "spans": [
+          {
+            "table": "B09-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.2",
+        "spans": [
+          {
+            "table": "B09-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.3",
+        "spans": [
+          {
+            "table": "B09-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.4",
+        "spans": [
+          {
+            "table": "B09-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.5",
+        "spans": [
+          {
+            "table": "B09-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.6",
+        "spans": [
+          {
+            "table": "B09-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.7",
+        "spans": [
+          {
+            "table": "B09-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.8",
+        "spans": [
+          {
+            "table": "B09-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.9",
+        "spans": [
+          {
+            "table": "B09-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@9.10",
+        "spans": [
+          {
+            "table": "B09-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.1",
+        "spans": [
+          {
+            "table": "B10-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.2",
+        "spans": [
+          {
+            "table": "B10-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.3",
+        "spans": [
+          {
+            "table": "B10-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.4",
+        "spans": [
+          {
+            "table": "B10-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.5",
+        "spans": [
+          {
+            "table": "B10-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.6",
+        "spans": [
+          {
+            "table": "B10-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.7",
+        "spans": [
+          {
+            "table": "B10-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.8",
+        "spans": [
+          {
+            "table": "B10-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.9",
+        "spans": [
+          {
+            "table": "B10-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@10.10",
+        "spans": [
+          {
+            "table": "B10-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.1",
+        "spans": [
+          {
+            "table": "B11-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.2",
+        "spans": [
+          {
+            "table": "B11-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.3",
+        "spans": [
+          {
+            "table": "B11-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.4",
+        "spans": [
+          {
+            "table": "B11-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.5",
+        "spans": [
+          {
+            "table": "B11-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.6",
+        "spans": [
+          {
+            "table": "B11-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.7",
+        "spans": [
+          {
+            "table": "B11-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.8",
+        "spans": [
+          {
+            "table": "B11-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.9",
+        "spans": [
+          {
+            "table": "B11-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@11.10",
+        "spans": [
+          {
+            "table": "B11-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.1",
+        "spans": [
+          {
+            "table": "B12-T001",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.2",
+        "spans": [
+          {
+            "table": "B12-T001",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.3",
+        "spans": [
+          {
+            "table": "B12-T002",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.4",
+        "spans": [
+          {
+            "table": "B12-T002",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.5",
+        "spans": [
+          {
+            "table": "B12-T003",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.6",
+        "spans": [
+          {
+            "table": "B12-T003",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.7",
+        "spans": [
+          {
+            "table": "B12-T004",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.8",
+        "spans": [
+          {
+            "table": "B12-T004",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.9",
+        "spans": [
+          {
+            "table": "B12-T005",
+            "row": 0,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      },
+      {
+        "string": "stra@12.10",
+        "spans": [
+          {
+            "table": "B12-T005",
+            "row": 1,
+            "col": 0,
+            "n": 18
+          }
+        ]
+      }
+    ],
+    "switchyard": {
+      "at": {
+        "x": 12.0,
+        "y": 60.0
+      },
+      "basis": "given (layout_place switchyard_x, switchyard_y); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables"
+    },
+    "equipment": [
+      {
+        "node": "inva@1",
+        "tag": "INV-01",
+        "kind": "inverter",
+        "at": {
+          "x": 47.939,
+          "y": 19.918
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@2",
+        "tag": "INV-02",
+        "kind": "inverter",
+        "at": {
+          "x": 72.082,
+          "y": 26.788
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@3",
+        "tag": "INV-03",
+        "kind": "inverter",
+        "at": {
+          "x": 74.082,
+          "y": 52.011
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@4",
+        "tag": "INV-04",
+        "kind": "inverter",
+        "at": {
+          "x": 53.874,
+          "y": 91.376
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@5",
+        "tag": "INV-05",
+        "kind": "inverter",
+        "at": {
+          "x": 72.082,
+          "y": 75.811
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@6",
+        "tag": "INV-06",
+        "kind": "inverter",
+        "at": {
+          "x": 74.082,
+          "y": 101.035
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@7",
+        "tag": "INV-07",
+        "kind": "inverter",
+        "at": {
+          "x": 114.755,
+          "y": 19.918
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@8",
+        "tag": "INV-08",
+        "kind": "inverter",
+        "at": {
+          "x": 109.058,
+          "y": 42.702
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@9",
+        "tag": "INV-09",
+        "kind": "inverter",
+        "at": {
+          "x": 135.027,
+          "y": 52.011
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@10",
+        "tag": "INV-10",
+        "kind": "inverter",
+        "at": {
+          "x": 128.707,
+          "y": 69.038
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@11",
+        "tag": "INV-11",
+        "kind": "inverter",
+        "at": {
+          "x": 113.7,
+          "y": 84.52
+        },
+        "basis": "beside the tables it serves"
+      },
+      {
+        "node": "inva@12",
+        "tag": "INV-12",
+        "kind": "inverter",
+        "at": {
+          "x": 118.215,
+          "y": 107.897
+        },
+        "basis": "beside the tables it serves"
+      }
+    ]
+  },
+  "revisions": [
+    {
+      "rev": "0",
+      "date": "2026-10-29",
+      "remarks": "ISSUED FOR APPROVAL",
+      "issued_for": "approval",
+      "drawn": "A. Sharma",
+      "checked": "R. Meena",
+      "approved": "S. Verma"
+    },
+    {
+      "rev": "1",
+      "date": "2026-10-29",
+      "remarks": "ISSUED FOR APPROVAL; ACCB MOVED OUT OF ARRAY, PLOT RESIZED, SINGLE-LINE DETAILS ADDED",
+      "issued_for": "approval",
+      "drawn": "A. Sharma",
+      "checked": "R. Meena",
+      "approved": "S. Verma"
+    },
+    {
+      "rev": "2",
+      "date": "2026-10-29",
+      "remarks": "ACCB BUSBAR RATING ADDED",
+      "issued_for": "approval",
+      "drawn": "A. Sharma",
+      "checked": "R. Meena",
+      "approved": "S. Verma"
+    },
+    {
+      "rev": "3",
+      "date": "2026-10-29",
+      "remarks": "SLD BACK TO A1",
+      "issued_for": "approval",
+      "drawn": "A. Sharma",
+      "checked": "R. Meena",
+      "approved": "S. Verma"
+    }
+  ]
+}

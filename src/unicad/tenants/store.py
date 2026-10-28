@@ -12,6 +12,7 @@ from unicad.rules.thresholds import Setting
 
 BUNDLED_PROFILES = Path(__file__).resolve().parents[3] / "profiles"
 PROFILE_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+DEMO_PROFILE = "default"
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,14 @@ def find_profile(profile_id: str, workspace: Path | None = None) -> tuple[Litera
 def load_profile(profile_id: str, workspace: Path | None = None) -> CompanyProfile:
     """The profile `profile_id`, relative file paths resolved. `workspace` is the tenant's workspace directory."""
     return CompanyProfile.load(find_profile(profile_id, workspace)[1])
+
+
+def drawing_profile(profile_id: str, workspace: Path | None = None) -> CompanyProfile:
+    """The profile a project's sheets are drawn with. A project still on the bundled demo profile (project_create's default) has no EPC
+    company, so its sheets say so instead of printing the demo company's name, address and logo."""
+    origin, path = find_profile(profile_id, workspace)
+    profile = CompanyProfile.load(path)
+    return profile.without_company() if profile_id == DEMO_PROFILE and origin == "bundled" else profile
 
 
 def thresholds_of(profile_id: str, workspace: Path | None = None) -> dict[str, Setting]:
