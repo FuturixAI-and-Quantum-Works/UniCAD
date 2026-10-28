@@ -261,11 +261,12 @@ def roof_station(tables: Sequence[Table], weights: Sequence[float], site: SiteGe
     return clear or Point(x=round(q.x, 3), y=round(q.y, 3))
 
 
-def corridors(site: SiteGeometry) -> list[tuple[str, BaseGeometry]]:
-    """Linear corridors that a block should not straddle: transmission line corridors and roads with a width, by feature id."""
+def corridors(site: SiteGeometry, keep_out_only: bool = False) -> list[tuple[str, BaseGeometry]]:
+    """Linear corridors that a block should not straddle: transmission line corridors and roads with a width, by feature id. A transmission
+    line corridor is a keep-out (cable is not run under the line); a road can be crossed, so `keep_out_only` leaves roads out."""
     out = []
     for f in site.features:
-        if f.kind is FeatureKind.TRANSMISSION_LINE or (f.kind is FeatureKind.ROAD and (f.polygon or f.width_m)):
+        if f.kind is FeatureKind.TRANSMISSION_LINE or (not keep_out_only and f.kind is FeatureKind.ROAD and (f.polygon or f.width_m)):
             g = shape_of(f)
             out.append((f.id, g if f.polygon else g.buffer((f.width_m or 1.0) / 2, cap_style="flat")))
     return out
@@ -297,9 +298,10 @@ def _extended(site: SiteGeometry, area: BaseGeometry, walls: list[tuple[str, Bas
     return out
 
 
-def regions(tables: Sequence[Table], site: SiteGeometry) -> list[list[int]]:
-    """Tables grouped by the part of the site they stand in once the corridors cut it (indices into `tables`)."""
-    walls = corridors(site)
+def regions(tables: Sequence[Table], site: SiteGeometry, keep_out_only: bool = False) -> list[list[int]]:
+    """Tables grouped by the part of the site they stand in once the corridors cut it (indices into `tables`); with `keep_out_only`, once only
+    the keep-out corridors (transmission lines) cut it."""
+    walls = corridors(site, keep_out_only)
     if not walls or len(tables) < 2:
         return [list(range(len(tables)))]
     bounds = [shape_of(f) for f in site.features if f.kind is FeatureKind.BOUNDARY and f.polygon]
@@ -421,6 +423,14 @@ def build_blocks(
             shrunk |= cut
             kept.append(g)
         groups = [g for g in kept if g]
+    if corridors(site, keep_out_only=True):
+        island = {i: k for k, g in enumerate(regions(tables, site, keep_out_only=True)) for i in g}
+        across = [f"BLOCK-{bi:02d}" for bi, g in enumerate(groups, start=1) if len({island[i] for i in g}) > 1]
+        if across:
+            notes.append(
+                f"{', '.join(across)} stand on both sides of a transmission line corridor: equal whole inverters per block outweigh a block per side here, so each of "
+                "these blocks' feeders crosses under the line once; network_autobuild keeps every inverter's strings on one side wherever the strings divide, and says where they do not"
+            )
     inner = [LineString([(p.x, p.y) for p in r.points]) for r in internal]
     roads = site_roads(site) + inner
     taken = None

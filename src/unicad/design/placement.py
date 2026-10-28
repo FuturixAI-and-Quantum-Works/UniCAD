@@ -155,7 +155,7 @@ BESS_SEPARATION = f"BESS units stand outside the MV switchyard earth mat, clear 
 ASSUMED_YARD_M = (60.0, 45.0)
 YARD_UNKNOWN = (
     f"The switchyard size is not set (switchyard_m): the BESS clearance is kept from an assumed {ASSUMED_YARD_M[0]:g} x {ASSUMED_YARD_M[1]:g} m yard centred on the "
-    "switchyard location (design assumption, not a yard layout). Set switchyard_m (project_design_basis earthing) and re-run network_autobuild."
+    "switchyard location (design assumption, not a yard layout). Set switchyard_m in project_design_basis earthing before layout_place and network_autobuild; if it is set later, re-run both."
 )
 
 

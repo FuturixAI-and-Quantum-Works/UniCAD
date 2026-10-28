@@ -17,7 +17,7 @@ from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import BessRating, DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.placement import place_equipment, string_runs
-from unicad.design.patches import PATCHES, SCB_PATCHES, centre, patches
+from unicad.design.patches import PATCHES, SCB_PATCHES, SIDES, centre, keep_out_sides, patches
 from unicad.design.plan import PvPlan, from_layout, uniform
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
 from unicad.design.sizing import band_cables, size_network
@@ -186,15 +186,16 @@ def _margin(ac_kva: float, limit_kw: float) -> str:
 
 
 def _plan_under_export(
-    plan: PvPlan, layout: ArrayLayout, mps: int, spi: int, spi_cap: int, per_block_cap: int | None, string_kwp: float, inverter: InverterSpec, limit: float, notes: list[str]
-) -> PvPlan:
+    plan: PvPlan, layout: ArrayLayout, mps: int, spi: int, spi_cap: int, per_block_cap: int | None, string_kwp: float, inverter: InverterSpec, limit: float, notes: list[str],
+    sides: dict[str, int] | None = None,
+) -> PvPlan:  # fmt: skip
     """The layout's strings on fewer, fuller inverters so the AC capacity stays within the export limit; when even full inverters exceed it, the plan is kept and the
     note says which layout target fits."""
     fit = math.floor(limit / inverter.ac_rated_kva + 1e-9)
     over = f"{plan.inverters} x {inverter.ac_rated_kva:g} kVA = {plan.inverters * inverter.ac_rated_kva:g} kVA is above the {limit:g} kW export limit"
     for more in range(spi + 1, spi_cap + 1):
         try:
-            p = from_layout(layout, mps, more, spi_cap, per_block_cap, string_kwp)
+            p = from_layout(layout, mps, more, spi_cap, per_block_cap, string_kwp, sides)
         except DesignError:
             continue
         if p.inverters * inverter.ac_rated_kva <= limit + 1e-9:
@@ -213,8 +214,9 @@ def _plan_under_export(
 
 
 def _plan(
-    template: str, intent: Intent, sd: StringDesign, inverter: InverterSpec, module: ModuleSpec, catalog: Catalog, layout: ArrayLayout | None, basis: DesignBasis, notes: list[str]
-) -> PvPlan:
+    template: str, intent: Intent, sd: StringDesign, inverter: InverterSpec, module: ModuleSpec, catalog: Catalog, layout: ArrayLayout | None, basis: DesignBasis, notes: list[str],
+    sides: dict[str, int] | None = None,
+) -> PvPlan:  # fmt: skip
     target, kv = basis.dc_ac_ratio_target, basis.grid.voltage_v / 1000
     mps = sd.modules_per_string
     string_kwp = mps * module.pmax / 1000
@@ -236,10 +238,10 @@ def _plan(
     if layout is not None:
         if template == "residential":
             raise DesignError("the residential template does not take a layout")
-        plan = from_layout(layout, mps, spi, spi_cap, per_block_cap, mps * module.pmax / 1000)
+        plan = from_layout(layout, mps, spi, spi_cap, per_block_cap, mps * module.pmax / 1000, sides)
         limit = intent.export_limit_kw
         if limit and plan.inverters * inverter.ac_rated_kva > limit + 1e-9:
-            plan = _plan_under_export(plan, layout, mps, spi, spi_cap, per_block_cap, string_kwp, inverter, limit, notes)
+            plan = _plan_under_export(plan, layout, mps, spi, spi_cap, per_block_cap, string_kwp, inverter, limit, notes, sides)
         return plan
     if template == "residential":
         dc = intent.dc_kwp or (intent.ac_kw or 0) * target
@@ -430,7 +432,10 @@ def _autobuild(
         module = _module(catalog, intent.module, notes)
         inverter = _inverter(catalog, intent.inverter, template, project, module, (intent.ac_kw or (intent.dc_kwp or 0.0) / basis.dc_ac_ratio_target), notes)
         sd = size_strings(module, inverter, basis, intent.modules_per_string)
-        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis, notes)
+        sides = keep_out_sides(lay, project.site.geometry) if lay is not None else {}
+        plan = _plan(template, intent, sd, inverter, module, catalog, lay, basis, notes, sides)
+        if sides:
+            notes += [SIDES, *plan.notes]
         short = [(b.name or b.part, ic.strings) for b in plan.blocks for ic in b.invs if plan.from_layout and ic.strings < max(i.strings for i in b.invs)]
         if short:
             spi = max(i.strings for b in plan.blocks for i in b.invs)

@@ -391,6 +391,16 @@ Every table (MMS) must be crossed by a row conductor, and every inverter, SCB, t
 lightning terminal must end the number of conductors it needs (two distinct connections for equipment) on a conductor network
 that reaches an earth pit. Projects without an earthing basis are not checked. Network equipment without an earth (pe) connection in the electrical model is reported as a warning.
 
+### `earthing.mat_fence_clearance`: Switchyard earth mat keeps its clearance from the boundary fence
+
+Standard: none (design practice). Segments: all.
+
+The switchyard earth grid stands at least 3 m (an assumed clearance for the perimeter road and fence earthing, not a cited figure)
+inside the boundary line, which is the site fence; a grid that touches or crowds the fence puts the touch voltage outside the mat on
+the public side. Closer than that is an error (a warning for a grid inside a switchyard area marked on the site, which is the client's
+choice). Checked for a ground plant whose switchyard grid is sized. Fix: run layout_place again (it keeps the yard clear of the fence),
+or pass switchyard_x/y for a spot inside the buildable area.
+
 
 ## lps
 
@@ -404,3 +414,11 @@ mast height, or for conventional air terminals the rolling-sphere radius of the 
 of placed equipment are covered over an assumed footprint (the catalog has no dimensions); the finding lists covered over total per class.
 Terminals are placed by a greedy set cover over free positions clear of the tables, stations, switchyard and BESS units; points left outside
 every zone are errors. Projects without a lightning basis are not checked.
+
+### `lps.mast_fence_clearance`: Lightning terminals keep their clearance from the boundary fence
+
+Standard: none (design practice). Segments: all.
+
+Every lightning terminal stands at least 3 m (an assumed clearance for the perimeter road and the mast foundation, not a cited
+figure) inside the boundary line, which is the site fence. Terminals are placed by the lightning design inside that margin, so a finding
+means the design had no free position; projects without a lightning basis or a ground boundary are not checked.

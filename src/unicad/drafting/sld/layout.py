@@ -14,7 +14,8 @@ x positions come from a tidy-tree pass over per-level contours (levels: 2r for r
 import heapq
 import math
 import re
-from collections import defaultdict
+import threading
+from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
@@ -1515,7 +1516,28 @@ BEND_COST = 5.0
 SEARCH_MARGIN = 60.0
 
 
+_ROUTE_CACHE: OrderedDict[tuple, tuple[Point, ...]] = OrderedDict()
+_ROUTE_CACHE_SIZE = 512
+_ROUTE_LOCK = threading.Lock()
+
+
 def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[Box]) -> tuple[Point, ...]:
+    """The search below, remembered: fitting a sheet lays the same blocks out repeatedly and most routes repeat exactly."""
+    key = (start, goal, tuple(bodies), tuple(outlines))
+    with _ROUTE_LOCK:
+        found = _ROUTE_CACHE.get(key)
+        if found is not None:
+            _ROUTE_CACHE.move_to_end(key)
+            return found
+    path = _search_route_uncached(start, goal, bodies, outlines)
+    with _ROUTE_LOCK:
+        _ROUTE_CACHE[key] = path
+        while len(_ROUTE_CACHE) > _ROUTE_CACHE_SIZE:
+            _ROUTE_CACHE.popitem(last=False)
+    return path
+
+
+def _search_route_uncached(start: Point, goal: Point, bodies: list[Box], outlines: list[Box]) -> tuple[Point, ...]:
     """Cheapest orthogonal path on the grid of lines STUB clear of every body and outline edge:
     a body hit costs most, then a group outline crossing, then bends and length."""
     around = [*bodies, *outlines]
@@ -1530,11 +1552,32 @@ def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[B
     bodies = [bd for bd in bodies if bd.overlaps(window)]
     outlines = [edge for edge in outlines if _seg_touches(window, edge)]
 
-    def move_cost(p: Point, q: Point) -> float:
-        seg = Box(min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
-        hits = sum(1 for bd in bodies if _seg_hits(seg, bd))
-        crossings = sum(1 for edge in outlines if _seg_touches(seg, edge))
-        return abs(p[0] - q[0]) + abs(p[1] - q[1]) + HIT_COST * hits + CROSS_COST * crossings
+    rows: dict[float, tuple[list[Box], list[Box]]] = {}
+    cols: dict[float, tuple[list[Box], list[Box]]] = {}
+    edge_cost: dict[tuple[int, int, int, int], float] = {}
+
+    def near(cache: dict[float, tuple[list[Box], list[Box]]], at: float, lo: str, hi: str) -> tuple[list[Box], list[Box]]:
+        found = cache.get(at)
+        if found is None:
+            found = (
+                [bd for bd in bodies if getattr(bd, lo) <= at <= getattr(bd, hi)],
+                [e for e in outlines if getattr(e, lo) - 1e-6 <= at <= getattr(e, hi) + 1e-6],
+            )
+            cache[at] = found
+        return found
+
+    def move_cost(x: int, y: int, nx: int, ny: int) -> float:
+        key = (x, y, nx, ny) if (x, y) <= (nx, ny) else (nx, ny, x, y)
+        cost = edge_cost.get(key)
+        if cost is None:
+            p, q = (xs[x], ys[y]), (xs[nx], ys[ny])
+            seg = Box(min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
+            near_bodies, near_edges = near(rows, p[1], "y0", "y1") if p[1] == q[1] else near(cols, p[0], "x0", "x1")
+            hits = sum(1 for bd in near_bodies if _seg_hits(seg, bd))
+            crossings = sum(1 for edge in near_edges if _seg_touches(seg, edge))
+            cost = abs(p[0] - q[0]) + abs(p[1] - q[1]) + HIT_COST * hits + CROSS_COST * crossings
+            edge_cost[key] = cost
+        return cost
 
     begin = (ix[start[0]], iy[start[1]])
     end = (ix[goal[0]], iy[goal[1]])
@@ -1568,8 +1611,10 @@ def _search_route(start: Point, goal: Point, bodies: list[Box], outlines: list[B
             nx, ny = x + dx, y + dy
             if not (0 <= nx < len(xs) and 0 <= ny < len(ys)):
                 continue
-            step = move_cost((xs[x], ys[y]), (xs[nx], ys[ny])) + (BEND_COST if nd != d else 0.0)
             nxt = (nx, ny, nd)
+            if nxt in closed:
+                continue
+            step = move_cost(x, y, nx, ny) + (BEND_COST if nd != d else 0.0)
             if cost + step < best.get(nxt, math.inf):
                 best[nxt], came[nxt] = cost + step, state
                 heapq.heappush(queue, (cost + step + h(nxt), tie, nxt))

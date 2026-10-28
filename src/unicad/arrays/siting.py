@@ -21,6 +21,11 @@ SPOT_ASSUMPTION = (
     f"Ground equipment (inverter stations, switchyard, BESS units) keeps {STATION_CLEAR_M:g} m clear of tables and roads, keeps the exclusion setback from "
     "exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure)."
 )
+FENCE_CLEAR_MIN_M = 3.0
+FENCE_ASSUMPTION = (
+    f"Ground equipment (switchyard earth mat, inverter stations, BESS units, lightning masts) keeps {FENCE_CLEAR_MIN_M:g} m from the boundary line (the fence) "
+    "(assumed clearance for the perimeter road and fence earthing, not a cited figure)."
+)
 SWITCHYARD_NAME = re.compile(r"switch ?yard|sub ?station|pooling", re.IGNORECASE)
 SWITCHYARD_ASSUMED_M = (60.0, 45.0)
 RESERVED_YARD_ID = "mv-yard-reserve"
@@ -62,10 +67,13 @@ def keep_off_m(site: SiteGeometry, f: SiteFeature) -> float:
     return site.setbacks.obstacle_m if f.kind is FeatureKind.OBSTACLE else site.setbacks.exclusion_m
 
 
-def equipment_ground(site: SiteGeometry) -> BaseGeometry:
+def equipment_ground(site: SiteGeometry, fence_m: float | None = None) -> BaseGeometry:
     """Where ground equipment may stand: inside the boundary, off roads (their width, ROAD_WIDTH_ASSUMED_M for a road drawn without one),
-    roofs, and exclusions, water, buildings, obstacles and line corridors by their setback (keep_off_m)."""
+    roofs, and exclusions, water, buildings, obstacles and line corridors by their setback (keep_off_m). The boundary line (the fence) is kept
+    `fence_m` (default FENCE_CLEAR_MIN_M) away unless that leaves no ground."""
     inside = unary_union([shape_of(f) for f in site.of_kind(FeatureKind.BOUNDARY)])
+    inset = inside.buffer(-(FENCE_CLEAR_MIN_M if fence_m is None else fence_m), join_style="mitre")
+    inside = inset if not inset.is_empty else inside
     off = []
     for f in site.features:
         if f.kind in (FeatureKind.BOUNDARY, FeatureKind.SETBACK_LINE, FeatureKind.SWITCHYARD):

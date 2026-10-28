@@ -16,7 +16,7 @@ from ezdxf.document import Drawing
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.layouts import BaseLayout
 from shapely import STRtree
-from shapely.geometry import LineString, MultiPolygon, Polygon, box
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from shapely.prepared import prep
@@ -463,16 +463,18 @@ class LayoutSheetWriter:
             self._label_text([label], P(x0, y1), 0.8 * th, 0.0, f.id)
             return
         if isinstance(g, LineString):
-            mid = g.interpolate(0.5, normalized=True)
-            a, b = g.coords[0], g.coords[-1]
-            ang = readable(math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])))
-            at = P(mid.x, mid.y)
             off = ((f.width_m or 1.0) / 2) * P.k + 0.8 * th
-            n = math.radians(ang + 90)
-            for side in (1, -1):
-                if self._rotated(label, (at[0] + side * off * math.cos(n), at[1] + side * off * math.sin(n)), h, ang, f.id):
-                    return
-            self._label_text([label], at, 0.6 * th, off - 0.6 * th, f.id)
+            for t in (0.5, 0.35, 0.65, 0.2, 0.8):
+                mid = g.interpolate(t, normalized=True)
+                a, b = (g.interpolate(max(t - 0.05, 0), normalized=True), g.interpolate(min(t + 0.05, 1), normalized=True)) if t != 0.5 else map(Point, (g.coords[0], g.coords[-1]))
+                ang = readable(math.degrees(math.atan2(b.y - a.y, b.x - a.x)))
+                at = P(mid.x, mid.y)
+                n = math.radians(ang + 90)
+                for side in (1, -1):
+                    if self._rotated(label, (at[0] + side * off * math.cos(n), at[1] + side * off * math.sin(n)), h, ang, f.id):
+                        return
+            mid = g.interpolate(0.5, normalized=True)
+            self._label_text([label], P(mid.x, mid.y), 0.6 * th, off - 0.6 * th, f.id)
             return
         rect = g.minimum_rotated_rectangle
         cs = list(rect.exterior.coords)
