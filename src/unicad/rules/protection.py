@@ -1,6 +1,7 @@
 """Protection device ratings, surge protection and earthing presence."""
 
 import math
+import re
 from collections.abc import Iterator
 
 from unicad.catalog.store import Catalog
@@ -261,6 +262,89 @@ def spd_ac(project: Project, catalog: Catalog) -> Iterator[Finding]:
     for n in net.by_kind(*GENERATORS):
         if _spd_in_zone(project, n.id, "ac", frozenset({NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER})) is False:
             yield Finding(rule_id="protection.spd_ac", severity=Severity.WARNING, subjects=(n.id,), message=f"{label(net, n.id)}: no AC SPD or lightning arrester in the AC zone of the inverter")
+
+
+SPD_IT_FACTOR = 1.1
+SPD_TN_FACTOR = 1.1
+DEHN_LPG = "https://resources.ipd.com.au/Flipbook/35_DS702_E_2014_Lightning_Protection_Guide/files/basic-html/page234.html"
+SPD_IT = (
+    f"IT system (no earthed neutral): after a first earth fault the healthy phases stand at the line-to-line voltage to earth, so a phase-to-PE SPD needs "
+    f"Uc >= {SPD_IT_FACTOR:g} x U(L-L) (DEHN Lightning Protection Guide DS702/E 2014, printed p.233, Figure 8.1.5.2a, {DEHN_LPG}; IEC 60364-5-53)."
+)
+SPD_TN = f"TN system: Uc >= {SPD_TN_FACTOR:g} x U0 (phase to earth), common practice for TN systems; not a cited limit."
+
+
+def _lv_windings(vector_group: str) -> list[tuple[str, bool]]:
+    """(connection letter, neutral brought out) of each LV winding of an IEC vector group such as 'YNd11d11' or 'Dyn11'."""
+    rest = re.sub(r"^(YN|ZN|Y|D|Z)", "", vector_group.strip())
+    return [(c, n == "n") for c, n, _ in re.findall(r"([dyz])(n?)(\d+)", rest)]
+
+
+def bus_earthing(project: Project, catalog: Catalog, node_id: str) -> tuple[str, str] | None:
+    """('IT' or 'TN', why) for the AC zone at a node: IT when every transformer winding feeding the zone has no neutral brought out (delta, or star
+    without n) and nothing else earths it; TN when a feeding winding has its neutral out (taken as solidly earthed) or the zone has no transformer of
+    its own (fed from the utility's LT network). None for DC or MV zones."""
+    from unicad.domain.catalog import TransformerSpec
+
+    net = project.network
+    zone = zone_at(net, node_id)
+    if zone is None or zone.voltage_v is None or zone.voltage_v > 1000 or is_dc(net, node_id):
+        return None
+    feeding = []
+    for n in net.by_kind(NodeKind.TRANSFORMER):
+        if zone_at(net, n.id, "lv") != zone or n.spec is None:
+            continue
+        spec = catalog.get(n.spec) if isinstance(n.spec, str) else n.spec
+        if isinstance(spec, TransformerSpec):
+            feeding.append((n, spec))
+    if not feeding:
+        return "TN", "the zone has no transformer of its own: fed from the utility's LT network, taken as TN"
+    windings = [(n, spec, w) for n, spec in feeding for w in _lv_windings(spec.vector_group)]
+    if windings and not any(neutral for _, _, (_, neutral) in windings):
+        n, spec, _ = windings[0]
+        return "IT", f"fed only from the LV winding(s) of {label(net, n.id)} ({spec.vector_group}), which bring out no neutral: an IT system"
+    return "TN", "fed from a transformer winding with its neutral brought out, taken as solidly earthed (TN)"
+
+
+def spd_uc_need(project: Project, catalog: Catalog, node_id: str) -> tuple[float, str, str] | None:
+    """(minimum Uc, system, why) for an AC SPD at a node, or None where the zone has no LV voltage."""
+    got = bus_earthing(project, catalog, node_id)
+    if got is None:
+        return None
+    system, why = got
+    v = zone_at(project.network, node_id).voltage_v
+    if system == "IT":
+        return SPD_IT_FACTOR * v, system, f"{why}. {SPD_IT}"
+    return SPD_TN_FACTOR * v / math.sqrt(3), system, f"{why}. {SPD_TN}"
+
+
+@rule("protection.spd_ac_uc", "AC SPD continuous operating voltage suits the system earthing", clause="IEC 60364-5-53")
+def spd_ac_uc(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """An AC SPD's maximum continuous operating voltage Uc (catalog rated_voltage) must cover the voltage it sees from phase to PE: on an IT bus (every
+    transformer winding feeding it brings out no neutral, e.g. the delta LV windings of a YNd11 inverter-duty transformer) Uc >= 1.1 x U(L-L), because
+    after a first earth fault the healthy phases stand at line voltage to earth (DEHN Lightning Protection Guide 2014, Figure 8.1.5.2a): error when below.
+    On a TN bus (a winding with its neutral out, or the utility's LT network) Uc >= 1.1 x U0, common practice and not a cited limit: warning when below."""
+    net = project.network
+    for n in net.by_kind(NodeKind.AC_SPD):
+        spec = _protection(catalog, n)
+        if spec is None or spec.device != "spd_ac":
+            continue
+        got = spd_uc_need(project, catalog, n.id)
+        if got is None:
+            continue
+        need, system, why = got
+        if spec.rated_voltage >= need - 1e-9:
+            continue
+        v = zone_at(net, n.id).voltage_v
+        yield Finding(
+            rule_id="protection.spd_ac_uc", severity=Severity.ERROR if system == "IT" else Severity.WARNING, subjects=(n.id,),
+            message=f"{label(net, n.id)} {spec.model}: Uc {spec.rated_voltage:g} V is below the {need:.0f} V a {v:g} V {system} bus needs "
+            f"({'1.1 x U(L-L)' if system == 'IT' else '1.1 x U0'}); choose an SPD rated for the {system} system",
+            measured=spec.rated_voltage, limit=round(need, 1), unit="V",
+            formula="Uc >= 1.1 x U(L-L)" if system == "IT" else "Uc >= 1.1 x U(L-L) / sqrt(3)",
+            inputs=(Quantity(name="U_LL", value=v, unit="V", source="network.voltage_zone"), Quantity(name="Uc", value=spec.rated_voltage, unit="V", source=spec.id)),
+            assumptions=(why,),
+        )  # fmt: skip
 
 
 @rule("protection.spd_ac_poles", "AC SPD has a pole per phase conductor")

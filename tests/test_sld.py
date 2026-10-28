@@ -497,7 +497,7 @@ def test_a_node_left_without_a_catalog_spec_is_drawn_with_its_default_symbol_and
     acdb = net.by_kind(NodeKind.ACDB)[0]
     acb = next(n for n in net.by_kind(NodeKind.BREAKER) if n.group == acdb.group and n.tag.startswith("ACB-"))
     spd = next(n for n in net.by_kind(NodeKind.AC_SPD) if n.group == acdb.group)
-    assert spd.spec == "dehn-dg-m-we-600" and not any(f"{spd.tag} (ac_spd)" in b for b in r.blockers)
+    assert spd.spec == "dehn-dg-se-h-1000-fm-3x" and not any(f"{spd.tag} (ac_spd)" in b for b in r.blockers)
     net = ElectricalNetwork(groups=net.groups, nodes=tuple(n.model_copy(update={"spec": None}) if n.id in (acb.id, spd.id) else n for n in net.nodes), edges=net.edges)
     lay = layout_sld(net, catalog)
     sym = {s.node_id: s for s in lay.symbols if s.role == "node"}
