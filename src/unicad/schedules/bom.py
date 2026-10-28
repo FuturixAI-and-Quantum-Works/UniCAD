@@ -1,6 +1,7 @@
 """Bill of materials: quantities by catalog item from the network expansion, plus cable metres and terminations from the schedule."""
 
 import math
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -76,7 +77,23 @@ class Bom:
         }
 
 
-def _describe(spec: object, node: Node) -> str:
+UTILITY_SPEC = re.compile(r"^Generic \((?P<who>[A-Z][A-Z0-9-]+) specification\)$")
+
+
+def _maker(spec: object, utility: str | None) -> tuple[str, str]:
+    """The maker shown for a catalog item, and a remark. A generic item transcribed from one utility's purchase specification is billed as generic to the
+    project's utility specification, with the source utility in the remark, so a GETCO project does not order to a WBSEDCL specification."""
+    maker = getattr(spec, "manufacturer", "")
+    m = UTILITY_SPEC.match(maker)
+    if m is None or (utility and m["who"].upper() == utility.upper()):
+        return maker, ""
+    return f"Generic ({utility or 'utility'} specification)", f"ratings transcribed from a {m['who']} specification; confirm against {utility or 'the utility'}'s"
+
+
+def _describe(spec: object, node: Node, utility: str | None = None) -> str:
+    maker, _ = _maker(spec, utility)
+    if maker != getattr(spec, "manufacturer", maker):
+        spec = spec.model_copy(update={"manufacturer": maker})
     match spec:
         case ModuleSpec():
             return f"{spec.manufacturer} {spec.model}, {spec.pmax:g} Wp"
@@ -129,7 +146,10 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
                 remarks = "; ".join(r for r in (remarks, "no catalog item: specify before ordering") if r)
             else:
                 spec = catalog.get(n.spec)
-                key = (category, spec.id, _describe(spec, n))
+                utility = project.design_basis.grid.utility
+                key = (category, spec.id, _describe(spec, n, utility))
+                if note := _maker(spec, utility)[1]:
+                    remarks = "; ".join(r for r in (remarks, note) if r)
             totals[key] = totals.get(key, 0) + count
             notes.setdefault(key, {})
             if remarks:
