@@ -276,6 +276,7 @@ class Edge(_Frozen):
     derating: float | None = Field(default=None, gt=0, le=1)
     remarks: str | None = None
     bands: tuple[CableBand, ...] = ()
+    sized_for: str | None = Field(default=None, description="why the cable is larger than its current and fault withstand need (set by sizing, e.g. voltage drop)")
 
     def band_for(self, length_m: float | None) -> "CableBand | None":
         """The band an instance routed `length_m` falls in, or None when it takes the edge's own cable."""

@@ -18,10 +18,29 @@ PASS_THROUGH = frozenset({NodeKind.DC_FUSE_BOX, NodeKind.DC_ISOLATOR, NodeKind.F
 COMBINERS = frozenset({NodeKind.SCB})
 STRING_FUSE_HOLDERS = frozenset({NodeKind.FUSE, NodeKind.DC_FUSE_BOX})
 GENERATORS = frozenset({NodeKind.INVERTER, NodeKind.PCS})
-EVEN_MPPT = "Strings (or combiner outputs) are spread evenly over the inverter's MPPTs; the network does not record the MPPT allocation."
+EVEN_MPPT = "Strings (or combiner outputs) are spread evenly over the inverter's MPPTs (mppt_split); the network does not record the MPPT allocation."
 AC_SERVICES = frozenset({Service.LV_AC, Service.MV_AC, Service.HV_AC})
 FAN_OUT = "One source instance feeds several instances of this edge; each is taken to carry the full source current (conservative)."
 PASS_THROUGH_NOTE = "DC fuse boxes, isolators and fuses pass strings through one-to-one; strings are paralleled only in SCBs or at the inverter MPPT."
+
+
+def mppt_split(inputs: int, mppt_count: int) -> tuple[int, ...]:
+    """DC inputs per MPPT, spread evenly over as many MPPTs as there are inputs (at most mppt_count), the larger shares first: 21 on 6 is 4/4/4/3/3/3."""
+    if inputs < 1 or mppt_count < 1:
+        return ()
+    used = min(inputs, mppt_count)
+    base, extra = divmod(inputs, used)
+    return tuple(base + 1 if k < extra else base for k in range(used))
+
+
+def mppt_of(input_no: int, split: tuple[int, ...]) -> int:
+    """1-based MPPT of the 1-based input number under `split`."""
+    seen = 0
+    for k, n in enumerate(split, start=1):
+        seen += n
+        if input_no <= seen:
+            return k
+    return len(split)
 
 
 def instance_tag(net: ElectricalNetwork, instance_id: str) -> str:
@@ -102,7 +121,7 @@ class StringFeed:
 
     @property
     def inputs_per_mppt(self) -> int:
-        return math.ceil(self.inverter_inputs / self.spec.mppt_count)
+        return max(mppt_split(self.inverter_inputs, self.spec.mppt_count), default=0)
 
     @property
     def strings_per_mppt(self) -> int:

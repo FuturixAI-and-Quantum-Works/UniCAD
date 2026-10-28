@@ -136,7 +136,7 @@ def test_r5_m1_voltage_drop_grows_the_inverter_feeder_not_twelve_runs_downstream
     inv = es["e_inv_brk_b01a"]
     assert inv["runs"] >= 2 or CATALOG.get(inv["cable"]).size_mm2 >= 300, inv
     assert not rooftop["network_autobuild"]["blockers"] and rooftop["validate"]["counts"]["error"] == 0
-    assert any("only then parallel runs" in a for a in rooftop["network_autobuild"]["assumptions"])
+    assert any("or a parallel run up to" in a for a in rooftop["network_autobuild"]["assumptions"])
 
 
 def test_r5_m1_an_unreachable_drop_limit_is_reported_not_piled_with_runs(tmp_path):

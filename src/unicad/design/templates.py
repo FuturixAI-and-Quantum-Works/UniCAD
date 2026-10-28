@@ -819,7 +819,8 @@ def plan_bess(catalog: Catalog, kw: float, kwh: float | None, pcs_id: str | None
         listed = "; ".join(f.text() for f in options)
         raise DesignError(
             f"no whole number of {pcs.id} ({pcs.rated_kva:g} kVA) and {bat.id} ({bat.energy_kwh:g} kWh) units comes within {BESS_TOLERANCE:.0%} of {kw:g} kW / "
-            f"{kwh if kwh else '-'} kWh. Options: {listed}. Pass bess_kw and bess_kwh for one of them, or another pcs or battery"
+            f"{kwh if kwh else '-'} kWh. Options: {listed}. Pass bess_kw and bess_kwh for one of them with bess_brief_kw={kw:g}"
+            f"{f' and bess_brief_kwh={kwh:g}' if kwh else ''} (so the drawings state the built size against the brief), or another pcs or battery"
         )
     per_block = 2 if best.n_pcs % 2 == 0 else 1
     return BessPlan(pcs, bat, best.n_pcs // per_block, per_block, best.batteries_per_pcs, kw, kwh)

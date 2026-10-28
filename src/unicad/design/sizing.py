@@ -19,19 +19,19 @@ from unicad.design.select import (
     pick_lv_breaker,
     pick_rated,
 )
-from unicad.rules.cables import K_BY_CABLE, cable_fault, needs_cable, phases, protectors, terminals
+from unicad.rules.cables import K_BY_CABLE, cable_fault, edge_label, needs_cable, phases, protectors, terminals
 from unicad.rules.faults import prospective_fault
-from unicad.rules.protection import ISOLATOR_WAYS, covers_fault
+from unicad.rules.protection import ISOLATOR_WAYS, SPD_IT, SPD_TN, covers_fault, spd_uc_need
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, ISC_FACTOR, STRING_FUSE_MAX, STRING_FUSE_MIN
-from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, per_instance, string_feeds, zone_at
+from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, label, per_instance, string_feeds, zone_at
 from unicad.rules.vdrop import segment_drop
 
 MAX_VDROP_STEPS = 400
 NOMINAL_ASSUMPTION = "Auxiliary feeders carry no export current in the rules; their breakers and cables are rated for the auxiliary transformer's full-load current."
 TERMINALS = (
-    "Cables landing on a breaker are chosen, length bands included, only among sizes its terminals take (largest cable and cables per pole from the catalog entry, "
-    "which cites the datasheet table or labels the value an assumption; cables.terminals)."
+    "Cables landing on a breaker or an inverter's AC output are chosen, length bands included, only among sizes its terminals take (largest cable and cables per "
+    "pole from the catalog entry, which cites the datasheet or labels the value an assumption; cables.terminals)."
 )
 
 
@@ -43,6 +43,8 @@ class Sizing:
     chosen: dict[str, CableOption] = field(default_factory=dict)
     guards: dict[str, list[tuple[str, ProtectionSpec]]] | None = None
     ampacity_runs: dict[str, int] = field(default_factory=dict)
+    ampacity: dict[str, CableOption] = field(default_factory=dict)
+    reframed: dict[str, str] = field(default_factory=dict)
 
 
 def _with(project: Project, net: ElectricalNetwork) -> Project:
@@ -79,8 +81,14 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
         voc = max(max_dc_voc(project, catalog, node_id) or 0.0, hint.voltage_v or 0.0)
         return pick_by_voltage(catalog, "spd_dc", voc).id
     if role == "ac_spd":
-        s.assumptions.append(SPD_AC_ASSUMPTION)
-        return pick_ac_spd(catalog, v or 0.0, 1 if hint.poles[0] <= 2 else 3).id
+        phases_n = 1 if hint.poles[0] <= 2 else 3
+        got = spd_uc_need(project, catalog, node_id)
+        if got is None or phases_n == 1:
+            s.assumptions.append(SPD_AC_ASSUMPTION)
+            return pick_ac_spd(catalog, v or 0.0, phases_n).id
+        need, system, _ = got
+        s.assumptions.append(f"AC SPDs on {v:g} V {system} buses are chosen with Uc >= {need:.0f} V. {SPD_IT if system == 'IT' else SPD_TN}")
+        return pick_ac_spd(catalog, v or 0.0, phases_n, need, f"{system} bus at {v:g} V: {'1.1 x U(L-L)' if system == 'IT' else '1.1 x U0'}").id
     if amps is None:
         amps = 0.0
     if role == "dc_isolator":
@@ -140,7 +148,7 @@ def size_protection(project: Project, catalog: Catalog, hints: dict[str, NodeHin
         try:
             spec = _pick_node(project, catalog, n.id, hint, s)
         except NoFit as e:
-            s.blockers.append(f"{n.tag} ({n.kind}): {e}; left without a spec")
+            s.blockers.append(f"{label(project.network, n.id)} ({n.kind}): {e}; left without a spec")
             spec = None
         nodes.append(n.model_copy(update={"spec": spec}))
     return _rebuild(project, nodes=nodes)
@@ -159,7 +167,7 @@ def _need(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing
 
 def _options(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:
     ph = phases(project, catalog, e) if e.service is not Service.DC else 1
-    options = cable_options(catalog, hint.family, e.laying, ph, hint.runs)
+    options = cable_options(catalog, hint.family, e.laying, ph, hint.runs, project.design_basis.ambient_max_c)
     t = terminals(project, catalog, e)
     if t is not None:
         options = [o for o in options if t.admits(o.cable, o.runs)]
@@ -204,6 +212,7 @@ def size_cables(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], 
             continue
         s.chosen[e.id] = fits[0]
         s.ampacity_runs[e.id] = fits[0].runs
+        s.ampacity[e.id] = fits[0]
         edges.append(_apply(e, fits[0]))
     return _rebuild(project, edges=edges)
 
@@ -246,11 +255,20 @@ def vdrop_paths(project: Project) -> list[tuple[str, list[Edge], float]]:
 
 
 VDROP_MAX_RUNS = 4
+VDROP_MATERIAL_PP = 0.05
+LV_MAX_V = 1000.0
 VDROP_ORDER = (
-    "Voltage drop is fitted on each path over its limit by, in this order: a larger conductor at the same number of runs on the cable with the largest drop "
-    "first; an LT breaker of a larger frame whose terminals take a larger conductor; and only then parallel runs, at most "
-    f"{VDROP_MAX_RUNS} per circuit or the runs its current already needs (design choice: more parallel runs only to meet voltage drop is not sensible LT practice). "
-    "A path that still exceeds its limit is reported as a blocker naming the cable that limits it."
+    "Voltage drop is fitted on each path over its limit one step at a time: a larger conductor, or a parallel run up to "
+    f"{VDROP_MAX_RUNS} per circuit or the runs its current already needs (design choice: piling runs only to meet voltage drop is not sensible LT practice), "
+    "on the cable whose step removes the most drop per added conductor volume (sq.mm x m over all its instances); more than one cable per pole on an inverter "
+    "output whose datasheet does not say its terminal takes them only when nothing else is left. An LT breaker is moved to a larger frame whose terminals take a "
+    f"larger conductor only when no such step is left. Only a step that removes at least {VDROP_MATERIAL_PP:g} percentage points of the path's drop, or all of "
+    "its excess, counts (design choice: cross-section is spent where the drop is). Afterwards every cable is stepped back down to the cheapest option that "
+    "keeps every path through it within its limit. A path that still exceeds its limit is reported as a blocker naming the cable that limits it."
+)
+VDROP_MV = (
+    f"Cables above {LV_MAX_V:g} V are sized by ampacity and short-circuit withstand only, never enlarged for the voltage drop of a path "
+    "(design choice); their drop still counts in the path the rules check, and a path their drop keeps over its limit is reported."
 )
 
 
@@ -258,23 +276,60 @@ def _run_cap(s: Sizing, eid: str) -> int:
     return max(VDROP_MAX_RUNS, s.ampacity_runs.get(eid, 1))
 
 
-def _upsize(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing, more_runs: bool) -> CableOption | None:
-    """The cheapest option of lower resistance than the chosen one that still carries the current: at the same number of runs, or with more runs
-    up to the run cap."""
+def _fittable(project: Project, e: Edge) -> bool:
+    if e.service is Service.DC:
+        return True
+    v = _zone_v(project, e.src_node)
+    return v is None or v <= LV_MAX_V
+
+
+def _volume(net: ElectricalNetwork, e: Edge, o: CableOption) -> float:
+    """Conductor volume of one option over every instance of the edge, sq.mm x m."""
+    return net.instance_count(e.src_node) * (e.length_m or 0.0) * o.conductors * o.cable.size_mm2 * o.runs
+
+
+def _upsizes(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, s: Sizing) -> list[CableOption]:
+    """Options of lower resistance than the chosen one that still carry the current, with at most the run cap of parallel runs, cheapest first."""
     cur = s.chosen[e.id]
     need = _need(project, catalog, e, hint, s)
     cap = _run_cap(s, e.id)
-    for o in _options(project, catalog, e, hint, s):
-        if o.iz < need - 1e-9 or o.r_eff >= cur.r_eff - 1e-12 or o.cost < cur.cost:
-            continue
-        if (o.runs > cur.runs and more_runs and o.runs <= cap) or (o.runs == cur.runs and not more_runs):
-            return o
-    return None
+    return [
+        o for o in _options(project, catalog, e, hint, s)
+        if o.iz >= need - 1e-9 and o.r_eff < cur.r_eff - 1e-12 and o.cost >= cur.cost and cur.runs <= o.runs <= cap
+    ]  # fmt: skip
+
+
+def _silent_runs(project: Project, catalog: Catalog, e: Edge, o: CableOption) -> bool:
+    """More than one cable per pole on an inverter output whose datasheet does not give how many its terminal takes."""
+    t = terminals(project, catalog, e, switchgear=False)
+    return o.runs > 1 and t is not None and any(d.inverter and d.per_pole is None for d in t.devices)
+
+
+def _best_step(project: Project, catalog: Catalog, edges: list[Edge], hints: dict[str, EdgeHint], s: Sizing, need_pp: float) -> tuple[str, CableOption] | None:
+    """The material step (see VDROP_ORDER) removing the most drop per added conductor volume: for each edge and run count its cheapest material option."""
+    net = project.network
+    best, score = None, (True, 0.0)
+    for e in edges:
+        cur = s.chosen[e.id]
+        before = _drop(project, catalog, e)
+        seen: set[int] = set()
+        for o in _upsizes(project, catalog, e, hints[e.id], s):
+            if o.runs in seen:
+                continue
+            gain = before - _drop(project, catalog, _apply(e, o))
+            if gain < need_pp - 1e-9:
+                continue
+            seen.add(o.runs)
+            extra = max(_volume(net, e, o) - _volume(net, e, cur), 1e-9)
+            key = (_silent_runs(project, catalog, e, o), -gain / extra)
+            if best is None or key < score:
+                best, score = (e.id, o), key
+    return best
 
 
 def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s: Sizing, node_hints: dict[str, NodeHint] | None = None) -> Project:
     """Lower the drop on each path over its limit one step at a time (see VDROP_ORDER) until every path fits or no step is left; where the
-    terminals of an LT breaker are the limit, move that breaker to a larger frame (REFRAME)."""
+    terminals of an LT breaker are the limit, move that breaker to a larger frame (REFRAME). Then step every cable back down where the paths allow it."""
     node_hints = node_hints or {}
     for _ in range(MAX_VDROP_STEPS):
         over = []
@@ -283,7 +338,7 @@ def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s:
             if sum(drops.values()) > limit:
                 over.append((what, edges, drops, limit))
         if not over:
-            return project
+            break
         s.assumptions.append(VDROP_ORDER)
         net = project.network
         changed: dict[str, Edge] = {}
@@ -291,27 +346,22 @@ def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s:
         for what, edges, drops, limit in over:
             if any(eid in changed for eid in drops):
                 continue
-            order = [eid for eid in sorted(drops, key=lambda k: -drops[k]) if eid in s.chosen and drops[eid] > 0]
-            step = next(((eid, o) for eid in order if (o := _upsize(project, catalog, net.edge_by_id[eid], hints[eid], s, False)) is not None), None)
+            if any(eid in s.chosen and drops[eid] > 0 and not _fittable(project, net.edge_by_id[eid]) for eid in drops):
+                s.assumptions.append(VDROP_MV)
+            cands = [net.edge_by_id[eid] for eid in sorted(drops, key=lambda k: -drops[k]) if eid in s.chosen and drops[eid] > 0 and _fittable(project, net.edge_by_id[eid])]
+            need_pp = min(sum(drops.values()) - limit, VDROP_MATERIAL_PP)
+            step = _best_step(project, catalog, cands, hints, s, need_pp)
             if step is None:
-                reframed = next((p for eid in order if (p := _reframe(project, catalog, net.edge_by_id[eid], hints[eid], node_hints, s, False)) is not None), None)
-                if reframed is not None:
-                    break
-                for eid in order:
-                    if (o := _upsize(project, catalog, net.edge_by_id[eid], hints[eid], s, True)) is not None:
-                        step = (eid, o)
-                        break
-                    if (reframed := _reframe(project, catalog, net.edge_by_id[eid], hints[eid], node_hints, s, True)) is not None:
-                        break
+                reframed = next((p for more in (False, True) for e in cands if (p := _reframe(project, catalog, e, hints[e.id], node_hints, s, more, need_pp)) is not None), None)
                 if reframed is not None:
                     break
             if step is None:
                 total = sum(drops.values())
-                worst = net.edge_by_id[order[0]] if order else None
+                worst = max((e for e in edges if e.id in s.chosen), key=lambda e: drops[e.id], default=None)
                 at = f"; the largest drop is {drops[worst.id]:.2f} % on {worst.id} ({s.chosen[worst.id].runs} x {s.chosen[worst.id].cable.callout()})" if worst else ""
                 msg = (
-                    f"{what}: voltage drop {total:.2f} % exceeds {limit:g} %: no larger conductor or breaker frame is left and more parallel runs than "
-                    f"{VDROP_MAX_RUNS} per circuit is not a sensible design{at}. Shorten the route (lengths or equipment placement) or raise the design basis limit"
+                    f"{what}: voltage drop {total:.2f} % exceeds {limit:g} %: no larger conductor or breaker frame is left that materially lowers it and more parallel "
+                    f"runs than {VDROP_MAX_RUNS} per circuit is not a sensible design{at}. Shorten the route (lengths or equipment placement) or raise the design basis limit"
                 )
                 if msg not in s.blockers:
                     s.blockers.append(msg)
@@ -323,9 +373,87 @@ def fit_vdrop(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], s:
             project = _rebuild(reframed, edges=[changed.get(e.id) or e for e in reframed.network.edges]) if changed else reframed
             continue
         if not changed:
-            return project
+            break
         project = _rebuild(project, edges=[changed.get(e.id) or e for e in net.edges])
+    project = _step_down(project, catalog, hints, node_hints, s)
+    return _explain_upsizes(project, catalog, s)
+
+
+def _paths_fit(project: Project, catalog: Catalog, eid: str, was: dict[str, float]) -> bool:
+    """Every path through edge `eid` is within its limit, or no worse than it was when it was already over."""
+    for what, edges, limit in vdrop_paths(project):
+        if not any(e.id == eid for e in edges):
+            continue
+        d = sum(_drop(project, catalog, e) for e in edges)
+        if d > max(limit, was.get(what, 0.0)) + 1e-9:
+            return False
+    return True
+
+
+def _step_down(project: Project, catalog: Catalog, hints: dict[str, EdgeHint], node_hints: dict[str, NodeHint], s: Sizing) -> Project:
+    """Give each cable enlarged for voltage drop the cheapest option that still keeps every path through it within its limit (largest conductor
+    volume first), then put back any breaker moved to a larger frame whose original frame takes the final cable."""
+    was = {what: sum(_drop(project, catalog, e) for e in edges) for what, edges, limit in vdrop_paths(project)}
+    net = project.network
+    grown = [eid for eid, o in s.chosen.items() if eid in s.ampacity and o != s.ampacity[eid]]
+    for eid in sorted(grown, key=lambda k: -_volume(net, net.edge_by_id[k], s.chosen[k])):
+        e = project.network.edge_by_id[eid]
+        cur = s.chosen[eid]
+        need = _need(project, catalog, e, hints[eid], s)
+        for o in _options(project, catalog, e, hints[eid], s):
+            if o.cost >= cur.cost or o.iz < need - 1e-9 or o.runs > _run_cap(s, eid):
+                continue
+            trial = _rebuild(project, edges=[_apply(x, o) if x.id == eid else x for x in project.network.edges])
+            if _paths_fit(trial, catalog, eid, was):
+                project, s.chosen[eid] = trial, o
+                break
+    for brk_id, old in list(s.reframed.items()):
+        n = project.network.node(brk_id)
+        spec = catalog.get(old)
+        ok = all(
+            (spec.terminal_max_mm2 is None or s.chosen[e.id].cable.size_mm2 <= spec.terminal_max_mm2) and (spec.terminal_cables_per_pole is None or s.chosen[e.id].runs <= spec.terminal_cables_per_pole)
+            and s.chosen[e.id].iz >= (spec.rated_current or 0.0) - 1e-9
+            for e in project.network.edges_at(brk_id) if e.id in s.chosen
+        )  # fmt: skip
+        if ok and n.spec != old:
+            project = _rebuild(project, nodes=[x.model_copy(update={"spec": old}) if x.id == brk_id else x for x in project.network.nodes])
+            s.guards = None
+            del s.reframed[brk_id]
+            s.assumptions.append(f"{label(project.network, brk_id)}: back to {spec.model}; after stepping the cables down its terminals take them.")
+    for brk_id, old in s.reframed.items():
+        spec, now = catalog.get(old), catalog.get(project.network.node(brk_id).spec)
+        lands = [s.chosen[e.id] for e in project.network.edges_at(brk_id) if e.id in s.chosen]
+        took = f"{spec.terminal_cables_per_pole or 'any number of'} x {spec.terminal_max_mm2:g} sq.mm per pole" if spec.terminal_max_mm2 else f"{spec.terminal_cables_per_pole} cable(s) per pole"
+        s.assumptions.append(
+            f"{label(project.network, brk_id)}: {spec.model} takes at most {took}; voltage drop needs {', '.join(f'{o.runs} x {o.cable.callout()}' for o in lands)}, so {now.model} is used."
+        )
     return project
+
+
+def _explain_upsizes(project: Project, catalog: Catalog, s: Sizing) -> Project:
+    """Say, on the edge (Edge.sized_for) and in the assumptions, why each cable is larger than ampacity and fault withstand need."""
+    net = project.network
+    paths = vdrop_paths(project)
+    notes: dict[str, str] = {}
+    for eid, o in s.chosen.items():
+        amp = s.ampacity.get(eid)
+        if amp is None or o.cost <= amp.cost:
+            continue
+        e = net.edge_by_id[eid]
+        through = [(what, edges, limit) for what, edges, limit in paths if any(x.id == eid for x in edges)]
+        if not through:
+            continue
+        what, edges, limit = max(through, key=lambda p: sum(_drop(project, catalog, x) for x in p[1]))
+        now = sum(_drop(project, catalog, x) for x in edges)
+        alone = _drop(project, catalog, _apply(e, amp)) - _drop(project, catalog, e)
+        notes[eid] = (
+            f"{o.runs} x {o.cable.callout()} instead of {amp.runs} x {amp.cable.callout()} (enough for the current and the fault) for voltage drop: "
+            f"the worst path through it ({what}) is {now:.2f} % against the {limit:g} % limit and would be {now + alone:.2f} % with the smaller cable."
+        )
+        s.assumptions.append(f"{edge_label(net, e)}: {notes[eid]}")
+    if not notes:
+        return project
+    return _rebuild(project, edges=[x.model_copy(update={"sized_for": notes[x.id]}) if x.id in notes else x for x in net.edges])
 
 
 REFRAME = (
@@ -347,10 +475,11 @@ def _ib(project: Project, catalog: Catalog, e: Edge) -> float:
     return ib.value if ib is not None else 0.0
 
 
-def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_hints: dict[str, NodeHint], s: Sizing, more_runs: bool = False) -> Project | None:
+def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_hints: dict[str, NodeHint], s: Sizing, more_runs: bool = False, need_pp: float = 0.0) -> Project | None:
     """Swap the terminal-limited LT breaker at an end of `e` for a larger frame whose terminals take a lower-resistance cable (see REFRAME): at
     the same number of runs, or with `more_runs` up to the run cap."""
-    t = terminals(project, catalog, e)
+    t = terminals(project, catalog, e, equipment=False)
+    fixed = terminals(project, catalog, e, switchgear=False)
     if t is None:
         return None
     net = project.network
@@ -369,10 +498,12 @@ def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_h
          and (fault is None or covers_fault(p, fault.ka))),
         key=lambda p: (p.rated_current, p.manufacturer != old.manufacturer, p.breaking_capacity_ka or 0.0, p.id),
     )  # fmt: skip
-    for o in cable_options(catalog, hint.family, e.laying, ph, hint.runs):
-        if o.r_eff >= cur.r_eff - 1e-12 or t.admits(o.cable, o.runs):
+    for o in cable_options(catalog, hint.family, e.laying, ph, hint.runs, project.design_basis.ambient_max_c):
+        if o.r_eff >= cur.r_eff - 1e-12 or t.admits(o.cable, o.runs) or (fixed is not None and not fixed.admits(o.cable, o.runs)):
             continue
         if (o.runs > cur.runs) != more_runs or o.runs > _run_cap(s, e.id):
+            continue
+        if _drop(project, catalog, e) - _drop(project, catalog, _apply(e, o)) < need_pp - 1e-9:
             continue
         p = next((p for p in pool if (p.terminal_max_mm2 is None or o.cable.size_mm2 <= p.terminal_max_mm2) and (p.terminal_cables_per_pole is None or o.runs <= p.terminal_cables_per_pole)), None)
         need = _need(project, catalog, e, hint, s)
@@ -382,8 +513,8 @@ def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_h
         edges = [_apply(x, o) if x.id == e.id else x for x in net.edges]
         s.chosen[e.id] = o
         s.guards = None
+        s.reframed.setdefault(brk.id, old.id)
         s.assumptions.extend((REFRAME, REFRAME_CAP))
-        s.assumptions.append(f"{brk.tag}: {old.model} takes at most {t.text()}; voltage drop needs {o.runs} x {o.cable.callout()}, so {p.model} is used.")
         return _rebuild(project, nodes=nodes, edges=edges)
     return None
 

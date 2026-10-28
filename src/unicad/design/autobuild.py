@@ -4,6 +4,7 @@ import math
 import re
 from collections import Counter
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -13,7 +14,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec, ModuleSpec
 from unicad.domain.layout import ArrayLayout, Point, StringAssignment
 from unicad.domain.network import ElectricalNetwork, NodeKind
-from unicad.domain.project import DesignBasis, GridConnection, Project, Segment
+from unicad.domain.project import BessRating, DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.placement import place_equipment, string_runs
 from unicad.design.patches import PATCHES, SCB_PATCHES, centre, patches
@@ -64,6 +65,8 @@ class Intent(BaseModel):
     export_control: Literal["none", "ppc"] = Field(default="none", description="ppc: a power plant controller limits the export at the POI to export_limit_kw")
     bess_kw: float | None = Field(default=None, gt=0)
     bess_kwh: float | None = Field(default=None, gt=0)
+    bess_brief_kw: float | None = Field(default=None, gt=0, description="Storage power the brief asks for, when bess_kw is a whole-unit size away from it")
+    bess_brief_kwh: float | None = Field(default=None, gt=0, description="Storage energy the brief asks for, when bess_kwh is a whole-unit size away from it")
     pcs: str | None = None
     battery: str | None = None
     lengths: dict[str, float] = Field(default_factory=dict, description="Override cable route lengths in m by role (string, scb_inv, vcb_bus, ...)")
@@ -412,6 +415,7 @@ def _autobuild(
 ) -> AutobuildResult:
     notes: list[str] = []
     project = _with_grid(project, intent.grid_voltage_v)
+    bess_rating = None
     template = _template(project, intent, catalog)
     lay = _layout_of(layout)
     basis = project.design_basis
@@ -463,9 +467,12 @@ def _autobuild(
         if not kw:
             raise DesignError(f"template {template} needs bess_kw{' or ac_kw' if template == 'bess_ac' else ''}")
         bp = T.plan_bess(catalog, kw, intent.bess_kwh, intent.pcs, intent.battery)
+        bp = replace(bp, requested_kw=intent.bess_brief_kw or kw, requested_kwh=intent.bess_brief_kwh or intent.bess_kwh)
+        bess_rating = BessRating(built_kva=bp.kw, built_kwh=bp.kwh, brief_kw=bp.requested_kw, brief_kwh=bp.requested_kwh)
         notes.append(
             f"BESS: {bp.blocks} blocks x {bp.pcs_per_block} x {bp.pcs.id} with {bp.batteries_per_pcs} x {bp.battery.id} each: {bp.kw:g} kVA, {bp.kwh:g} kWh "
-            f"against the {kw:g} kW{f' / {intent.bess_kwh:g} kWh' if intent.bess_kwh else ''} asked ({bp.kw / kw - 1:+.1%}{f', {bp.kwh / intent.bess_kwh - 1:+.1%}' if intent.bess_kwh else ''})."
+            f"against the {bp.requested_kw:g} kW{f' / {bp.requested_kwh:g} kWh' if bp.requested_kwh else ''} {'of the brief' if intent.bess_brief_kw or intent.bess_brief_kwh else 'asked'} "
+            f"({bp.kw / bp.requested_kw - 1:+.1%}{f', {bp.kwh / bp.requested_kwh - 1:+.1%}' if bp.requested_kwh else ''}); both are recorded in design_basis.bess for the drawings."
         )
         if template == "bess_ac":
             T.bess_ac(ctx, bp, intent.block_switch, intent.auxiliary, intent.export_limit_kw)
@@ -497,7 +504,7 @@ def _autobuild(
             notes.append(f"Sheet {sh.id!r} scope {list(sh.scope.nodes)} no longer matches the network; kept only {list(keep)}.")
             sh = sh.model_copy(update={"scope": sh.scope.model_copy(update={"nodes": keep})})
         sheets.append(sh)
-    draft = project.model_copy(update={"network": net, "array_layout": array_layout, "sheets": tuple(sheets)})
+    draft = project.model_copy(update={"network": net, "array_layout": array_layout, "sheets": tuple(sheets), "design_basis": project.design_basis.model_copy(update={"bess": bess_rating})})
     placed, placing = place_equipment(draft, catalog, Point(x=intent.bess_x, y=intent.bess_y) if intent.bess_x is not None else None)
     if placed is not None and placed.equipment:
         draft = draft.model_copy(update={"array_layout": placed})

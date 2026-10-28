@@ -107,7 +107,7 @@ def _segments(project: Project, catalog: Catalog, dc: bool, limit: float, rule_i
             unit="%",
             formula=d.formula,
             inputs=d.inputs,
-            assumptions=d.assumptions,
+            assumptions=(*d.assumptions, *((f"Sized above its current: {e.sized_for}",) if e.sized_for else ())),
         )
 
 

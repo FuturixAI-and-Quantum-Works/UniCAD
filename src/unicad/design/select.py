@@ -9,7 +9,7 @@ from unicad.domain.catalog import CableSpec, MeterSpec, ProtectionSpec, Transfor
 from unicad.design.strings import DesignError
 from unicad.domain.network import Laying
 from unicad.rules.cables import table_ampacity
-from unicad.rules.grouping import grouping
+from unicad.rules.derating import derating
 from unicad.rules.protection import covers_fault
 
 # Placeholder minimum breaking capacities: no fault study exists at this stage, so these only stop the
@@ -84,14 +84,16 @@ def pick_by_voltage(catalog: Catalog, device: str, need_v: float, poles: Iterabl
     return min(fits, key=lambda s: (s.rated_voltage, poles.index(s.poles), s.id))
 
 
-def pick_ac_spd(catalog: Catalog, line_v: float, phases: int) -> ProtectionSpec:
-    """An AC SPD with Uc >= 1.1 x U0 and one pole per phase conductor: three or four poles on a three-phase circuit (a single-pole unit protects
-    one phase only, protection.spd_ac_poles), one or two on a single-phase one."""
+def pick_ac_spd(catalog: Catalog, line_v: float, phases: int, need_uc: float | None = None, basis: str = "") -> ProtectionSpec:
+    """An AC SPD with Uc >= `need_uc` (default 1.1 x U0) and one pole per phase conductor: three or four poles on a three-phase circuit (a single-pole unit
+    protects one phase only, protection.spd_ac_poles), one or two on a single-phase one."""
     u0 = line_v / math.sqrt(3) if phases == 3 else line_v
+    need = need_uc if need_uc is not None else SPD_AC_UC_FACTOR * u0
     try:
-        return pick_by_voltage(catalog, "spd_ac", SPD_AC_UC_FACTOR * u0, (4, 3) if phases == 3 else (2, 1))
+        return pick_by_voltage(catalog, "spd_ac", need, (4, 3) if phases == 3 else (2, 1))
     except NoFit:
-        raise NoFit(f"no catalog {'three- or four-pole' if phases == 3 else 'one- or two-pole'} AC SPD with Uc >= {SPD_AC_UC_FACTOR * u0:.0f} V (1.1 x U0 at {line_v:g} V)") from None
+        why = basis or f"1.1 x U0 at {line_v:g} V"
+        raise NoFit(f"no catalog {'three- or four-pole' if phases == 3 else 'one- or two-pole'} AC SPD with Uc >= {need:.0f} V ({why})") from None
 
 
 def pick_mv(catalog: Catalog, device: str, system_kv: float) -> ProtectionSpec | None:
@@ -209,8 +211,9 @@ class CableOption:
         return (self.cable.r_ohm_per_km_90c or math.inf) / self.runs
 
 
-def cable_options(catalog: Catalog, family: CableFamily, laying: Laying, phases: int, runs: int | None = None) -> list[CableOption]:
-    """Every (cable, runs) with a rating for the laying, cheapest copper first. A fixed `runs` keeps the run count (one string per run)."""
+def cable_options(catalog: Catalog, family: CableFamily, laying: Laying, phases: int, runs: int | None = None, ambient_max_c: float | None = None) -> list[CableOption]:
+    """Every (cable, runs) with a rating for the laying, derated as the rules derate it (rules.derating: temperature at `ambient_max_c`, grouping),
+    cheapest copper first. A fixed `runs` keeps the run count (one string per run)."""
     out = []
     for c in family.cables(catalog):
         base, _, _ = table_ampacity(c, laying, phases)
@@ -223,6 +226,5 @@ def cable_options(catalog: Catalog, family: CableFamily, laying: Laying, phases:
         if not conductors_ok:
             continue
         for r in [runs] if runs is not None else range(1, family.max_runs + 1):
-            g = grouping(c, laying, r, family.service == "dc_solar")
-            out.append(CableOption(c, r, base * r * (g.factor if g is not None and g.factor is not None else 1.0)))
+            out.append(CableOption(c, r, base * r * derating(c, laying, r, family.service == "dc_solar", ambient_max_c).factor))
     return sorted(out, key=lambda o: (o.cost, o.r_eff, o.cable.id))

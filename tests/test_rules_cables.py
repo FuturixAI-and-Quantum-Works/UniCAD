@@ -56,13 +56,13 @@ def test_rooftop_cables_within_ampacity_with_derating_info():
     p = fixture("rooftop_500kwp")
     fs = by_subject(p, "cables.ampacity")
     assert not [f for f in fs.values() if f.severity is not Severity.INFO]
-    # inverter cable: Ib = 153.03 A <= Iz = 216 A x 1.0 (no derating given) x 1 run
+    # inverter cable: Ib = 153.03 A <= Iz = 216 A x 0.95 (Polycab p.87 air temperature factor at the fixture's 45 degC) x 1 run
     inv = fs[("e_inv_mccb",)]
-    assert inv.measured == pytest.approx(I_INV, abs=0.01) and inv.limit == 216
-    assert "derating not specified" in inv.message and NO_DERATING in inv.assumptions
-    # ACDB outgoing: 5 inverters = 765.2 A <= 589 A x 0.96 (KEI group factor, 3 single-core trefoils on a tray in air) x 3 runs = 1696 A
+    assert inv.measured == pytest.approx(I_INV, abs=0.01) and inv.limit == pytest.approx(216 * 0.95)
+    assert "derating not specified" in inv.message and "temperature factor 0.95" in inv.message and NO_DERATING not in inv.assumptions
+    # ACDB outgoing: 5 inverters = 765.2 A <= 589 A x 0.95 x 0.96 (KEI group factor, 3 single-core trefoils on a tray in air) x 3 runs
     acb = fs[("e_acb_ct",)]
-    assert acb.measured == pytest.approx(5 * I_INV, abs=0.01) and acb.limit == pytest.approx(3 * 589 * 0.96)
+    assert acb.measured == pytest.approx(5 * I_INV, abs=0.01) and acb.limit == pytest.approx(3 * 589 * 0.95 * 0.96, abs=0.05)
     assert "group rating factor 0.96 for 3 parallel runs" in acb.message and any("KEI Technical Handbook" in q.source for q in acb.inputs if q.name == "k_derating")
     # DC edges give derating 1.0 explicitly, so they pass silently
     assert ("e_str",) not in fs and ("e_dcfb_iso",) not in fs
@@ -71,9 +71,9 @@ def test_rooftop_cables_within_ampacity_with_derating_info():
 def test_undersized_inverter_cable_is_an_error():
     p = variant("rooftop_500kwp", set_edge("e_inv_mccb", cable="polycab-lt-xlpe-al-4c-50-arm"))
     (f,) = [f for f in findings(p, "cables.ampacity") if f.severity is Severity.ERROR]
-    # 4C 50 Al XLPE in air: 138 A < Ib 153.03 A
+    # 4C 50 Al XLPE in air: 138 A x 0.95 (Polycab p.87, 45 degC) = 131.1 A < Ib 153.03 A
     assert f.subjects == ("e_inv_mccb",)
-    assert (f.measured, f.limit, f.unit) == (pytest.approx(I_INV, abs=0.01), 138, "A")
+    assert (f.measured, f.limit, f.unit) == (pytest.approx(I_INV, abs=0.01), pytest.approx(138 * 0.95), "A")
     assert "INV-01..INV-05" in f.message and "4C x 50 sq.mm Al XLPE ARM" in f.message
 
 
@@ -108,7 +108,8 @@ def test_utility_lv_cable_uses_inverter_voltage_when_zone_is_undeclared():
     p = variant("utility_50mwac", lambda data: node(data, "inv_acspd").pop("voltage_v"))
     (f,) = [f for f in findings(p, "cables.ampacity") if f.subjects == ("e_inv_idt",)]
     # SC 4400 UP: 4400 kVA / (sqrt(3) x 660 V) = 3849.0 A against 8 runs x 685 A (1C 500 Al) x 0.81 (3 racks of trefoils in a trench, KEI single core table B)
-    assert f.measured == pytest.approx(4400e3 / (math.sqrt(3) * 660), abs=0.01) and f.limit == pytest.approx(8 * 685 * 0.81, abs=0.01)
+    # x 0.88 (KEI p.19 air temperature factor at the fixture's 50 degC)
+    assert f.measured == pytest.approx(4400e3 / (math.sqrt(3) * 660), abs=0.01) and f.limit == pytest.approx(8 * 685 * 0.81 * 0.88, abs=0.05)
     assert any("rated AC voltage" in a for a in f.assumptions)
 
 
@@ -116,11 +117,11 @@ def test_utility_lv_cable_uses_inverter_voltage_when_zone_is_undeclared():
 
 
 def test_breaker_rating_above_cable_ampacity_is_an_error():
-    # MCCB In 200 A protecting a 4C 70 Al XLPE cable rated 175 A in air: Ib 153 <= In 200 but In > Iz
+    # MCCB In 200 A protecting a 4C 70 Al XLPE cable rated 175 A in air x 0.95 at 45 degC: Ib 153 <= In 200 but In > Iz
     p = variant("rooftop_500kwp", set_edge("e_inv_mccb", cable="polycab-lt-xlpe-al-4c-70-arm"))
     (f,) = findings(p, "cables.protection")
     assert f.subjects == ("inv_mccb", "e_inv_mccb") and f.severity is Severity.ERROR
-    assert (f.measured, f.limit) == (200, 175)
+    assert (f.measured, f.limit) == (200, pytest.approx(175 * 0.95))
     assert f.clause == "IS 732 / IEC 60364-4-43"
     assert not findings(p, "protection.rated_current")
     assert not findings(fixture("rooftop_500kwp"), "cables.protection")
