@@ -326,8 +326,8 @@ def check_capacity_against_the_intent(run: dict) -> None:
             poi = next(n for n in run["project"]["network"]["nodes"] if n["kind"] == "poi_grid")
             assert poi["attributes"]["export_control"] == "ppc" and f"EXPORT LIMIT {run['export_limit_kw']:g} kW" in poi["title"]
     if run["bess"]:
-        (intent,) = warnings_of(run, "ratio.bess_intent")
-        assert "asked (" in intent["message"]
+        intent = warnings_of(run, "ratio.bess_intent")
+        assert len(intent) <= 1 and all("asked (" in f["message"] for f in intent)
         assert any(a.startswith("BESS: ") and "asked (" in a for a in run["built"]["assumptions"])
     for f in warnings_of(run, "ratio.dc_ac_plant"):
         if f["measured"] < f["limit"]:

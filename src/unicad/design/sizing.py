@@ -335,6 +335,18 @@ REFRAME = (
 )
 
 
+REFRAME_MAX = 2.0
+REFRAME_CAP = (
+    f"A breaker is moved to a larger frame for voltage drop only up to {REFRAME_MAX:g} x its design requirement (1.25 x Ib) (design choice: a feeder breaker rated "
+    "several times its current to land a larger cable is not sensible); beyond that the drop is met on other cables or reported."
+)
+
+
+def _ib(project: Project, catalog: Catalog, e: Edge) -> float:
+    ib = edge_current(project, catalog, e)
+    return ib.value if ib is not None else 0.0
+
+
 def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_hints: dict[str, NodeHint], s: Sizing, more_runs: bool = False) -> Project | None:
     """Swap the terminal-limited LT breaker at an end of `e` for a larger frame whose terminals take a lower-resistance cable (see REFRAME): at
     the same number of runs, or with `more_runs` up to the run cap."""
@@ -363,13 +375,14 @@ def _reframe(project: Project, catalog: Catalog, e: Edge, hint: EdgeHint, node_h
         if (o.runs > cur.runs) != more_runs or o.runs > _run_cap(s, e.id):
             continue
         p = next((p for p in pool if (p.terminal_max_mm2 is None or o.cable.size_mm2 <= p.terminal_max_mm2) and (p.terminal_cables_per_pole is None or o.runs <= p.terminal_cables_per_pole)), None)
-        if p is None or o.iz < max(p.rated_current, _need(project, catalog, e, hint, s)) - 1e-9:
+        need = _need(project, catalog, e, hint, s)
+        if p is None or o.iz < max(p.rated_current, need) - 1e-9 or p.rated_current > max(old.rated_current or 0.0, REFRAME_MAX * CONTINUOUS_FACTOR.value * _ib(project, catalog, e)) + 1e-9:
             continue
         nodes = [n.model_copy(update={"spec": p.id}) if n.id == brk.id else n for n in net.nodes]
         edges = [_apply(x, o) if x.id == e.id else x for x in net.edges]
         s.chosen[e.id] = o
         s.guards = None
-        s.assumptions.append(REFRAME)
+        s.assumptions.extend((REFRAME, REFRAME_CAP))
         s.assumptions.append(f"{brk.tag}: {old.model} takes at most {t.text()}; voltage drop needs {o.runs} x {o.cable.callout()}, so {p.model} is used.")
         return _rebuild(project, nodes=nodes, edges=edges)
     return None
