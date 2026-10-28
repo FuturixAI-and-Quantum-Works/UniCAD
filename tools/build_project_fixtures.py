@@ -45,7 +45,7 @@ roof_nodes = [
     node("solar_meter", "SM-01", "meter", spec="generic-meter-generation-ct-0.5s", ports=["sig"], title="SOLAR GENERATION METER"),
     node("ac_spd", "AC-SPD-01", "ac_spd", spec="finder-7p.25.8.275.x020", voltage_v=415.0),
     node("ac_iso", "AC-ISO-01", "isolator", spec="abb-ot1000e04p", voltage_v=415.0),
-    node("solar_inc", "SOLAR-INC", "breaker", spec="schneider-mtz2-n1-1000a-4p", voltage_v=415.0, title="SOLAR INCOMER BREAKER IN LTP-01"),
+    node("solar_inc", "ACB-02", "breaker", spec="schneider-mtz2-n1-1000a-4p", voltage_v=415.0),
     node("ltp", "LTP-01", "lt_panel", voltage_v=415.0, title="CONSUMER LT PANEL 415 V"),
     node("load", "LOAD-01", "load", voltage_v=415.0, title="CONSUMER LOADS"),
     node("net_ct", "CT-02", "ct", voltage_v=415.0),

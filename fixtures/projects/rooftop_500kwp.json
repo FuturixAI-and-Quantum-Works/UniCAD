@@ -134,11 +134,10 @@
       },
       {
         "id": "solar_inc",
-        "tag": "SOLAR-INC",
+        "tag": "ACB-02",
         "kind": "breaker",
         "spec": "schneider-mtz2-n1-1000a-4p",
-        "voltage_v": 415.0,
-        "title": "SOLAR INCOMER BREAKER IN LTP-01"
+        "voltage_v": 415.0
       },
       {
         "id": "ltp",

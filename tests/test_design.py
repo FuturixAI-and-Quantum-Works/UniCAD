@@ -222,9 +222,7 @@ def test_large_hybrid_is_not_blocked_by_the_outgoing_vcb_rating():
 
 def test_rooftop_500kw_matches_the_hand_fixture_chain_and_counts(built):
     hand, auto = fixture("rooftop_500kwp").network, built["ci_rooftop_lt"].project.network
-    want = chain(hand, "str")
-    want.insert(want.index("lt_panel"), "breaker")
-    assert chain(auto, "str") == want
+    assert chain(auto, "str") == chain(hand, "str")
     for kind in (NodeKind.INVERTER, NodeKind.DC_ISOLATOR, NodeKind.DC_SPD, NodeKind.METER, NodeKind.CT, NodeKind.LT_PANEL):
         assert instances(auto, kind) == instances(hand, kind), kind
     assert abs(instances(auto, NodeKind.PV_STRING) - instances(hand, NodeKind.PV_STRING)) <= 0.2 * instances(hand, NodeKind.PV_STRING)

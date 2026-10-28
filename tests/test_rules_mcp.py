@@ -63,7 +63,7 @@ def test_validate_fixture_projects_over_stdio(tmp_path):
 
         r = await c.call("validate", project_id="utility-50mwac")
         errors = [f for f in r["findings"] if f["severity"] == "error"]
-        assert [(f["rule_id"], f["subjects"]) for f in errors] == [("cables.ampacity", ["e_inv_idt"])] and r["gates"]["approval"]["allowed"] is False, r["findings"]
+        assert not errors and r["gates"]["approval"]["allowed"] is True, errors
 
     _run(tmp_path, check, _fixture("rooftop_500kwp"), _fixture("utility_50mwac"), _broken())
 

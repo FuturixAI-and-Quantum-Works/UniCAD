@@ -88,10 +88,16 @@ def register(server: MCPServer, ws: Workspace) -> None:
             if lps is not None:
                 extra["lps_terminal_count"] = len(lps.terminals)
                 old = p.design_basis.earthing.switchyard_m if p.design_basis.earthing is not None else None
-                if old != updated.design_basis.earthing.switchyard_m and (was := len(design_lps(p).terminals)) != len(lps.terminals):
+                before = design_lps(p).terminals if old != updated.design_basis.earthing.switchyard_m else lps.terminals
+                if len(before) != len(lps.terminals):
                     problems.append({"severity": "warning", "subject": "lps", "message": (
-                        f"the lightning design now has {len(lps.terminals)} terminals (lps_design gave {was}): the switchyard size changed what it covers; "
+                        f"the lightning design now has {len(lps.terminals)} terminals (lps_design gave {len(before)}): the switchyard size changed what it covers; "
                         "earthing_summary and the LPS sheet show the new design")})  # fmt: skip
+                elif [(t.tag, t.at) for t in before] != [(t.tag, t.at) for t in lps.terminals]:
+                    moved = [t.tag for t, u in zip(before, lps.terminals, strict=True) if (t.tag, t.at) != (u.tag, u.at)]
+                    problems.append({"severity": "warning", "subject": "lps", "message": (
+                        f"the lightning terminals {', '.join(moved)} moved (still {len(lps.terminals)} terminals): the switchyard size changed where they may stand; "
+                        "earthing_summary and the LPS sheet show the new positions")})  # fmt: skip
             return Edit(updated, ("design_basis.earthing",), extra, tuple(problems))
 
         return ws.mutate(project_id, change)

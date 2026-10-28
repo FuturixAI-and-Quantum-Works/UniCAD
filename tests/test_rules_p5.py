@@ -113,7 +113,7 @@ def test_clearing_time_falls_back_to_the_earthing_basis_then_to_one_second():
 def test_low_voltage_levels_match_by_zone_voltage():
     p = variant("utility_50mwac", with_levels(level(60, voltage_v=660.0, source="IDT impedance")))
     f = sc(p, "e_inv_idt")
-    assert f.severity is Severity.INFO and f.measured == 3200 and f.limit == pytest.approx(60000 / 94, abs=0.01)
+    assert f.severity is Severity.INFO and f.measured == 4000 and f.limit == pytest.approx(60000 / 94, abs=0.01)
     assert not [x for x in findings(p, "cables.short_circuit") if x.subjects == ("e_icog_bus",)]
     rest = [x for x in findings(p, "cables.short_circuit") if x.subjects == ()]
     assert len(rest) == 1 and "33000 V" in rest[0].message and "660 V" not in rest[0].message

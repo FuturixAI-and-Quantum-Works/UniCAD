@@ -178,8 +178,9 @@ def test_m3_lps_terminals_replied_are_the_ones_stored_and_drawn(plant):
     if replied["terminal_count"] != final["terminal_count"]:
         moved = [p for r in results["earthing_design"] for p in r.get("problems", ()) if p["subject"] == "lps"]
         assert moved and f"now has {final['terminal_count']} terminals (lps_design gave {replied['terminal_count']})" in moved[0]["message"], moved
-    else:
-        assert [(t["x"], t["y"]) for t in replied["terminals"]] == [(t["x"], t["y"]) for t in final["terminals"]]
+    elif [(t["x"], t["y"]) for t in replied["terminals"]] != [(t["x"], t["y"]) for t in final["terminals"]]:
+        moved = [p for r in results["earthing_design"] for p in r.get("problems", ()) if p["subject"] == "lps"]
+        assert moved and f"moved (still {final['terminal_count']} terminals)" in moved[0]["message"], moved
     assert results["earthing_design"][-1]["lps_terminal_count"] == final["terminal_count"]
 
 

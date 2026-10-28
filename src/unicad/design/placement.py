@@ -26,10 +26,11 @@ INVERTER_SPACING_M = 1.0
 SPOT_MARGIN_M = 10.0
 SPOT_STEP_U_M = 2.0
 SPOT_STEP_V_M = 0.5
+RUN_SLACK_M = 2.0
 BESS_PITCH_M = 10.0
 FIELD_INVERTERS = (
     f"String inverters stand in the field beside the tables they serve: at the free spot (row or table gap, road side; on a roof, on that roof) whose "
-    f"longest string run along the array axes is least, {INVERTER_CLEAR_M:g} m clear of tables, inside the boundary and roof edge setbacks, clear of obstacles "
+    f"longest string run along the array axes is least (of the spots within {RUN_SLACK_M:g} m of it, the one nearest its station), {INVERTER_CLEAR_M:g} m clear of tables, inside the boundary and roof edge setbacks, clear of obstacles "
     f"by their setback (at least {INVERTER_CLEAR_M:g} m) and {INVERTER_SPACING_M:g} m from each other (structure-mounted "
     "practice, which keeps DC string runs short; the clearances are assumptions); their AC cables are routed from there to the block's AC combiner at the station."
 )
@@ -66,7 +67,10 @@ def _field_inverters(net: ElectricalNetwork, catalog: Catalog, loc: Locator, lay
                 on, mine = roofs[best][1], by_roof[best]
         ends = [e for s in mine for e in (loc.strings[s].plus, loc.strings[s].minus)]
         free, where = (on, "on the roof that carries most of its strings, beside them") if on is not None else (ground, "beside the tables it serves")
-        at = _spot(free, ends, loc.strings[mine[0]].azimuth_deg, [e.at for e in out]) if free is not None else None
+        block = loc.block_of_generator(n.id)
+        station = loc.station(block) if block is not None else None
+        toward = station.xy if station is not None else None
+        at = _spot(free, ends, loc.strings[mine[0]].azimuth_deg, [e.at for e in out], toward) if free is not None else None
         if at is None:
             x, y = sum(p[0] for p in ends) / len(ends), sum(p[1] for p in ends) / len(ends)
             at = Point(x=round(x, 3), y=round(y, 3))
@@ -93,9 +97,10 @@ def _run(ends: list[tuple[float, float]], at: tuple[float, float], azimuth_deg: 
     return max(manhattan(e, at, azimuth_deg) for e in ends)
 
 
-def _spot(free: BaseGeometry, ends: list[tuple[float, float]], azimuth_deg: float, others: list[Point]) -> Point | None:
+def _spot(free: BaseGeometry, ends: list[tuple[float, float]], azimuth_deg: float, others: list[Point], toward: tuple[float, float] | None) -> Point | None:
     """The free point, INVERTER_SPACING_M from the inverters already placed, whose longest string run (from either end of a string, along the array
-    axes) is least: the point nearest all the string ends, else the best of a grid of free points about it."""
+    axes) is least: the point nearest all the string ends, else the best of a grid of free points about it. Of the points within RUN_SLACK_M of
+    that least run, the one nearest `toward` (the station its AC cable runs to) is taken, so the AC run is no longer than it need be."""
     (ux, uy), (vx, vy) = frame(azimuth_deg)
     uv = [(x * ux + y * uy, x * vx + y * vy) for x, y in ends]
     p, q = [u + v for u, v in uv], [u - v for u, v in uv]
@@ -117,7 +122,11 @@ def _spot(free: BaseGeometry, ends: list[tuple[float, float]], azimuth_deg: floa
     grid = [(cu - span_u + i * SPOT_STEP_U_M, cv - span_v + j * SPOT_STEP_V_M) for i in range(nu) for j in range(nv)]
     xs, ys = [u * ux + v * vx for u, v in grid], [u * uy + v * vy for u, v in grid]
     pool += [(x, y) for x, y, inside in zip(xs, ys, contains_xy(local, xs, ys), strict=True) if inside]
-    x, y = min(pool, key=lambda xy: (round(_run(ends, xy, azimuth_deg), 3), math.hypot(xy[0] - target[0], xy[1] - target[1])))
+    runs = [_run(ends, xy, azimuth_deg) for xy in pool]
+    least = min(runs)
+    near = toward or target
+    x, y = min((xy for xy, r in zip(pool, runs, strict=True) if r <= least + RUN_SLACK_M),
+               key=lambda xy: (round(manhattan(xy, near, azimuth_deg), 3), math.hypot(xy[0] - target[0], xy[1] - target[1])))
     return Point(x=round(x, 3), y=round(y, 3))
 
 
