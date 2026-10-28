@@ -1,8 +1,10 @@
 """Render a project's drawing set: per-sheet DXF, PDF and DWG, one merged PDF, and a JSON index."""
 
 import json
+import os
 import re
 from collections.abc import Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -23,6 +25,7 @@ Format = Literal["dxf", "pdf", "dwg"]
 INDEX = "index.json"
 IST = timezone(timedelta(hours=5, minutes=30), "IST")
 SET_PDF = "set.pdf"
+EXPORT_WORKERS = max(2, min(8, (os.cpu_count() or 2) // 2))
 
 
 def load_profile(name: str, root: Path = PROFILES) -> CompanyProfile:
@@ -61,6 +64,10 @@ def missing_kinds(project: Project, kinds: Sequence[str], catalog: Catalog | Non
         if check is not None and (why := check(project, catalog)):
             out.append(f"{k}: not drawn: {why}")
     return out
+
+
+def _dwg_job(converter: DwgConverter, dxf: Path):
+    return converter.to_dwg(dxf, dxf.with_suffix(".dwg"), strict=False)
 
 
 def _file_stem(i: int, sheet: Sheet) -> str:
@@ -143,6 +150,9 @@ def render_set(
     per_kind = {kind: len(done[kind]) for kind, _ in planned}
     seen: dict[str, int] = {}
     entries: list[dict[str, Any]] = []
+    dwg_jobs: list[tuple[dict[str, Any], Future]] = []
+    pool = ThreadPoolExecutor(max_workers=EXPORT_WORKERS)
+    converter = (converter or DwgConverter()) if "dwg" in formats else None
     for i, (kind, b) in enumerate(built, start=1):
         seen[kind] = seen.get(kind, 0) + 1
         stem = _file_stem(i, b.sheet)
@@ -166,37 +176,40 @@ def render_set(
             "warnings": list(b.warnings),
             **b.meta,
         })
+        if converter is not None:
+            dwg_jobs.append((entries[-1], pool.submit(_dwg_job, converter, dxf)))
     set_pdf = None
-    if "pdf" in formats:
-        renderer = renderer or LibreCadRenderer()
-        pdf_dir = out_dir / "pdf"
-        result = renderer.build_set(
-            [RenderSheet(out_dir / e["files"]["dxf"], e["paper"], f"{e['number']}  {e['title']}") for e in entries],
-            out_dir / SET_PDF,
-            work_dir=pdf_dir,
-        )
-        set_pdf = result.pdf
-        for e, page in zip(entries, result.pages):
-            target = out_dir / f"{Path(e['files']['dxf']).stem}.pdf"
-            page.pdf.replace(target)
-            e["files"]["pdf"] = target.name
-        if pdf_dir.is_dir() and not any(pdf_dir.iterdir()):
-            pdf_dir.rmdir()
-    if "dwg" in formats:
-        converter = converter or DwgConverter()
-        for e in entries:
-            dxf = out_dir / e["files"]["dxf"]
+    try:
+        if "pdf" in formats:
+            renderer = renderer or LibreCadRenderer(workers=EXPORT_WORKERS)
+            pdf_dir = out_dir / "pdf"
+            result = renderer.build_set(
+                [RenderSheet(out_dir / e["files"]["dxf"], e["paper"], f"{e['number']}  {e['title']}") for e in entries],
+                out_dir / SET_PDF,
+                work_dir=pdf_dir,
+            )
+            set_pdf = result.pdf
+            for e, page in zip(entries, result.pages):
+                target = out_dir / f"{Path(e['files']['dxf']).stem}.pdf"
+                page.pdf.replace(target)
+                e["files"]["pdf"] = target.name
+            if pdf_dir.is_dir() and not any(pdf_dir.iterdir()):
+                pdf_dir.rmdir()
+        for e, job in dwg_jobs:
             try:
-                result = converter.to_dwg(dxf, dxf.with_suffix(".dwg"), strict=False)
+                result = job.result()
             except RenderError as exc:
                 warnings.append(f"{e['number']}: no DWG: {exc}")
                 continue
-            e["files"]["dwg"] = dxf.with_suffix(".dwg").name
+            dwg = (out_dir / e["files"]["dxf"]).with_suffix(".dwg")
+            e["files"]["dwg"] = dwg.name
             e["dwg_readback"] = {k: list(v) for k, v in result.mismatches.items()}
             # LibreDWG's dwg2dxf reports extra ATTRIBs on read-back (docs/compat.md, DWG); anything else is a real loss.
             lost = {k: v for k, v in result.mismatches.items() if k != "ATTRIB"}
             if lost:
                 warnings.append(f"{e['number']}: DWG reads back with different entity counts {lost}")
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
     index = SetIndex(out_dir, project.id, tuple(entries), set_pdf, tuple(warnings))
     (out_dir / INDEX).write_text(json.dumps(index.as_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return index
