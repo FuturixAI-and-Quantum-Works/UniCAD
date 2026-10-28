@@ -13,8 +13,9 @@ ROOFTOP = """Build a rooftop PV drawing set for "{name}" with UniCAD tools. Stat
 7. network_autobuild(project_id, template="ci_rooftop", ac_kw or dc_kwp, module, inverter). It sizes breakers and cables for the fault levels set in step 3. Read `blockers` and `assumptions`. For hand changes use network_add_node / network_connect / network_update. If you change the design basis afterwards, run network_autobuild again.
 8. validate(project_id). For each error, explain_finding(project_id, rule_id, subject), change the design (network_update, layout_place, site tools), and validate again until there are no errors. Report warnings to the user.
 9. earthing_design(project_id) and lps_design(project_id, method, level) design from the stored inputs; validate again.
-10. Deliverables: drawings_render(project_id, kinds=["all"]) for the drawing set, cable_schedule and bom (xlsx). Quote the paths and the assumptions each returns.
-11. project_snapshot(project_id, label) once the set is agreed, e.g. "issued-approval-r0"."""
+10. Deliverables: cable_schedule and bom (xlsx). Quote the paths and the assumptions each returns.
+11. project_snapshot(project_id, label) once the design is agreed, e.g. "agreed-r0", so a later revision can be diffed against it.
+12. Issue last: project_issue(project_id, issued_for="approval", rev="0", drawn, checked, approved, date) once the rules show no errors, then drawings_render(project_id, kinds=["all"]) so every sheet and the drawing register carry the revision, names and date. Quote the set path."""
 
 UTILITY = """Build a utility-scale PV drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
@@ -27,8 +28,9 @@ UTILITY = """Build a utility-scale PV drawing set for "{name}" with UniCAD tools
 7. network_autobuild(project_id, template="utility_string" or "utility_central", module, inverter, inverters_per_block). Layout strings are linked to the network automatically; breakers and cables are sized for the fault levels set in step 3. Read `blockers` and `assumptions`. If you change the design basis afterwards, run network_autobuild again.
 8. validate(project_id); explain_finding for each error; fix and re-validate until no errors remain.
 9. earthing_design(project_id, switchyard_m, ...) and lps_design(project_id, method, level, ...) design from the stored inputs; validate again.
-10. Deliverables: drawings_render(project_id, kinds=["all"]) for the drawing set, cable_schedule and bom. Quote paths, totals and assumptions.
-11. project_snapshot(project_id, label) once the set is agreed."""
+10. Deliverables: cable_schedule and bom. Quote paths, totals and assumptions.
+11. project_snapshot(project_id, label) once the design is agreed, so a later revision can be diffed against it.
+12. Issue last: project_issue(project_id, issued_for="approval", rev="0", drawn, checked, approved, date) once the rules show no errors, then drawings_render(project_id, kinds=["all"]) so every sheet and the drawing register carry the revision, names and date. Quote the set path."""
 
 BESS = """Build a battery energy storage drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
@@ -39,8 +41,9 @@ BESS = """Build a battery energy storage drawing set for "{name}" with UniCAD to
 5. network_autobuild(project_id, template="bess_ac" (AC-coupled), "bess_dc" (DC-coupled) or "hybrid", bess_kw, bess_kwh, pcs, battery, export_limit_kw; for hybrid also ac_kw or dc_kwp, module, inverter). Read `blockers` and `assumptions`.
 6. validate(project_id); explain_finding for each error; fix with network_update and re-validate until no errors remain.
 7. earthing_design and lps_design when a layout exists; validate again.
-8. Deliverables: drawings_render for the drawing sheets, cable_schedule and bom. Quote paths and assumptions.
-9. project_snapshot(project_id, label) once the set is agreed."""
+8. Deliverables: cable_schedule and bom. Quote paths and assumptions.
+9. project_snapshot(project_id, label) once the design is agreed.
+10. Issue last: project_issue(project_id, issued_for="approval", rev="0", drawn, checked, approved, date) once the rules show no errors, then drawings_render(project_id, kinds=["all"]) so every sheet carries the revision, names and date."""
 
 REVISE = """Revise project "{project_id}" after review comments.
 
@@ -51,7 +54,8 @@ Comments to address:
 2. For each comment decide which part of the model it changes: site (site_set_feature, site_remove_feature, site_set_setbacks), layout (layout_place), network (network_update, network_add_node, network_connect, network_remove, or network_autobuild to rebuild), earthing or lightning (earthing_design, lps_design). Change the model, never the drawing. If a comment needs a value you do not have, ask the user.
 3. validate(project_id); explain_finding for each error; repeat until no errors remain.
 4. project_diff(project_id, from_revision="<baseline label>") and summarise per comment what changed. Say which comments you did not address and why.
-5. Re-run drawings_render, cable_schedule and bom, then project_snapshot with the next revision label (e.g. "issued-r1")."""
+5. Re-run cable_schedule and bom and project_snapshot the revised design (e.g. "agreed-r1").
+6. Issue last: project_issue(project_id, issued_for, rev=<next mark, e.g. "1">, drawn, checked, approved, date, remarks=<what changed>), then drawings_render(project_id, kinds=["all"]) so every sheet carries the new revision."""
 
 
 def register(server: MCPServer, ws: Workspace) -> None:

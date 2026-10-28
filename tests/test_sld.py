@@ -11,7 +11,7 @@ import pytest
 
 from unicad.catalog.store import load_catalog
 from unicad.domain.catalog import ProtectionSpec
-from unicad.domain.network import SIGNAL_PORTS, ElectricalNetwork, NodeKind
+from unicad.domain.network import SIGNAL_PORTS, CableBand, ElectricalNetwork, NodeKind
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld import SldOptions, annotate, layout_sld, plan_pages, render_sld
@@ -565,7 +565,7 @@ def test_a_fuseless_dc_junction_box_draws_terminals_and_the_legend_names_no_stri
 
 
 def test_breaker_type_is_shown_once_and_follows_the_device_class(projects, catalog, layouts):
-    """n19 / R2: an MCCB or ACB symbol carries its type label, so the text beside it gives make and model instead of the type again; the
+    """n19 / R2: the tag names the breaker type (MCCB-01, ACB-01) and the text beside it gives make and model, not the type again; the
     tag prefix, the symbol and the catalog device class agree."""
     net = projects["rooftop_500kwp"].network
     by_node = {s.node_id: s for s in layouts["rooftop_500kwp"].symbols if s.node_id}
@@ -653,3 +653,18 @@ def test_block_feeder_panels_are_drawn_in_the_main_switchboard_frame_with_their_
         assert dict(sym["bf_vcb"].values)["TAG"] == "VCB-BF-01..VCB-BF-06"
     with pytest.raises(ValueError, match="housed in unknown group 'nope'"):
         ElectricalNetwork.model_validate({**net.model_dump(), "nodes": [n.model_dump() | ({"attributes": {"housed_in": "nope"}} if n.id == "bf_ct" else {}) for n in net.nodes]})
+
+
+def test_m3_a_three_phase_run_of_single_core_cables_reads_three_cables_per_run_in_every_callout(projects, catalog):
+    """close-e2e-4 M3/m1: an inverter AC cable whose length bands mix 4C and 1C cables printed '1R x 1C x 400' for a 3-phase circuit; the
+    schedule and the bill count 3 x 1C per run."""
+    p = projects["rooftop_500kwp"]
+    net = p.network
+    e = next(e for e in net.edges if e.service.value == "lv_ac" and net.node(e.src_node).kind is NodeKind.INVERTER)
+    bands = (CableBand(upto_m=20, cable="polycab-lt-xlpe-al-4c-95-arm"), CableBand(upto_m=60, cable="polycab-lt-xlpe-al-4c-240-arm", runs=2))
+    banded = e.model_copy(update={"cable": "polycab-lt-xlpe-al-1c-400-arm", "runs": 1, "bands": bands})
+    for edge in (banded, banded.model_copy(update={"bands": ()})):
+        text = " ".join(annotate.cable_callout(edge, catalog, net=net))
+        assert "1R x 3 x 1C x 400" in text and "1R x 1C x 400" not in text, text
+        assert "3 x 4C" not in text
+    assert "2R x 4C x 240" in annotate.cable_text(banded, catalog, net)

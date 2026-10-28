@@ -3,6 +3,7 @@
 import asyncio
 from pathlib import Path
 
+import ezdxf
 import pytest
 from shapely.geometry import Point as SPoint
 from shapely.geometry import Polygon, box
@@ -11,18 +12,49 @@ from test_mcp import connect
 
 from unicad.arrays.geometry import table_corners
 from unicad.domain.site import FeatureKind, shape_of
+from unicad.drafting.sheets.layout import metrics_for
+from unicad.drafting.sheets.model import PaperSize
 from unicad.mcp import Config
 from unicad.mcp.workspace import Workspace
 from unicad.routing.locate import manhattan
 from unicad.schedules.build import build_schedule
 
 ROOT = Path(__file__).resolve().parents[1]
+PUNE = ROOT / "fixtures" / "sites" / "rooftop_midc_pune.kml"
 RAJ = ROOT / "fixtures" / "sites" / "ground_mount_rajasthan.kml"
+ACME = ROOT / "profiles" / "samples" / "acme"
 KUTCH = ROOT / "fixtures" / "sites" / "site_plan_kutch.dxf"
 
-B, C = "thar-25mw", "kutch-hybrid"
+A, B, C = "sgt-chakan", "thar-25mw", "kutch-hybrid"
+A_MOD, A_INV = "vikram-solar-hypersol-m10r-144-600-wp", "sungrow-sg110cx-p2"
 B_MOD, B_INV = "waaree-bin-08-590", "huawei-sun2000-330ktl-h1"
 C_MOD, C_INV = "adani-solar-elan-shine-topcon-g2g-gen-ii-580-wp", "sungrow-sg350hx"
+A_CALLS = [
+    ("company_onboard", {"dxf_path": str(ACME / "acme-company.dxf"), "answers": str(ACME / "answers.yaml")}),
+    ("project_create", {
+        "name": "1 MWp Rooftop Solar PV Plant", "client": "Shree Ganesh Textiles Pvt Ltd", "segment": "ci_rooftop", "site": "Shree Ganesh Textiles factory roof, MIDC Chakan",
+        "grid_voltage_v": 415, "state": "Maharashtra", "address": "Plot, MIDC Chakan, Pune, Maharashtra", "utility": "MSEDCL", "client_code": "SGT", "project_id": A,
+    }),
+    ("company_assign", {"project_id": A, "profile_id": "acme"}),
+    ("project_design_basis", {
+        "project_id": A, "ambient_min_c": 6, "ambient_max_c": 44, "altitude_m": 640, "vdrop_dc_max": 0.015, "vdrop_ac_max": 0.015, "dc_ac_ratio_target": 1.15,
+        "power_factor": 0.99, "fault_levels": [{"voltage_v": 415, "fault_ka": 25, "clearing_s": 1, "source": "MSEDCL LT fault level (brief)"}],
+        "earthing": {"soil_resistivity_ohm_m": 100, "fault_current_ka": 25, "fault_clearing_s": 1}, "lps": {"level": "II", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 5},
+    }),
+    ("site_import", {"project_id": A, "file_path": str(PUNE)}),
+    ("site_set_setbacks", {"project_id": A, "roof_edge_m": 1.0, "obstacle_m": 0.6}),
+    ("layout_place", {
+        "project_id": A, "module": A_MOD, "mounting": "rooftop_flush", "modules_per_string": 20, "strings_per_inverter": 12, "target_dc_kwp": 1008, "n_blocks": 1,
+    }),
+    ("network_autobuild", {
+        "project_id": A, "template": "ci_rooftop", "ac_kw": 770, "module": A_MOD, "inverter": A_INV, "modules_per_string": 20, "strings_per_inverter": 12, "connection": "lt_panel",
+    }),
+    ("lps_design", {"project_id": A, "method": "ese", "level": "II", "ese_delta_t_us": 60, "mast_height_m": 5}),
+    ("earthing_design", {"project_id": A, "soil_resistivity": 100, "fault_ka": 25, "clearing_s": 1}),
+    ("network_update", {"project_id": A, "id": "e_ct_poi", "fields": {"cable": "polycab-lt-xlpe-al-1c-400-arm", "runs": 3, "length_m": 15, "laying": "tray"}}),
+    ("network_update", {"project_id": A, "id": "e_brk_ct", "fields": {"length_m": 35}}),
+    ("project_issue", {"project_id": A, "issued_for": "approval", "rev": "0", "drawn": "R. Deshmukh", "checked": "S. Kulkarni", "approved": "P. Joshi", "date": "2026-10-28"}),
+]  # fmt: skip
 B_CALLS = [
     ("project_create", {
         "name": "25 MWac Ground Mount Solar PV Plant", "client": "Thar Renewables Ltd", "segment": "utility", "site": "Thar Renewables solar park, Phalodi",
@@ -78,22 +110,31 @@ def replay(ws: Path, calls) -> dict[str, list[dict]]:
         async with connect(ws) as c:
             for tool, args in calls:
                 out.setdefault(tool, []).append(await c.call(tool, **args))
-            pid = calls[0][1]["project_id"]
+            pid = next(a["project_id"] for _, a in calls if "project_id" in a)
             out["earthing_summary"] = [await c.call("earthing_summary", project_id=pid)]
             out["layout_summary"] = [await c.call("layout_summary", project_id=pid)]
+            out["drawn"] = [await c.call("drawings_render", project_id=pid, kinds=["sld", "earthing", "lps"] if pid == A else ["earthing", "lps"], formats=["dxf"])]
         return out
 
     return asyncio.run(asyncio.wait_for(go(), 600))
 
 
-@pytest.fixture(scope="module", params=[(B, B_CALLS), (C, C_CALLS)], ids=["B", "C"])
-def plant(request, tmp_path_factory):
-    pid, calls = request.param
+def _workspace(tmp_path_factory, pid, calls):
     ws = tmp_path_factory.mktemp(pid) / "ws"
     results = replay(ws, calls)
     workspace = Workspace(Config(workspace=ws))
-    project, _ = workspace.load(pid)
-    return pid, results, project, workspace
+    return results, workspace.load(pid)[0], workspace
+
+
+@pytest.fixture(scope="module")
+def rooftop(tmp_path_factory):
+    return _workspace(tmp_path_factory, A, A_CALLS)
+
+
+@pytest.fixture(scope="module", params=[(B, B_CALLS), (C, C_CALLS)], ids=["B", "C"])
+def plant(request, tmp_path_factory):
+    pid, calls = request.param
+    return (pid, *_workspace(tmp_path_factory, pid, calls))
 
 
 def test_m1_the_switchyard_mat_stands_where_routing_measures_the_mv_feeders_to(plant):
@@ -158,3 +199,65 @@ def test_m5_field_inverters_stations_and_bess_keep_the_exclusion_setback(plant):
     assert any(k == "inverter" for k in (e.kind for e in lay.equipment))
     near = [(tag, round(min(f.distance(SPoint(p.x, p.y)) for f in _keep_off(project)), 2)) for tag, p in points]
     assert [n for n in near if n[1] < setback - 0.01] == []
+
+
+def _sheet(results, kind):
+    return next(s for s in results["drawn"][0]["sheets"] if s["kind"] == kind)
+
+
+def test_m2_the_earthing_sheet_keeps_every_general_note(rooftop):
+    """close-e2e-4 m2: the issued rooftop earthing sheet dropped a general note ('1 notes rows did not fit and were omitted'): the lightning
+    design's assumptions were repeated among the earthing notes; they belong on the LPS sheet."""
+    results, project, workspace = rooftop
+    sheet = _sheet(results, "earthing")
+    assert not [w for w in sheet["warnings"] if "did not fit" in w], sheet["warnings"]
+    lps = _sheet(results, "lps")
+    assert not [w for w in lps["warnings"] if "did not fit" in w], lps["warnings"]
+    texts = " ".join(e.dxf.text for e in ezdxf.readfile(sheet["files"]["dxf"]).modelspace().query("TEXT"))
+    assert "NF C 17-102, A FRENCH STANDARD" not in texts
+
+
+def test_n16_no_zero_over_zero_pit_line(rooftop):
+    results, _, _ = rooftop
+    texts = [e.dxf.text for e in ezdxf.readfile(_sheet(results, "earthing")["files"]["dxf"]).modelspace().query("TEXT")]
+    assert "0 / 0" not in texts
+    assert any(t.startswith("PITS FOR RESISTANCE") for t in texts) and "NONE: BURIED FLAT SUFFICES" in texts
+
+
+def test_n14_every_protection_circle_is_drawn_whole_inside_the_plan(rooftop, plant):
+    for results in (rooftop[0], plant[1]):
+        sheet = _sheet(results, "lps")
+        doc = ezdxf.readfile(sheet["files"]["dxf"])
+        zone = [e for e in doc.modelspace() if e.dxf.layer == "E-LPS-ZONE"]
+        circles = [e for e in zone if e.dxftype() == "CIRCLE"]
+        assert circles and not [e for e in zone if e.dxftype() == "ARC"], "a protection circle is cut"
+        area = metrics_for(PaperSize(sheet["paper"])).drawing_area
+        x0, y0, x1, y1 = area.x0, area.y0, area.x1, area.y1
+        for c in circles:
+            (cx, cy, _), r = c.dxf.center, c.dxf.radius
+            assert x0 < cx - r and cx + r < x1 and y0 < cy - r and cy + r < y1, "a protection circle crosses the sheet frame"
+
+
+def test_n19_breakers_carry_no_type_text_beside_the_symbol(rooftop):
+    results, _, _ = rooftop
+    doc = ezdxf.readfile(_sheet(results, "sld")["files"]["dxf"])
+    texts = [e.dxf.text for e in doc.modelspace().query("TEXT")]
+    texts += [e.dxf.text for b in doc.blocks for e in b if e.dxftype() == "TEXT"]
+    assert "MCCB" not in texts and "ACB" not in texts
+
+
+def test_m3_the_inverter_cable_callout_reads_three_single_core_cables_per_run(rooftop):
+    results, _, _ = rooftop
+    doc = ezdxf.readfile(_sheet(results, "sld")["files"]["dxf"])
+    texts = " ".join(e.dxf.text for b in doc.blocks for e in b if e.dxftype() == "TEXT")
+    assert "1R x 1C x 400" not in texts and "3 x 1C x 400" in texts
+
+
+def test_n25_water_is_drawn_as_on_the_layout_on_the_earthing_and_lps_sheets(plant):
+    pid, results, project, _ = plant
+    if not project.site.geometry.of_kind(FeatureKind.WATER):
+        pytest.skip("no water on this site")
+    for kind in ("earthing", "lps"):
+        doc = ezdxf.readfile(_sheet(results, kind)["files"]["dxf"])
+        assert doc.layers.get("L-WATER-FILL").color == 131 and doc.layers.get("L-WATER").color == 4
+        assert doc.modelspace().query('HATCH[layer=="L-WATER-FILL"]')

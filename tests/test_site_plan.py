@@ -260,22 +260,18 @@ def test_a_station_on_a_roof_edge_keeps_a_dot_at_its_position_and_its_symbol_bes
     assert station is not None and len(dots) == 1
 
 
-def test_cut_protection_circles_end_on_the_drawn_plan_window_not_the_sheet_frame(pune_plans):
-    """n14: an ESE circle larger than the plan is cut at the plan window, which is drawn and lies inside the plan room."""
+def test_protection_circles_larger_than_the_plan_are_drawn_whole_inside_the_plan_room(pune_plans):
+    """n14 (close-e2e-4: still read as clipped by the frame): an ESE circle larger than the plan widens the plan extent, so it is drawn whole
+    inside the plan room and no plan window is needed."""
     doc, sheet = pune_plans["lps"]
     msp = doc.modelspace()
-    arcs = [e for e in msp.query("ARC") if e.dxf.layer == "E-LPS-ZONE"]
-    window = [e for e in msp.query("LWPOLYLINE") if e.dxf.layer == "E-LPS-ZONE"]
-    assert arcs and len(window) == 1
-    xs = [p[0] for p in window[0].get_points()]
-    ys = [p[1] for p in window[0].get_points()]
+    zone = [e for e in msp if e.dxf.layer == "E-LPS-ZONE"]
+    circles = [e for e in zone if e.dxftype() == "CIRCLE"]
+    assert circles and not [e for e in zone if e.dxftype() in ("ARC", "LWPOLYLINE")]
     room = sheet.room
-    assert room.x0 - 1e-6 <= min(xs) and max(xs) <= room.x1 + 1e-6 and room.y0 - 1e-6 <= min(ys) and max(ys) <= room.y1 + 1e-6
-    for e in arcs:
-        for pt in (e.start_point, e.end_point):
-            on_x = min(abs(pt.x - min(xs)), abs(pt.x - max(xs))) < 1e-3 and min(ys) - 1e-3 <= pt.y <= max(ys) + 1e-3
-            on_y = min(abs(pt.y - min(ys)), abs(pt.y - max(ys))) < 1e-3 and min(xs) - 1e-3 <= pt.x <= max(xs) + 1e-3
-            assert on_x or on_y
+    for e in circles:
+        (cx, cy, _), r = e.dxf.center, e.dxf.radius
+        assert room.x0 - 1e-6 <= cx - r and cx + r <= room.x1 + 1e-6 and room.y0 - 1e-6 <= cy - r and cy + r <= room.y1 + 1e-6
 
 
 def test_water_and_exclusions_are_drawn_and_named_on_the_lightning_underlay(pune_plans):

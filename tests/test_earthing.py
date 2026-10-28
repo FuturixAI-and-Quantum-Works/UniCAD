@@ -278,16 +278,17 @@ def test_plans_use_the_largest_standard_scale_that_fits(sample_sheets, name):
     assert 750 in SCALES and sheet.scale <= {"pune-earthing": 1000, "pune-lps": 1500, "rajasthan-earthing": 2500}[name]
 
 
-def test_lps_circles_are_clipped_at_the_plan_edge(sample_sheets):
-    doc, sheet, _, d = sample_sheets["rajasthan-lps"]
-    msp = doc.modelspace()
-    zone = [e for e in msp.query("CIRCLE ARC") if e.dxf.layer == "E-LPS-ZONE"]
-    assert any(e.dxftype() == "ARC" for e in zone)
+@pytest.mark.parametrize("name", ["rajasthan-lps", "pune-lps"])
+def test_lps_circles_are_drawn_whole_inside_the_plan(sample_sheets, name):
+    """close-e2e-4 n14: protection circles were cut at the plan window and read as clipped by the sheet frame; the plan extent now takes in
+    every circle, so each is drawn whole inside the plan room."""
+    doc, sheet, _, d = sample_sheets[name]
+    zone = [e for e in doc.modelspace().query("CIRCLE ARC") if e.dxf.layer == "E-LPS-ZONE"]
+    assert zone and all(e.dxftype() == "CIRCLE" for e in zone)
     room = sheet.room
     for e in zone:
-        if e.dxftype() == "ARC":
-            for pt in (e.start_point, e.end_point):
-                assert room.x0 - 1e-6 <= pt.x <= room.x1 + 1e-6 and room.y0 - 1e-6 <= pt.y <= room.y1 + 1e-6
+        (cx, cy, _), r = e.dxf.center, e.dxf.radius
+        assert room.x0 - 1e-6 <= cx - r and cx + r <= room.x1 + 1e-6 and room.y0 - 1e-6 <= cy - r and cy + r <= room.y1 + 1e-6
 
 
 def test_clip_circle_keeps_only_the_arcs_inside():

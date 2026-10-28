@@ -179,14 +179,20 @@ def steps() -> list[Step]:
             "Bill of materials, using the same lengths as the cable schedule.",
             keep=("revision", "files", "summary", "warnings"),
         ),
+        Step("project_snapshot", p | {"label": "agreed-r0"}, "Name the agreed design so later revisions can be diffed against it."),
+        Step(
+            "project_issue",
+            p | {"issued_for": "approval", "rev": "0", "drawn": "R. Deshmukh", "checked": "S. Kulkarni", "approved": "P. Joshi", "date": "2026-10-28"},
+            "Issue for approval: the rules run first and refuse while an error remains. Revision mark, names and date are inputs of the example.",
+            keep=("revision", "issue", "revisions", "gate", "problems"),
+        ),
         Step(
             "drawings_render",
             p | {"kinds": ["all"], "formats": ["dxf"]},
-            "Render the complete drawing set. Numbers follow the company pattern, one block per sheet kind; a kind the project cannot draw yet is skipped with a warning.",
+            "Render the issued set last, so every sheet and the register carry revision 0. Numbers follow the company pattern, one block per sheet kind; a kind the project cannot draw yet is skipped with a warning.",
             keep=("revision", "sheet_count", "sheets", "warnings"),
             edit=_sheets,
         ),
-        Step("project_snapshot", p | {"label": "issued-approval-r0"}, "Name the issued revision so it can be diffed later."),
         Step(
             "site_set_feature",
             p | {"id": "rooftop-ahu-3", "kind": "obstacle", "coordinates": [[30, 24], [34, 24], [34, 28], [30, 28]], "height_m": 1.8},
@@ -201,8 +207,20 @@ def steps() -> list[Step]:
         ),
         Step(
             "project_diff",
-            p | {"from_revision": "issued-approval-r0"},
+            p | {"from_revision": "agreed-r0"},
             "Site changes are listed per feature (an outline is summarised as points and area) and layout changes per block.",
+        ),
+        Step(
+            "project_issue",
+            p | {"issued_for": "approval", "rev": "1", "drawn": "R. Deshmukh", "checked": "S. Kulkarni", "approved": "P. Joshi", "date": "2026-11-04", "remarks": "AHU-3 ADDED; LAYOUT REVISED"},
+            "Re-issue with the next revision mark and what changed.",
+            keep=("revision", "issue", "revisions", "gate", "problems"),
+        ),
+        Step(
+            "drawings_render",
+            p | {"kinds": ["all"], "formats": ["dxf"]},
+            "Render the revised set last: every sheet now carries revision 1 under revision 0.",
+            keep=("revision", "sheet_count", "warnings"),
         ),
     ]
 

@@ -1,17 +1,17 @@
 {
  "metrics": {
-  "tables_full": 2500,
+  "tables_full": 2484,
   "tables_half": 210,
-  "modules": 145880,
-  "dc_kwp": 78775.2,
+  "modules": 144984,
+  "dc_kwp": 78291.36,
   "module_wp": 540.0,
   "pitch_m": 7.3301,
   "gcr": 0.6254,
-  "buildable_m2": 702346.6,
-  "area_used_m2": 646256.9,
-  "strings": 5210,
+  "buildable_m2": 698900.8,
+  "area_used_m2": 642294.7,
+  "strings": 5178,
   "unstrung_modules": 0,
-  "block_balance": 0.10883
+  "block_balance": 0.09907
  },
  "pitch": {
   "method": "solstice",
@@ -26,48 +26,48 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 280,
-   "tables_half": 53,
-   "modules": 17164,
-   "dc_kwp": 9268.56,
+   "tables_full": 272,
+   "tables_half": 52,
+   "modules": 16688,
+   "dc_kwp": 9011.52,
    "station": {
-    "x": 126.103,
+    "x": 125.2,
     "y": 237.281
    }
   },
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 295,
+   "tables_full": 288,
    "tables_half": 21,
-   "modules": 17108,
-   "dc_kwp": 9238.32,
+   "modules": 16716,
+   "dc_kwp": 9026.64,
    "station": {
-    "x": 335.759,
+    "x": 333.173,
     "y": 328.066
    }
   },
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 286,
-   "tables_half": 30,
-   "modules": 16856,
-   "dc_kwp": 9102.24,
+   "tables_full": 288,
+   "tables_half": 31,
+   "modules": 16996,
+   "dc_kwp": 9177.84,
    "station": {
-    "x": 167.423,
-    "y": 583.114
+    "x": 178.176,
+    "y": 583.317
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 295,
+   "tables_full": 292,
    "tables_half": 10,
-   "modules": 16800,
-   "dc_kwp": 9072.0,
+   "modules": 16632,
+   "dc_kwp": 8981.28,
    "station": {
-    "x": 495.936,
+    "x": 499.999,
     "y": 673.899
    }
   },
@@ -135,8 +135,8 @@
  "assumptions": [
   "gap between modules on a table: 0.02 (default, not from a cited source)",
   "gap between tables along a row: 1.5 (default, not from a cited source)",
-  "MV switchyard at local (478.2, 788.6): derived: the free spot nearest the transmission line on the site (where the export line leaves), clear of tables, roads and exclusions by 1.5 m (pass switchyard_x/y for the real position); cable routing and earthing use this location",
-  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables, roads, exclusions and water and stands inside the buildable area (assumed clearance for access, not a cited figure).",
+  "MV switchyard at local (64.4, 734.4): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
+  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables and roads, keeps the exclusion setback from exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure).",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [

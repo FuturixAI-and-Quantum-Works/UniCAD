@@ -393,10 +393,10 @@ def test_relay_ansi_text_stays_centred_when_symbol_is_flipped():
     assert text.dxf.halign == 1
 
 
-def test_mccb_and_acb_carry_a_type_label_that_mcb_lacks(full_doc):
-    assert _texts(full_doc, REGISTRY["sw.mcb"]) == []
-    assert _texts(full_doc, REGISTRY["sw.mccb"]) == ["MCCB"]
-    assert _texts(full_doc, REGISTRY["sw.acb"]) == ["ACB"]
+def test_breaker_symbols_carry_no_type_text_beside_them(full_doc):
+    """close-e2e-4 n19: the type reads from the tag (MCCB-01, ACB-01) and the legend, not from a label drawn beside the symbol."""
+    for key in ("sw.mcb", "sw.mccb", "sw.acb"):
+        assert _texts(full_doc, REGISTRY[key]) == [], key
 
 
 def _band(msp):

@@ -113,11 +113,22 @@ def test_instructions_walk_the_whole_workflow_in_order():
 @pytest.mark.parametrize("text", [ROOFTOP, UTILITY], ids=["rooftop", "utility"])
 def test_pv_prompts_set_the_design_basis_before_the_design_as_the_instructions_do(text):
     """close-e2e-1 M13: autobuild ran before the fault levels were set, so cables were not sized for the short circuit."""
-    order = ["project_create", "project_design_basis", "site_import", "layout_place", "network_autobuild", "validate", "earthing_design", "lps_design", "drawings_render", "project_snapshot"]
+    order = ["project_create", "project_design_basis", "site_import", "layout_place", "network_autobuild", "validate", "earthing_design", "lps_design", "project_snapshot", "project_issue", "drawings_render"]
     positions = [text.index(name) for name in order]
     assert positions == sorted(positions)
     basis = text[text.index("project_design_basis"):text.index("site_import")]
     assert all(w in basis for w in ("fault_levels", "earthing", "lps", "ambient_min_c"))
+
+
+@pytest.mark.parametrize("text", [INSTRUCTIONS, ROOFTOP, UTILITY, BESS, REVISE], ids=["instructions", "rooftop", "utility", "bess", "revise"])
+def test_the_guidance_ends_by_issuing_then_rendering_the_set(text):
+    """close-e2e-4: the instructions and every prompt ended at project_snapshot, so an agent following them never set the revision, names
+    and date; each now ends with project_issue then drawings_render, and nothing is rendered before the issue."""
+    server = build()
+    tools = set(tool_names(server))
+    last = sorted((text.rindex(t), t) for t in referenced_tools(text, server) & tools)
+    assert [t for _, t in last[-2:]] == ["project_issue", "drawings_render"], last[-4:]
+    assert text.index("drawings_render") > text.index("project_issue")
 
 
 def test_prompts_cover_each_project_kind_and_the_review_loop():

@@ -63,7 +63,7 @@
           "number": "UDEMO-DIPL-RT500-EE-302",
           "paper": "A3",
           "rev": "00",
-          "scale": "1:1500",
+          "scale": "1:2000",
           "title": "LIGHTNING ARRESTER (LA) LAYOUT"
         },
         {
@@ -223,7 +223,7 @@
       "warnings": []
     },
     {
-      "drawing_scale": "1:1500",
+      "drawing_scale": "1:2000",
       "files": {
         "dwg": null,
         "dxf": "05-UDEMO-DIPL-RT500-EE-302.dxf",

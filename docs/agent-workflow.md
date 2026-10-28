@@ -17,8 +17,9 @@ Workflow, in order. Every edit returns the new revision and a `problems` list; r
 4. design_strings sizes a string for a module and inverter. layout_place(project_id, module, modules_per_string, strings_per_inverter, ...) then puts tables on the buildable area (tables default to one string per row, half tables only where they hold whole strings), splits them into inverter blocks of whole inverters and assigns strings; it reports an error when a table cannot hold a string. For rooftops the inverter station stands on a roof unless station_x/station_y give its place. layout_summary and layout_blocks read the result.
 5. network_autobuild(project_id, template, ac_kw or dc_kwp, module, inverter) builds the complete electrical network from intent, links layout strings and sizes breakers for the prospective fault (declared levels and transformer-fed LV faults) and cables for the declared fault levels. Use catalog_search / catalog_get for equipment ids. For hand edits use network_add_group, network_add_node, network_connect, network_update and network_remove; model identical equipment once with a count.
 6. validate(project_id) runs the engineering rules and says which issue purposes (approval, construction, as_built) are blocked; its `next` says when a rebuild is the fix. explain_finding(project_id, rule_id, subject) gives the formula, inputs and sources. Fix errors with network_update / layout_place / site tools or by re-running network_autobuild, then validate again until no errors remain. Never edit a value just to silence a rule: change the design. earthing_design(project_id, soil_resistivity, ...) and lps_design(project_id, method, level, ...) design the earth grid and lightning protection (run layout_place first); earthing_summary reads them back.
-7. Deliverables: drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers; drawings_preview shows a sheet as PNG. cable_schedule and bom also export the schedules alone (xlsx, dxf or pdf).
-8. project_snapshot(project_id, label) names the issued revision; project_diff compares revisions (per-feature site changes, per-block layout changes, sheet changes). Use revision= on read tools to inspect an older state.
+7. Deliverables: cable_schedule and bom export the schedules (xlsx, dxf or pdf); drawings_preview shows a sheet as PNG while you check it.
+8. project_snapshot(project_id, label) names the agreed revision; project_diff compares revisions (per-feature site changes, per-block layout changes, sheet changes). Use revision= on read tools to inspect an older state.
+9. Issue, last: project_issue(project_id, issued_for, rev, drawn, checked, approved, date) once the rules allow the purpose (approval, construction and as_built are refused while an error remains), then drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers, every sheet carrying the revision, names and date. A set rendered before the issue has no revision, names or date.
 
 Rules: mark every assumption you make and tell the user; take equipment values only from the catalog; if a tool reports a blocker or an error finding, fix the model rather than working around it. Prompts new_rooftop_project, new_utility_project, new_bess_project and revise_after_comments give step plans for the common jobs.
 ```
@@ -39,8 +40,9 @@ Build a rooftop PV drawing set for "<name>" with UniCAD tools. State intent only
 7. network_autobuild(project_id, template="ci_rooftop", ac_kw or dc_kwp, module, inverter). It sizes breakers and cables for the fault levels set in step 3. Read `blockers` and `assumptions`. For hand changes use network_add_node / network_connect / network_update. If you change the design basis afterwards, run network_autobuild again.
 8. validate(project_id). For each error, explain_finding(project_id, rule_id, subject), change the design (network_update, layout_place, site tools), and validate again until there are no errors. Report warnings to the user.
 9. earthing_design(project_id) and lps_design(project_id, method, level) design from the stored inputs; validate again.
-10. Deliverables: drawings_render(project_id, kinds=["all"]) for the drawing set, cable_schedule and bom (xlsx). Quote the paths and the assumptions each returns.
-11. project_snapshot(project_id, label) once the set is agreed, e.g. "issued-approval-r0".
+10. Deliverables: cable_schedule and bom (xlsx). Quote the paths and the assumptions each returns.
+11. project_snapshot(project_id, label) once the design is agreed, e.g. "agreed-r0", so a later revision can be diffed against it.
+12. Issue last: project_issue(project_id, issued_for="approval", rev="0", drawn, checked, approved, date) once the rules show no errors, then drawings_render(project_id, kinds=["all"]) so every sheet and the drawing register carry the revision, names and date. Quote the set path.
 ```
 
 ### `new_utility_project(name)`
@@ -57,8 +59,9 @@ Build a utility-scale PV drawing set for "<name>" with UniCAD tools. State inten
 7. network_autobuild(project_id, template="utility_string" or "utility_central", module, inverter, inverters_per_block). Layout strings are linked to the network automatically; breakers and cables are sized for the fault levels set in step 3. Read `blockers` and `assumptions`. If you change the design basis afterwards, run network_autobuild again.
 8. validate(project_id); explain_finding for each error; fix and re-validate until no errors remain.
 9. earthing_design(project_id, switchyard_m, ...) and lps_design(project_id, method, level, ...) design from the stored inputs; validate again.
-10. Deliverables: drawings_render(project_id, kinds=["all"]) for the drawing set, cable_schedule and bom. Quote paths, totals and assumptions.
-11. project_snapshot(project_id, label) once the set is agreed.
+10. Deliverables: cable_schedule and bom. Quote paths, totals and assumptions.
+11. project_snapshot(project_id, label) once the design is agreed, so a later revision can be diffed against it.
+12. Issue last: project_issue(project_id, issued_for="approval", rev="0", drawn, checked, approved, date) once the rules show no errors, then drawings_render(project_id, kinds=["all"]) so every sheet and the drawing register carry the revision, names and date. Quote the set path.
 ```
 
 ### `new_bess_project(name)`
@@ -73,8 +76,9 @@ Build a battery energy storage drawing set for "<name>" with UniCAD tools. State
 5. network_autobuild(project_id, template="bess_ac" (AC-coupled), "bess_dc" (DC-coupled) or "hybrid", bess_kw, bess_kwh, pcs, battery, export_limit_kw; for hybrid also ac_kw or dc_kwp, module, inverter). Read `blockers` and `assumptions`.
 6. validate(project_id); explain_finding for each error; fix with network_update and re-validate until no errors remain.
 7. earthing_design and lps_design when a layout exists; validate again.
-8. Deliverables: drawings_render for the drawing sheets, cable_schedule and bom. Quote paths and assumptions.
-9. project_snapshot(project_id, label) once the set is agreed.
+8. Deliverables: cable_schedule and bom. Quote paths and assumptions.
+9. project_snapshot(project_id, label) once the design is agreed.
+10. Issue last: project_issue(project_id, issued_for="approval", rev="0", drawn, checked, approved, date) once the rules show no errors, then drawings_render(project_id, kinds=["all"]) so every sheet carries the revision, names and date.
 ```
 
 ### `revise_after_comments(project_id, comments)`
@@ -89,7 +93,8 @@ Comments to address:
 2. For each comment decide which part of the model it changes: site (site_set_feature, site_remove_feature, site_set_setbacks), layout (layout_place), network (network_update, network_add_node, network_connect, network_remove, or network_autobuild to rebuild), earthing or lightning (earthing_design, lps_design). Change the model, never the drawing. If a comment needs a value you do not have, ask the user.
 3. validate(project_id); explain_finding for each error; repeat until no errors remain.
 4. project_diff(project_id, from_revision="<baseline label>") and summarise per comment what changed. Say which comments you did not address and why.
-5. Re-run drawings_render, cable_schedule and bom, then project_snapshot with the next revision label (e.g. "issued-r1").
+5. Re-run cable_schedule and bom and project_snapshot the revised design (e.g. "agreed-r1").
+6. Issue last: project_issue(project_id, issued_for, rev=<next mark, e.g. "1">, drawn, checked, approved, date, remarks=<what changed>), then drawings_render(project_id, kinds=["all"]) so every sheet carries the new revision.
 ```
 
 ## Worked example
@@ -679,7 +684,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       "pits spaced at least two electrode lengths apart are combined as parallel resistances, in parallel with the...",
       "conductor sized to the larger of the IS 3043 (k = 80) and IEEE 80 (Kf = 28.96) cross-sections",
       "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
-      "... 6 more"
+      "... 5 more"
     ]
   }
 }
@@ -801,9 +806,60 @@ bom(project_id="pune-midc-factory-roof")
 }
 ```
 
-### 21. `drawings_render`
+### 21. `project_snapshot`
 
-Render the complete drawing set. Numbers follow the company pattern, one block per sheet kind; a kind the project cannot draw yet is skipped with a warning.
+Name the agreed design so later revisions can be diffed against it.
+
+```python
+project_snapshot(project_id="pune-midc-factory-roof", label="agreed-r0")
+```
+
+```json
+{
+  "project_id": "pune-midc-factory-roof",
+  "label": "agreed-r0",
+  "revision": 11,
+  "snapshots": {"agreed-r0": 11}
+}
+```
+
+### 22. `project_issue`
+
+Issue for approval: the rules run first and refuse while an error remains. Revision mark, names and date are inputs of the example.
+
+```python
+project_issue(
+    project_id="pune-midc-factory-roof",
+    issued_for="approval",
+    rev="0",
+    drawn="R. Deshmukh",
+    checked="S. Kulkarni",
+    approved="P. Joshi",
+    date="2026-10-28",
+)
+```
+
+```json
+{
+  "revision": 12,
+  "issue": {
+    "rev": "0",
+    "date": "2026-10-28",
+    "remarks": "ISSUED FOR APPROVAL",
+    "issued_for": "approval",
+    "drawn": "R. Deshmukh",
+    "checked": "S. Kulkarni",
+    "approved": "P. Joshi"
+  },
+  "revisions": ["0"],
+  "gate": {"allowed": true, "watermark": false, "errors": 0},
+  "problems": []
+}
+```
+
+### 23. `drawings_render`
+
+Render the issued set last, so every sheet and the register carry revision 0. Numbers follow the company pattern, one block per sheet kind; a kind the project cannot draw yet is skipped with a warning.
 
 ```python
 drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dxf"])
@@ -811,7 +867,7 @@ drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dx
 
 ```json
 {
-  "revision": 11,
+  "revision": 12,
   "sheet_count": 10,
   "sheets": {
     "ACME/DI/PMFR/EL/000": "register, A3: DRAWING REGISTER",
@@ -829,24 +885,7 @@ drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dx
 }
 ```
 
-### 22. `project_snapshot`
-
-Name the issued revision so it can be diffed later.
-
-```python
-project_snapshot(project_id="pune-midc-factory-roof", label="issued-approval-r0")
-```
-
-```json
-{
-  "project_id": "pune-midc-factory-roof",
-  "label": "issued-approval-r0",
-  "revision": 11,
-  "snapshots": {"issued-approval-r0": 11}
-}
-```
-
-### 23. `site_set_feature`
+### 24. `site_set_feature`
 
 Review comment: an air handling unit the survey missed. Change the site, then place the layout again.
 
@@ -862,13 +901,13 @@ site_set_feature(
 
 ```json
 {
-  "revision": 12,
+  "revision": 13,
   "imported": [{"id": "rooftop-ahu-3", "kind": "obstacle", "area_m2": 16.0, "height_m": 1.8}],
   "problems": []
 }
 ```
 
-### 24. `layout_place`
+### 25. `layout_place`
 
 Same layout intent as before; the new obstacle is picked up from the site.
 
@@ -888,7 +927,7 @@ layout_place(
 
 ```json
 {
-  "revision": 13,
+  "revision": 14,
   "metrics": {
     "tables_full": 22,
     "tables_half": 0,
@@ -910,19 +949,19 @@ layout_place(
 }
 ```
 
-### 25. `project_diff`
+### 26. `project_diff`
 
 Site changes are listed per feature (an outline is summarised as points and area) and layout changes per block.
 
 ```python
-project_diff(project_id="pune-midc-factory-roof", from_revision="issued-approval-r0")
+project_diff(project_id="pune-midc-factory-roof", from_revision="agreed-r0")
 ```
 
 ```json
 {
   "project_id": "pune-midc-factory-roof",
   "from_revision": 11,
-  "to_revision": 13,
+  "to_revision": 14,
   "empty": false,
   "site": {"added": ["rooftop-ahu-3"]},
   "layout": {
@@ -936,6 +975,70 @@ project_diff(project_id="pune-midc-factory-roof", from_revision="issued-approval
         ]
       }
     ]
-  }
+  },
+  "fields": [
+    {
+      "path": "revisions",
+      "before": [],
+      "after": [
+        {
+          "rev": "0",
+          "date": "2026-10-28",
+          "remarks": "ISSUED FOR APPROVAL",
+          "issued_for": "approval",
+          "drawn": "R. Deshmukh",
+          "checked": "S. Kulkarni",
+          "approved": "P. Joshi"
+        }
+      ]
+    }
+  ]
 }
+```
+
+### 27. `project_issue`
+
+Re-issue with the next revision mark and what changed.
+
+```python
+project_issue(
+    project_id="pune-midc-factory-roof",
+    issued_for="approval",
+    rev="1",
+    drawn="R. Deshmukh",
+    checked="S. Kulkarni",
+    approved="P. Joshi",
+    date="2026-11-04",
+    remarks="AHU-3 ADDED; LAYOUT REVISED",
+)
+```
+
+```json
+{
+  "revision": 15,
+  "issue": {
+    "rev": "1",
+    "date": "2026-11-04",
+    "remarks": "AHU-3 ADDED; LAYOUT REVISED",
+    "issued_for": "approval",
+    "drawn": "R. Deshmukh",
+    "checked": "S. Kulkarni",
+    "approved": "P. Joshi"
+  },
+  "revisions": ["0", "1"],
+  "gate": {"allowed": true, "watermark": false, "errors": 0},
+  "problems": []
+}
+```
+
+### 28. `drawings_render`
+
+Render the revised set last: every sheet now carries revision 1 under revision 0.
+
+```python
+drawings_render(project_id="pune-midc-factory-roof", kinds=["all"], formats=["dxf"])
+```
+
+```json
+{"revision": 15, "sheet_count": 10, "warnings": []}
 ```

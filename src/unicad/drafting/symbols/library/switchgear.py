@@ -12,11 +12,6 @@ def _inline(key: str, title: str, standard: str, tag_prefix: str):
     return symbol(key, title, C, standard, W, H, inline_pins(CX, H, AC), std_attrs(W, H), tag_prefix=tag_prefix)
 
 
-LABEL_X = CX + 1.5
-LABEL_H = 3.5
-BREAKER_W = 22.5
-
-
 @_inline("sw.mcb", "Miniature circuit breaker (MCB)", "IEC 60617 S00287 circuit breaker + thermal release", "MCB")
 def mcb(b):
     p = Pen(b)
@@ -28,11 +23,11 @@ def mcb(b):
     "sw.mccb",
     "Moulded-case circuit breaker (MCCB)",
     C,
-    "IEC 60617 S00287 circuit breaker + thermal-magnetic release, type label",
-    BREAKER_W,
+    "IEC 60617 S00287 circuit breaker + thermal-magnetic release",
+    W,
     H,
     inline_pins(CX, H, AC),
-    std_attrs(BREAKER_W, H),
+    std_attrs(W, H),
     tag_prefix="MCCB",
 )
 def mccb(b):
@@ -40,18 +35,17 @@ def mccb(b):
     yh, yc = p.switch(CX, 0, H, "cross")
     blade_box(p, CX, yh, yc, DX, 0.32, 2.8, 0.8)
     blade_box(p, CX, yh, yc, DX, 0.72, 2.8, 0.8, solid=True)
-    p.text("MCCB", LABEL_X, 8.0, LABEL_H, "l")
 
 
 @symbol(
     "sw.acb",
     "Air circuit breaker (ACB)",
     C,
-    "IEC 60617 S00287 circuit breaker + electronic release, type label",
-    BREAKER_W,
+    "IEC 60617 S00287 circuit breaker + electronic release",
+    W,
     25.0,
     inline_pins(CX, 25.0, AC),
-    std_attrs(BREAKER_W, 25.0),
+    std_attrs(W, 25.0),
     tag_prefix="ACB",
 )
 def acb(b):
@@ -60,7 +54,6 @@ def acb(b):
     blade_box(p, CX, yh, yc, DX, 0.32, 3.2, 0.9)
     blade_box(p, CX, yh, yc, DX, 0.74, 3.2, 0.9, solid=True)
     p.dot(CX, yh, 0.7)
-    p.text("ACB", LABEL_X, 10.0, LABEL_H, "l")
 
 
 @symbol(

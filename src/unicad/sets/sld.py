@@ -137,13 +137,6 @@ def _routed_lengths(project: Project, catalog: Catalog | None) -> dict[str, list
     return out
 
 
-def _cable_text(e: Edge, catalog: Catalog | None) -> str:
-    cables = annotate.band_cables(e, catalog)
-    if len(cables) > 1:
-        return annotate.banded_text(cables, "")
-    return f"{e.runs}R x {cables[0][0].callout()}" if cables else ""
-
-
 def _shown(project: Project, sheet: Sheet, catalog: Catalog | None = None) -> Project:
     """The project as a sheet shows it: each cable with the routed length of the cable schedule, or `L = min..max m` when its instances
     (on a TYPICAL sheet, those of every block it stands for) differ; a cable sized differently between those blocks names the sizes."""
@@ -168,7 +161,7 @@ def _shown(project: Project, sheet: Sheet, catalog: Catalog | None = None) -> Pr
             notes.append(f"L = {min(lengths):g}..{max(lengths):g} m (SEE CABLE SCHEDULE)")
         elif lengths and min(lengths) != e.length_m:
             update["length_m"] = min(lengths)
-        sizes = list(dict.fromkeys(_cable_text(x, catalog) for x in es))
+        sizes = list(dict.fromkeys(annotate.cable_text(x, catalog, net) for x in es))
         if len(sizes) > 1:
             notes.append(f"CABLE PER BLOCK: {' / '.join(sizes)}, SEE THE CABLE SCHEDULE")
         if notes:

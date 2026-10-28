@@ -364,15 +364,39 @@ def band_cables(edge: Edge, catalog: Catalog | None) -> list[tuple[CableSpec, in
 
 
 def banded_text(cables: list[tuple[CableSpec, int]], per_run: str) -> str:
-    """'1R x 1C x 4 / 6 sq.mm Cu XLPE': the sizes of the length bands of one edge, grouped by runs when the rest of the callout agrees."""
+    """'1R x 1C x 4 / 6 sq.mm Cu XLPE': the sizes of the length bands of one edge, grouped by runs when the rest of the callout agrees.
+    `per_run` ('3 x ') prefixes the single-core cables of an AC run."""
     first = cables[0][0]
+
+    def pre(c: CableSpec) -> str:
+        return per_run if c.cores == 1 else ""
+
     if len({c.callout().replace(f"x {c.size_mm2:g} sq.mm", "") for c, _ in cables}) > 1:
-        return " / ".join(f"{r}R x {per_run}{c.callout()}" for c, r in cables)
+        return " / ".join(f"{r}R x {pre(c)}{c.callout()}" for c, r in cables)
     parts = []
     for runs in sorted({r for _, r in cables}):
         sizes = " / ".join(f"{z:g}" for z in sorted({c.size_mm2 for c, r in cables if r == runs}))
-        parts.append(f"{runs}R x {per_run}{first.core_label}C x {sizes} sq.mm")
+        parts.append(f"{runs}R x {pre(first)}{first.core_label}C x {sizes} sq.mm")
     return " OR ".join(parts) + first.callout().split(" sq.mm", 1)[1]
+
+
+def single_core_per_run(edge: Edge, catalog: Catalog | None, net: ElectricalNetwork | None) -> str:
+    """'3 x ' (or '2 x ' on a single-phase circuit): the single-core cables of one run of an AC edge; '' on DC or without the network."""
+    if edge.service not in AC_SERVICES or net is None:
+        return ""
+    return f"{2 if ac_phases(net, catalog, edge) == 1 else 3} x "
+
+
+def cable_text(edge: Edge, catalog: Catalog | None, net: ElectricalNetwork | None) -> str:
+    """'2R x 4C x 240 sq.mm Al ...' or '1R x 3 x 1C x 400 sq.mm Al ...': the edge's cable, or every length-band cable it has; '' when not in the catalog."""
+    banded = band_cables(edge, catalog)
+    if not banded:
+        return ""
+    per_run = single_core_per_run(edge, catalog, net)
+    if len(banded) > 1:
+        return banded_text(banded, per_run)
+    c, r = banded[0]
+    return f"{r}R x {per_run if c.cores == 1 else ''}{c.callout()}"
 
 
 def cable_callout(edge: Edge, catalog: Catalog | None, note_of: Mapping[str, int] | None = None, net: ElectricalNetwork | None = None) -> tuple[str, ...]:
@@ -384,11 +408,8 @@ def cable_callout(edge: Edge, catalog: Catalog | None, note_of: Mapping[str, int
     lines: list[str] = []
     tail: list[str] = []
     if isinstance(cable, CableSpec):
-        per_run = ""
-        if cable.cores == 1 and edge.service in AC_SERVICES and net is not None:
-            per_run = f"{2 if ac_phases(net, catalog, edge) == 1 else 3} x "
         banded = band_cables(edge, catalog)
-        lines.append(banded_text(banded, per_run) if len(banded) > 1 else f"{edge.runs}R x {per_run}{cable.callout()}")
+        lines.append(cable_text(edge, catalog, net) if banded else f"{edge.runs}R x {single_core_per_run(edge, catalog, net) if cable.cores == 1 else ''}{cable.callout()}")
         tail.append(cable.voltage_grade)
         if edge.laying:
             tail.append(_LAYING[edge.laying.value])

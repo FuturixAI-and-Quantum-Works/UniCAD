@@ -111,12 +111,10 @@ def test_stations_and_switchyard_give_block_to_switchyard_lengths():
     unlocated = p.model_copy(update={"array_layout": p.array_layout.model_copy(update={"switchyard": None})})
     assert any("switchyard is not located" in w for w in estimate_routes(unlocated, CATALOG).warnings)
     at = next(iter(p.array_layout.blocks)).station
-    override = RouteAssumptions(switchyard=(at.x + 500.0, at.y))
-    kept = estimate_routes(p, CATALOG, override)
-    assert kept.instances["e_icog_bus@1"].positive_m == feeders[0].positive_m, "the layout's stored switchyard is the one location routing uses"
-    moved = estimate_routes(unlocated, CATALOG, override)
+    moved = estimate_routes(p, CATALOG, RouteAssumptions(switchyard=(at.x + 500.0, at.y)))
     assert not any("switchyard is not located" in w for w in moved.warnings)
     assert moved.instances["e_icog_bus@1"].positive_m > 500.0
+    assert moved.instances["e_icog_bus@1"].positive_m != feeders[0].positive_m
 
 
 def test_dc_mains_run_from_the_combiner_to_the_block_station_and_stay_above_the_straight_line():

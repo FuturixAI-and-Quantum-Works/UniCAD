@@ -79,7 +79,7 @@ L_LPS = "E-LPS"
 L_LPS_ZONE = "E-LPS-ZONE"
 DETAIL_GROUP_MIN = 4
 GREY_SITE = {"L-BOUNDARY": (UNDERLAY, 50), "L-ROOF": (UNDERLAY, 35), "L-ROAD": (UNDERLAY_LIGHT, 18), "L-ROAD-FILL": (254, MIN_LINEWEIGHT),
-             "L-WATER": (UNDERLAY_LIGHT, 18), "L-WATER-FILL": (254, MIN_LINEWEIGHT), "L-EXCLUSION": (UNDERLAY_LIGHT, 18), "L-EXCLUSION-FILL": (254, MIN_LINEWEIGHT),
+             "L-EXCLUSION": (UNDERLAY_LIGHT, 18), "L-EXCLUSION-FILL": (254, MIN_LINEWEIGHT),
              "L-TLINE": (UNDERLAY_LIGHT, 18), "L-OBSTACLE": (UNDERLAY_LIGHT, 18), "L-LABEL": (UNDERLAY, 18)}  # fmt: skip
 
 
@@ -535,7 +535,10 @@ class EarthingSheetWriter(_Writer):
         need = max(e.pits_by_practice, e.pits_by_resistance, e.pits_by_current or 0)
         by = f"{e.pits_by_resistance}" if e.pits_by_current is None else f"{e.pits_by_resistance} / {e.pits_by_current}"
         rows.append((f"PITS PROVIDED / REQUIRED BY {GOVERNING_SHORT[e.pits_governing]}", f"{e.pit_count} / {need}"))
-        rows.append(("PITS BY RESISTANCE" + ("" if e.pits_by_current is None else " / CURRENT DENSITY"), by))
+        if e.pits_by_resistance or e.pits_by_current:
+            rows.append(("PITS BY RESISTANCE" + ("" if e.pits_by_current is None else " / CURRENT DENSITY"), by))
+        else:
+            rows.append(("PITS FOR RESISTANCE" + ("" if e.pits_by_current is None else " AND CURRENT DENSITY"), "NONE: BURIED FLAT SUFFICES"))
         rows.append(("EARTH RESISTANCE / TARGET", f"{e.resistance_ohm:.3g} / {e.target_ohm:g} OHM"))
         if e.grid is not None:
             g = e.grid
@@ -625,9 +628,12 @@ class LpsSheetWriter(_Writer):
         self.lps = lps
 
     def _extent(self) -> tuple[float, float, float, float]:
+        """The plan extent taking in every protection circle whole, so no circle is cut by the plan window or the sheet frame."""
+        circles = unary_union([SPoint(t.at.x, t.at.y).buffer(self.lps.radius_m, quad_segs=32) for t in self.lps.terminals])
         if not any(t.on_roof for t in self.lps.terminals):
-            return super()._extent()
-        shapes = [SPoint(t.at.x, t.at.y) for t in self.lps.terminals] + [Polygon(table_corners(t)) for t in self.d.layout.table_by_id.values()]
+            x0, y0, x1, y1 = super()._extent()
+            return unary_union([box(x0, y0, x1, y1), circles]).bounds if not circles.is_empty else (x0, y0, x1, y1)
+        shapes = [circles] + [Polygon(table_corners(t)) for t in self.d.layout.table_by_id.values()]
         shapes += [shape_of(f) for f in self.d.site.features if f.kind is FeatureKind.ROOF]
         return _with_boundary(unary_union(shapes).buffer(3.0), self.d)
 

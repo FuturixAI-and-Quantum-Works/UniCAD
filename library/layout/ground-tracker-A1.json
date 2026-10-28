@@ -1,17 +1,17 @@
 {
  "metrics": {
-  "tables_full": 1904,
-  "tables_half": 378,
-  "modules": 117208,
-  "dc_kwp": 63292.32,
+  "tables_full": 1890,
+  "tables_half": 379,
+  "modules": 116452,
+  "dc_kwp": 62884.08,
   "module_wp": 540.0,
   "pitch_m": 4.3966,
   "gcr": 0.5213,
-  "buildable_m2": 702346.6,
-  "area_used_m2": 609209.7,
-  "strings": 1904,
-  "unstrung_modules": 10584,
-  "block_balance": 0.01911
+  "buildable_m2": 698900.8,
+  "area_used_m2": 605291.6,
+  "strings": 1890,
+  "unstrung_modules": 10612,
+  "block_balance": 0.00842
  },
  "pitch": {
   "method": "solstice",
@@ -26,10 +26,10 @@
   {
    "id": "B01",
    "name": "BLOCK-01",
-   "tables_full": 390,
-   "tables_half": 61,
-   "modules": 23548,
-   "dc_kwp": 12715.92,
+   "tables_full": 384,
+   "tables_half": 60,
+   "modules": 23184,
+   "dc_kwp": 12519.36,
    "station": {
     "x": 734.845,
     "y": 279.171
@@ -38,10 +38,10 @@
   {
    "id": "B02",
    "name": "BLOCK-02",
-   "tables_full": 411,
+   "tables_full": 405,
    "tables_half": 19,
-   "modules": 23548,
-   "dc_kwp": 12715.92,
+   "modules": 23212,
+   "dc_kwp": 12534.48,
    "station": {
     "x": 691.828,
     "y": 776.371
@@ -51,21 +51,21 @@
    "id": "B03",
    "name": "BLOCK-03",
    "tables_full": 352,
-   "tables_half": 130,
-   "modules": 23352,
-   "dc_kwp": 12610.08,
+   "tables_half": 131,
+   "modules": 23380,
+   "dc_kwp": 12625.2,
    "station": {
     "x": 335.363,
-    "y": 210.31
+    "y": 209.227
    }
   },
   {
    "id": "B04",
    "name": "BLOCK-04",
-   "tables_full": 408,
+   "tables_full": 403,
    "tables_half": 27,
-   "modules": 23604,
-   "dc_kwp": 12746.16,
+   "modules": 23324,
+   "dc_kwp": 12594.96,
    "station": {
     "x": 285.39,
     "y": 512.399
@@ -74,13 +74,13 @@
   {
    "id": "B05",
    "name": "BLOCK-05",
-   "tables_full": 343,
-   "tables_half": 141,
-   "modules": 23156,
-   "dc_kwp": 12504.24,
+   "tables_full": 346,
+   "tables_half": 142,
+   "modules": 23352,
+   "dc_kwp": 12610.08,
    "station": {
     "x": 337.207,
-    "y": 776.371
+    "y": 709.666
    }
   }
  ],
@@ -88,13 +88,13 @@
   "gap between modules on a table: 0.02 (default, not from a cited source)",
   "gap between tables along a row: 1.5 (default, not from a cited source)",
   "tracker rotation limit: 60.0 (default, not from a cited source)",
-  "MV switchyard at local (468.1, 788.3): derived: the free spot nearest the transmission line on the site (where the export line leaves), clear of tables, roads and exclusions by 1.5 m (pass switchyard_x/y for the real position); cable routing and earthing use this location",
-  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables, roads, exclusions and water and stands inside the buildable area (assumed clearance for access, not a cited figure).",
+  "MV switchyard at local (64.4, 734.4): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
+  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables and roads, keeps the exclusion setback from exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure).",
   "modules per string: 56 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [
   "some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than 10%",
-  "10584 modules do not make up a whole string of 56 and are left unstrung"
+  "10612 modules do not make up a whole string of 56 and are left unstrung"
  ],
  "target_reached": null
 }

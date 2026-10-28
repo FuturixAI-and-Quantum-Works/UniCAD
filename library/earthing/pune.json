@@ -388,10 +388,7 @@
   "target earth resistance 2 ohm (commercial premises 2 ohm; earth resistance practice table in J. Parmar, 'How to determine correct number of earthing electrodes, part 2', electrical-engineering-portal.com); not a cited limit, set target_resistance_ohm to override",
   "buried ring earth conductor laid 1.5 m outside each roof carrying an array, inside the plot, with the extra pits on it",
   "IS 3043 surface current density applied to the whole electrode surface in soil: the pits and the buried flat conductor",
-  "earth resistance: Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
-  "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius",
-  "equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer) is protected as a 8 m square centred on its stored position and each string inverter as a 2 m square (assumed envelopes, not datasheet sizes)",
-  "terminals keep 1.5 m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure) and stand off stations, the switchyard grid and BESS units"
+  "earth resistance: Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs"
  ],
  "warnings": [],
  "lps": {

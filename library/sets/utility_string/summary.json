@@ -1,7 +1,7 @@
 {
  "project_id": "ground-6mwp",
  "revision": 6,
- "sheet_count": 19,
+ "sheet_count": 18,
  "warnings": [],
  "previews": {
   "register": "preview/01-UDEMO-DRL-G6-EE-000-full-2400.png",
@@ -11,7 +11,7 @@
   "lps": "preview/09-UDEMO-DRL-G6-EE-302-full-2400.png",
   "strings": "preview/10-UDEMO-DRL-G6-EE-401-full-2400.png",
   "cable_schedule": "preview/11-UDEMO-DRL-G6-EE-501-full-2400.png",
-  "bom": "preview/18-UDEMO-DRL-G6-EE-601-full-2400.png"
+  "bom": "preview/17-UDEMO-DRL-G6-EE-601-full-2400.png"
  },
  "sheets": [
   {
@@ -20,7 +20,7 @@
    "title": "DRAWING REGISTER",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "1 of 19",
+   "sheet_of": "1 of 18",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -30,7 +30,7 @@
    "title": "OVERALL SINGLE LINE DIAGRAM (PART 1 OF 3)",
    "paper": "A0",
    "drawing_scale": "NTS",
-   "sheet_of": "2 of 19",
+   "sheet_of": "2 of 18",
    "kind_sheet_of": "1 of 5",
    "warnings": []
   },
@@ -40,7 +40,7 @@
    "title": "OVERALL SINGLE LINE DIAGRAM (PART 2 OF 3)",
    "paper": "A0",
    "drawing_scale": "NTS",
-   "sheet_of": "3 of 19",
+   "sheet_of": "3 of 18",
    "kind_sheet_of": "2 of 5",
    "warnings": []
   },
@@ -48,9 +48,9 @@
    "number": "UDEMO-DRL-G6-EE-003",
    "kind": "sld",
    "title": "OVERALL SINGLE LINE DIAGRAM (PART 3 OF 3)",
-   "paper": "A0",
+   "paper": "A1",
    "drawing_scale": "NTS",
-   "sheet_of": "4 of 19",
+   "sheet_of": "4 of 18",
    "kind_sheet_of": "3 of 5",
    "warnings": []
   },
@@ -60,17 +60,17 @@
    "title": "TYPICAL STRING INVERTER BLOCK (3 X 352 kVA) SLD FOR BLOCK-01, BLOCK-02, BLOCK-03, BLOCK-04 (SHOWN FOR BLOCK-01)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "5 of 19",
+   "sheet_of": "5 of 18",
    "kind_sheet_of": "4 of 5",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-005",
    "kind": "sld",
-   "title": "TYPICAL STRING INVERTER BLOCK (2 X 352 kVA) SLD FOR BLOCK-05, BLOCK-06 (SHOWN FOR BLOCK-05)",
+   "title": "TYPICAL STRING INVERTER BLOCK (4 X 352 kVA) SLD (BLOCK-05)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "6 of 19",
+   "sheet_of": "6 of 18",
    "kind_sheet_of": "5 of 5",
    "warnings": []
   },
@@ -80,9 +80,10 @@
    "title": "SOLAR PV ARRAY LAYOUT",
    "paper": "A1",
    "drawing_scale": "1:2500",
-   "sheet_of": "7 of 19",
+   "sheet_of": "7 of 18",
    "kind_sheet_of": "1 of 1",
    "warnings": [
+    "label equipment INV-02-03 found no room on the plan",
     "internal roads are not stored with the array layout, so the sheet shows only the roads imported with the site"
    ]
   },
@@ -92,7 +93,7 @@
    "title": "EARTHING LAYOUT",
    "paper": "A1",
    "drawing_scale": "1:2500",
-   "sheet_of": "8 of 19",
+   "sheet_of": "8 of 18",
    "kind_sheet_of": "1 of 1",
    "warnings": [
     "MV switchyard size unknown: set switchyard_m (earthing_design or project_design_basis) or mark the switchyard area on the site; the switchyard earth grid and its IEEE 80 touch and step check are not done, and the MV equipment is earthed at the plant equipment area"
@@ -103,89 +104,79 @@
    "kind": "lps",
    "title": "LIGHTNING ARRESTER (LA) LAYOUT",
    "paper": "A1",
-   "drawing_scale": "1:2500",
-   "sheet_of": "9 of 19",
+   "drawing_scale": "1:3000",
+   "sheet_of": "9 of 18",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-401",
    "kind": "strings",
-   "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01..INV-06-02",
+   "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01..INV-05-04",
    "paper": "A1",
    "drawing_scale": "NTS",
-   "sheet_of": "10 of 19",
+   "sheet_of": "10 of 18",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-501",
    "kind": "cable_schedule",
-   "title": "DC CABLE SCHEDULE (PART 1 OF 6)",
+   "title": "DC CABLE SCHEDULE (PART 1 OF 5)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "11 of 19",
-   "kind_sheet_of": "1 of 7",
+   "sheet_of": "11 of 18",
+   "kind_sheet_of": "1 of 6",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-502",
    "kind": "cable_schedule",
-   "title": "DC CABLE SCHEDULE (PART 2 OF 6)",
+   "title": "DC CABLE SCHEDULE (PART 2 OF 5)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "12 of 19",
-   "kind_sheet_of": "2 of 7",
+   "sheet_of": "12 of 18",
+   "kind_sheet_of": "2 of 6",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-503",
    "kind": "cable_schedule",
-   "title": "DC CABLE SCHEDULE (PART 3 OF 6)",
+   "title": "DC CABLE SCHEDULE (PART 3 OF 5)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "13 of 19",
-   "kind_sheet_of": "3 of 7",
+   "sheet_of": "13 of 18",
+   "kind_sheet_of": "3 of 6",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-504",
    "kind": "cable_schedule",
-   "title": "DC CABLE SCHEDULE (PART 4 OF 6)",
+   "title": "DC CABLE SCHEDULE (PART 4 OF 5)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "14 of 19",
-   "kind_sheet_of": "4 of 7",
+   "sheet_of": "14 of 18",
+   "kind_sheet_of": "4 of 6",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-505",
    "kind": "cable_schedule",
-   "title": "DC CABLE SCHEDULE (PART 5 OF 6)",
+   "title": "DC CABLE SCHEDULE (PART 5 OF 5)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "15 of 19",
-   "kind_sheet_of": "5 of 7",
+   "sheet_of": "15 of 18",
+   "kind_sheet_of": "5 of 6",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-506",
    "kind": "cable_schedule",
-   "title": "DC CABLE SCHEDULE (PART 6 OF 6)",
-   "paper": "A3",
-   "drawing_scale": "NTS",
-   "sheet_of": "16 of 19",
-   "kind_sheet_of": "6 of 7",
-   "warnings": []
-  },
-  {
-   "number": "UDEMO-DRL-G6-EE-507",
-   "kind": "cable_schedule",
    "title": "AC AND MV CABLE SCHEDULE",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "17 of 19",
-   "kind_sheet_of": "7 of 7",
+   "sheet_of": "16 of 18",
+   "kind_sheet_of": "6 of 6",
    "warnings": []
   },
   {
@@ -194,7 +185,7 @@
    "title": "BILL OF MATERIALS (PART 1 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "18 of 19",
+   "sheet_of": "17 of 18",
    "kind_sheet_of": "1 of 2",
    "warnings": []
   },
@@ -204,7 +195,7 @@
    "title": "BILL OF MATERIALS (PART 2 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "19 of 19",
+   "sheet_of": "18 of 18",
    "kind_sheet_of": "2 of 2",
    "warnings": []
   }

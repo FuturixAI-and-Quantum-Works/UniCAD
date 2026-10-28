@@ -63,7 +63,7 @@
           "number": "ACME/DIPL/R500A/EL/302",
           "paper": "A3",
           "rev": "00",
-          "scale": "1:1500",
+          "scale": "1:2000",
           "title": "LIGHTNING ARRESTER (LA) LAYOUT"
         },
         {
@@ -220,12 +220,10 @@
       "target_ohm": 2.0,
       "title": "EARTHING LAYOUT",
       "unbonded": 0,
-      "warnings": [
-        "1 notes rows did not fit and were omitted"
-      ]
+      "warnings": []
     },
     {
-      "drawing_scale": "1:1500",
+      "drawing_scale": "1:2000",
       "files": {
         "dwg": null,
         "dxf": "05-ACME_DIPL_R500A_EL_302.dxf",

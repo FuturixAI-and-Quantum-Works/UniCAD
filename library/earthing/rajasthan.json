@@ -7,7 +7,7 @@
   "down": "25x3"
  },
  "array_fault_current_a": 8400.0,
- "conductor_mass_t": 125.9,
+ "conductor_mass_t": 126.1,
  "pits": 421,
  "pits_by_role": {
   "EP": 335,
@@ -32,7 +32,7 @@
  },
  "target_ohm": 1.0,
  "tables": 2687,
- "items": 262,
+ "items": 280,
  "unbonded": [],
  "quantities": [
   {
@@ -74,13 +74,13 @@
   {
    "item": "flat.50x6.main",
    "description": "50x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 7489.0,
+   "quantity": 7505.0,
    "unit": "m"
   },
   {
    "item": "flat.50x6.equipment",
    "description": "50x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 1826.0,
+   "quantity": 1922.0,
    "unit": "m"
   },
   {
@@ -311,7 +311,7 @@
   },
   {
    "name": "strip_current",
-   "value": 6969010.6,
+   "value": 6982499.7,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
@@ -393,13 +393,13 @@
     },
     {
      "name": "L",
-     "value": 9642188.345642665,
+     "value": 9653438.345642665,
      "unit": "cm",
      "source": null
     },
     {
      "name": "w",
-     "value": 2.740365597624321,
+     "value": 2.7429989481587653,
      "unit": "cm",
      "source": null
     },
@@ -429,10 +429,7 @@
   "ground potential rise GPR = IG x Rg (the fault current times the combined earth resistance); mesh and step voltages from the same IG",
   "flat strip 50x6 taken as a round conductor of diameter half its width in the IEEE 80 mesh equations",
   "tolerable voltages for a 50 kg body",
-  "earth resistance: switchyard grid Rg (Sverak, IEEE 80) in parallel with the rest of the plant earth bonded to it (Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs)",
-  "ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius",
-  "equipment footprints are not in the catalog: each station and each BESS unit (container, PCS, transformer) is protected as a 8 m square centred on its stored position and each string inverter as a 2 m square (assumed envelopes, not datasheet sizes)",
-  "terminals keep 1.5 m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure) and stand off stations, the switchyard grid and BESS units"
+  "earth resistance: switchyard grid Rg (Sverak, IEEE 80) in parallel with the rest of the plant earth bonded to it (Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs)"
  ],
  "warnings": [],
  "switchyard_grid": {

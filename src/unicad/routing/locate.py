@@ -107,11 +107,11 @@ class Locator:
     def switchyard(self) -> Place | None:
         a = self.assumptions
         azimuth = next(iter(self.block_frame.values()), 180.0)
+        if a.switchyard is not None:
+            return Place(*a.switchyard, azimuth, "switchyard")
         if self.layout.switchyard is not None:
             at = self.layout.switchyard.at
             return Place(at.x, at.y, azimuth, "switchyard")
-        if a.switchyard is not None:
-            return Place(*a.switchyard, azimuth, "switchyard")
         if not self.stations:
             return None
         pts = list(self.stations.values())

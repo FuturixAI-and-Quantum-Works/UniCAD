@@ -3478,11 +3478,11 @@
     "key": "sw.mccb",
     "title": "Moulded-case circuit breaker (MCCB)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 circuit breaker + thermal-magnetic release, type label",
+    "standard": "IEC 60617 S00287 circuit breaker + thermal-magnetic release",
     "tag_prefix": "MCCB",
     "block_name": "UC_SW_MCCB",
     "size": {
-      "width": 22.5,
+      "width": 10.0,
       "height": 20.0
     },
     "pins": [
@@ -3504,7 +3504,7 @@
     "attrs": [
       {
         "tag": "TAG",
-        "x": 25.0,
+        "x": 12.5,
         "y": 12.75,
         "height": 2.5,
         "default": "",
@@ -3514,7 +3514,7 @@
       },
       {
         "tag": "RATING",
-        "x": 25.0,
+        "x": 12.5,
         "y": 9.0,
         "height": 2.0,
         "default": "",
@@ -3524,7 +3524,7 @@
       },
       {
         "tag": "DESC",
-        "x": 25.0,
+        "x": 12.5,
         "y": 5.0,
         "height": 2.0,
         "default": "",
@@ -3538,11 +3538,11 @@
     "key": "sw.acb",
     "title": "Air circuit breaker (ACB)",
     "category": "switchgear",
-    "standard": "IEC 60617 S00287 circuit breaker + electronic release, type label",
+    "standard": "IEC 60617 S00287 circuit breaker + electronic release",
     "tag_prefix": "ACB",
     "block_name": "UC_SW_ACB",
     "size": {
-      "width": 22.5,
+      "width": 10.0,
       "height": 25.0
     },
     "pins": [
@@ -3564,7 +3564,7 @@
     "attrs": [
       {
         "tag": "TAG",
-        "x": 25.0,
+        "x": 12.5,
         "y": 15.25,
         "height": 2.5,
         "default": "",
@@ -3574,7 +3574,7 @@
       },
       {
         "tag": "RATING",
-        "x": 25.0,
+        "x": 12.5,
         "y": 11.5,
         "height": 2.0,
         "default": "",
@@ -3584,7 +3584,7 @@
       },
       {
         "tag": "DESC",
-        "x": 25.0,
+        "x": 12.5,
         "y": 7.5,
         "height": 2.0,
         "default": "",

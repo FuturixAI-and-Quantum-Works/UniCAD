@@ -41,6 +41,7 @@ ARRAY_MIN_SIZE = "25x6"
 GOVERNING_PRACTICE = "equipment and table-row practice (resistance and current density need no more)"
 GOVERNING_RESISTANCE = "earth resistance target"
 GOVERNING_CURRENT = "IS 3043 current density"
+PITS_AND_STRIP = "pits in parallel with each other and with the buried conductor (IS 3043)"
 INVERTER_FAULT_FACTOR = 1.5
 GRID_SPACING_DEFAULT_M = 6.0
 TOL_M = 1e-3
@@ -190,7 +191,7 @@ def _measure(lay: EarthingLayout, basis: EarthingBasis, electrode: Step, size: s
         method = "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs"
         value = limit
     else:
-        method = "pits in parallel with each other and with the buried conductor (IS 3043)"
+        method = PITS_AND_STRIP
         value = ps
     return Resistance(value, method, parts, strip, limit)
 
@@ -368,7 +369,8 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
     elif yard is not None:
         assumptions.append(f"switchyard grid conductors {spacing:g} m apart (typical spacing on the CIL/Refex earthmat layout; no fault data to check touch and step voltage)")
     mesh = _grid(basis, main, yard, rods(lay), spacing).mesh if yard is not None else None
-    assumptions.append(f"earth resistance: {gov.method}")
+    if gov.method != PITS_AND_STRIP:
+        assumptions.append(f"earth resistance: {gov.method}")
     if yard is None and rest.network_limit is not None and rest.network_limit > target:
         warnings.append(f"the buried network's area limits the earth resistance to about {rest.network_limit:.3g} ohm, above the {target:g} ohm target; more pits barely help")
     on_ground = sum(1 for p in lay.pits if p.on_ground)
@@ -382,7 +384,7 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
         basis=basis, rooftop=rooftop, sizes=sizes, steps=tuple(steps), electrode=electrode, strip=gov.strip, resistance_ohm=round(gov.value, 4), target_ohm=target,
         pits_by_resistance=need_r, pits_by_current=need_i if fault else None, pits_by_practice=n0, pits_governing=governing, array_fault=array_fault, grid=grid, grid_spacing_m=mesh,
         layout=lay, lps=lps,
-        quantities=quantities(lay, basis, sizes, lps), bonded=bonded, assumptions=tuple(assumptions + list(lps.assumptions if lps else ())), warnings=tuple(warnings),
+        quantities=quantities(lay, basis, sizes, lps), bonded=bonded, assumptions=tuple(assumptions), warnings=tuple(warnings),
         resistance_method=gov.method, resistance_parts=gov.parts, split_factor=sf, rest_ohm=round(rest.value, 4) if yard is not None else None,
         switchyard_unsized=unsized,
     )  # fmt: skip
