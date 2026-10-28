@@ -3,11 +3,12 @@
 import math
 import re
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from unicad.arrays.strings import assign_strings, string_id
 from unicad.domain.layout import ArrayLayout, StringAssignment
-from unicad.design.patches import centre, patches
+from unicad.design.patches import centre, patches, spanning
 from unicad.design.strings import DesignError
 
 STRING_ID = re.compile(r"^(?P<block>.+)-I(?P<inv>\d+)-S(?P<s>\d+)$")
@@ -48,6 +49,7 @@ class PvPlan:
     modules_per_string: int
     from_layout: bool = False
     unstrung_modules: int = 0
+    notes: tuple[str, ...] = ()
 
     @property
     def inverters(self) -> int:
@@ -62,10 +64,14 @@ def uniform(n_blocks: int, inv_per_block: int, strings_per_inverter: int, mps: i
     return PvPlan([BlockClass("", n_blocks, [InvClass("", inv_per_block, strings_per_inverter)])], mps)
 
 
-def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, max_inv_per_block: int | None = None, string_kwp: float | None = None) -> PvPlan:
+def from_layout(
+    layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, max_inv_per_block: int | None = None, string_kwp: float | None = None,
+    sides: Mapping[str, int] | None = None,
+) -> PvPlan:  # fmt: skip
     """Re-string each layout block with `mps` modules per string, split it into the fewest inverters of at most `target_spi` strings
     (balanced, so only the last inverter may carry fewer), and keep every string's slots so the network can link them 1:1."""
-    blocks, unstrung = [], 0
+    blocks, unstrung, spans = [], 0, []
+    side_of = sides or {}
     for bi, b in enumerate(layout.blocks):
         probe, left = assign_strings([b], mps, None)
         n = len(probe)
@@ -85,7 +91,9 @@ def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, ma
         assigned, left = assign_strings([b], mps, spi)
         unstrung += left
         sizes = list(Counter(int(STRING_ID.match(a.string)["inv"]) for a in assigned).values())
-        groups = patches([(centre(layout, a), a) for a in assigned], sizes)
+        groups = patches([(centre(layout, a), a) for a in assigned], sizes, sides=[side_of.get(a.spans[0].table, 0) for a in assigned] if side_of else None)
+        if side_of and (n_span := spanning(groups, side_of)):
+            spans.append(f"{b.name}: {n_span} inverter(s) collect strings from both sides of the transmission line corridor, because the strings of each side do not make up whole inverters")
         per_inv = {
             k + 1: [StringAssignment(string=string_id(b.id, k + 1, j + 1), spans=a.spans) for j, a in enumerate(g)] for k, g in enumerate(groups)
         }
@@ -101,7 +109,7 @@ def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, ma
         blocks.append(BlockClass(f"_b{bi + 1:02d}", 1, invs, f"{int(num):02d}", b.name))
     if not blocks:
         raise DesignError(f"the layout holds no whole string of {mps} modules")
-    return PvPlan(blocks, mps, from_layout=True, unstrung_modules=unstrung)
+    return PvPlan(blocks, mps, from_layout=True, unstrung_modules=unstrung, notes=tuple(spans))
 
 
 def _inverters(blk: BlockClass) -> list[tuple[int, list[StringAssignment]]]:

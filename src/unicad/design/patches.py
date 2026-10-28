@@ -1,7 +1,11 @@
 """Compact patches of layout strings for inverters and combiners: capacitated clustering in the array frame."""
 
+from collections.abc import Mapping, Sequence
+
+from unicad.arrays.blocks import regions
 from unicad.arrays.geometry import frame
 from unicad.domain.layout import ArrayLayout, StringAssignment
+from unicad.domain.site import SiteGeometry
 from unicad.routing.locate import slot_centre
 
 XY = tuple[float, float]
@@ -146,7 +150,60 @@ def _lloyd(points: list[XY], groups: list[list[int]], sizes: list[int], at_centr
     return best, best_score
 
 
-def patches(items: list[Item], sizes: list[int], at_centroid: bool = False) -> list[list[StringAssignment]]:
+SIDES = (
+    "An inverter's strings keep to one side of a transmission line corridor (cable is not run under the line) wherever the strings of each side make up "
+    "whole inverters; a patch that has to span the line is reported."
+)
+
+
+def keep_out_sides(layout: ArrayLayout, site: SiteGeometry | None) -> dict[str, int]:
+    """The part of the site, once transmission line corridors cut it, each layout table stands in (table id -> part); empty when no corridor divides the plant."""
+    if site is None:
+        return {}
+    tables = [t for b in layout.blocks for t in b.tables]
+    parts = regions(tables, site, keep_out_only=True)
+    if len(parts) < 2:
+        return {}
+    return {tables[i].id: k for k, g in enumerate(parts) for i in g}
+
+
+def _pure(counts: Sequence[int], sizes: Sequence[int]) -> tuple[list[list[int]], list[int]]:
+    """For each side, the indices of `sizes` whose patches fit wholly inside it (the largest total that fits, side after side, the biggest side first),
+    and the indices left over: those patches take the strings that remain on the sides and so span them."""
+    left = list(range(len(sizes)))
+    per_side: dict[int, list[int]] = {}
+    for side in sorted(range(len(counts)), key=lambda i: (-counts[i], i)):
+        best: dict[int, tuple[int, ...]] = {0: ()}
+        for i in left:
+            for total, picked in list(best.items()):
+                t = total + sizes[i]
+                if t <= counts[side] and (t not in best or len(best[t]) < len(picked) + 1):
+                    best[t] = (*picked, i)
+        pick = best[max(best)]
+        per_side[side] = list(pick)
+        left = [i for i in left if i not in pick]
+    return [per_side[i] for i in range(len(counts))], left
+
+
+def _meeting_point(by_side: Sequence[Sequence[Item]]) -> XY:
+    """The midpoint of the closest pair of strings on different sides: where the strings that must share an inverter are taken from."""
+    best, at = float("inf"), (0.0, 0.0)
+    for i, a in enumerate(by_side):
+        for b in by_side[i + 1 :]:
+            for (p, _) in a:
+                for (q, _) in b:
+                    d = _cost(p, q)
+                    if d < best:
+                        best, at = d, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)
+    return at
+
+
+def spanning(groups: Sequence[Sequence[StringAssignment]], side_of: Mapping[str, int]) -> int:
+    """How many of the patches hold strings on more than one side."""
+    return sum(1 for g in groups if len({side_of.get(a.spans[0].table) for a in g}) > 1)
+
+
+def patches(items: list[Item], sizes: list[int], at_centroid: bool = False, sides: Sequence[int] | None = None) -> list[list[StringAssignment]]:
     """`items` split into groups of exactly `sizes` (in that order) that are compact in the array frame: recursive bisection and seeded groups, each
     refined by capacitated Lloyd rounds (centroids, then the optimal size-keeping reassignment). The grouping whose worst patch is least wins: measured
     from the point nearest all its strings along the array axes, or from its centroid with `at_centroid` (a combiner that stands at the centroid)."""
@@ -154,6 +211,28 @@ def patches(items: list[Item], sizes: list[int], at_centroid: bool = False) -> l
         return [[a for _, a in items]]
     if sum(sizes) != len(items):
         raise ValueError(f"patch sizes {sizes} do not add up to {len(items)} strings")
+    if sides is not None and len(set(sides)) > 1:
+        keys = sorted(set(sides))
+        by_side = [[it for it, s in zip(items, sides) if s == k] for k in keys]
+        take, rest = _pure([len(m) for m in by_side], sizes)
+        out: list[list[StringAssignment] | None] = [None] * len(sizes)
+        pooled: list[Item] = []
+        meet = _meeting_point(by_side) if rest else (0.0, 0.0)
+        for k, (mine, idx) in enumerate(zip(by_side, take)):
+            own = sum(sizes[i] for i in idx)
+            extra = len(mine) - own
+            if extra:
+                near = sorted(mine, key=lambda it: (_cost(it[0], meet), it[0]))[:extra]
+                gone = {id(it[1]) for it in near}
+                pooled += near
+                mine = [it for it in mine if id(it[1]) not in gone]
+            groups = patches(mine, [sizes[i] for i in idx], at_centroid) if idx else []
+            for pos, g in zip(idx, groups):
+                out[pos] = g
+        if rest:
+            for pos, g in zip(rest, patches(pooled, [sizes[i] for i in rest], at_centroid)):
+                out[pos] = g
+        return [g for g in out if g is not None]
     points = [p for p, _ in items]
     starts = (_bisect(list(enumerate(points)), sizes), _seeded(points, sizes))
     best = min((_lloyd(points, g, sizes, at_centroid) for g in starts), key=lambda gs: gs[1])[0]

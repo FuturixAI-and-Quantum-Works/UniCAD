@@ -194,11 +194,11 @@ def register(server: MCPServer, ws: Workspace) -> None:
 
         Uses the site setbacks stored with site_set_setbacks. When the network has pv_string nodes, their instances are linked to the
         planned string slots in block order; otherwise the layout is stored without string assignments and the plan is reported.
-        A block keeps to one side of every transmission line corridor (cable is not run under the line): the parts of the site either side of it
-        get their own blocks, and when that makes block sizes differ the warnings give the spread and the largest block (a spread up to 40% is
-        accepted, an assumption; beyond it blocks are joined across the corridor and the warning says so). Roads can be crossed. The MV switchyard
-        and the BESS area keep the site's boundary setback (at least 3 m, assumed) from the fence; set switchyard_m in project_design_basis
-        earthing before this call so the yard is kept free of tables at its real size.
+        Blocks keep to one side of every road and line corridor while each side holds whole inverters in equal blocks; otherwise a warning names the
+        blocks that stand on both sides of a transmission line corridor (network_autobuild then keeps every inverter's strings on one side of the line
+        except where a side's strings do not make up whole inverters, and reports those). The MV switchyard and the BESS area keep 3 m (assumed) from
+        the boundary fence; set switchyard_m in project_design_basis earthing before this call so the yard is kept free of
+        tables at its real size.
         Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, road_every_rows=12, block_dc_kwp=15000)."""
 
         def change(p: Project) -> Edit:

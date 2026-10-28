@@ -386,9 +386,8 @@ Standard: none (design practice). Segments: all.
 The switchyard earth grid stands at least 3 m (an assumed clearance for the perimeter road and fence earthing, not a cited figure)
 inside the boundary line, which is the site fence; a grid that touches or crowds the fence puts the touch voltage outside the mat on
 the public side. Closer than that is an error (a warning for a grid inside a switchyard area marked on the site, which is the client's
-choice); between 3 m and the site's boundary setback, which layout_place keeps, is a warning. Checked for a ground plant whose
-switchyard grid is sized. Fix: run layout_place again (it keeps the yard clear of the fence), or pass switchyard_x/y for a spot
-inside the buildable area.
+choice). Checked for a ground plant whose switchyard grid is sized. Fix: run layout_place again (it keeps the yard clear of the fence),
+or pass switchyard_x/y for a spot inside the buildable area.
 
 
 ## lps
