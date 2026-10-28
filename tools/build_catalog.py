@@ -531,15 +531,17 @@ def import_protection(b: Build) -> None:
 
     mccb = ladders["mccb"]
     for frame in mccb["frames"]:
+        term = frame["terminal_with_spreaders"]
         for kind, rating in frame["types"].items():
             for in_a in frame["in_a"]:
                 for poles in (3, 4):
                     b.add(
                         "protection", f"protection_ladders.json mccb {frame['frame']}", ProtectionSpec,
                         id=slug("lk-dsine", frame["frame"], kind, f"{in_a}a", f"{poles}p"), manufacturer="Lauritz Knudsen",
-                        model=f"dsine {frame['frame']} {kind} {in_a}A {poles}P", source=src(mccb, extra="Icu at 415 V AC"),
+                        model=f"dsine {frame['frame']} {kind} {in_a}A {poles}P",
+                        source=src(mccb, extra=f"Icu at 415 V AC; terminal capacity p.{mccb['terminal_pdf_page']}: {mccb['terminal_note']}"),
                         device="mccb", rated_current=in_a, rated_voltage=415, poles=poles,
-                        breaking_capacity_ka=rating["icu_415v_ka"],
+                        breaking_capacity_ka=rating["icu_415v_ka"], terminal_max_mm2=term["max_mm2"], terminal_cables_per_pole=term["cables_per_pole"],
                     )
     b.notes.append("MCCB DC ratings (250/500/750 V) not catalogued: ProtectionSpec has no AC/DC field and no 1500 V DC ladder was found.")
 
@@ -747,6 +749,20 @@ def import_p5_protection(b: Build) -> None:
                     source=src(tmax, f"Icu {v['icu_ka_at_ue']} kA at Ue {v['ue_vac']} V AC; rated current from the electronic trip-unit sensor table on p.{tmax['sensor_pdf_page']}; {tmax['note']}"),
                     device="mccb", rated_current=in_a, rated_voltage=v["ue_vac"], poles=poles, breaking_capacity_ka=v["icu_ka_at_ue"],
                 )
+    easy = p5["mccb_easypact_solar_800v"]
+    term = easy["terminal_assumption"]
+    for fr in easy["frames"]:
+        for code, icu in fr["icu_ka"].items():
+            for in_a in fr["in_a"]:
+                ref = fr["ref"].format(code=code, in_a=in_a)
+                b.add(
+                    "protection", f"protection_p5.json mccb_easypact_solar_800v {fr['frame']}", ProtectionSpec,
+                    id=slug("schneider-easypact-solar", ref), manufacturer="Schneider Electric",
+                    model=f"EasyPact Solar {fr['frame']} {fr['release']} {in_a}A 3P {icu} kA at 800 V AC ({ref})",
+                    source=src(easy, f"Icu {icu} kA at Ue {easy['ue_vac']} V AC; {easy['note']}"),
+                    device="mccb", rated_current=in_a, rated_voltage=easy["ue_vac"], poles=3, breaking_capacity_ka=icu,
+                    terminal_max_mm2=term["max_mm2"], terminal_cables_per_pole=term["cables_per_pole"],
+                )
     ct = p5["ct_11kv"]
     b.add(
         "protection", "protection_p5.json ct_11kv", ProtectionSpec,
@@ -771,7 +787,7 @@ def import_p5_protection(b: Build) -> None:
         rated_voltage=la["ur_kv"] * 1000, poles=1, nominal_discharge_current_ka=la["nominal_discharge_current_ka"],
     )
     b.notes.append(
-        "800 V-class LT breakers: Schneider MasterPacT MTZ2 H10 (1150 V AC, 800-4000 A, 3P, Icu 50 kA) and ABB Tmax T4/T5 V and T6 L (1000-1150 V AC, 100-800 A, 3P/4P, Icu 12 kA) are catalogued. "
+        "800 V-class LT breakers: Schneider MasterPacT MTZ2 H10 (1150 V AC, 800-4000 A, 3P, Icu 50 kA), ABB Tmax T4/T5 V and T6 L (1000-1150 V AC, 100-800 A, 3P/4P, Icu 12 kA) and Schneider EasyPact Solar MCCB 400/800 (800 V AC, 125-800 A, 3P, Icu 25/36/50 kA) are catalogued. "
         "Siemens 3WL / 3VA and Schneider ComPacT NSX/NS at 800 V and above were not found in a text-extractable source."
     )
     b.notes.append(

@@ -90,6 +90,6 @@ def test_11kv_instrument_transformers_and_arrester_cite_the_purchaser_specificat
 
 def test_p5_extract_files_are_the_catalog_inputs():
     p5 = json.loads((EXTRACTED / "protection_p5.json").read_text())
-    assert set(p5) == {"_about", "acb_mtz2_h10", "mccb_tmax_1150v", "ct_11kv", "pt_11kv", "la_11kv"}
+    assert set(p5) == {"_about", "acb_mtz2_h10", "mccb_tmax_1150v", "ct_11kv", "pt_11kv", "la_11kv", "mccb_easypact_solar_800v"}
     report = (ROOT / "catalog" / "REPORT.md").read_text()
     assert "33 kV inverter-duty transformers with an 800 V LV winding: gap" in report

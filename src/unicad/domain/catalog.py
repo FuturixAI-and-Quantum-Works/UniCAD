@@ -296,6 +296,8 @@ class ProtectionSpec(Spec):
     curve: str | None = None
     spd_type: Literal["1", "2", "1+2", "3"] | None = None
     surge_counter: bool | None = Field(default=None, description="lightning arrester supplied with a discharge counter; None when the source is silent")
+    terminal_max_mm2: float | None = Field(default=None, gt=0, description="largest cable per pole the terminals take (sq.mm); None when the source is silent")
+    terminal_cables_per_pole: int | None = Field(default=None, gt=0, description="most cables per pole the terminals take")
 
 
 class MeterSpec(Spec):
