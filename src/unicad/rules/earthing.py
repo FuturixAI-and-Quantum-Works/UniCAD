@@ -164,3 +164,40 @@ def every_equipment_bonded(project: Project, catalog: Catalog) -> Iterator[Findi
                 rule_id="earthing.every_equipment_bonded", severity=Severity.WARNING, subjects=(n.id,),
                 message=f"{label(net, n.id)} ({n.kind}) has no earth (pe) connection in the electrical network; the earthing layout bonds it at its location",
             )  # fmt: skip
+
+
+@rule("earthing.mat_fence_clearance", "Switchyard earth mat keeps its clearance from the boundary fence")
+def mat_fence_clearance(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """The switchyard earth grid stands at least 3 m (an assumed clearance for the perimeter road and fence earthing, not a cited figure)
+    inside the boundary line, which is the site fence; a grid that touches or crowds the fence puts the touch voltage outside the mat on
+    the public side. Closer than that is an error (a warning for a grid inside a switchyard area marked on the site, which is the client's
+    choice); between 3 m and the site's boundary setback, which layout_place keeps, is a warning. Checked for a ground plant whose
+    switchyard grid is sized. Fix: run layout_place again (it keeps the yard clear of the fence), or pass switchyard_x/y for a spot
+    inside the buildable area."""
+    from shapely.geometry import box
+
+    from unicad.arrays.siting import FENCE_CLEAR_MIN_M, fence_clear_m
+    from unicad.lps.site import boundary, designated_switchyard, switchyard_footprint
+
+    if project.design_basis.earthing is None or project.site.geometry is None:
+        return
+    fence, yard = boundary(project), switchyard_footprint(project)
+    if fence is None or yard is None:
+        return
+    mat = box(*yard)
+    want = fence_clear_m(project.site.geometry)
+    got = fence.boundary.distance(mat) if fence.contains(mat) else 0.0
+    assumption = "clearance floor 3 m (assumed for the perimeter road and fence earthing, not a cited figure); the site boundary setback is the placement clearance"
+    if got >= want - 1e-6:
+        yield Finding(
+            rule_id="earthing.mat_fence_clearance", severity=Severity.INFO, subjects=("switchyard",),
+            message=f"switchyard earth grid stands {got:.1f} m inside the boundary fence (clearance {want:g} m)", measured=round(got, 2), limit=want, unit="m",
+        )  # fmt: skip
+        return
+    hard = got < FENCE_CLEAR_MIN_M - 1e-6
+    severity = Severity.ERROR if hard and designated_switchyard(project) is None else Severity.WARNING
+    yield Finding(
+        rule_id="earthing.mat_fence_clearance", severity=severity, subjects=("switchyard",),
+        message=f"switchyard earth grid is {got:.2f} m from the boundary fence, less than the {FENCE_CLEAR_MIN_M if hard else want:g} m clearance; run layout_place again or pass switchyard_x/y inside the buildable area",
+        measured=round(got, 2), limit=FENCE_CLEAR_MIN_M if hard else want, unit="m", assumptions=(assumption,),
+    )  # fmt: skip

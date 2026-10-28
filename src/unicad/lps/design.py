@@ -11,7 +11,7 @@ from shapely.ops import nearest_points, unary_union
 from shapely.prepared import prep
 
 from unicad.arrays.geometry import table_centre, table_corners
-from unicad.arrays.siting import equipment_ground
+from unicad.arrays.siting import FENCE_CLEAR_MIN_M, equipment_ground
 from unicad.domain.layout import Point
 from unicad.domain.project import LpsBasis, Project
 from unicad.domain.site import FeatureKind
@@ -37,7 +37,8 @@ ENVELOPE_ASSUMPTION = (
 )
 MAST_ASSUMPTION = (
     f"terminals keep {MAST_CLEAR_M:g} m clear of every table (room for the mast foundation and its lightning earth pit; assumed clearance, not a cited figure), "
-    "keep the setback of exclusions, water and line corridors as the tables do, and stand off roads, stations, the switchyard grid and BESS units"
+    f"keep the setback of exclusions, water and line corridors as the tables do, stand {FENCE_CLEAR_MIN_M:g} m inside the boundary fence (assumed clearance), "
+    "and stand off roads, stations, the switchyard grid and BESS units"
 )
 
 
@@ -209,7 +210,7 @@ def candidates(project: Project, radius: float, clear: float = MAST_CLEAR_M) -> 
     site = boundary(project)
     if site is not None:
         roof_union = unary_union([p for _, p in roofs(project)]) if roofs(project) else Polygon()
-        free = site.buffer(-2.0).intersection(equipment_ground(project.site.geometry)).difference(tables.buffer(clear)).difference(blocked(project))
+        free = site.buffer(-FENCE_CLEAR_MIN_M).intersection(equipment_ground(project.site.geometry, FENCE_CLEAR_MIN_M)).difference(tables.buffer(clear)).difference(blocked(project))
         free = free.difference(roof_union.buffer(1.0)).difference(stations)
         g = _snapped(free, spacing)
         pts.append(g)

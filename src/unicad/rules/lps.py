@@ -48,3 +48,34 @@ def coverage(project: Project, catalog: Catalog) -> Iterator[Finding]:
             message=f"{len(d.terminals)} {'ESE terminals' if d.method == 'ese' else 'air terminals'} of radius {d.radius_m:g} m cover all targets: {coverage_text(d)}",
             measured=len(d.terminals), unit="terminals", formula=d.steps[-1].formula, inputs=inputs, assumptions=d.assumptions,
         )  # fmt: skip
+
+
+@rule("lps.mast_fence_clearance", "Lightning terminals keep their clearance from the boundary fence")
+def mast_fence_clearance(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """Every lightning terminal stands at least 3 m (an assumed clearance for the perimeter road and the mast foundation, not a cited
+    figure) inside the boundary line, which is the site fence. Terminals are placed by the lightning design inside that margin, so a finding
+    means the design had no free position; projects without a lightning basis or a ground boundary are not checked."""
+    from shapely.geometry import Point as SPoint
+
+    from unicad.arrays.siting import FENCE_CLEAR_MIN_M
+    from unicad.lps.site import boundary, is_rooftop
+
+    d = lps_for(project)
+    fence = boundary(project)
+    if d is None or fence is None or project.site.geometry is None:
+        return
+    near = [(t.tag, fence.boundary.distance(SPoint(t.at.x, t.at.y))) for t in d.terminals if not t.on_roof]
+    near = [(tag, dist) for tag, dist in near if dist < FENCE_CLEAR_MIN_M - 1e-6]
+    for tag, dist in near[:50]:
+        yield Finding(
+            rule_id="lps.mast_fence_clearance", severity=Severity.WARNING, subjects=(tag,),
+            message=f"{tag} stands {dist:.1f} m inside the boundary fence, less than the {FENCE_CLEAR_MIN_M:g} m clearance",
+            measured=round(dist, 2), limit=FENCE_CLEAR_MIN_M, unit="m", assumptions=d.assumptions,
+        )  # fmt: skip
+    if not near and any(not t.on_roof for t in d.terminals) and not is_rooftop(project):
+        closest = min(fence.boundary.distance(SPoint(t.at.x, t.at.y)) for t in d.terminals if not t.on_roof)
+        yield Finding(
+            rule_id="lps.mast_fence_clearance", severity=Severity.INFO, subjects=(),
+            message=f"every ground terminal stands at least {closest:.1f} m inside the boundary fence (clearance {FENCE_CLEAR_MIN_M:g} m)",
+            measured=round(closest, 2), limit=FENCE_CLEAR_MIN_M, unit="m",
+        )  # fmt: skip
