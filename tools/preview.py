@@ -5,6 +5,7 @@ AppImage this project pins, so this is the visual check for sheet layout.
 """
 
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ from ezdxf.addons.drawing import Frontend, RenderContext, layout, pymupdf
 from ezdxf.addons.drawing.config import BackgroundPolicy, ColorPolicy, Configuration
 
 CAP = 9.0
-DEFAULT_LFF = Path("/tmp/opencode/proto/squashfs-root/usr/share/librecad/fonts/standard.lff")
+DEFAULT_LFF = Path(os.environ.get("LIBRECAD", "/tmp/opencode/proto/squashfs-root/AppRun")).parent / "usr" / "share" / "librecad" / "fonts" / "standard.lff"
 
 
 def _arc_xs(x0: float, y0: float, x1: float, y1: float, bulge: float) -> list[float]:

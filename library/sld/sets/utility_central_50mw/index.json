@@ -84,6 +84,7 @@
         "inv_acspd",
         "inv_dcspd",
         "scb",
+        "scb_fuse",
         "str"
       ],
       "number": "UDEMO-DRL-U50-EE-002",

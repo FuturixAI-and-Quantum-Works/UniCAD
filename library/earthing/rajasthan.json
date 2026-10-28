@@ -7,17 +7,17 @@
   "down": "25x3"
  },
  "array_fault_current_a": 8400.0,
- "conductor_mass_t": 126.1,
- "pits": 421,
+ "conductor_mass_t": 125.8,
+ "pits": 420,
  "pits_by_role": {
   "EP": 335,
   "EPN": 19,
   "EPB": 19,
   "EPT": 1,
   "ELA": 7,
-  "LE": 40
+  "LE": 39
  },
- "pits_by_practice": 421,
+ "pits_by_practice": 420,
  "pits_needed_by_resistance": 0,
  "pits_needed_by_current": 0,
  "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
@@ -32,7 +32,7 @@
  },
  "target_ohm": 1.0,
  "tables": 2687,
- "items": 280,
+ "items": 279,
  "unbonded": [],
  "quantities": [
   {
@@ -68,19 +68,19 @@
   {
    "item": "pit.LE",
    "description": "EARTH PIT, 40 MM DIA 3 M LONG MS ROD (UNTREATED) - LE",
-   "quantity": 40.0,
+   "quantity": 39.0,
    "unit": "nos"
   },
   {
    "item": "flat.50x6.main",
    "description": "50x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 7505.0,
+   "quantity": 7348.0,
    "unit": "m"
   },
   {
    "item": "flat.50x6.equipment",
    "description": "50x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 1922.0,
+   "quantity": 1955.0,
    "unit": "m"
   },
   {
@@ -98,13 +98,13 @@
   {
    "item": "flat.25x3.down",
    "description": "25x3 MM GS FLAT - DOWN CONDUCTOR (ROOF TO PIT / LPS)",
-   "quantity": 60.0,
+   "quantity": 59.0,
    "unit": "m"
   },
   {
    "item": "lps.terminal",
    "description": "ESE LIGHTNING ARRESTER, PROTECTION RADIUS 97.49 M, WITH MAST",
-   "quantity": 40.0,
+   "quantity": 39.0,
    "unit": "nos"
   }
  ],
@@ -311,7 +311,7 @@
   },
   {
    "name": "strip_current",
-   "value": 6982499.7,
+   "value": 6967448.8,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
@@ -341,7 +341,7 @@
     },
     {
      "name": "L",
-     "value": 60.0,
+     "value": 58.5,
      "unit": "m",
      "source": null
     }
@@ -393,13 +393,13 @@
     },
     {
      "name": "L",
-     "value": 9653438.345642665,
+     "value": 9632135.345642665,
      "unit": "cm",
      "source": null
     },
     {
      "name": "w",
-     "value": 2.7429989481587653,
+     "value": 2.738046163371646,
      "unit": "cm",
      "source": null
     },
@@ -446,13 +446,13 @@
   "spacing_m": 10.25,
   "rg_ohm": 0.5372,
   "rest_of_plant_ohm": 0.0259,
-  "split_factor": 0.046,
+  "split_factor": 0.0461,
   "fault_current_a": 12500,
-  "grid_current_a": 575.1,
+  "grid_current_a": 575.7,
   "gpr_v": 309,
   "e_touch_tolerable_v": 519.5,
   "e_step_tolerable_v": 1730.2,
-  "e_mesh_v": 56.2,
+  "e_mesh_v": 56.3,
   "e_step_v": 30.9,
   "safe": true
  },
@@ -460,7 +460,7 @@
   "method": "ese",
   "level": "III",
   "radius_m": 97.49,
-  "terminals": 40,
+  "terminals": 39,
   "tables_covered": 2687,
   "tables": 2687,
   "coverage": {

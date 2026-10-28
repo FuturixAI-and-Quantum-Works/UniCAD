@@ -509,8 +509,8 @@ validate(project_id="pune-midc-factory-roof")
       "rule_id": "vdrop.ac",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.84 + 0.86 + 0.11 + 0.57 = 2.38 % exceeds vdrop_ac_max...",
-      "measured": 2.379,
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.96 + 0.86 + 0.11 + 0.57 = 2.50 % exceeds vdrop_ac_max...",
+      "measured": 2.504,
       "limit": 2.0,
       "unit": "%"
     },
@@ -541,12 +541,12 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
       "title": "AC voltage drop from inverter to the point of interconnection within the design basis",
       "severity": "error",
       "subjects": ["inv_b01a", "poi"],
-      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.84 + 0.86 + 0.11 + 0.57 = 2.38 % exceeds vdrop_ac_max...",
+      "message": "AC voltage drop from INV-01..INV-02 (x2) to POI-01: 0.96 + 0.86 + 0.11 + 0.57 = 2.50 % exceeds vdrop_ac_max...",
       "formula": "dV%_total = sum(dV%_segment)",
       "inputs": [
         {
           "name": "dV%[e_inv_brk_b01a]",
-          "value": 0.8371,
+          "value": 0.9621,
           "unit": "%",
           "source": "dV% = 100 x sqrt(3) x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V; Ib = sum(n x S_max x 1000 / (sq..."
         },
@@ -570,7 +570,7 @@ explain_finding(project_id="pune-midc-factory-roof", rule_id="vdrop.ac", subject
         },
         "... 1 more"
       ],
-      "measured": 2.379,
+      "measured": 2.504,
       "limit": 2.0,
       "unit": "%",
       "assumptions": [
@@ -673,7 +673,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 25.0,
+        "quantity": 27.0,
         "unit": "m"
       },
       "... 1 more"
@@ -772,10 +772,10 @@ cable_schedule(project_id="pune-midc-factory-roof")
   "rows": 31,
   "totals": {
     "rows": 31.0,
-    "cable_m": 2390.84,
-    "loss_w": 5201.61,
-    "cable_m_dc": 1640.52,
-    "cable_m_lv_ac": 750.32
+    "cable_m": 2531.44,
+    "loss_w": 5698.12,
+    "cable_m_dc": 1784.93,
+    "cable_m_lv_ac": 746.52
   },
   "length_sources": {"estimated": 25, "network": 6},
   "warnings": []
@@ -800,7 +800,7 @@ bom(project_id="pune-midc-factory-roof")
     "inverters": 2.0,
     "combiner_boxes": 2.0,
     "transformers": 0,
-    "cable_m_ordered": 2386.0
+    "cable_m_ordered": 2534.0
   },
   "warnings": []
 }
