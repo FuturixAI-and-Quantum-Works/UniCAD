@@ -21,7 +21,7 @@ from unicad.domain.catalog import (
 from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
 from unicad.domain.project import DesignBasis, Project
 from unicad.rules.protection import isolator_devices
-from unicad.rules.ratio import EXPORT_CONTROL_ATTR, EXPORT_LIMIT_ATTR, plant_capacity
+from unicad.rules.ratio import BESS_KW_ASKED, BESS_KWH_ASKED, EXPORT_CONTROL_ATTR, EXPORT_LIMIT_ATTR, plant_capacity
 from unicad.rules.topology import AC_SERVICES, GENERATORS
 
 _KIND_LABEL = {
@@ -493,6 +493,30 @@ def _fmt_power(kw: float, unit: str) -> str:
     return f"{kw / 1000:,.3f} M{unit}" if kw >= 1000 else f"{kw:,.2f} k{unit}"
 
 
+def _bess_rows(project: Project, catalog: Catalog | None) -> list[tuple[str, str]]:
+    """Storage power and energy as built (PCS rated kVA and battery kWh times their instance counts), and the request when it differs: whole catalog units
+    rarely add up to the asked size, and the project title carries the asked one."""
+    if catalog is None:
+        return []
+    net = project.network
+    pcs = [n for n in net.by_kind(NodeKind.PCS) if isinstance(_spec(n, catalog), PCSSpec)]
+    cells = [n for n in net.by_kind(NodeKind.BATTERY) if isinstance(_spec(n, catalog), BatterySpec)]
+    kva = sum(_spec(n, catalog).rated_kva * net.instance_count(n.id) for n in pcs)
+    kwh = sum(_spec(n, catalog).energy_kwh * net.instance_count(n.id) for n in cells)
+    rows = []
+    if kva:
+        rows.append(("BESS POWER AS BUILT (PCS RATED)", _fmt_power(kva, "VA")))
+    if kwh:
+        rows.append(("BESS ENERGY AS BUILT", _fmt_power(kwh, "Wh")))
+    asked_kw = next((n.attributes.get(BESS_KW_ASKED) for n in pcs if n.attributes.get(BESS_KW_ASKED)), None)
+    asked_kwh = next((n.attributes.get(BESS_KWH_ASKED) for n in pcs if n.attributes.get(BESS_KWH_ASKED)), None)
+    differs = (asked_kw and abs(kva / asked_kw - 1) > 1e-3) or (asked_kwh and abs(kwh / asked_kwh - 1) > 1e-3)
+    if differs:
+        asked = " / ".join(x for x in (_fmt_power(asked_kw, "W") if asked_kw else None, _fmt_power(asked_kwh, "Wh") if asked_kwh else None) if x)
+        rows.append(("BESS AS REQUESTED", asked))
+    return rows
+
+
 def system_parameters(project: Project, catalog: Catalog | None) -> tuple[tuple[str, str], ...]:
     net = project.network
     rows: list[tuple[str, str]] = []
@@ -530,6 +554,7 @@ def system_parameters(project: Project, catalog: Catalog | None) -> tuple[tuple[
         rows.append(("PV STRINGS", f"{strings:,} x {'/'.join(map(str, series))} MODULES"))
     rows += [("INVERTERS", f"{c} x {label}") for label, c in inverters.items()]
     rows += [("BESS PCS", f"{c} x {label}") for label, c in pcs.items()]
+    rows += _bess_rows(project, catalog)
     for poi in net.by_kind(NodeKind.POI_GRID):
         limit = poi.attributes.get(EXPORT_LIMIT_ATTR)
         if isinstance(limit, int | float) and not isinstance(limit, bool):
