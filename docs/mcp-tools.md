@@ -175,7 +175,7 @@ Read-only.
 Import site geometry (boundary, roofs, exclusions, roads, obstacles) from KML/KMZ, GeoJSON, DXF or a coordinate list into local metres.
 
 The local frame is the UTM zone of the site; its origin (the lon/lat of local 0,0) is stored with the geometry. Shapes are classified by name, folder or
-layer (see kind_mapping). Importing the same file again replaces what it imported before; features from other files or added by hand are kept.
+layer (see kind_mapping). Importing the same file again replaces what it imported before; features from other files or added by hand are kept. With replace=true the old features go but the default setbacks (site_set_setbacks) are kept.
 Closed polygons become areas; open paths become roads, setback lines or transmission lines.
 Example: site_import(project_id="p1", file_path="/data/site.kml", kind_mapping={"Plot": "boundary"}).
 
@@ -190,7 +190,7 @@ Example: site_import(project_id="p1", file_path="/data/site.kml", kind_mapping={
 | `source_crs` | string | no | EPSG code when a DXF or coordinate list holds projected metres, e.g. 'EPSG:32643'; omit for local metres |
 | `units` | `m` \| `mm` \| `cm` \| `ft` \| `in` \| `km` \| `yd` \| `dm` | no | Drawing unit of a DXF without a usable $INSUNITS: m, mm, cm, ft, in, km, yd or dm |
 | `coordinate_system` | `lonlat` \| `latlon` \| `local` | no | Coordinate lists only: lonlat, latlon or local (metres). Guessed when omitted |
-| `replace` | boolean | no | Discard the existing site geometry first and start a new local frame Default: `False`. |
+| `replace` | boolean | no | Discard the existing site geometry first and start a new local frame; the default setbacks are kept Default: `False`. |
 
 ### `site_set_feature`
 

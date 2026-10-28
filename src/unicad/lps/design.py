@@ -298,8 +298,7 @@ def reposition(project: Project, terminals: list[tuple[float, float, str | None]
     for i, (x, y, rid) in enumerate(placed):
         others = [(a, b) for j, (a, b, _) in enumerate(placed) if j != i]
         need = pts[covered(pts, [(x, y)], radius) & ~covered(pts, others, radius)]
-        here = float(tree.query_nearest(SPoint(x, y), return_distance=True)[1][0])
-        best = (shaded(x, y), -here, x, y, rid)
+        best = (shaded(x, y), 0.0, x, y, rid)
         if len(need):
             hull = _hull_vertices(need)
             for r, free in ground:
@@ -313,14 +312,15 @@ def reposition(project: Project, terminals: list[tuple[float, float, str | None]
                 if not len(cand):
                     continue
                 room = tree.query_nearest(shapely.points(cand), return_distance=True, all_matches=False)[1]
-                assert len(room) == len(cand)
-                order = np.lexsort((cand[:, 1], cand[:, 0], -room))
-                for k in order[:RELOCATE_EVALUATIONS]:
+                near = np.hypot(cand[:, 0] - x, cand[:, 1] - y)
+                roomy = np.lexsort((cand[:, 1], cand[:, 0], -room))[:RELOCATE_EVALUATIONS]
+                closest = np.lexsort((cand[:, 1], cand[:, 0], near))[:RELOCATE_EVALUATIONS]
+                for k in dict.fromkeys([*roomy.tolist(), *closest.tolist()]):
                     cx, cy = float(cand[k][0]), float(cand[k][1])
                     area = shaded(cx, cy) if room[k] < reach else 0.0
-                    key = (round(area, 3), -float(room[k]), cx, cy)
+                    key = (round(area, 3), round(math.dist((cx, cy), (x, y)), 1), cx, cy)
                     if key < (round(best[0], 3), best[1], best[2], best[3]):
-                        best = (area, -float(room[k]), cx, cy, r)
+                        best = (area, key[1], cx, cy, r)
         placed[i] = (best[2], best[3], best[4])
         out.append(best)
     return [(b[2], b[3], b[4], round(b[0], 3)) for b in out]
