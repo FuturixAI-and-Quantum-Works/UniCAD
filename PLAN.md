@@ -190,9 +190,77 @@ Each phase ends in a check that runs on real artifacts. Nothing starts until the
 | Datasheet PDF extraction errors | The agent fills the spec and the server validates ranges and cross-checks (Pmax ≈ Vmp × Imp). The user confirms new catalog entries once. |
 | Manual LibreCAD edits lost on regenerate | Layer ownership rule (section 4) plus a test for it. |
 
-## 11. What I need from you
+## 11. Remaining steps (as of 2026-10-29)
+
+Status: phases 0-5 are built and merged. Verifier runs 1-6 are closed, and every run-6 defect that blocked issue is fixed (r1-elec, r2-draw, r3-site-perf merged; master 1865 passed, e2e 5 passed). The first real client brief (RVUNL Heerapura 1.4 MWp / 1.2 MWac, run report `/tmp/opencode/rvunl/run/REPORT.md`) reached 0 validate errors but could not be issued For Approval. Everything below is open. IDs: `R6-*` from verifier run 6, `RV-*` from the RVUNL run.
+
+### 11.1 Catalog gaps (block real client briefs)
+- RV-S1/S2: no module above 635 Wp (the brief had 720 Wp) and no 150 kW string inverter (the closest are 100 kVA and 300 kW). Add both from datasheets once the client names the make and model. Until then every brief with a newer module or inverter gets a different plant.
+- RV-S4: no multifunction meter (RS-485); only ABT/TVM meters exist.
+- RV-S5: no data logger part. The logger is drawn as a kWh meter marked "RATING TO BE SPECIFIED".
+- RV-m6: the SPD entry has In 20 kA; the brief's "40 kA" is probably Imax. Check against the datasheet and show both.
+- Still missing: 33 kV fuse-switch; 1500 V ~500 A SCB outgoing DC switch; 800 V ~400 A breakers beyond EasyPact; IDT catalog entries (inline project specs only); equipment dimensions (envelopes assumed 8 m / 2 m).
+- RV-m5: `catalog_search` returns nothing above the catalog's range without saying where the range ends (e.g. "largest module is 635 Wp").
+
+### 11.2 Modelling gaps (what the brief asks for that the model cannot hold)
+- RV-34: mixed string lengths in one inverter (18 and 19 modules) and uneven modules per inverter (252 / 234 / 240). Today strings are uniform.
+- RV-30: no project developer field (model, title block, register).
+- RV-31: the given site lat/long is stored but printed on no sheet. Print it on the layout and in the title block.
+- RV-S7: no LT ground-mount template. `utility_string` fails with "no catalog 0.415 kV transformer >= 110 kVA" for an LT plant, and the agent had to use `ci_rooftop` and delete the DISCOM meter, consumer panel and load by hand. Add a template for an LT ground plant into a client panel, or make the error point to `ci_rooftop`.
+- RV-A6: a fixed outgoing cable (7R x 300 Al in the brief) cannot be checked against a lower ACB setting. Support an ACB long-time setting (Ir) below the frame rating, so 7R against 2500 A frame / ~2000 A setting can pass or fail on its merits.
+- RV-M5: node `attributes` (busbar rating, CT/PT cores, relay functions) are never drawn. The agent had to put this data in the title text. Draw the standard attributes on the SLD; give the relay a proper symbol with its ANSI numbers.
+
+### 11.3 Drafting defects
+- RV-M2: projects without an EPC profile print the demo "UniCAD Demo EPC" with a Pune address. Ask for the EPC profile up front, or print a neutral title block that asks for it.
+- RV-M1: assumptions (plot boundary, soil resistivity, fault level, LPS level, tilt) are stored but not marked on the sheets. Every assumption that drives a sheet must appear there as "ASSUMED" (a notes block per sheet plus a set-level assumptions list on the register).
+- RV-M3: the layout sheet shows no ACCB, Main Board Panel or cable route for an LT plant; it shows indicative "stations" that do not exist.
+- RV-M4: communication links (RS-485 daisy chain inverter -> logger) cannot be drawn ("missing pin").
+- RV-M8: the earthing sheet draws 12 block "station" earth details and pits when the design has no stations (string inverters on an LT bus). The plan is also dense at A1.
+- RV-M7: the LPS step put one 6 m ESE mast in the middle of the array (it shades modules), with a 97 m circle well past the plot. Place masts in row gaps or at the boundary, and say when a single mast is chosen.
+- RV-m1: layout blocks are fragmented and interleaved, with diagonal dashed block boundaries.
+- RV-m2 / R6 open: sheets use only part of the paper (RVUNL SLD on A1 is mostly blank; run-6 C SLD sheet 2 and A earthing sheet about a quarter filled). Smaller paper made them unreadable before, so this needs a better fit, not just a smaller sheet.
+- RV-m3: revision remarks over ~55 characters are truncated in the title block, and the user is warned only at render. Reject or wrap at `project_issue`.
+- RV-m4: the BOM leaves out client-scope items (Main Board Panel) without saying so. Add a "client scope, not in this BOM" note.
+- R6 open: some labels sit far from what they name; some layout labels cover array tables.
+- R6 open: battery tags on crowded sheets go into stacks with crossing leaders (earthing sheet of the hybrid). Acceptable, not good.
+- R6 open: an unreadable SLD sheet gets a red banner and a set warning, but no validate rule blocks issuing it. Add one in rules.
+
+### 11.4 Tool and agent-experience defects
+- RV-M6: `layout_place` can fall short of the target (`target_reached: false`, 800 of 1400 kWp) and later steps and validate still pass with 0 errors. Make a shortfall beyond a tolerance a validate error (or at least a warning carried into every later result).
+- RV-M4b: `network_update` accepts an unknown `symbol` silently and `drawings_render` then fails. Validate the symbol key at update and expose the valid keys through MCP.
+- `network_connect` names the valid control-edge ports ("sig/sec") only in the error after a failure. List them in the tool description.
+- `project_issue` cannot amend a revision, so one fix costs a whole new issued revision (RVUNL ended with four revisions in one day).
+- `site_import(replace=True)` silently resets the setbacks.
+- Every edit makes a revision (RVUNL reached revision 201), and re-running `network_autobuild` discards hand edits. Hand edits need to survive a rebuild, or the tool must say what it will discard.
+
+### 11.5 Engineering inputs still assumed (need the EPC or a protection engineer)
+- IDT impedance 7 % from one BHEL 5.5 MVA spec, applied to every inverter-duty transformer (`design/templates.py` IDT_Z_PCT).
+- LT clearing 0.1 s and HV-cleared LT faults 0.103 s; relay settings unverified.
+- EasyPact Solar MCCB terminals assumed 2 x 300 mm2 per pole.
+- Floating (transformerless) arrays assumed, so both poles fused.
+- Defaults when not given: switchyard 60 x 45 m, crushed rock 3000 ohm-m, BESS area 40 x 30 m, road width 6 m, rooftop walkway 0.6 m every 2 rows, ESE dT 60 us, inverter fault 1.5 x In, equipment fence clearance 3 m.
+- Fault levels are user inputs; there is no fault study. RVUNL took 31.5 kA / 3 s from the busbar rating.
+- Bus-section VCB not added (no cited rule).
+
+### 11.6 Product hardening
+- DWG is LibreDWG R2000 only, with ATTRIB doubling on read-back; never opened in AutoCAD. The ODA converter is not obtained.
+- The company layer map applies only to SLD sets and the company preview; schedules, BOM, earthing and site sheets keep UniCAD layers.
+- Design thresholds vs the company profile: check that every design path reads the profile thresholds (N12).
+- Big-plant renders are now ~38 s for 45 MW (was 167 s), under the 60 s client timeout. Larger plants may still exceed it; add a background render job or progress reporting.
+- Rooftop fixture SLD splits to 3 pages in the Docker smoke; check that a single-sheet DISCOM rooftop SLD is still possible.
+- `.git` is 733 MB from committed regenerated samples. Move samples out of history or to LFS.
+- Licensing before shipping: derived tables from manufacturer catalogues and BIS IS 1180, the 5.7 MB ALMM extract, 7 third-party source mirrors to replace (`references/catalog-sources/SOURCES.md`). Sample drawings stay internal.
+
+### 11.7 Order of work
+1. Catalog parts for the RVUNL module and inverter (needs make and model from the client), then rerun RVUNL. This turns RV-S1..S3 into matches.
+2. Fix wave 7 in three disjoint units: (a) model and rules: developer field, mixed strings, LT ground template, ACB setting, layout-shortfall rule, unreadable-sheet rule, symbol validation; (b) drafting: assumptions on sheets, title block without a profile, attributes on the SLD, comms links, LT layout equipment and cable route, station-less earthing, sheet fill, labels; (c) site and LPS: mast placement, block fragmentation, coordinates on sheets, `site_import` setbacks, issue amend.
+3. Verifier run 7 on the three standard scenarios plus the RVUNL brief as scenario D. Done when every set is answered "a licensed engineer could issue it For Approval after normal review".
+4. Product hardening (11.6) and the EPC-owned inputs (11.5) in parallel with the customer.
+
+## 12. What I need from you
 
 1. Sample drawings are being sourced from public tenders and DISCOM formats (`references/samples/`). Your own title block, when you have one, replaces the default.
 2. The DISCOM or state formats you submit to most often.
 3. The design basis you use today: voltage-drop limits, DC/AC ratio targets, cable derating approach, and Tmin/Tmax source.
 4. Whether a human-in-the-loop approval step must be enforced in the tool, or only shown in the title block.
+5. For the RVUNL Heerapura brief: make and model of the 720 Wp module and the 150 kW inverter, the EPC company's title block, and the actual ACB setting for the 7R x 300 sq.mm outgoing cable.
