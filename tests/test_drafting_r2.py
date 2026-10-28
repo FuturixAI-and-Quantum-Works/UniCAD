@@ -140,9 +140,8 @@ def test_r5_m4_system_parameters_state_the_bess_power_and_energy_as_built(hybrid
 def test_r5_m4_the_request_is_shown_beside_the_build_when_whole_units_differ(hybrid):
     project, _ = hybrid
     data = json.loads(project.model_dump_json())
-    for n in data["network"]["nodes"]:
-        if n["kind"] == "pcs":
-            n["attributes"] = {**n.get("attributes", {}), "bess_kw_requested": 9000.0, "bess_kwh_requested": 18000.0}
+    kva, kwh = built_bess(project)
+    data["design_basis"]["bess"] = {"built_kva": kva, "built_kwh": kwh, "brief_kw": 9000.0, "brief_kwh": 18000.0}
     asked = parse_project(json.dumps(data), CATALOG)
     rows = dict(system_parameters(asked, CATALOG))
     assert rows["BESS AS REQUESTED"] == "9.000 MW / 18.000 MWh"
