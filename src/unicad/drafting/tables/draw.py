@@ -7,6 +7,7 @@ import ezdxf
 from ezdxf.colors import rgb2int
 from ezdxf.document import Drawing
 
+from unicad.drafting.sheets.layermap import apply_layer_map
 from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, PaperSize, SheetSpec
@@ -147,7 +148,7 @@ def render_tables(
                 raise ValueError("the sheet's drawing area differs from the paper's metrics")
             cv = Canvas(doc, profile)
             draw_page(cv, spec, plan, page)
-            warnings += [*sheet.warnings, *cv.warnings]
+            warnings += [*sheet.warnings, *cv.warnings, *apply_layer_map(doc, profile)]
             docs.append(doc)
             owner.append(part)
             papers.append(paper)

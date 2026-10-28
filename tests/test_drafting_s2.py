@@ -129,3 +129,20 @@ def test_rv_m3_a_long_revision_remark_wraps_instead_of_truncating(sheets, projec
 def test_rv_m4_the_bom_names_client_scope_items_left_out(sheets):
     bom = " ".join(t for k, t in sheets.values() if k == "bom")
     assert "NOT IN THIS BOM" in bom and "POI-01 CLIENT MAIN BOARD PANEL" in bom
+
+
+# ---------------- 11.6: the company layer map on every sheet kind, the schedule and BOM exports included ----------------
+
+
+def test_the_layer_map_applies_to_exported_schedule_and_bom_pages():
+    from unicad.drafting.sheets.model import LayerSpec
+    from unicad.schedules import LengthMode, build_bom, build_schedule
+    from unicad.schedules.dxf import render_bom, render_schedule
+
+    p = rvunl()
+    profile = load_profile("default").model_copy(update={"version": 2, "layer_map": {"G-TEXT": LayerSpec(name="CO-TABLE-TEXT")}})
+    schedule = build_schedule(p, CATALOG, LengthMode.AUTO)
+    docs = [*render_schedule(p, schedule, profile)[0].docs, *render_bom(p, build_bom(p, CATALOG, schedule), profile).docs]
+    for doc in docs:
+        layers = {e.dxf.layer for e in doc.modelspace()}
+        assert "G-TEXT" not in layers and "CO-TABLE-TEXT" in layers
