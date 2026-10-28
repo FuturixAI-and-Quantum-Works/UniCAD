@@ -114,10 +114,28 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     return r.model_copy(update={"target_reached": reached, "warnings": tuple(warnings), "assumptions": (*notes, *r.assumptions)})
 
 
+def _yard_target(site: SiteGeometry, spec: PlacementSpec) -> tuple[Point, str] | None:
+    """Where a ground plant's switchyard is wanted before any table is placed: the given point, else the point of the site's transmission line
+    nearest the buildable area. None when the site marks a switchyard area (it is carved already) or gives neither."""
+    if siting.marked_switchyard(site) is not None:
+        return None
+    if spec.switchyard is not None:
+        return spec.switchyard, "given (layout_place switchyard_x, switchyard_y)"
+    anchor = fill_anchor(site, spec.model_copy(update={"switchyard": None}))
+    return None if anchor is None else (anchor[0], "nearest the transmission line on the site (where the export line leaves)")
+
+
 def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> PlacementResult:
     widened = [f.id for f in site.of_kind(FeatureKind.ROAD) if f.polyline and f.width_m is None]
     if widened:
         site = site.with_features(f.model_copy(update={"width_m": spec.road_width_m}) if f.id in widened else f for f in site.features)
+    on_roofs = spec.regions == "roofs" or (spec.regions == "auto" and spec.mounting.on_roof)
+    reserved = None
+    if not on_roofs and (want := _yard_target(site, spec)) is not None:
+        reserved = siting.reserve_switchyard(site, want[0], want[1], spec.switchyard_m, given=spec.switchyard is not None)
+    stored_site = site
+    if reserved is not None:
+        site = site.with_features((*site.features, reserved.feature))
     placed = place_tables(site, spec, module)
     if not placed.tables:
         raise PlacementError("no table fits the buildable area; try a shorter table, a smaller setback or half tables")
@@ -131,7 +149,6 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     block_notes: list[str] = []
     mps = spec.modules_per_string or spec.table_cols
     spi = spec.strings_per_inverter
-    on_roofs = spec.regions == "roofs" or (spec.regions == "auto" and spec.mounting.on_roof)
     blocks = tuple(build_blocks(
         placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp, block_notes,
         flexible=spec.n_blocks is None and spec.block_dc_kwp is not None, on_roofs=on_roofs, station=spec.station,
@@ -140,8 +157,8 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     if not blocks:
         raise PlacementError(f"the placed tables hold fewer strings than one inverter of {spi} strings; lower strings_per_inverter or pass whole_inverters=false")
     strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter)
-    yard = siting.switchyard(
-        site, [b.station for b in blocks if b.station is not None], [t for b in blocks for t in b.tables], on_roofs, spec.switchyard, spec.switchyard_m,
+    yard = reserved.located if reserved is not None else siting.switchyard(
+        stored_site, [b.station for b in blocks if b.station is not None], [t for b in blocks for t in b.tables], on_roofs, spec.switchyard, spec.switchyard_m,
         [LineString([(p.x, p.y) for p in r.points]) for r in placed.roads], spec.road_width_m,
     )  # fmt: skip
     layout = ArrayLayout(blocks=blocks, strings=tuple(strings), switchyard=yard)

@@ -3,6 +3,7 @@
 import math
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from shapely.geometry import LineString, Polygon
 from shapely.geometry import Point as ShapelyPoint
@@ -11,16 +12,18 @@ from shapely.ops import nearest_points, unary_union
 
 from unicad.arrays.geometry import table_corners
 from unicad.domain.layout import Located, Point, Table
-from unicad.domain.site import FeatureKind, SiteGeometry, shape_of
+from unicad.domain.site import FeatureKind, SiteFeature, SiteGeometry, shape_of
 
 STATION_CLEAR_M = 1.5
 ROOF_CLEAR_M = 0.4
 PANEL_OFFSET_M = 6.0
 SPOT_ASSUMPTION = (
-    f"Ground equipment (inverter stations, switchyard, BESS units) keeps {STATION_CLEAR_M:g} m clear of tables, roads, exclusions and water and stands "
-    "inside the buildable area (assumed clearance for access, not a cited figure)."
+    f"Ground equipment (inverter stations, switchyard, BESS units) keeps {STATION_CLEAR_M:g} m clear of tables and roads, keeps the exclusion setback from "
+    "exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure)."
 )
 SWITCHYARD_NAME = re.compile(r"switch ?yard|sub ?station|pooling", re.IGNORECASE)
+SWITCHYARD_ASSUMED_M = (60.0, 45.0)
+RESERVED_YARD_ID = "mv-yard-reserve"
 
 
 def _xy(p: Point) -> tuple[float, float]:
@@ -45,19 +48,30 @@ def occupied(site: SiteGeometry, tables: Sequence[Table], roads: Sequence[LineSt
     return unary_union(parts)
 
 
+def keep_off_m(site: SiteGeometry, f: SiteFeature) -> float:
+    """The clearance ground equipment keeps from a site feature: its own setback_m, else the site's exclusion setback (obstacle setback for
+    obstacles), as tables keep. Roads and roofs keep none: a station may stand in the strip beside a road that tables keep clear of."""
+    if f.kind in (FeatureKind.ROAD, FeatureKind.ROOF):
+        return 0.0
+    if f.setback_m is not None:
+        return f.setback_m
+    return site.setbacks.obstacle_m if f.kind is FeatureKind.OBSTACLE else site.setbacks.exclusion_m
+
+
 def equipment_ground(site: SiteGeometry) -> BaseGeometry:
-    """Where ground equipment may stand: inside the boundary, off roads (their width), exclusions, water, buildings, obstacles, roofs and line
-    corridors. Array setbacks do not apply: a station may stand in the strip beside a road that tables keep clear of."""
+    """Where ground equipment may stand: inside the boundary, off roads (their width), roofs, and exclusions, water, buildings, obstacles and line
+    corridors by their setback (keep_off_m)."""
     inside = unary_union([shape_of(f) for f in site.of_kind(FeatureKind.BOUNDARY)])
     off = []
     for f in site.features:
-        if f.kind in (FeatureKind.BOUNDARY, FeatureKind.SETBACK_LINE):
+        if f.kind in (FeatureKind.BOUNDARY, FeatureKind.SETBACK_LINE, FeatureKind.SWITCHYARD):
             continue
-        g = shape_of(f)
-        if f.polyline:
-            off.append(g.buffer((f.width_m or 0.0) / 2, cap_style="flat") if f.width_m else g)
-        elif f.kind is not FeatureKind.SWITCHYARD:
-            off.append(g)
+        g, clear = shape_of(f), keep_off_m(site, f)
+        if f.polyline and f.width_m:
+            g = g.buffer(f.width_m / 2 + clear, cap_style="flat", join_style="mitre")
+        elif clear:
+            g = g.buffer(clear, join_style="mitre")
+        off.append(g)
     return inside.difference(unary_union(off)) if off else inside
 
 
@@ -104,6 +118,34 @@ def outside_roof(roof: Polygon, toward: tuple[float, float], offset: float) -> t
     if nx * (edge.x - c.x) + ny * (edge.y - c.y) < 0:
         nx, ny = -nx, -ny
     return (edge.x + nx * offset, edge.y + ny * offset)
+
+
+@dataclass(frozen=True)
+class ReservedYard:
+    """A ground switchyard footprint kept free of tables before they are placed: the carve (an exclusion) and the stored location."""
+
+    feature: SiteFeature
+    located: Located
+
+
+def reserve_switchyard(
+    site: SiteGeometry, target: Point, why: str, size_m: tuple[float, float] | None, given: bool = False
+) -> ReservedYard | None:  # fmt: skip
+    """The switchyard footprint (`size_m`, else SWITCHYARD_ASSUMED_M) centred on the given point, or on the free ground nearest `target` that holds it
+    clear of exclusions, water and line corridors by their setback; None when no free ground holds it. Tables are then placed around it, so the
+    earth mat, the BESS clearance and the MV feeder routes all use this one location."""
+    lx, ly = size_m or SWITCHYARD_ASSUMED_M
+    if given:
+        at = target
+    else:
+        at = nearest_in(room(site, Polygon(), math.hypot(lx, ly) / 2), (target.x, target.y))
+        if at is None:
+            return None
+    size = "switchyard_m" if size_m else "assumed size: set switchyard_m and re-run layout_place"
+    ring = ((at.x - lx / 2, at.y - ly / 2), (at.x + lx / 2, at.y - ly / 2), (at.x + lx / 2, at.y + ly / 2), (at.x - lx / 2, at.y + ly / 2))
+    feature = SiteFeature(id=RESERVED_YARD_ID, kind=FeatureKind.EXCLUSION, polygon=tuple(Point(x=x, y=y) for x, y in ring))
+    where = why if given else f"derived: the free ground {why}, clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position)"
+    return ReservedYard(feature, Located(at=at, basis=f"{where}; a {lx:g} x {ly:g} m yard ({size}) is kept free of tables"))
 
 
 def switchyard(

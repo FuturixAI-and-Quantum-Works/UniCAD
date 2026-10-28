@@ -20,6 +20,7 @@ CUT_SLACK = 0.02
 WIDE_GAP_RATIO = 2.5
 REGION_BALANCE = 0.10
 MAX_GROWTH = 1.5
+SWAP_WINDOW = 40
 
 
 def block_count(total_kwp: float, n_blocks: int | None, block_dc_kwp: float | None, n_tables: int) -> int:
@@ -96,6 +97,27 @@ def partition(
         ratio = best[0] / typical if typical > 0 and best[0] > 0 else 0.0
         return ratio, best[1], best[2], ordered
 
+    def exact(lo_side: list[int], hi_side: list[int], k: int, axis: int) -> tuple[list[int], list[int]]:
+        """With whole inverters: when the cut leaves the low side a few strings off its share of whole inverters, move one table, or swap a
+        pair, among the SWAP_WINDOW tables either side of the cut so both sides hold exactly whole inverters (where such tables exist)."""
+        k_lo = k // 2
+        total_u = sum(units[i] for i in lo_side + hi_side)
+        invs = total_u // quantum
+        want = (invs // k * k_lo + min(invs % k, k_lo)) * quantum
+        d = sum(units[i] for i in lo_side) - want
+        if not d or abs(d) >= quantum:
+            return lo_side, hi_side
+        edge = (pts[lo_side[-1]][axis] + pts[hi_side[0]][axis]) / 2
+        near_lo, near_hi = lo_side[-SWAP_WINDOW:], hi_side[:SWAP_WINDOW]
+        moves: list[tuple[float, tuple[int, ...], tuple[int, ...]]] = []
+        moves += [(abs(pts[a][axis] - edge), (a,), ()) for a in near_lo if units[a] == d]
+        moves += [(abs(pts[b][axis] - edge), (), (b,)) for b in near_hi if units[b] == -d]
+        moves += [(abs(pts[a][axis] - edge) + abs(pts[b][axis] - edge), (a,), (b,)) for a in near_lo for b in near_hi if units[a] - units[b] == d]
+        if not moves:
+            return lo_side, hi_side
+        _, out, into = min(moves, key=lambda m: (m[0], m[1], m[2]))
+        return [i for i in lo_side if i not in out] + list(into), list(out) + [i for i in hi_side if i not in into]
+
     def split(idx: list[int], k: int) -> list[list[int]]:
         if k == 1 or len(idx) <= 1:
             return [idx]
@@ -107,7 +129,10 @@ def partition(
         axis = other if cuts[other][0] >= WIDE_GAP_RATIO and cuts[other][0] > cuts[longer][0] else longer
         _, _, cut, ordered = cuts[axis]
         k_lo = k // 2
-        return split(ordered[:cut], k_lo) + split(ordered[cut:], k - k_lo)
+        lo_side, hi_side = ordered[:cut], ordered[cut:]
+        if units is not None and quantum:
+            lo_side, hi_side = exact(lo_side, hi_side, k, axis)
+        return split(lo_side, k_lo) + split(hi_side, k - k_lo)
 
     return [g for g in split(list(range(len(tables))), n) if g]
 

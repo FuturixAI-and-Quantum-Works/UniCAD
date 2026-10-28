@@ -81,8 +81,18 @@ def register(server: MCPServer, ws: Workspace) -> None:
             if "soil_resistivity_ohm_m" not in data:
                 raise ValueError("soil_resistivity is required: the design basis has no soil resistivity yet")
             updated = _with(ws, p, earthing=EarthingBasis(**data))
-            s = summary(design_earthing(updated, catalog=ws.catalog))
-            return Edit(updated, ("design_basis.earthing",), {"earthing": _brief(s) | {"assumptions": s["assumptions"]}})
+            lps = design_lps(updated) if updated.design_basis.lps is not None else None
+            s = summary(design_earthing(updated, lps=lps, catalog=ws.catalog))
+            extra: dict[str, Any] = {"earthing": _brief(s) | {"assumptions": s["assumptions"]}}
+            problems = []
+            if lps is not None:
+                extra["lps_terminal_count"] = len(lps.terminals)
+                old = p.design_basis.earthing.switchyard_m if p.design_basis.earthing is not None else None
+                if old != updated.design_basis.earthing.switchyard_m and (was := len(design_lps(p).terminals)) != len(lps.terminals):
+                    problems.append({"severity": "warning", "subject": "lps", "message": (
+                        f"the lightning design now has {len(lps.terminals)} terminals (lps_design gave {was}): the switchyard size changed what it covers; "
+                        "earthing_summary and the LPS sheet show the new design")})  # fmt: skip
+            return Edit(updated, ("design_basis.earthing",), extra, tuple(problems))
 
         return ws.mutate(project_id, change)
 

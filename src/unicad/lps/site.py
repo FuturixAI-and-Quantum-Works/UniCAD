@@ -1,10 +1,8 @@
 """Site facts the lightning and earthing designs share: roofs, boundary, blocked ground and where the MV switchyard stands."""
 
-import math
-
 from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
-from shapely.ops import nearest_points, unary_union
+from shapely.geometry import Polygon, box
+from shapely.ops import unary_union
 
 from unicad.arrays.geometry import table_corners
 from unicad.arrays.siting import marked_switchyard
@@ -58,41 +56,37 @@ def designated_switchyard(project: Project) -> Polygon | None:
     return None if marked is None else marked[1]
 
 
-def place_switchyard(project: Project, size: tuple[float, float], near: tuple[float, float] | None) -> tuple[Rect | None, str | None]:
-    """The switchyard grid rectangle: inside a designated switchyard area if the site has one, else the free area nearest `near` (the layout's
-    switchyard location, so the grid is drawn where cable routing takes the switchyard to be), clear of the tables and of the placed BESS units
-    by their fire separation (structure.bess_separation)."""
-    from unicad.rules.structure import BESS_PLACED, BESS_SEPARATION_M
+def place_switchyard(project: Project, size: tuple[float, float]) -> tuple[Rect | None, str | None]:
+    """The switchyard grid rectangle: inside a designated switchyard area if the site has one, else `size` centred on the layout's one switchyard
+    location (where cable routing measures the MV feeders to and layout_place kept the yard free of tables). It never moves: when the
+    footprint there overlaps tables, exclusions or placed BESS units, the problem says so and how to fix it."""
+    from unicad.rules.structure import BESS_PLACED
 
     marked = designated_switchyard(project)
     if marked is not None:
         x0, y0, x1, y1 = marked.buffer(-2.0).bounds
         return (x0, y0, x1, y1), None
-    site = boundary(project)
-    if site is None:
-        return None, "no site boundary: the switchyard grid is not placed"
     layout = project.array_layout
-    tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()]) if layout is not None else Polygon()
-    bess = unary_union([SPoint(e.at.x, e.at.y) for e in layout.equipment if e.kind in BESS_PLACED]) if layout is not None else Polygon()
-    free = site.buffer(-3.0).difference(tables.buffer(5.0)).difference(blocked(project).buffer(3.0)).difference(bess.buffer(BESS_SEPARATION_M + 0.5))
+    if layout is None or layout.switchyard is None:
+        return None, "the layout has no switchyard location: run layout_place (switchyard_x/y, or derived) so the switchyard grid is placed where routing takes it"
     lx, ly = size
-    room = free.buffer(-math.hypot(lx, ly) / 2)
-    target = SPoint(near) if near is not None else site.centroid
-    if room.is_empty:
-        return None, f"no free area of {lx:g} x {ly:g} m inside the site for the switchyard earth grid; it is not drawn"
-    c = nearest_points(room, target)[0]
-    return (c.x - lx / 2, c.y - ly / 2, c.x + lx / 2, c.y + ly / 2), None
-
-
-def switchyard_near(project: Project) -> tuple[float, float] | None:
-    """Where the switchyard grid is wanted: the layout's one switchyard location, else the centroid of the block stations."""
-    layout = project.array_layout
-    if layout is None:
-        return None
-    if layout.switchyard is not None:
-        return (layout.switchyard.at.x, layout.switchyard.at.y)
-    stations = [(b.station.x, b.station.y) for b in layout.blocks if b.station is not None]
-    return (sum(p[0] for p in stations) / len(stations), sum(p[1] for p in stations) / len(stations)) if stations else None
+    at = layout.switchyard.at
+    rect = (at.x - lx / 2, at.y - ly / 2, at.x + lx / 2, at.y + ly / 2)
+    mat = box(*rect)
+    tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()])
+    hits = []
+    if mat.intersects(tables):
+        hits.append("tables")
+    if mat.intersects(blocked(project)):
+        hits.append("an exclusion, road or line corridor")
+    if any(mat.contains(SPoint(e.at.x, e.at.y)) for e in layout.equipment if e.kind in BESS_PLACED):
+        hits.append("BESS units")
+    if hits:
+        return rect, (
+            f"the {lx:g} x {ly:g} m switchyard grid centred on the layout's switchyard location ({at.x:.1f}, {at.y:.1f}) overlaps {' and '.join(hits)}: "
+            "re-run layout_place after setting switchyard_m (it keeps that footprint free of tables), or pass switchyard_x/y for a free spot"
+        )
+    return rect, None
 
 
 def switchyard_footprint(project: Project) -> Rect | None:
@@ -103,4 +97,4 @@ def switchyard_footprint(project: Project) -> Rect | None:
     size = basis.switchyard_m if basis is not None else None
     if size is None and designated_switchyard(project) is None:
         return None
-    return place_switchyard(project, size or (0.0, 0.0), switchyard_near(project))[0]
+    return place_switchyard(project, size or (0.0, 0.0))[0]

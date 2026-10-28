@@ -33,7 +33,7 @@ from unicad.earthing.sizing import (
     sverak,
 )
 from unicad.lps.design import LpsDesign, design_lps, is_rooftop
-from unicad.lps.site import designated_switchyard, place_switchyard, switchyard_near
+from unicad.lps.site import designated_switchyard, place_switchyard
 
 DEFAULT_SIZE = "50x6"
 DOWN_SIZE = "25x3"
@@ -300,10 +300,9 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
             warnings.append(SWITCHYARD_UNKNOWN)
         else:
             layout = project.array_layout
-            near = switchyard_near(project)
             if layout is not None and layout.switchyard is not None:
                 assumptions.append(f"MV switchyard earth grid centred on the layout's switchyard location ({layout.switchyard.basis})")
-            yard, problem = place_switchyard(project, basis.switchyard_m or (0.0, 0.0), near)
+            yard, problem = place_switchyard(project, basis.switchyard_m or (0.0, 0.0))
             if problem:
                 warnings.append(problem)
             if yard is not None:

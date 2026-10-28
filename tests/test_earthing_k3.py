@@ -267,14 +267,13 @@ def test_c3_a_bess_unit_standing_inside_the_mat_is_flagged():
     assert len([w for w in d.warnings if "inside the switchyard earth mat" in w]) == len(inside)
 
 
-def test_c3_the_switchyard_mat_is_placed_clear_of_bess_units_standing_where_it_would_go():
-    """k1 follow-up: the earthing mat is placed in free ground at least the BESS fire separation away from every placed BESS unit, so a
-    BESS area next to the switchyard point does not end up under the mat (structure.bess_separation)."""
-    from unicad.rules.structure import BESS_SEPARATION_M
-
+def test_c3_the_switchyard_mat_stays_at_the_layout_location_and_says_when_bess_units_stand_on_it():
+    """M1 (close-e2e-4): the earthing mat never moves off the layout's one switchyard location (where routing measures the MV feeders to);
+    BESS units moved onto it are named in a warning with the fix, and flagged as inside the mat."""
     p, _ = scenario("kutch-hybrid")
     sy = design_earthing(p, catalog=CATALOG).layout.switchyard
     cx, cy = (sy.x0 + sy.x1) / 2, (sy.y0 + sy.y1) / 2
+    assert (cx, cy) == pytest.approx((p.array_layout.switchyard.at.x, p.array_layout.switchyard.at.y), abs=1e-6)
     moved, k = [], 0
     for e in p.array_layout.equipment:
         if e.kind != "inverter":
@@ -283,10 +282,9 @@ def test_c3_the_switchyard_mat_is_placed_clear_of_bess_units_standing_where_it_w
         moved.append(e)
     q = p.model_copy(update={"array_layout": p.array_layout.model_copy(update={"equipment": tuple(moved)})})
     d = design_earthing(q, catalog=CATALOG)
-    mat = box(d.layout.switchyard.x0, d.layout.switchyard.y0, d.layout.switchyard.x1, d.layout.switchyard.y1)
-    bess = [e for e in q.array_layout.equipment if e.kind != "inverter"]
-    assert k and min(mat.distance(Point(e.at.x, e.at.y)) for e in bess) >= BESS_SEPARATION_M
-    assert not [w for w in d.warnings if "inside the switchyard earth mat" in w]
+    assert ((d.layout.switchyard.x0 + d.layout.switchyard.x1) / 2, (d.layout.switchyard.y0 + d.layout.switchyard.y1) / 2) == pytest.approx((cx, cy), abs=1e-6)
+    assert k and any("overlaps BESS units" in w and "re-run layout_place" in w for w in d.warnings), d.warnings
+    assert [w for w in d.warnings if "inside the switchyard earth mat" in w]
 
 
 # --- A3: placed inverters carry their tags on the earthing sheet -------------------------------
