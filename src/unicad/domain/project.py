@@ -251,6 +251,7 @@ class Project(_Frozen):
     design_basis: DesignBasis
     company_profile: str
     segment: Segment
+    developer: Party | None = Field(default=None, description="project developer, when it is not the client (e.g. the RESCO or IPP building the plant for the client)")
     network: ElectricalNetwork = ElectricalNetwork()
     array_layout: ArrayLayout | None = None
     sheets: tuple[Sheet, ...] = ()

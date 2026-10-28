@@ -22,6 +22,7 @@ Clause references name the standard only; clause numbers are added once verified
 | `fault_clearing_default` | 1 s | Fault clearing time taken as 1 s, the duration cable and switchgear short-circuit ratings are tabulated for, when neither the fault level nor the earthing basis gives a clearing time. |
 | `string_fuse_min` | 1.5 | String fuse rating In > 1.5 x Isc(STC) of the module (IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR for a fuse protecting one string; the standards' own text was not available.). |
 | `string_fuse_max` | 2.4 | String fuse rating In < 2.4 x Isc(STC) of the module (IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR for a fuse protecting one string; the standards' own text was not available.). |
+| `layout_shortfall` | 0.02 | A placed array may fall short of the layout_place target by one table (whole tables only) plus 2 % of the target (design tolerance, not a cited figure); a larger shortfall means the site does not hold the brief's capacity. |
 
 ## structure
 
@@ -161,6 +162,17 @@ Standard: IS 732. Segments: all.
 
 A breaker, fuse or switch on an export path must be rated for the current it carries: on the AC side In >= 1.25 x the maximum current of the inverters behind it, on the DC side In >= 1.25 x Isc of the strings behind it. A DC isolator node standing for several separate string circuits (isolator_ways) is checked per device: each switches poles / 2 circuits and carries their share. String fuses (gPV) are checked by protection.string_fuse_rating. The upper bound In <= cable ampacity belongs to cable sizing, which reuses the same design current.
 
+### `protection.trip_setting`: Breaker long-time settings lie inside the trip unit's range
+
+Standard: none (design practice). Segments: all.
+
+A breaker's long-time (overload) setting Ir (node field long_time_setting_a) must not exceed its frame rating In and must lie inside the range its
+trip unit allows (e.g. MasterPacT MTZ MicroLogic X 0.4 In to In). Cables and the design current are checked against Ir (protection.rated_current,
+cables.protection) instead of In. A setting on a breaker whose range the catalog does not state is a warning: confirm it with the trip unit's datasheet.
+
+Worked example: an MTZ2 2500 A frame set to Ir 2000 A is inside 0.4 x 2500 = 1000 A .. 2500 A; 7 runs of 3.5C 300 sq.mm Al then pass cables.protection
+when their derated ampacity is at least 2000 A.
+
 ### `protection.breaking_capacity`: Interrupting devices state a breaking capacity
 
 Standard: none (design practice). Segments: all.
@@ -187,7 +199,8 @@ Standard: none (design practice). Segments: all.
 
 An LT breaker (MCB, MCCB, ACB) on an export path rated above the smallest catalog breaker that covers k x Ib at its voltage and poles is a warning, because the
 cable it protects must then carry In, not Ib (cables.protection). The finding says why the larger device is there: no smaller catalog breaker breaks the prospective
-fault at its bus (protection.fault_level), or the smaller frames' terminals do not take the cable it lands (cables.terminals), or neither (a smaller one fits).
+fault at its bus (protection.fault_level), or the smaller frames' terminals do not take the cable it lands (cables.terminals), or neither (a smaller one fits). A breaker with a
+long-time setting Ir is not reported: its cables are checked against Ir, and the larger frame is a stated choice (protection.trip_setting checks the setting).
 
 ### `protection.rated_voltage`: Device rated voltage covers the system voltage
 
@@ -286,7 +299,7 @@ The ampacity column follows the laying: air, tray, trench and overhead use the i
 
 Standard: IS 732 / IEC 60364-4-43. Segments: all.
 
-Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
+Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse (or the long-time setting Ir of an MCCB or ACB set below its frame, node field long_time_setting_a) must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
 A device protects the cables connected to it and those reached from it through in-line CTs, meters and isolators (which do not interrupt overload current), up to the next panel, switching device
 or equipment. Ib <= In is protection.rated_current. MV breakers are not checked: their trip settings live in relays the network does not model.
 
@@ -422,3 +435,29 @@ Standard: none (design practice). Segments: all.
 Every lightning terminal stands at least 3 m (an assumed clearance for the perimeter road and the mast foundation, not a cited
 figure) inside the boundary line, which is the site fence. Terminals are placed by the lightning design inside that margin, so a finding
 means the design had no free position; projects without a lightning basis or a ground boundary are not checked.
+
+
+## layout
+
+### `layout.shortfall`: The placed array reaches the layout_place target
+
+Standard: none (design practice). Segments: all.
+
+The array placed by layout_place holds whole tables only, so it may fall short of target_dc_kwp by up to one table; once the network has inverters, also by
+the part of the target that is not a whole number of inverters (the layout places whole inverters). A shortfall beyond that plus the layout_shortfall share of
+the target means the site (as imported, less setbacks and keep-outs) does not hold the capacity the brief asks for, and every later step would design a smaller
+plant than asked: enlarge or correct the site, change the table or pitch, or lower the target and record why.
+
+Worked example: a 1371.6 kWp target on a 150 x 100 m plot that holds 800 kWp in 2 x 18 tables of 635 Wp (22.86 kWp each) falls 571.6 kWp short,
+above 22.86 + 0.02 x 1371.6 = 50.3 kWp, so it is an error.
+
+
+## drawings
+
+### `drawings.readable_sld`: Rendered SLD sheets are at a readable scale
+
+Standard: none (design practice). Segments: all.
+
+drawings_render fits each SLD page to its paper and marks it `readable: false` (with a red banner) when the drawing had to shrink below the
+smallest scale at which text stays legible. Such a sheet cannot be issued: split the SLD (sheet scopes), give it larger paper, or shorten long titles,
+then render again. The rule reads the index of the last render; it is stale when the project changed after that render, so render again before issue.

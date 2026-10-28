@@ -76,6 +76,8 @@ FREE_TEXT = {
     "network_update.id", "project_create.address", "project_create.client", "project_create.client_code", "project_create.name", "project_create.site", "project_create.state",
     "project_create.utility", "project_diff.from_revision", "project_diff.to_revision", "project_issue.approved", "project_issue.checked", "project_issue.date", "project_issue.drawn", "project_issue.remarks", "project_issue.rev", "project_snapshot.label", "site_import.file_path", "site_import.source_crs",
     "site_remove_feature.ids", "site_set_feature.id", "site_set_feature.name",
+    "network_symbols.query", "project_create.developer", "project_create.developer_code", "project_parties.name", "project_parties.client", "project_parties.client_code",
+    "project_parties.client_address", "project_parties.developer", "project_parties.developer_code", "project_parties.developer_address",
 }  # fmt: skip
 
 

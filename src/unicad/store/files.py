@@ -15,7 +15,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from unicad.domain.project import Project
 from unicad.store.diff import ProjectDiff, diff
@@ -157,3 +157,34 @@ class ProjectStore:
 
     def diff(self, project_id: str, a: RevRef, b: RevRef = None) -> ProjectDiff:
         return diff(self.load(project_id, a), self.load(project_id, b))
+
+    def last_render(self, project_id: str) -> tuple[int, dict] | None:
+        """(project revision, index.json) of the newest rendered drawing set, or None before the first render."""
+        found = []
+        for p in (self._dir(project_id) / "drawings").glob("rev-*/index.json"):
+            rev = p.parent.name.removeprefix("rev-")
+            if rev.isdigit():
+                found.append((int(rev), p))
+        if not found:
+            return None
+        rev, path = max(found)
+        try:
+            return rev, json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+
+    def marker(self, project_id: str, key: str) -> Any:
+        """What a tool recorded under `key` (e.g. the revision of the last network_autobuild result), or None."""
+        p = self._dir(project_id) / "markers.json"
+        return json.loads(p.read_text(encoding="utf-8")).get(key) if p.exists() else None
+
+    def set_marker(self, project_id: str, key: str, value: Any) -> None:
+        """Record `value` (JSON) under `key`; None removes the key."""
+        p = self._dir(project_id) / "markers.json"
+        marks = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        if marks.get(key) != value:
+            if value is None:
+                marks.pop(key, None)
+            else:
+                marks[key] = value
+            atomic_write(p, (json.dumps(marks, indent=2, sort_keys=True) + "\n").encode())

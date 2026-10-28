@@ -12,6 +12,7 @@ from unicad.rules.faults import prospective_fault
 from unicad.rules.model import Finding, Quantity, Severity
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.registry import rule
+from unicad.rules.settings import ir_range, trip_current
 from unicad.rules.thresholds import CONTINUOUS_FACTOR, STRING_FUSE_MAX, STRING_FUSE_MIN
 from unicad.rules.topology import GENERATORS, design_current, exports, is_dc, label, per_instance, string_feeds, zone_at
 
@@ -59,21 +60,56 @@ def rated_current(project: Project, catalog: Catalog) -> Iterator[Finding]:
             ways, per, _ = split
             factor *= min(per, ways) / ways
         need = factor * ib.value
-        if spec.rated_current >= need - 1e-9:
+        rated = trip_current(n, spec)
+        if rated >= need - 1e-9:
             continue
         side = "DC" if dc else "AC"
+        setting = rated != spec.rated_current
+        what = f"set to Ir {rated:g} A (frame {spec.rated_current:g} A)" if setting else f"rated {spec.rated_current:g} A"
         yield Finding(
             rule_id="protection.rated_current",
             severity=Severity.ERROR,
             subjects=(n.id,),
-            message=f"{label(net, n.id)} {spec.model}: rated {spec.rated_current:g} A is below the {side} design requirement {need:.1f} A ({factor:g} x Ib {ib.value:.1f} A)",
-            measured=spec.rated_current,
+            message=f"{label(net, n.id)} {spec.model}: {what} is below the {side} design requirement {need:.1f} A ({factor:g} x Ib {ib.value:.1f} A)",
+            measured=rated,
             limit=round(need, 2),
             unit="A",
-            formula=f"In >= k x Ib; {ib.formula}" + ("" if dc else "; k = continuous_factor"),
-            inputs=(*ib.inputs, Quantity(name="k", value=factor, source=None if dc else f"threshold.{CONTINUOUS_FACTOR.name}"), Quantity(name="In", value=spec.rated_current, unit="A", source=spec.id)),
+            formula=f"{'Ir' if setting else 'In'} >= k x Ib; {ib.formula}" + ("" if dc else "; k = continuous_factor"),
+            inputs=(*ib.inputs, Quantity(name="k", value=factor, source=None if dc else f"threshold.{CONTINUOUS_FACTOR.name}"),
+                    Quantity(name="Ir" if setting else "In", value=rated, unit="A", source=f"network.{n.id}.long_time_setting_a" if setting else spec.id)),
             assumptions=(*ib.assumptions, *(() if dc else (CONTINUOUS_FACTOR.assumption,))),
         )
+
+
+@rule("protection.trip_setting", "Breaker long-time settings lie inside the trip unit's range")
+def trip_setting(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """A breaker's long-time (overload) setting Ir (node field long_time_setting_a) must not exceed its frame rating In and must lie inside the range its
+    trip unit allows (e.g. MasterPacT MTZ MicroLogic X 0.4 In to In). Cables and the design current are checked against Ir (protection.rated_current,
+    cables.protection) instead of In. A setting on a breaker whose range the catalog does not state is a warning: confirm it with the trip unit's datasheet.
+
+    Worked example: an MTZ2 2500 A frame set to Ir 2000 A is inside 0.4 x 2500 = 1000 A .. 2500 A; 7 runs of 3.5C 300 sq.mm Al then pass cables.protection
+    when their derated ampacity is at least 2000 A."""
+    net = project.network
+    for n in net.nodes:
+        spec = _protection(catalog, n)
+        if n.long_time_setting_a is None or spec is None or spec.rated_current is None:
+            continue
+        ir, frame = n.long_time_setting_a, spec.rated_current
+        if spec.device not in ("mccb", "acb"):
+            yield Finding(rule_id="protection.trip_setting", severity=Severity.ERROR, subjects=(n.id,),
+                          message=f"{label(net, n.id)} {spec.model} is a {spec.device} with a fixed trip; long_time_setting_a {ir:g} A applies only to MCCBs and ACBs with an adjustable release")  # fmt: skip
+            continue
+        rng = ir_range(spec)
+        lo, hi = (rng.lo * frame, rng.hi * frame) if rng else (None, frame)
+        inputs = (Quantity(name="Ir", value=ir, unit="A", source=f"network.{n.id}.long_time_setting_a"), Quantity(name="In", value=frame, unit="A", source=spec.id))
+        if ir > hi + 1e-9 or (lo is not None and ir < lo - 1e-9):
+            span = f"{lo:g} A .. {hi:g} A" if lo is not None else f"at most the frame rating {hi:g} A"
+            yield Finding(rule_id="protection.trip_setting", severity=Severity.ERROR, subjects=(n.id,), measured=ir, limit=round(hi if ir > hi else lo, 2), unit="A",
+                          message=f"{label(net, n.id)} {spec.model}: Ir {ir:g} A is outside the trip unit's setting range {span}",
+                          formula="lo x In <= Ir <= hi x In", inputs=inputs, assumptions=(rng.source,) if rng else ())  # fmt: skip
+        elif rng is None:
+            yield Finding(rule_id="protection.trip_setting", severity=Severity.WARNING, subjects=(n.id,), measured=ir, unit="A", inputs=inputs,
+                          message=f"{label(net, n.id)} {spec.model}: Ir {ir:g} A of the {frame:g} A frame; the catalog does not state this trip unit's setting range, so confirm it allows {ir:g} A")  # fmt: skip
 
 
 @rule("protection.breaking_capacity", "Interrupting devices state a breaking capacity")
@@ -140,14 +176,15 @@ LV_BREAKER_DEVICES = ("mcb", "mccb", "acb")
 def oversize(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """An LT breaker (MCB, MCCB, ACB) on an export path rated above the smallest catalog breaker that covers k x Ib at its voltage and poles is a warning, because the
     cable it protects must then carry In, not Ib (cables.protection). The finding says why the larger device is there: no smaller catalog breaker breaks the prospective
-    fault at its bus (protection.fault_level), or the smaller frames' terminals do not take the cable it lands (cables.terminals), or neither (a smaller one fits)."""
+    fault at its bus (protection.fault_level), or the smaller frames' terminals do not take the cable it lands (cables.terminals), or neither (a smaller one fits). A breaker with a
+    long-time setting Ir is not reported: its cables are checked against Ir, and the larger frame is a stated choice (protection.trip_setting checks the setting)."""
     from unicad.rules.cables import cable_of
 
     net = project.network
     pool = [s for s in catalog.filter("protection") if isinstance(s, ProtectionSpec) and s.device in LV_BREAKER_DEVICES and s.rated_current is not None]
     for n in net.by_kind(NodeKind.BREAKER):
         spec = _protection(catalog, n)
-        if spec is None or spec.device not in LV_BREAKER_DEVICES or spec.rated_current is None or is_dc(net, n.id):
+        if spec is None or spec.device not in LV_BREAKER_DEVICES or spec.rated_current is None or is_dc(net, n.id) or n.long_time_setting_a is not None:
             continue
         ib = design_current(project, catalog, n.id)
         zone = zone_at(net, n.id)

@@ -24,7 +24,7 @@ def values(enum: type[StrEnum]) -> str:
 
 CatalogKind = Literal["module", "inverter", "battery", "pcs", "transformer", "cable", "protection", "meter", "logger"]
 DrawingKind = Literal["all", "register", "sld", "layout", "earthing", "lps", "strings", "cable_schedule", "bom"]
-RuleFamily = Literal["structure", "pv_strings", "ratio", "protection", "cables", "vdrop", "earthing", "lps"]
+RuleFamily = Literal["structure", "pv_strings", "ratio", "protection", "cables", "vdrop", "earthing", "lps", "layout", "drawings"]
 SiteFormatName = Literal["kml", "kmz", "geojson", "dxf", "coords"]
 DrawingUnit = Literal["m", "mm", "cm", "ft", "in", "km", "yd", "dm"]
 LpsMethod = Literal["ese", "rod"]
@@ -42,7 +42,7 @@ OrientationArg = Annotated[Orientation, Field(description=f"Module orientation o
 RegionModeArg = Annotated[RegionMode, Field(description="Where to place: auto (roofs for rooftop mountings, else ground), ground or roofs")]
 CatalogKindArg = Annotated[CatalogKind | None, Field(description="Catalog kind: module, inverter, battery, pcs, transformer, cable, protection, meter or logger (data logger)")]
 DrawingKindsArg = Annotated[list[DrawingKind], Field(description="Drawing kinds in set order, or 'all' for the complete set: all, register, sld, layout, earthing, lps, strings, cable_schedule, bom")]
-RuleFamiliesArg = Annotated[list[RuleFamily] | None, Field(description="Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps")]
+RuleFamiliesArg = Annotated[list[RuleFamily] | None, Field(description="Rule families to run; omit for all: structure, pv_strings, ratio, protection, cables, vdrop, earthing, lps, layout, drawings")]
 SiteFormatArg = Annotated[SiteFormatName | None, Field(description="Site file format: kml, kmz, geojson, dxf or coords; guessed from the extension when omitted")]
 DrawingUnitArg = Annotated[DrawingUnit | None, Field(description="Drawing unit of a DXF without a usable $INSUNITS: m, mm, cm, ft, in, km, yd or dm")]
 PaperArg = Annotated[PaperSize, Field(description=f"Paper size: {values(PaperSize)}")]
@@ -55,6 +55,16 @@ EDGE_UNITS = {
     "derating": "Installation derating factor, 0 to 1",
 }
 NODE_UNITS = {"voltage_v": "Nominal voltage of the circuit, in volts", "count": "Instances per instance of its group, number"}
+NODE_RATINGS = {
+    "busbar": "Node field (busbar, acdb, lt_panel, ht_panel, scb): {rating_a, material 'al'|'cu', phases e.g. '3P+N', fault_ka, fault_s}",
+    "ct": "Node field (ct): {primary_a, secondary_a, cores: [{accuracy_class e.g. '0.2S' or 'PS', burden_va, purpose 'metering'|'protection'}]}",
+    "pt": "Node field (pt): {primary_v, secondary_v (line-to-line), phase_to_neutral (ratio over V3), cores: [{accuracy_class, burden_va, purpose}]}",
+    "relay": "Node field (relay): {functions: ANSI numbers e.g. ['50', '51', '67', '67N', '27', '59', '50N', '51N'], protocol e.g. 'IEC 61850'}",
+    "spd": "Node field (ac_spd, dc_spd): {spd_type '1'|'2'|'1+2'|'3', imax_ka, in_ka, uc_v}",
+    "long_time_setting_a": "Node field (breaker): Ir, the trip unit's long-time (overload) setting in A, at most the frame rating; cables are checked against it",
+    "mppt": "Node field (pv_string): MPPT number (1-based) each instance lands on within its inverter, one per instance",
+    "symbol": "Node field: drawing symbol key; network_symbols lists the valid keys",
+}
 
 
 def field_hints() -> dict[str, dict]:
@@ -64,6 +74,6 @@ def field_hints() -> dict[str, dict]:
         "service": {"type": "string", "enum": [e.value for e in Service], "description": "Edge field: circuit type"},
         "laying": {"type": ["string", "null"], "enum": [*(e.value for e in Laying), None], "description": "Edge field: laying method"},
     }
-    for k, text in {**EDGE_UNITS, **NODE_UNITS}.items():
+    for k, text in {**EDGE_UNITS, **NODE_UNITS, **NODE_RATINGS}.items():
         out[k] = {"description": text}
     return out

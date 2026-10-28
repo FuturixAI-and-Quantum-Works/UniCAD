@@ -4,12 +4,13 @@ from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from unicad.domain.project import IssuedFor
+from unicad.domain.project import IssuedFor, Project
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import RuleFamiliesArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
-from unicad.rules import REGISTRY, Finding, Severity, explain, issue_gate, run_rules
+from unicad.rules import REGISTRY, Finding, Report, Severity, explain, issue_gate, run_rules
+from unicad.rules.drawings import RenderIndex, rendered
 from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
@@ -46,6 +47,13 @@ def earthing_hint(findings: tuple[Finding, ...]) -> str | None:
     return "; ".join(f"{i}: {EARTHING_HINTS[i]}" for i in ids) + "." if ids else None
 
 
+def project_rules(ws: Workspace, project: Project, families=None) -> Report:
+    """The rules as validate runs them: with the company's thresholds and the index of the project's last rendered set."""
+    last = ws.store.last_render(project.id)
+    with rendered(RenderIndex(*last) if last else None):
+        return run_rules(project, ws.catalog, families, thresholds_of(project.company_profile, ws.config.workspace))
+
+
 def compact(f: Finding) -> dict[str, Any]:
     out: dict[str, Any] = {"rule_id": f.rule_id, "severity": f.severity.value, "subjects": list(f.subjects), "message": f.message}
     for key in ("measured", "limit", "unit"):
@@ -71,7 +79,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Example: validate(project_id="rooftop-500kwp", families=["cables", "vdrop"])."""
         project, rev = ws.load(project_id, revision)
         company = thresholds_of(project.company_profile, ws.config.workspace)
-        report = run_rules(project, ws.catalog, families, company)
+        report = project_rules(ws, project, families)
         shown = [compact(f) for f in report.findings if include_info or f.severity is not Severity.INFO]
         gates = {p.value: {"allowed": (g := issue_gate(report, p)).allowed, "watermark": g.watermark} for p in IssuedFor}
         out = {"project_id": project_id, "revision": rev, "rules": len(report.rules), "counts": report.counts, "blocking": report.blocking, "gates": gates, "findings": shown}
@@ -95,7 +103,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Example: explain_finding(project_id="rooftop-500kwp", rule_id="vdrop.ac", subject="inv")."""
         project, _ = ws.load(project_id, revision)
         family = rule_id.split(".", 1)[0]
-        report = run_rules(project, ws.catalog, [family], thresholds_of(project.company_profile, ws.config.workspace))
+        report = project_rules(ws, project, [family])
         if rule_id not in report.rules:
             raise KeyError(f"no rule {rule_id!r} ran for this project; rules: {[r for r in report.rules if r.startswith(family + '.')]}")
         found = [f for f in report.by_rule(rule_id) if subject in f.subjects]

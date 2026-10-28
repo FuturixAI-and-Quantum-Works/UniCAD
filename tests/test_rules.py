@@ -158,7 +158,7 @@ def test_run_rules_needs_a_project_that_resolves_against_the_catalog():
 
 
 def test_registry_shape():
-    assert families() == ("structure", "pv_strings", "ratio", "protection", "cables", "vdrop", "earthing", "lps")
+    assert families() == ("structure", "pv_strings", "ratio", "protection", "cables", "vdrop", "earthing", "lps", "layout", "drawings")
     for r in REGISTRY.values():
         assert r.id.startswith(r.family + ".")
         assert r.title and r.docs, r.id

@@ -179,6 +179,11 @@ async def scenario(c: Client, s: dict) -> dict:
         target = float(over.split("target_dc_kwp <= ")[1].split(" ")[0])
         await c.call("layout_place", project_id=pid, **(s["place"] | {"target_dc_kwp": target}))
         built = await c.call("network_autobuild", project_id=pid, **s["autobuild"])
+    short = next((f for f in built["findings"] if f["rule_id"] == "layout.shortfall"), None)
+    if short is not None:
+        # as the rule asks: the site holds less than the brief, so the agent records the reduced capacity as the layout target
+        await c.call("layout_place", project_id=pid, **(s["place"] | {"target_dc_kwp": short["measured"]}))
+        built = await c.call("network_autobuild", project_id=pid, **s["autobuild"])
     await c.call("earthing_design", project_id=pid)
     await c.call("lps_design", project_id=pid, **s["lps"])
     run = {"checked": await c.call("validate", project_id=pid), "built": built, "export_limit_kw": s["autobuild"].get("export_limit_kw"), "bess": s["autobuild"].get("bess_kw"),

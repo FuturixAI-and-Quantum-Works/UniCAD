@@ -170,3 +170,59 @@ def diff(a: Project, b: Project) -> ProjectDiff:
         layout_blocks=_layout_blocks(a.array_layout, b.array_layout),
         fields=tuple(fields),
     )
+
+
+NETWORK_PARTS = ("groups", "nodes", "edges")
+
+
+def network_edits(built: Project, edited: Project) -> dict[str, CollectionDiff]:
+    """The network changes made to `edited` since `built` (a network_autobuild result), per collection; empty collections are left out."""
+    na, nb = _dump(built)["network"], _dump(edited)["network"]
+    out = {k: _collection(na.get(k, []), nb.get(k, [])) for k in NETWORK_PARTS}
+    return {k: v for k, v in out.items() if not v.empty}
+
+
+def reapply_network_edits(built: Project, edited: Project, onto: Project, rebuild) -> tuple[Project, list[str], list[str]]:
+    """Re-apply the network edits made between `built` and `edited` onto the rebuilt project `onto`, one at a time: additions are added, removals removed
+    and changed items get the changed top-level fields of the edited item. `rebuild(project, groups=, nodes=, edges=)` validates each step; an edit it rejects
+    (its item is gone, or it no longer fits the new network) is skipped. Returns the project, the edits kept and the edits skipped with why."""
+    edits = network_edits(built, edited)
+    after = {k: {x["id"]: x for x in _dump(edited)["network"].get(k, [])} for k in NETWORK_PARTS}
+    kept, skipped = [], []
+    project = onto
+    for part in NETWORK_PARTS:
+        d = edits.get(part)
+        if d is None:
+            continue
+        steps = [("added", i) for i in d.added] + [("changed", c.id) for c in d.changed] + [("removed", i) for i in d.removed]
+        fields_of = {c.id: {f.path.split(".", 1)[0] for f in c.fields} for c in d.changed}
+        for how, item_id in steps:
+            current = [x.model_dump(mode="json") for x in getattr(project.network, part)]
+            ids = [x["id"] for x in current]
+            what = f"{part[:-1]} {item_id!r} {how}"
+            if how == "added":
+                if item_id in ids:
+                    skipped.append(f"{what}: the rebuilt network already has an item with this id")
+                    continue
+                current.append(after[part][item_id])
+            elif how == "removed":
+                if item_id not in ids:
+                    kept.append(what)
+                    continue
+                current = [x for x in current if x["id"] != item_id]
+            else:
+                if item_id not in ids:
+                    skipped.append(f"{what}: the rebuilt network has no {part[:-1]} {item_id!r}")
+                    continue
+                src = after[part][item_id]
+                current = [{**x, **{f: src.get(f) for f in fields_of[item_id]}} if x["id"] == item_id else x for x in current]
+            extra = {}
+            if how == "removed" and part == "nodes":
+                extra["edges"] = [e.model_dump(mode="json") for e in project.network.edges if item_id not in (e.src_node, e.dst_node)]
+            try:
+                project = rebuild(project, **{part: current}, **extra)
+            except ValueError as e:
+                skipped.append(f"{what}: {str(e).splitlines()[0][:300]}")
+                continue
+            kept.append(what)
+    return project, kept, skipped

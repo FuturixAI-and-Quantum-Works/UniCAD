@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import BatterySpec, InverterSpec, ModuleSpec, PCSSpec, TransformerSpec
 from unicad.domain.layout import StringAssignment
-from unicad.domain.network import HOUSED_IN, Laying, NodeKind, Service
+from unicad.domain.network import HOUSED_IN, Laying, NodeKind, RelayRating, Service
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NetBuilder, NodeHint
 from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, sections, split_even
@@ -26,7 +26,7 @@ from unicad.design.select import (
     pick_rated,
     pick_transformer,
 )
-from unicad.design.strings import DesignError, fuses_needed
+from unicad.design.strings import DesignError, InverterStrings, fuses_needed
 from unicad.rules.faults import transformer_fault_ka
 from unicad.rules.protection import ISOLATOR_WAYS
 from unicad.rules.pv import cell_temp_min, string_voltage
@@ -53,7 +53,7 @@ MAX_LV_WINDINGS = 2
 ROOF_LENGTHS = {"string": 25.0, "dcfb_iso": 5.0, "iso_inv": 3.0, "inv_acdb": 30.0, "acdb_meter": 60.0, "iso_ltp": 5.0, "acb_tr": 15.0, "idt_vcb": 20.0, "vcb_bus": 50.0}
 UTILITY_LENGTHS = {
     "string": 30.0, "scb_inv": 150.0, "inv_accb": 60.0, "inv_idt": 15.0, "accb_idt": 15.0, "idt_vcb": 10.0, "vcb_bus": 400.0,
-    "aux_mv": 10.0, "aux_lv": 10.0, "main_aux_mv": 20.0, "main_aux_lv": 20.0, "bat_pcs": 10.0, "pcs_tr": 15.0, "dcdc_inv": 30.0,
+    "aux_mv": 10.0, "aux_lv": 10.0, "main_aux_mv": 20.0, "main_aux_lv": 20.0, "bat_pcs": 10.0, "pcs_tr": 15.0, "dcdc_inv": 30.0, "accb_ltp": 50.0,
 }  # fmt: skip
 RES_LENGTHS = {"string": 15.0, "dcfb_iso": 2.0, "iso_inv": 2.0, "inv_acdb": 10.0, "acdb_meter": 5.0, "meter_db": 10.0}
 
@@ -192,14 +192,27 @@ def isolator_title(n: int) -> str:
     return f"DC ISOLATION, {n} SEPARATE STRING CIRCUITS (+ AND - PER CIRCUIT)" if n > 1 else "DC ISOLATOR"
 
 
-def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: int, module: ModuleSpec, laying: Laying, isolator: bool, inverter: InverterSpec | None = None) -> list[str]:
+def dc_string_inverter(
+    c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int, mps: int, module: ModuleSpec, laying: Laying, isolator: bool, inverter: InverterSpec | None = None,
+    mppts: tuple[tuple[int, ...], ...] | None = None,
+) -> list[str]:  # fmt: skip
     """Strings straight onto a string inverter, or through a DC junction box and a DC isolator when one is rated for the current. When more strings share an
-    MPPT than the module allows unfused, each string lands through its own gPV fuse (string fuse box) instead of the pass-through junction box."""
+    MPPT than the module allows unfused, each string lands through its own gPV fuse (string fuse box) instead of the pass-through junction box.
+    With `mppts` (modules per string of each string, per MPPT) every string length is its own pv_string template recording the MPPT of each string."""
     b = c.b
-    s = b.node(f"str{sfx}", "STR", NodeKind.PV_STRING, group=group, count=n_strings, spec=module.id, modules_in_series=mps)
-    fam = _string_family(c, module, mps)
+    if mppts is None:
+        fams = [(f"str{sfx}", "STR", "", mps, n_strings, None)]
+        widest = math.ceil(n_strings / inverter.mppt_count) if inverter is not None else 1
+    else:
+        fams = [(f"str{sfx}_{n}", f"STR{n}", f"_{n}", n, len(alloc), alloc) for n, alloc in InverterStrings(mppts=mppts).lengths().items()]
+        widest = max(len(mp) for mp in mppts)
+        b.assume(MIXED_STRINGS)
+    strs = []
+    for sid, prefix, _, n, count, alloc in fams:
+        strs.append(b.node(sid, prefix, NodeKind.PV_STRING, group=group, count=count, spec=module.id, modules_in_series=n, **({"mppt": list(alloc)} if alloc else {})))
+    fam = _string_family(c, module, max(f[3] for f in fams))
     b.assume(DC_STRING_MIN)
-    fused = inverter is not None and fuses_needed(module, math.ceil(n_strings / inverter.mppt_count))
+    fused = inverter is not None and fuses_needed(module, widest)
     ib = n_strings * ISC_FACTOR.value * module.isc
     if isolator and ib > DC_ISOLATOR_MAX_A:
         b.assume(f"DC isolators are catalogued up to {DC_ISOLATOR_MAX_A:g} A; inverters with {n_strings} strings ({ib:.0f} A) rely on their integrated DC switch instead.")
@@ -207,30 +220,37 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
     spd = b.node(f"dcspd{sfx}", "DC-SPD", NodeKind.DC_SPD, group=group, hint=NodeHint("dc_spd"))
     ways = f"{n_strings} string circuits, each its own +/- cable pair to its own inverter input (not paralleled)"
     if fused:
-        fu = b.node(
-            f"sfuse{sfx}", "STR-FUSE", NodeKind.FUSE, group=group, count=n_strings, hint=NodeHint("string_fuse", poles=(1,)),
-            title="gPV STRING FUSES, + AND - POLES (STRING FUSE BOX)", attributes={FUSED_POLES: 2},
-        )  # fmt: skip
-        b.edge(f"e_str{sfx}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(fam), c.L("string"), laying)
-        b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
+        fuses = []
+        for (sid, prefix, x, _, count, _), s in zip(fams, strs):
+            fu = b.node(
+                f"sfuse{sfx}{x}", f"STR{x.lstrip('_')}-FUSE" if x else "STR-FUSE", NodeKind.FUSE, group=group, count=count, hint=NodeHint("string_fuse", poles=(1,)),
+                title="gPV STRING FUSES, + AND - POLES (STRING FUSE BOX)", attributes={FUSED_POLES: 2},
+            )  # fmt: skip
+            b.edge(f"e_str{sfx}{x}", f"{s}:out", f"{fu}:in", V.DC, EdgeHint(fam), c.L("string"), laying)
+            b.edge(f"e_str_spd{sfx}{x}", f"{s}:out", f"{spd}:line", V.DC)
+            fuses.append((x, fu))
         b.assume(STRING_FUSES, FLOATING)
         if not isolator:
-            b.edge(f"e_fuse_inv{sfx}", f"{fu}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam), c.L("iso_inv"), Laying.TRAY, remarks="string fuse box to inverter input, one pair per string")
+            for x, fu in fuses:
+                b.edge(f"e_fuse_inv{sfx}{x}", f"{fu}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam), c.L("iso_inv"), Laying.TRAY, remarks="string fuse box to inverter input, one pair per string")
             b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
-            return [s]
+            return strs
         iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=ISOLATOR_POLES), attributes={ISOLATOR_WAYS: n_strings}, title=isolator_title(n_strings))
-        b.edge(f"e_dcfb_iso{sfx}", f"{fu}:out", f"{iso}:in", V.DC, EdgeHint(fam), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
+        for x, fu in fuses:
+            b.edge(f"e_dcfb_iso{sfx}{x}", f"{fu}:out", f"{iso}:in", V.DC, EdgeHint(fam), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
         b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
         b.assume(ISOLATION)
-        return [s]
+        return strs
     if not isolator:
-        b.edge(f"e_str{sfx}", f"{s}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam), c.L("string"), laying)
-        b.edge(f"e_str_spd{sfx}", f"{s}:out", f"{spd}:line", V.DC)
+        for (_, _, x, _, _, _), s in zip(fams, strs):
+            b.edge(f"e_str{sfx}{x}", f"{s}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam), c.L("string"), laying)
+            b.edge(f"e_str_spd{sfx}{x}", f"{s}:out", f"{spd}:line", V.DC)
         b.assume("String inverters without a separate DC isolator use their integrated DC switch-disconnector (inverter datasheet feature, not modelled).")
-        return [s]
+        return strs
     fb = b.node(f"dcfb{sfx}", "DCJB", NodeKind.DC_FUSE_BOX, group=group, symbol="dc.jb", title="DC JUNCTION BOX")
     iso = b.node(f"dciso{sfx}", "DC-ISO", NodeKind.DC_ISOLATOR, group=group, hint=NodeHint("dc_isolator", poles=ISOLATOR_POLES), attributes={ISOLATOR_WAYS: n_strings}, title=isolator_title(n_strings))
-    b.edge(f"e_str{sfx}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(fam), c.L("string"), laying)
+    for (_, _, x, _, _, _), s in zip(fams, strs):
+        b.edge(f"e_str{sfx}{x}", f"{s}:out", f"{fb}:in", V.DC, EdgeHint(fam), c.L("string"), laying)
     b.edge(f"e_dcfb_spd{sfx}", f"{fb}:out", f"{spd}:line", V.DC)
     b.edge(f"e_dcfb_iso{sfx}", f"{fb}:out", f"{iso}:in", V.DC, EdgeHint(fam, runs=n_strings), c.L("dcfb_iso"), Laying.TRAY, remarks=ways)
     b.edge(f"e_iso_inv{sfx}", f"{iso}:out", f"{inv_id}:dc", V.DC, EdgeHint(fam, runs=n_strings), c.L("iso_inv"), Laying.TRAY, remarks=ways)
@@ -238,7 +258,13 @@ def dc_string_inverter(c: Ctx, group: str, sfx: str, inv_id: str, n_strings: int
         "The DC junction box passes strings through to separate inverter inputs (one cable pair per string); no string fuses are needed with at most two strings per MPPT.",
         ISOLATION,
     )
-    return [s]
+    return strs
+
+
+MIXED_STRINGS = (
+    "Strings of different length on one inverter are modelled as one pv_string template per length; each records the MPPT every string lands on (node field mppt), "
+    "as the brief allocates them, and each length is checked on its own Voc and MPPT window."
+)
 
 
 SCB_FUSES = (
@@ -297,7 +323,7 @@ def inverter_groups(c: Ctx, within: str | None, blk: BlockClass, inverter: Inver
         if central:
             ids = dc_central(c, g, sfx, inv, ic.strings, mps, module, inverter)
         else:
-            ids = dc_string_inverter(c, g, sfx, inv, ic.strings, mps, module, dc_laying, isolator, inverter)
+            ids = dc_string_inverter(c, g, sfx, inv, ic.strings, mps, module, dc_laying, isolator, inverter, ic.mppts)
         b.earth(inv)
         if ic.slots:
             scbs = [per for k, per in split_even(ic.strings, c.scb_strings) for _ in range(k)] if central else None
@@ -420,7 +446,8 @@ def block_feeder(c: Ctx, group: str, sfx: str, tr_id: str, kv: float, switch: st
 def _kv(c: Ctx) -> float:
     kv = c.grid_v / 1000
     if kv not in (11.0, 22.0, 33.0):
-        raise DesignError(f"grid voltage {c.grid_v:g} V: MV templates export at 11, 22 or 33 kV; higher voltages need a pooling transformer the catalog does not hold")
+        hint = "; an LT plant exporting at 415 V into a client's LT panel is template utility_lt" if c.grid_v <= 1000 else "; higher voltages need a pooling transformer the catalog does not hold"
+        raise DesignError(f"grid voltage {c.grid_v:g} V: MV templates export at 11, 22 or 33 kV{hint}")
     return kv
 
 
@@ -506,8 +533,8 @@ def ci_rooftop(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     acb_max = max(p.rated_current for p in c.catalog.filter("protection") if getattr(p, "device", None) == "acb" and p.rated_current)
     per_sec = max(1, min(int(tr_max // inverter.ac_max_kva), int(acb_max / 1.25 * math.sqrt(3) * v / 1000 // inverter.ac_max_kva)))
     blk = plan.blocks[0]
-    if plan.from_layout or len(plan.blocks) > 1:
-        raise DesignError("the C&I step-up template takes a uniform plan; place the array without blocks or use utility_string")
+    if plan.from_layout or len(plan.blocks) > 1 or any(ic.mppts for ic in blk.invs):
+        raise DesignError("the C&I step-up template takes a uniform plan; place the array without blocks, give uniform strings (not inverter_strings) or use utility_string")
     n_inv = blk.inverters
     secs = split_even(n_inv, per_sec)
     if len(secs) > 1:
@@ -528,6 +555,64 @@ def ci_rooftop(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     block_feeder(c, g, "", "tr", kv, "rmu", block_aux=False, tag="TR")
     b.assume(f"Step-up transformers are the catalog {tr.id} (IS 1180 distribution transformer used as a generator step-up), {per} inverters per section.")
     c.lengths_assumption(["string", "dcfb_iso", "iso_inv", "inv_acdb", "acb_tr", "idt_vcb", "vcb_bus"])
+    return c.built
+
+
+LT_GROUND = (
+    "LT ground-mount plant: the inverters' outgoing breakers sit on one LT AC combiner (ACCB) bus whose outgoing ACB, CT and (when asked) PT, relay, meter and "
+    "data logger are in the ACCB; the plant exports at 415 V into the client's LT panel, the point of interconnection, whose incomer for this feeder is by the "
+    "client and protects the outgoing cable from the panel end (protection.lv_both_ends). No transformer and no DISCOM metering are part of this scope."
+)
+NO_MFM = "The catalog has no multifunction meter: the CT-operated generation meter stands in for it; replace its spec once a multifunction meter is catalogued."
+LOGGER = (
+    "The data logger has no catalog part; it is drawn on the RS-485 daisy chain through the inverters and the meter (control links from each inverter's and the "
+    "meter's sig port), its make and model to be specified."
+)
+
+
+def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, relay: RelayRating | None, data_logger: bool) -> Built:
+    """String inverters -> ACCB (incomer MCCBs, bus, SPD, outgoing ACB, CT, optional PT and relay, meter, optional data logger) -> the client's 415 V LT panel,
+    the point of interconnection. No transformer and no DISCOM net meter."""
+    b, v = c.b, 415.0
+    if inverter.phases != 3:
+        raise DesignError(f"{inverter.id} is single-phase; the LT ground template needs three-phase inverters")
+    if c.grid_v != v:
+        raise DesignError(f"grid voltage {c.grid_v:g} V: the LT ground template connects at 415 V into the client's LT panel; for an MV export use utility_string")
+    blk = merged(plan).blocks[0]
+    invs = inverter_groups(c, None, blk, inverter, module, plan.modules_per_string, False, Laying.AIR, True)
+    out = lv_board(c, None, "", invs, v, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")
+    pt = relay is not None
+    b.node("solar_ct", "CT-01", NodeKind.CT, voltage_v=v, title="ACCB OUTGOING CT")
+    b.edge("e_brk_ct", f"{out}:out", "solar_ct:in", V.LV_AC, remarks="inside the ACCB")
+    mfm = next((m for m in c.catalog.filter("meter") if getattr(m, "function", None) == "mfm"), None)
+    meter = mfm or pick_meter(c.catalog, "generation", "ct")
+    b.node("solar_meter", "MFM-01" if mfm else "SM-01", NodeKind.METER, spec=meter.id, ports=["sig"], title="MULTIFUNCTION METER" if mfm else "SOLAR GENERATION METER")
+    b.edge("c_ct_meter", "solar_ct:sec", "solar_meter:sig", V.CONTROL)
+    if mfm is None:
+        b.assume(NO_MFM)
+    if pt:
+        b.node("solar_pt", "PT-01", NodeKind.PT, voltage_v=v, title="ACCB BUS PT")
+        b.edge("e_ct_pt", "solar_ct:out", "solar_pt:in", V.LV_AC, remarks="inside the ACCB")
+        b.node("relay", "REL-01", NodeKind.RELAY, relay=relay.model_dump(mode="json"), title="NUMERICAL PROTECTION RELAY")
+        b.edge("c_ct_relay", "solar_ct:sec", "relay:sig", V.CONTROL)
+        b.edge("c_pt_relay", "solar_pt:sec", "relay:sig", V.CONTROL)
+        b.edge("c_pt_meter", "solar_pt:sec", "solar_meter:sig", V.CONTROL)
+        b.earth("solar_pt")
+        b.assume(f"The relay ({'/'.join(relay.functions)}) is fed by the ACCB outgoing CT and the bus PT and trips the outgoing ACB; its settings come from the protection study.")
+    if data_logger:
+        b.node("dlog", "DL-01", NodeKind.METER, symbol="inst.datalogger", ports=["sig"], title="DATA LOGGER (RS-485)")
+        for n in b.nodes:
+            if n["kind"] == NodeKind.INVERTER.value:
+                n["ports"] = ["dc", "ac", "sig"]
+        for _, _, inv in invs:
+            b.edge(f"c_{inv}_dlog", f"{inv}:sig", "dlog:sig", V.CONTROL, remarks="RS-485 daisy chain through the inverters")
+        b.edge("c_meter_dlog", "solar_meter:sig", "dlog:sig", V.CONTROL, remarks="RS-485")
+        b.assume(LOGGER)
+    b.node("poi", "POI-01", NodeKind.POI_GRID, voltage_v=v, title="CLIENT MAIN LT PANEL 415 V (LT CONNECTION)", attributes={EXISTING: True})
+    b.edge("e_ct_poi", "solar_ct:out", "poi:in", V.LV_AC, lv_hint(3), c.L("accb_ltp"), Laying.TRENCH, remarks="ACCB outgoing to the client's LT panel")
+    b.earth("solar_ct")
+    b.assume(LT_GROUND)
+    c.lengths_assumption(["string", "dcfb_iso", "iso_inv", "inv_accb", "accb_ltp"])
     return c.built
 
 
@@ -567,6 +652,8 @@ def string_block_limits(catalog: Catalog, basis, inverter: InverterSpec, kv: flo
     """(inverters per LV bus, LV buses per block, why the bus stops there) for string inverters on a block transformer."""
     v = inverter.ac_voltage if inverter.ac_voltage > 440 else 415.0
     inline = v != 415.0
+    if kv * 1000 <= 1000:
+        raise DesignError(f"the grid is {kv * 1000:g} V (LT): utility_string steps up to an MV grid through block transformers; for an LT ground-mount plant exporting at 415 V into a client LT panel use template utility_lt")
     cap, why = lv_bus_cap(catalog, basis, inverter, v, kv, inline)
     if cap == 0:
         raise DesignError(f"{inverter.id} cannot be connected to a {v:g} V block bus with catalog breakers: {why}")

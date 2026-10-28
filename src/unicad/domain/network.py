@@ -11,7 +11,7 @@ from collections import defaultdict
 from enum import StrEnum
 from functools import cached_property
 from itertools import product
-from typing import TYPE_CHECKING, Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
@@ -202,6 +202,80 @@ HOUSED_IN = "housed_in"
 """Node attribute naming the group whose panel houses a node that repeats with another group: a block's feeder panel at the main switchboard."""
 
 
+class BusbarRating(_Frozen):
+    """Busbar of a panel or a bus node: continuous rating, material, phases and short-time fault withstand, as the panel specification states them."""
+
+    rating_a: float = Field(gt=0, description="continuous current rating, A")
+    material: Literal["al", "cu"] | None = None
+    phases: str | None = Field(default=None, description="conductors, e.g. '3P+N'")
+    fault_ka: float | None = Field(default=None, gt=0, description="short-time withstand current, kA rms")
+    fault_s: float | None = Field(default=None, gt=0, description="duration of the short-time withstand, s")
+
+
+class InstrumentCore(_Frozen):
+    """One secondary core of a CT or winding of a PT: accuracy class ('0.2S', '0.5', '3P', 'PS', '5P20') and rated burden."""
+
+    accuracy_class: str = Field(min_length=1)
+    burden_va: float | None = Field(default=None, gt=0)
+    purpose: Literal["metering", "protection"] | None = None
+
+
+class CtRating(_Frozen):
+    """Current transformer ratio and cores, e.g. 2500/1 A with three cores."""
+
+    primary_a: float = Field(gt=0)
+    secondary_a: float = Field(gt=0)
+    cores: tuple[InstrumentCore, ...] = ()
+
+    @property
+    def ratio(self) -> str:
+        return f"{self.primary_a:g}/{self.secondary_a:g} A"
+
+
+class PtRating(_Frozen):
+    """Voltage transformer ratio and windings. `phase_to_neutral` marks ratios stated over root 3 (0.415 kV/V3 / 110 V/V3)."""
+
+    primary_v: float = Field(gt=0, description="primary line-to-line voltage, V")
+    secondary_v: float = Field(gt=0, description="secondary line-to-line voltage, V")
+    phase_to_neutral: bool = False
+    cores: tuple[InstrumentCore, ...] = ()
+
+    @property
+    def ratio(self) -> str:
+        r3 = "/V3" if self.phase_to_neutral else ""
+        return f"{self.primary_v / 1000:g} kV{r3} / {self.secondary_v:g} V{r3}"
+
+
+AnsiCode = Annotated[str, Field(pattern=r"^[0-9]{1,3}[A-Z]{0,4}(RMS)?$", description="ANSI/IEEE C37.2 device number, e.g. '50', '51N', '67N', '27', '59'")]
+
+
+class RelayRating(_Frozen):
+    """Protection relay: its ANSI functions and communication protocol."""
+
+    functions: tuple[AnsiCode, ...] = Field(min_length=1)
+    protocol: str | None = Field(default=None, description="e.g. 'IEC 61850', 'Modbus RTU (RS-485)'")
+
+
+class SpdRating(_Frozen):
+    """Surge protective device ratings as the brief or datasheet states them. Imax and In differ: In is the nominal discharge current the catalog holds."""
+
+    spd_type: Literal["1", "2", "1+2", "3"] | None = None
+    imax_ka: float | None = Field(default=None, gt=0, description="maximum discharge current Imax (8/20), kA")
+    in_ka: float | None = Field(default=None, gt=0, description="nominal discharge current In (8/20), kA")
+    uc_v: float | None = Field(default=None, gt=0, description="maximum continuous operating voltage Uc, V")
+
+
+RATING_KINDS: dict[str, frozenset[NodeKind]] = {
+    "busbar": frozenset({NodeKind.BUSBAR, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.SCB}),
+    "ct": frozenset({NodeKind.CT}),
+    "pt": frozenset({NodeKind.PT}),
+    "relay": frozenset({NodeKind.RELAY}),
+    "spd": frozenset({NodeKind.AC_SPD, NodeKind.DC_SPD}),
+    "long_time_setting_a": frozenset({NodeKind.BREAKER}),
+    "mppt": frozenset({NodeKind.PV_STRING}),
+}
+
+
 class Node(_Frozen):
     id: Id
     tag: str
@@ -215,6 +289,22 @@ class Node(_Frozen):
     ports: tuple[str, ...] | None = None
     attributes: dict[str, AttrValue] = Field(default_factory=dict)
     title: str | None = None
+    busbar: BusbarRating | None = None
+    ct: CtRating | None = None
+    pt: PtRating | None = None
+    relay: RelayRating | None = None
+    spd: SpdRating | None = None
+    long_time_setting_a: float | None = Field(default=None, gt=0, description="Ir, the long-time (overload) setting of the breaker's trip unit, A; default the frame rating In")
+    mppt: tuple[Annotated[int, Field(gt=0)], ...] | None = Field(default=None, description="MPPT (1-based) each instance lands on within its inverter, in instance order")
+
+    @model_validator(mode="after")
+    def _ratings_on_their_kinds(self) -> Self:
+        for name, kinds in RATING_KINDS.items():
+            if getattr(self, name) is not None and self.kind not in kinds:
+                raise ValueError(f"node {self.id!r}: {name} is only valid on {', '.join(sorted(k.value for k in kinds))}, not {self.kind}")
+        if self.mppt is not None and len(self.mppt) != self.count:
+            raise ValueError(f"node {self.id!r}: mppt lists {len(self.mppt)} MPPT numbers for a count of {self.count}")
+        return self
 
     @model_validator(mode="after")
     def _modules_only_on_strings(self) -> Self:
@@ -680,7 +770,7 @@ class ElectricalNetwork(_Frozen):
     def expand(self) -> "ElectricalNetwork":
         """One node per instance and one edge per instance connection. Ids become 'id@i.j', tags are formatted."""
         nodes = [
-            n.model_copy(update={"id": self._instance_id(n.id, p), "tag": n.tag.format(*p), "count": 1, "group": None})
+            n.model_copy(update={"id": self._instance_id(n.id, p), "tag": n.tag.format(*p), "count": 1, "group": None, "mppt": (n.mppt[p[-1] - 1],) if n.mppt and n.count > 1 else n.mppt})
             for n in self.nodes
             for p in self._paths(n)
         ]

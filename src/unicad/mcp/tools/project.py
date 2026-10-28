@@ -12,13 +12,14 @@ from unicad.mcp.errors import guarded
 from unicad.mcp.schema import SegmentArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Edit, Workspace, counts
-from unicad.rules import issue_gate, run_rules
+from unicad.mcp.tools.rules import project_rules
+from unicad.rules import issue_gate
 from unicad.store import canonical_json
-from unicad.tenants.store import thresholds_of
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 IssuedForArg = Annotated[IssuedFor, Field(description=f"Purpose of the issue: {', '.join(e.value for e in IssuedFor)}")]
 GRID_FREQUENCY_HZ = 50.0
+REMARKS_FIT = 55
 DEFAULTS = {
     "ambient_min_c": 10.0,
     "ambient_max_c": 45.0,
@@ -58,6 +59,7 @@ def project_summary(project: Project, revision: int) -> dict[str, Any]:
         "revision": revision,
         "name": project.name,
         "client": project.client.name,
+        "developer": project.developer.name if project.developer else None,
         "segment": project.segment,
         "site": project.site.name,
         "grid_voltage_v": project.design_basis.grid.voltage_v,
@@ -81,6 +83,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         address: str | None = None,
         utility: Annotated[str | None, Field(description="DISCOM or transmission utility")] = None,
         client_code: Annotated[str | None, Field(description="Short client code for drawing numbers")] = None,
+        developer: Annotated[str | None, Field(description="Project developer when it is not the client, e.g. the RESCO or IPP building the plant")] = None,
+        developer_code: Annotated[str | None, Field(description="Short developer code")] = None,
         ambient_min_c: Annotated[float | None, Field(description="Site minimum ambient °C")] = None,
         ambient_max_c: Annotated[float | None, Field(description="Site maximum ambient °C")] = None,
         altitude_m: Annotated[float | None, Field(ge=0, description="Site altitude in metres")] = None,
@@ -109,6 +113,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             id=pid,
             name=name,
             client=Party(name=client, code=client_code),
+            developer=Party(name=developer, code=developer_code) if developer else None,
             site=Site(name=site, address=address, state=state),
             design_basis=design_basis(grid_voltage_v, utility, overrides),
             company_profile="default",
@@ -127,6 +132,52 @@ def register(server: MCPServer, ws: Workspace) -> None:
             "assumptions": list(project.design_basis.assumptions),
             "problems": [],
         }
+
+    @server.tool()
+    @guarded
+    def project_parties(
+        project_id: ProjectIdArg,
+        name: Annotated[str | None, Field(description="New project title")] = None,
+        client: Annotated[str | None, Field(description="Client company name")] = None,
+        client_code: Annotated[str | None, Field(description="Short client code")] = None,
+        client_address: Annotated[str | None, Field(description="Client address")] = None,
+        developer: Annotated[str | None, Field(description="Project developer, when it is not the client (e.g. 'Truere Knight Pvt. Ltd.')")] = None,
+        developer_code: Annotated[str | None, Field(description="Short developer code")] = None,
+        developer_address: Annotated[str | None, Field(description="Developer address")] = None,
+        clear_developer: Annotated[bool, Field(description="Remove the developer")] = False,
+    ) -> dict[str, Any]:
+        """Set the project title and the parties the title block and register name: the client (owner) and the project developer. Only what you
+        pass changes; a developer field you pass on a project without a developer creates one (its name is then required).
+
+        Example: project_parties(project_id="rvunl-heerapura", developer="Truere Knight Pvt. Ltd.")."""
+
+        def change(p: Project) -> Edit:
+            touched: list[str] = []
+            upd: dict[str, Any] = {}
+            if name is not None:
+                upd["name"] = name
+                touched.append("name")
+            c = {k: v for k, v in (("name", client), ("code", client_code), ("address", client_address)) if v is not None}
+            if c:
+                upd["client"] = p.client.model_copy(update=c)
+                touched.append("client")
+            d = {k: v for k, v in (("name", developer), ("code", developer_code), ("address", developer_address)) if v is not None}
+            if clear_developer and d:
+                raise ValueError("developer fields are both given and cleared")
+            if clear_developer:
+                upd["developer"] = None
+                touched.append("developer")
+            elif d:
+                if p.developer is None and "name" not in d:
+                    raise ValueError("this project has no developer yet; pass developer (its name) with the other developer fields")
+                upd["developer"] = p.developer.model_copy(update=d) if p.developer else Party(**d)
+                touched.append("developer")
+            updated = Project.model_validate(p.model_copy(update=upd).model_dump(mode="json"), context={"catalog": ws.catalog})
+            parties = {"name": updated.name, "client": updated.client.model_dump(mode="json", exclude_none=True),
+                       "developer": updated.developer.model_dump(mode="json", exclude_none=True) if updated.developer else None}  # fmt: skip
+            return Edit(updated, tuple(touched), {"parties": parties})
+
+        return ws.mutate(project_id, change)
 
     @server.tool(annotations=READ_ONLY)
     @guarded
@@ -285,12 +336,15 @@ def register(server: MCPServer, ws: Workspace) -> None:
         approved: Annotated[str | None, Field(description="Name of the approver, printed in the APPROVED cell")] = None,
         date: Annotated[dt.date | None, Field(description="Issue date as YYYY-MM-DD; today when omitted")] = None,
         remarks: Annotated[str | None, Field(description="Revision description in the revision table; 'ISSUED FOR <PURPOSE>' when omitted")] = None,
+        amend: Annotated[bool, Field(description="Correct the latest issued revision (same rev mark: its date, purpose, names or remarks) instead of adding a new one; refused for an older revision")] = False,
     ) -> dict[str, Any]:
         """Issue the drawing set: add a revision (mark, date, purpose, drawn/checked/approved names, remarks) that every sheet's title
         block, revision table and the drawing register show from the next drawings_render. The engineering rules run first (as in
         validate): approval, construction and as_built are refused while any error remains, and the refusal lists every error;
         proposal and information are allowed with errors and the response says the sheets carry them. A revision mark already
-        issued is refused unless every value is the same (then nothing changes). Re-render with drawings_render afterwards.
+        issued is refused unless every value is the same (then nothing changes) or amend=true corrects the latest revision in place, so a
+        fix to its remarks or names before any newer issue does not cost a new revision. Remarks longer than about 55 characters are
+        shortened in the title block revision cell; the reply warns. Re-render with drawings_render afterwards.
 
         Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="0", drawn="A. Kumar", checked="S. Rao", approved="P. Iyer", date="2026-10-28")."""
         purpose = IssuedFor(issued_for)
@@ -298,16 +352,29 @@ def register(server: MCPServer, ws: Workspace) -> None:
                               issued_for=purpose, drawn=drawn, checked=checked, approved=approved)  # fmt: skip
 
         def change(p: Project) -> Edit:
-            gate = issue_gate(run_rules(p, ws.catalog, None, thresholds_of(p.company_profile, ws.config.workspace)), purpose)
+            gate = issue_gate(project_rules(ws, p), purpose)
             if not gate.allowed:
                 raise ToolError(f"cannot issue {project_id!r} for {purpose.value}: {len(gate.reasons)} error(s) remain; fix them (validate, explain_finding) or issue for information: "
                                 + "; ".join(gate.reasons))  # fmt: skip
             same = next((r for r in p.revisions if r.rev == rev), None)
-            if same is not None and same != entry:
-                raise ToolError(f"revision {rev!r} was already issued on {same.date} for {same.issued_for.value if same.issued_for else 'an unstated purpose'}; give a new revision mark")
-            sheets = p.sheets if same is not None else tuple(s.model_copy(update={"revisions": (*s.revisions, entry)}) if s.revisions else s for s in p.sheets)
-            updated = p if same is not None else p.model_copy(update={"revisions": (*p.revisions, entry), "sheets": sheets})
+            if amend:
+                if not p.revisions or p.revisions[-1].rev != rev:
+                    latest = p.revisions[-1].rev if p.revisions else None
+                    raise ToolError(f"amend corrects only the latest issued revision ({latest!r}), not {rev!r}" if latest else "nothing to amend: the set has not been issued yet")
+                updated = p.model_copy(update={
+                    "revisions": (*p.revisions[:-1], entry),
+                    "sheets": tuple(s.model_copy(update={"revisions": tuple(entry if r.rev == rev else r for r in s.revisions)}) for s in p.sheets),
+                })  # fmt: skip
+            elif same is not None and same != entry:
+                raise ToolError(f"revision {rev!r} was already issued on {same.date} for {same.issued_for.value if same.issued_for else 'an unstated purpose'}; "
+                                "give a new revision mark, or pass amend=true to correct it while it is the latest revision")  # fmt: skip
+            else:
+                sheets = p.sheets if same is not None else tuple(s.model_copy(update={"revisions": (*s.revisions, entry)}) if s.revisions else s for s in p.sheets)
+                updated = p if same is not None else p.model_copy(update={"revisions": (*p.revisions, entry), "sheets": sheets})
             problems = tuple({"severity": "warning", "subject": "issue", "message": f"issued for {purpose.value} with an open error: {r}"} for r in gate.reasons)
+            if len(entry.remarks) > REMARKS_FIT:
+                problems += ({"severity": "warning", "subject": "issue", "message": f"remarks are {len(entry.remarks)} characters; the title block revision cell shows about {REMARKS_FIT} "
+                              "(longer text is cut with an ellipsis): shorten them with project_issue(..., amend=true)"},)  # fmt: skip
             extra = {"issue": entry.model_dump(mode="json"), "revisions": [r.rev for r in updated.revisions],
                      "gate": {"allowed": gate.allowed, "watermark": gate.watermark, "errors": len(gate.reasons)}}  # fmt: skip
             return Edit(updated, ("revisions",), extra, problems)

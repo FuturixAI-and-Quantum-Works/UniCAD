@@ -16,7 +16,8 @@ from unicad.routing import RouteAssumptions
 from unicad.schedules import LengthMode, Schedule, build_bom, build_schedule, write_bom_xlsx, write_schedule_xlsx
 from unicad.schedules.bom import DEFAULT_WASTAGE_PCT
 from unicad.schedules.dxf import render_bom, render_schedule
-from unicad.tenants.store import drawing_profile
+from unicad.rules.thresholds import using
+from unicad.tenants.store import drawing_profile, thresholds_of
 
 Format = Annotated[Literal["xlsx", "dxf", "pdf"], Field(description="xlsx: one row per cable or item; dxf: company-sheet pages, one DXF each; pdf: those pages printed through LibreCAD into one PDF")]
 OutDir = Annotated[str | None, Field(description="Directory to write into; default <workspace>/<project_id>/exports")]
@@ -91,7 +92,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Returns the file paths, totals, the worst-path voltage drop, the length source counts and any cable the schedule could not complete.
         Example: cable_schedule(project_id="rooftop-500kwp", format="pdf", lengths="estimated")."""
         project, rev = ws.load(project_id, revision)
-        schedule = build_schedule(project, ws.catalog, LengthMode(lengths), _assumptions(drop_per_end_m, termination_m, switchyard_x, switchyard_y))
+        with using(thresholds_of(project.company_profile, ws.config.workspace)):
+            schedule = build_schedule(project, ws.catalog, LengthMode(lengths), _assumptions(drop_per_end_m, termination_m, switchyard_x, switchyard_y))
         if not schedule.rows:
             raise ValueError("the project has no cabled power connections to schedule; give network edges a cable and a length")
         out = out_path(project_id, out_dir)
@@ -123,8 +125,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Cable metres use the same `lengths` basis as cable_schedule.
         Example: bom(project_id="utility-50mwac", format="xlsx", wastage_pct=5)."""
         project, rev = ws.load(project_id, revision)
-        schedule = build_schedule(project, ws.catalog, LengthMode(lengths))
-        bill = build_bom(project, ws.catalog, schedule, wastage_pct)
+        with using(thresholds_of(project.company_profile, ws.config.workspace)):
+            schedule = build_schedule(project, ws.catalog, LengthMode(lengths))
+            bill = build_bom(project, ws.catalog, schedule, wastage_pct)
         out = out_path(project_id, out_dir)
         stem = f"{project_id}-bom"
         result: dict[str, Any] = {"project_id": project_id, "revision": rev, "format": format}
