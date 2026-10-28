@@ -5,8 +5,9 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 
-from unicad.arrays.strings import assign_strings
+from unicad.arrays.strings import assign_strings, string_id
 from unicad.domain.layout import ArrayLayout, StringAssignment
+from unicad.design.patches import centre, patches
 from unicad.design.strings import DesignError
 
 STRING_ID = re.compile(r"^(?P<block>.+)-I(?P<inv>\d+)-S(?P<s>\d+)$")
@@ -83,10 +84,11 @@ def from_layout(layout: ArrayLayout, mps: int, target_spi: int, max_spi: int, ma
             raise DesignError(f"layout block {b.id} has {n} strings: {n_inv} inverters would need {spi} strings each, above the inverter limit {max_spi}{fix}")
         assigned, left = assign_strings([b], mps, spi)
         unstrung += left
-        per_inv: dict[int, list[StringAssignment]] = {}
-        for a in assigned:
-            m = STRING_ID.match(a.string)
-            per_inv.setdefault(int(m["inv"]), []).append(a)
+        sizes = list(Counter(int(STRING_ID.match(a.string)["inv"]) for a in assigned).values())
+        groups = patches([(centre(layout, a), a) for a in assigned], sizes)
+        per_inv = {
+            k + 1: [StringAssignment(string=string_id(b.id, k + 1, j + 1), spans=a.spans) for j, a in enumerate(g)] for k, g in enumerate(groups)
+        }
         order = sorted(per_inv)
         full = [i for i in order if len(per_inv[i]) == spi]
         rest = [i for i in order if len(per_inv[i]) != spi]

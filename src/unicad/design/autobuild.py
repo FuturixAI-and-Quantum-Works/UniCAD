@@ -15,11 +15,10 @@ from unicad.domain.layout import ArrayLayout, Point, StringAssignment
 from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
-from unicad.design.placement import place_equipment
+from unicad.design.placement import place_equipment, string_runs
+from unicad.design.patches import PATCHES, SCB_PATCHES, centre, patches
 from unicad.design.plan import PvPlan, from_layout, uniform
-from unicad.arrays.geometry import frame
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
-from unicad.routing.locate import slot_centre
 from unicad.design.sizing import band_cables, size_network
 from unicad.design.strings import DesignError, StringDesign, size_strings
 from unicad.rules import Finding, Severity, run_rules
@@ -272,87 +271,6 @@ def _plan(
     return uniform(blocks, math.ceil(n_inv / blocks), spi, mps)
 
 
-INVERTER_GROUPING = (
-    "The layout strings of the like inverters of a block (same string count) are split between them in compact parts (recursive bisection along the longer "
-    "extent, in the array frame), so each inverter, or its SCBs, collects neighbouring strings."
-)
-SCB_GROUPING = (
-    "Each central inverter's strings are grouped onto its SCBs by nearness (each SCB takes the string farthest out and its nearest neighbours, then a few rounds of "
-    "nearest-centroid reassignment within the SCB sizes), so every SCB combines a patch of neighbouring strings and stands at their centroid."
-)
-
-
-def _centre(layout: ArrayLayout, a: StringAssignment) -> tuple[float, float]:
-    pts = [slot_centre(layout.table_by_id[t], r, c) for t, r, c in a.slots()]
-    t = layout.table_by_id[a.spans[0].table]
-    (ux, uy), (vx, vy) = frame(t.azimuth_deg)
-    x, y = sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
-    return x * ux + y * uy, x * vx + y * vy
-
-
-def _bisect(items: list[tuple[tuple[float, float], StringAssignment]], sizes: list[int]) -> list[list[tuple[tuple[float, float], StringAssignment]]]:
-    """Split `items` into groups of `sizes` by recursive bisection along the longer extent (compact halves for inverters)."""
-    if len(sizes) <= 1:
-        return [items]
-    k = len(sizes) // 2
-    first = sum(sizes[:k])
-    spans = [max(p[i] for p, _ in items) - min(p[i] for p, _ in items) for i in (0, 1)]
-    axis = 0 if spans[0] >= spans[1] else 1
-    ordered = sorted(items, key=lambda it: (it[0][axis], it[0][1 - axis]))
-    return _bisect(ordered[:first], sizes[:k]) + _bisect(ordered[first:], sizes[k:])
-
-
-def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-
-def _radius(groups: list[list[tuple[tuple[float, float], StringAssignment]]]) -> float:
-    worst = 0.0
-    for g in groups:
-        c = (sum(p[0] for p, _ in g) / len(g), sum(p[1] for p, _ in g) / len(g))
-        worst = max(worst, max(_dist(p, c) for p, _ in g))
-    return worst
-
-
-def _refine(items, groups, sizes):
-    """Capacity-bound nearest-centroid reassignment rounds from `groups`; the grouping whose farthest string is nearest its centroid wins."""
-    best, best_r = groups, _radius(groups)
-    for _ in range(PATCH_ROUNDS):
-        cents = [(sum(p[0] for p, _ in g) / len(g), sum(p[1] for p, _ in g) / len(g)) for g in groups]
-        pairs = sorted((_dist(it[0], c), it[1].string, i, k) for i, it in enumerate(items) for k, c in enumerate(cents))
-        room, where = list(sizes), {}
-        for _, _, i, k in pairs:
-            if i not in where and room[k] > 0:
-                where[i] = k
-                room[k] -= 1
-        groups = [[it for i, it in enumerate(items) if where[i] == k] for k in range(len(sizes))]
-        r = _radius(groups)
-        if r < best_r - 1e-9:
-            best, best_r = groups, r
-    return best, best_r
-
-
-def _partition(items: list[tuple[tuple[float, float], StringAssignment]], sizes: list[int]) -> list[list[StringAssignment]]:
-    """Groups of `sizes` neighbouring strings: recursive bisection along the longer extent, and seeded patches (each starts at the string farthest from the
-    centre of those left and takes its nearest neighbours, distance along the array axes), each refined by nearest-centroid reassignment; the grouping whose
-    farthest string is nearest its group centroid is kept."""
-    if len(sizes) <= 1:
-        return [[a for _, a in items]]
-    left, seeded = list(items), []
-    for size in sizes:
-        cx, cy = sum(p[0] for p, _ in left) / len(left), sum(p[1] for p, _ in left) / len(left)
-        seed = max(left, key=lambda it: (_dist(it[0], (cx, cy)), it[1].string))
-        near = sorted(left, key=lambda it: (_dist(it[0], seed[0]), it[1].string))[:size]
-        taken = {id(x) for x in near}
-        left = [x for x in left if id(x) not in taken]
-        seeded.append(near)
-    best = min((_refine(items, g, sizes) for g in (_bisect(items, sizes), seeded)), key=lambda gr: gr[1])[0]
-    return [[a for _, a in g] for g in best]
-
-
-PATCH_ROUNDS = 8
-
-
 def _link_strings(net: ElectricalNetwork, links, layout: ArrayLayout, notes: list[str]) -> tuple[StringAssignment, ...]:
     out = []
     for node_ids, count, slots, scbs in links:
@@ -362,15 +280,12 @@ def _link_strings(net: ElectricalNetwork, links, layout: ArrayLayout, notes: lis
             size = len(ids) // count
             chunks.append([ids[j * size : (j + 1) * size] for j in range(count)])
         per_inv = slots
-        if count > 1 and len({len(sl) for sl in slots}) == 1:
-            pool = [(_centre(layout, a), a) for sl in slots for a in sl]
-            per_inv = _partition(pool, [len(slots[0])] * count)
-            if INVERTER_GROUPING not in notes:
-                notes.append(INVERTER_GROUPING)
+        if PATCHES not in notes:
+            notes.append(PATCHES)
         if scbs and all(len(sl) == sum(scbs) for sl in per_inv):
-            per_inv = [[a for g in _partition([(_centre(layout, a), a) for a in sl], scbs) for a in g] for sl in per_inv]
-            if SCB_GROUPING not in notes:
-                notes.append(SCB_GROUPING)
+            per_inv = [[a for g in patches([(centre(layout, a), a) for a in sl], scbs) for a in g] for sl in per_inv]
+            if SCB_PATCHES not in notes:
+                notes.append(SCB_PATCHES)
         for j in range(count):
             mine = [i for ch in chunks for i in ch[j]]
             if len(mine) != len(per_inv[j]):
@@ -435,8 +350,10 @@ def autobuild(
         intent = Intent.model_validate(intent)
         r = _autobuild(project, catalog, intent, layout, thresholds)
         first = _string_vdrop(r)
-        if not first or not any(n.kind is NodeKind.SCB for n in r.project.network.nodes):
+        if not first:
             return r
+        if not any(n.kind is NodeKind.SCB for n in r.project.network.nodes):
+            return _with_patch_blocker(r, intent)
         for size in T.SCB_SIZES[1:]:
             try:
                 again = _autobuild(project, catalog, intent, layout, thresholds, size)
@@ -453,6 +370,41 @@ def autobuild(
 
 def _string_vdrop(r: AutobuildResult) -> list[str]:
     return [b for b in r.blockers if b.startswith("DC ") and "voltage drop" in b]
+
+
+STRING_VDROP = re.compile(r"^DC (?P<node>\S+): voltage drop (?P<drop>[\d.]+) % exceeds (?P<limit>[\d.]+) %")
+
+
+def _with_patch_blocker(r: AutobuildResult, intent: Intent) -> AutobuildResult:
+    """Where field string inverters still leave string runs over the DC drop limit, a blocker naming the worst inverter patch and the ways out."""
+    runs = string_runs(r.project)
+    if not runs:
+        return r
+    net = r.project.network
+    tags = {n.id: n.tag for n in net.expand().nodes}
+    added = []
+    for b in _string_vdrop(r):
+        m = STRING_VDROP.match(b)
+        if m is None or m["node"] not in net.node_by_id:
+            continue
+        drop, limit = float(m["drop"]), float(m["limit"])
+        fed = {d.split("@")[0] for d in net.downstream(m["node"])}
+        mine = {inv: rn for inv, rn in runs.items() if inv.split("@")[0] in fed}
+        if not mine:
+            continue
+        inv, (run, n) = max(mine.items(), key=lambda kv: (kv[1][0], kv[0]))
+        allowed = run * limit / drop
+        fit = max(1, min(n - 1, math.floor(n * (allowed / run) ** 2)))
+        added.append(
+            f"DC string runs of {tags[inv]} ({n} strings) reach {run:.0f} m to the inverter, {drop:.2f} % against the {limit:g} % limit with string cables at the "
+            f"MC4 cross-section cap; the limit allows about {allowed:.0f} m. Options: shorter patches (re-run layout_place and network_autobuild with "
+            f"strings_per_inverter <= {fit}); more inverters per block (raise inverters_per_block where it caps the block's inverter count, or a smaller "
+            f"inverter model); or a higher vdrop_dc_max of at least {drop:.2f} % "
+            "(project_design_basis)."
+        )
+    if not added:
+        return r
+    return r.model_copy(update={"blockers": tuple(dict.fromkeys([*r.blockers, *added]))})
 
 
 def _autobuild(
