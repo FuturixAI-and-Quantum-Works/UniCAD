@@ -8126,7 +8126,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8145,7 +8145,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40b3a200",
@@ -8154,7 +8154,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8173,7 +8173,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40b3a250",
@@ -8182,7 +8182,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8201,7 +8201,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40b3a320",
@@ -8210,7 +8210,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8229,7 +8229,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40b3a400",
@@ -8238,7 +8238,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8257,7 +8257,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40b3e125",
@@ -8266,7 +8266,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 25 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8285,7 +8285,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40f3a160",
@@ -8294,7 +8294,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8313,7 +8313,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40f3a200",
@@ -8322,7 +8322,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8341,7 +8341,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40f3a250",
@@ -8350,7 +8350,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8369,7 +8369,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40f3a320",
@@ -8378,7 +8378,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8397,7 +8397,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40f3a400",
@@ -8406,7 +8406,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8425,7 +8425,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40f3e125",
@@ -8434,7 +8434,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8453,7 +8453,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40n3a160",
@@ -8462,7 +8462,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8481,7 +8481,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40n3a200",
@@ -8490,7 +8490,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8509,7 +8509,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40n3a250",
@@ -8518,7 +8518,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8537,7 +8537,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40n3a320",
@@ -8546,7 +8546,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8565,7 +8565,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40n3a400",
@@ -8574,7 +8574,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8593,7 +8593,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol40n3e125",
@@ -8602,7 +8602,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8621,7 +8621,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol80f3e500",
@@ -8630,7 +8630,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8649,7 +8649,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol80f3e630",
@@ -8658,7 +8658,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8677,7 +8677,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol80f3e800",
@@ -8686,7 +8686,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 36 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8705,7 +8705,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol80n3e500",
@@ -8714,7 +8714,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8733,7 +8733,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol80n3e630",
@@ -8742,7 +8742,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8761,7 +8761,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-easypact-solar-sol80n3e800",
@@ -8770,7 +8770,7 @@
     "symbol": "sw.mccb",
     "source": {
       "kind": "catalog",
-      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. One cable lug per pole up to 300 sq.mm is a design assumption, not a datasheet value; confirm with the manufacturer.",
+      "ref": "raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_catalog_SP5013401_2026.pdf p.17-19, 58; references/catalog-sources/extracted/protection_p5.json; Icu 50 kA at Ue 800 V AC; Icu at 800 V AC from the technical datasheet pages A-6 to A-8 (PDF pp.17-19): MCCB 400 B/F/N 25/36/50 kA, MCCB 800 F/N 36/50 kA; commercial references on page F-3 (PDF p.58), where MCCB 400 also has ETU 160 A and MCCB 800 also has 400 A (not catalogued twice). The catalogue and the user guide SP5015101 (raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_user_guide_SP5015101.pdf pp.35-39) give no largest cable per pole: cables land on the standard spreaders. Two cable lugs per pole up to 300 sq.mm on the standard terminal spreader (one M12 connection hole, raw/datasheets/protection/Schneider_EasyPact_Solar_MCCB_800_instruction_sheet_SP5013701.pdf p.17) is a design assumption, not a datasheet value; confirm with the manufacturer.",
       "retrieved": "2026-10-26"
     },
     "kind": "protection",
@@ -8789,7 +8789,7 @@
     "spd_type": null,
     "surge_counter": null,
     "terminal_max_mm2": 300.0,
-    "terminal_cables_per_pole": 1
+    "terminal_cables_per_pole": 2
   },
   {
     "id": "schneider-ic60n-b1-1p",
