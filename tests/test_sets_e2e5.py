@@ -273,3 +273,53 @@ def test_m7_rooftop_earthing_plan_tags_every_junction_box(projects):
     texts = _texts(sheet.doc)
     boxes = [it.tag for it in design_earthing(p).layout.items if it.tag.startswith("DCJB")]
     assert len(boxes) == 4 and set(boxes) <= texts, sorted(set(boxes) - texts)
+
+
+@pytest.mark.parametrize("kind", ["layout", "lps"])
+def test_n21_plant_area_and_terminal_labels_stay_with_what_they_name(projects, kind):
+    """Run 5: C's 'MV SWITCHYARD' label sat far from its box and B's ESE-09 label read as ESE-07's. The area name is written inside its
+    outline, and a terminal label is its tag alone (the radius is in the schedule), so it fits beside its terminal."""
+    p = projects[C]
+    (sheet,) = _built(p, kind)
+    msp = sheet.doc.modelspace()
+    names = [e for e in msp.query("TEXT") if e.dxf.text in ("MV SWITCHYARD", "(60 x 45 m)", "MV SWITCHYARD (60 x 45 m)")]
+    outlines = [e for e in msp.query("LWPOLYLINE") if e.dxf.layer == "L-STATION" and len(e) == 4]
+    assert names and outlines
+    for t in names:
+        at = t.dxf.align_point if t.dxf.hasattr("align_point") and t.dxf.halign else t.dxf.insert
+        x, y = at.x, at.y
+        assert any(min(q[0] for q in o.get_points()) <= x <= max(q[0] for q in o.get_points()) and min(q[1] for q in o.get_points()) <= y <= max(q[1] for q in o.get_points())
+                   for o in outlines), t.dxf.text  # fmt: skip
+    if kind == "lps":
+        assert not [e for e in msp.query("TEXT") if "RADIUS COVERED" in e.dxf.text]
+
+
+def test_r5_m3_string_fuses_are_drawn_in_both_poles_as_designed_and_billed(projects):
+    """Run 5: C's string diagram drew one fuse per string in the (+) pole and the SLD read '25 A, 1P', while the design and the BOM fuse both
+    poles (1920 links for 960 strings)."""
+    from unicad.drafting.symbols import REGISTRY
+
+    p = projects[C]
+    fuses = [n for n in p.network.nodes if n.kind.value == "fuse"]
+    assert fuses and all(n.attributes.get("fused_poles") == 2 for n in fuses)
+    block = REGISTRY["dc.fuse"].block_name
+    for b in _built(p, "strings"):
+        refs = [e for e in b.doc.modelspace().query("INSERT") if e.dxf.name.startswith(block)]
+        legend = [e for e in refs if e.dxf.xscale == e.dxf.yscale and abs(e.dxf.rotation) < 1e-6]
+        strings = {t.split(" ")[0] for t in _texts(b.doc) if t.startswith("STR-") and " : " in t}
+        assert strings and len(refs) - len(legend) == 2 * len(strings), (len(refs), len(legend), len(strings))
+        raw = " ".join(e.dxf.text for e in b.doc.modelspace().query("TEXT"))
+        assert "+ AND -" in raw and "POLES" in raw
+    sld = [t for b in _built(p, "sld") for t in _texts(b.doc)]
+    assert "1P (+ AND - POLES)" in " ".join(sld) and not [t for t in sld if t.startswith("25 A") and t.split(", ")[1:2] == ["1P"]]
+
+
+def test_m10_sld_notes_list_each_cable_remark_once(projects):
+    """Run 5: A SLD notes 3 and 4 were the same string-circuit remark, one with a length range appended. The range now stays on the
+    callout and both circuits refer to one note."""
+    p = projects[A]
+    ((s, lay, *_),) = _sld_sheets(p)
+    assert len(lay.notes) == len(set(lay.notes))
+    assert not [(a, b) for a in lay.notes for b in lay.notes if a != b and (a.startswith(b) or b.startswith(a))], lay.notes
+    callouts = [lb.text for c in lay.callouts for lb in c.labels]
+    assert any("L = " in t and ".." in t for t in callouts)

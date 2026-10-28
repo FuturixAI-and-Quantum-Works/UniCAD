@@ -662,7 +662,7 @@ class LpsSheetWriter(_Writer):
             pts.append((t, x, y))
         self._areas(P)
         for t, x, y in pts:
-            self._label_text([t.tag, f"RADIUS COVERED {d.radius_m:g} m"], (x, y), h, 0.99 * th, t.tag, layer=L_LPS, colour=LPS_COLOUR, mask=True, hs=[h, 0.8 * h])
+            self._label_text([t.tag], (x, y), h, 0.99 * th, t.tag, layer=L_LPS, colour=LPS_COLOUR, mask=True)
         self._feature_labels(P)
         self.clip = None
         self._panel_l(panel)

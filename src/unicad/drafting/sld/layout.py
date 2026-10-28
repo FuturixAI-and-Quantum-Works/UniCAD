@@ -500,7 +500,7 @@ class _Builder:
             rec.extent = ext
         notes: dict[str, int] = {t: len(annotate.GENERAL_NOTES) + i + 1 for i, t in enumerate(self.preset_notes)}
         for rec in sorted((r for r in self.recs.values() if r.tree_edge), key=lambda r: self.order[r.tree_edge.id]):
-            text = annotate.remark(rec.tree_edge)
+            text = annotate.note_remark(rec.tree_edge)
             if text and annotate.is_long_remark(text):
                 notes.setdefault(text, len(annotate.GENERAL_NOTES) + len(notes) + 1)
         self.notes = tuple(notes)

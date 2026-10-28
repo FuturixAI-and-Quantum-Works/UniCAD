@@ -141,7 +141,7 @@ def parameters_for(t: DiagramType) -> tuple[tuple[str, str], ...]:
         (f"VOC AT {t.tmin_c:g} DEG C", f"{t.lines[0].voc_cold_v:.1f} V (LIMIT {t.voc_limit_v:g} V)"),
         ("STRING ISC", f"{m.isc:g} A"),
         ("STRING CABLE", t.string_callout.upper()),
-        ("STRING FUSE", (t.fuse.label.upper() + ("" if t.fuse.modelled else " (PROPOSED)")) if t.fuse else f"NONE (AT MOST {t.mppt.inputs_per_mppt} PER MPPT)" if t.mppt else "NONE"),
+        ("STRING FUSE", (t.fuse.label.upper() + (", + AND - POLES" if t.fuse.poles == 2 else "") + ("" if t.fuse.modelled else " (PROPOSED)")) if t.fuse else f"NONE (AT MOST {t.mppt.inputs_per_mppt} PER MPPT)" if t.mppt else "NONE"),
     ]
     if t.kind == "inverter" and t.mppt:
         rows += [("INVERTER", f"{inv.ac_rated_kva:g} KVA {inv.model}".upper()), ("MPPT", f"{t.mppt.used} OF {t.mppt.mppt_count} USED")]

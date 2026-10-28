@@ -32,6 +32,8 @@ class Fuse:
     spec_id: str | None
     label: str
     modelled: bool
+    poles: int = 1
+    """Poles of each string fused (2: the + and the - conductor), as the network records it."""
 
 
 @dataclass(frozen=True)
@@ -307,7 +309,8 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
         if modelled is not None:
             spec = catalog.get(modelled.spec)
             if isinstance(spec, ProtectionSpec) and spec.rated_current:
-                fuse = Fuse(spec.rated_current, spec.id, f"{spec.rated_current:g} A gPV", True)
+                poles = modelled.attributes.get("fused_poles")
+                fuse = Fuse(spec.rated_current, spec.id, f"{spec.rated_current:g} A gPV", True, poles if isinstance(poles, int) and poles > 0 else 1)
         if fuse is None and (kind == "scb" or (mppt is not None and mppt.inputs_per_mppt * first.strings_per_input > 2)):
             fuse = pick_fuse(catalog, module, voc)
             notes.append(FUSE_ASSUMPTION)

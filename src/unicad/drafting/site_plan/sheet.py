@@ -603,8 +603,37 @@ class LayoutSheetWriter:
             ring = P.ring(a.outline)
             self._poly(ring, L_STATION.name, lineweight=35)
             xs, ys = [x for x, _ in ring], [y for _, y in ring]
-            self.placer.block(Region(min(xs), min(ys), max(xs), max(ys)))
-            self._label_text([a.name], ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2), 0.7 * th, (max(xs) - min(xs)) / 2, f"area {a.name}", mask=True)
+            r = Region(min(xs), min(ys), max(xs), max(ys))
+            if self._inside(a.name, r, f"area {a.name}"):
+                continue
+            self.placer.block(r)
+            self._label_text([a.name], r.centre, 0.7 * th, 0.0, f"area {a.name}", mask=True)
+
+    def _inside(self, name: str, r: Region, key: str) -> bool:
+        """The area's name written inside its outline (split before a bracket onto a second line when that fits better), so it cannot
+        read as naming something else; False when it does not fit."""
+        th = self.m.th
+        head, sep, tail = name.partition(" (")
+        options = [[name]] + ([[head, f"({tail}"]] if sep else [])
+        for lines in options:
+            h = 0.7 * th
+            while h >= 0.45 * th:
+                w = max(text_width(t, h) for t in lines) + 0.6 * th
+                ht = 1.45 * h * len(lines) + 0.4 * th
+                if w <= r.width - 0.4 * th and ht <= r.height - 0.4 * th:
+                    cx, cy = r.centre
+                    box_ = Region(cx - w / 2, cy - ht / 2, cx + w / 2, cy + ht / 2)
+                    if self.placer.fixed(Label(key, (cx, cy), w, ht), box_) is None:
+                        break
+                    y = box_.y1 - 0.2 * th
+                    for t in lines:
+                        y -= 1.45 * h
+                        self._text(t, (cx, y + 0.45 * h), h, align="BC")
+                    self.placer.block(Region(r.x0, r.y0, r.x1, box_.y0))
+                    self.placer.block(Region(r.x0, box_.y1, r.x1, r.y1))
+                    return True
+                h *= 0.85
+        return False
 
     def _panel(self, panel: Region) -> None:
         th = self.m.th

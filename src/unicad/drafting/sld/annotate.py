@@ -264,6 +264,9 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
         case ProtectionSpec():
             label, rating_of = PROTECTION_TEXT[spec.device]
             rating = rating_of(spec)
+            poles = node.attributes.get("fused_poles") if spec.device in ("fuse_gpv", "fuse_hrc") else None
+            if isinstance(poles, int) and poles != spec.poles:
+                rating = rating.replace(f"{spec.poles}P", f"{poles} x {spec.poles}P ({'+ AND - POLES' if poles == 2 else f'{poles} POLES'})", 1)
             desc = node.title or (f"{spec.manufacturer} {spec.model}".upper() if spec.device in TYPE_LABELLED else label)
         case MeterSpec():
             rating = f"CL {spec.accuracy_class}, {spec.connection.upper().replace('_', '/')} OPERATED"
@@ -338,6 +341,19 @@ GENERAL_NOTES = (
 
 def remark(edge: Edge) -> str:
     return prose(edge.remarks) if edge.remarks else ""
+
+
+def _remark_parts(edge: Edge) -> tuple[str, list[str]]:
+    """The edge's remark without its length range, and the range ('L = a..b m (SEE CABLE SCHEDULE)'), which belongs on the callout: two
+    circuits with the same remark and different routed lengths then share one note."""
+    parts = remark(edge).split("; ") if edge.remarks else []
+    inline = [x for x in parts if x.startswith("L = ")]
+    return "; ".join(x for x in parts if x not in inline), inline
+
+
+def note_remark(edge: Edge) -> str:
+    """The text a long remark is listed under in the sheet notes."""
+    return _remark_parts(edge)[0]
 
 
 def is_long_remark(text: str) -> bool:
@@ -420,7 +436,8 @@ def cable_callout(edge: Edge, catalog: Catalog | None, note_of: Mapping[str, int
             tail.append(f"L = {edge.length_m:g} m")
     elif edge.runs > 1:
         lines.append(f"{edge.runs}R")
-    text = remark(edge)
+    text, inline = _remark_parts(edge)
+    tail += inline
     if text and note_of and text in note_of:
         tail.append(f"SEE NOTE {note_of[text]}")
     elif text:

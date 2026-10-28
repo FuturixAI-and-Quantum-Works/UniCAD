@@ -269,7 +269,8 @@ def test_identical_blocks_share_one_typical_detail_sheet():
     cut = [r for b in done.values() for r in b.meta["cross_refs"]
            if any(under(x, rest) for x in (net.edge_by_id[r["edge"]].src_node, net.edge_by_id[r["edge"]].dst_node))]  # fmt: skip
     assert cut and {r["to_sheet"] for r in cut} <= {s.number for s in sheets if s.id.startswith(typical.id)}
-    texts = " ".join(t for b in (done[s.id] for s in sheets if s.id.startswith(typical.id)) for t in (e.dxf.text for e in b.doc.modelspace().query("TEXT")))
+    texts = " ".join(e.dxf.text for b in (done[s.id] for s in sheets if s.id.startswith(typical.id)) for space in (b.doc.modelspace(), *b.doc.blocks)
+                     for e in space.query("TEXT"))  # fmt: skip
     assert "(SEE CABLE SCHEDULE)" in texts.upper()
 
 

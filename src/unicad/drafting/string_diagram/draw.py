@@ -376,7 +376,14 @@ def draw_diagram(ink: Ink, t: DiagramType, lines: tuple[StringLine, ...], x0: fl
         x_minus = draw_chain(ink, ln, x_chain, g.y0, g.y_ret, u)
         ink.text(ln.cable_id, x_minus + 1.8 * u, g.y0 + 1.8 * u, CABLE_H * u, tag=f"{ln.tag} cable id")
         ink.text(callout(t, ln), x_minus + 1.8 * u, g.y0 + 0.7 * u, CABLE_H * u, tag=f"{ln.tag} cable")
-        ink.line((x_minus, g.y0), (x_sink if t.kind == "inverter" else x_sink - 1.5 * u, g.y0), L_NEG)
+        x_neg_end = x_sink if t.kind == "inverter" else x_sink - 1.5 * u
+        if t.fuse is not None and t.fuse.poles == 2:
+            x_fuse = x_dev + 2.0 * u if t.envelope != "none" else x_dev + 0.5 * u
+            ink.line((x_minus, g.y0), (x_fuse, g.y0), L_NEG)
+            ink.symbol_with_pin("dc.fuse", "in", (x_fuse, g.y0), 90, FUSE_LEN / 20.0 * u)
+            ink.line((x_fuse + FUSE_LEN * u, g.y0), (x_neg_end, g.y0), L_NEG)
+        else:
+            ink.line((x_minus, g.y0), (x_neg_end, g.y0), L_NEG)
     y_bottom = rows[-1].y_ret - (1.8 if t.kind == "inverter" else 4.8) * u
     y_env_top = rows[0].y0 + 2.8 * u
     zone_y = y_top - 3.4 * u - 1.2 * u
