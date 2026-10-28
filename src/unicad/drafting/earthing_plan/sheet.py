@@ -300,6 +300,10 @@ class EarthingSheetWriter(_Writer):
         self.pit_r = r
         groups = self._groups(P, r)
         grouped = {t for g in groups for t in g.pits}
+        in_groups = {i for g in groups for i in g.items}
+        if lay.switchyard is not None:
+            sy = lay.switchyard
+            in_groups |= {it.id for it in lay.items if not it.placed and sy.x0 <= it.at.x <= sy.x1 and sy.y0 <= it.at.y <= sy.y1}
         sq = max(0.25 * th, 1.2 * P.k)
         terminals: dict[str, tuple[float, float]] = {}
         placed: dict[str, tuple[float, float, str]] = {}
@@ -311,7 +315,7 @@ class EarthingSheetWriter(_Writer):
                 terminals[it.tag] = (x, y)
                 continue
             self._poly([(x - sq, y - sq), (x + sq, y - sq), (x + sq, y + sq), (x - sq, y + sq)], L_EQUIP)
-            if it.placed:
+            if it.id not in in_groups:
                 self.placer.block(Region(x - sq, y - sq, x + sq, y + sq))
                 placed[it.id] = (x, y, it.tag)
         at_mast: dict[str, str] = {}

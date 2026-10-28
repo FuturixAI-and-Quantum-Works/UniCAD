@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 from test_mcp import connect
 
 from unicad.catalog.store import load_catalog
@@ -119,10 +119,11 @@ def test_rooftop_pits_stand_at_the_building_perimeter_inside_the_plot(roof):
     d = design_earthing(p)
     site = Polygon([(q.x, q.y) for f in p.site.geometry.features if f.kind.value == "boundary" for q in f.polygon])
     roofs = [Polygon([(q.x, q.y) for q in f.polygon]) for f in p.site.geometry.features if f.kind.value == "roof"]
+    panel = {t for g in d.layout.stations if g.name == "PLANT EQUIPMENT AREA" for t in g.pits}
     for pit in d.layout.pits:
         at = SPoint(pit.at.x, pit.at.y)
         assert site.contains(at), f"{pit.tag} at ({pit.at.x}, {pit.at.y}) is outside the plot"
-        assert min(r.exterior.distance(at) for r in roofs) <= 8.0, f"{pit.tag} is not at a building perimeter"
+        assert pit.tag in panel or min(r.exterior.distance(at) for r in roofs) <= 8.0, f"{pit.tag} is not at a building perimeter"
         assert not any(r.contains(at) for r in roofs)
     tables = len(p.array_layout.table_by_id)
     assert len(d.layout.pits) < tables / 2, "rooftop pit count follows down conductors, equipment and the resistance target, not the table count"
@@ -142,8 +143,11 @@ def test_rooftop_station_is_earthed_by_down_conductors_to_pits_at_its_building_e
     roofs = _roof_polys(p)
     here = next(r for r in roofs if r.contains(SPoint(station.x, station.y)))
     g = next(x for x in d.layout.stations if x.name == "BLOCK-01 STATION")
-    assert not any(x.name == "PLANT EQUIPMENT AREA" for x in d.layout.stations)
-    assert {"acdb", "ltp"} <= set(g.items)
+    assert "acdb" in g.items and "ltp" not in g.items, "close-e2e-5 n18: the main LT panel stands in the ground LT room, not at the roof station"
+    panel = next(x for x in d.layout.stations if x.name == "PLANT EQUIPMENT AREA")
+    assert "ltp" in panel.items and not any(r.contains(SPoint(it.at.x, it.at.y)) for r in roofs for it in d.layout.items if it.id in panel.items)
+    yard = p.array_layout.switchyard.at
+    assert box(*panel.ring).buffer(2.0).contains(SPoint(yard.x, yard.y))
     for it in d.layout.items:
         if it.id in g.items:
             assert it.on_roof and here.contains(SPoint(it.at.x, it.at.y))
@@ -167,7 +171,6 @@ def test_ground_station_on_a_rooftop_project_has_its_own_pit_cluster_at_the_layo
     assert (station.x, station.y) == (66.0, 8.0)
     roofs = _roof_polys(p)
     g = next(x for x in d.layout.stations if x.name == "BLOCK-01 STATION")
-    assert not any(x.name == "PLANT EQUIPMENT AREA" for x in d.layout.stations)
     x0, y0, x1, y1 = g.ring
     assert (x0 + x1) / 2 == pytest.approx(station.x, abs=0.01) and (y0 + y1) / 2 == pytest.approx(station.y, abs=0.01)
     inside = [it for it in d.layout.items if it.id in g.items]

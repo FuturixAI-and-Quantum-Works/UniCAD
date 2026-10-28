@@ -226,3 +226,50 @@ def test_r5_m8_layout_sheet_draws_each_station_at_its_model_position(projects, p
                    for e in msp.query("INSERT") if e.dxf.name == sym.block_name and sheet.plan.x0 <= e.dxf.insert.x <= sheet.plan.x1)  # fmt: skip
     model = sorted((round(ox + k * b.station.x, 1), round(oy + k * b.station.y, 1)) for b in layout.blocks if b.station is not None)
     assert drawn == pytest.approx(model, abs=0.2)
+
+
+def test_n18_station_earthing_detail_shows_only_equipment_at_that_station(projects):
+    """Run 5: rooftop Detail A drew LTP-01 and CT-02 (the ground LT room) at the roof station, and the B block station drew VCB-BF-01 and
+    CT-BF-01, which are feeder panels of the main HT switchboard at the switchyard."""
+    from unicad.earthing.design import design_earthing
+
+    a = design_earthing(projects[A]).layout
+    tags = {it.id: it.tag for it in a.items}
+    station = next(g for g in a.stations if g.name == "BLOCK-01 STATION")
+    assert "ACDB-01" in {tags[i] for i in station.items} and not {"LTP-01", "CT-02"} & {tags[i] for i in station.items}
+    panel = next(g for g in a.stations if g.name == "PLANT EQUIPMENT AREA")
+    assert {"LTP-01", "CT-02"} <= {tags[i] for i in panel.items}
+    b = design_earthing(projects[B]).layout
+    tags = {it.id: it.tag for it in b.items}
+    for g in b.stations:
+        if g.kind == "station":
+            assert not [tags[i] for i in g.items if tags.get(i, "").startswith(("VCB-BF", "CT-BF"))], g.name
+    assert any(it.tag.startswith("VCB-BF") for it in b.items)
+
+
+def _built(p, kind):
+    from unicad.sets.registry import builder
+
+    profile = load_profile(p.company_profile)
+    b = builder(kind)
+    sheets = b.plan(p, profile, CATALOG, Numberer.for_project(p, profile))
+    return b.build(p, sheets, sheets, profile, CATALOG)
+
+
+def _texts(doc) -> set[str]:
+    out = set()
+    for space in (doc.modelspace(), *doc.blocks):
+        for e in space.query("TEXT"):
+            out |= {t.strip() for t in e.dxf.text.split(",")}
+    return out
+
+
+def test_m7_rooftop_earthing_plan_tags_every_junction_box(projects):
+    """Run 5 (and run 4 m7): the DCJBs on the rooftop earthing plan were unlabelled squares."""
+    from unicad.earthing.design import design_earthing
+
+    p = projects[A]
+    (sheet,) = _built(p, "earthing")
+    texts = _texts(sheet.doc)
+    boxes = [it.tag for it in design_earthing(p).layout.items if it.tag.startswith("DCJB")]
+    assert len(boxes) == 4 and set(boxes) <= texts, sorted(set(boxes) - texts)

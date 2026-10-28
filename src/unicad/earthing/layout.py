@@ -20,7 +20,7 @@ from shapely.ops import nearest_points, unary_union
 from unicad.arrays.geometry import frame, plan_depth, plan_length, table_corners, to_site
 from unicad.arrays.siting import free_spot
 from unicad.domain.layout import LayoutBlock, Point, Table
-from unicad.domain.network import NodeKind
+from unicad.domain.network import NodeKind, Service
 from unicad.domain.project import Project
 from unicad.earthing.model import ConductorRole, Item, Pit, PitRole, Run
 from unicad.lps.design import LpsDesign
@@ -79,7 +79,7 @@ class Switchyard:
 
 @dataclass(frozen=True)
 class StationGroup:
-    """One equipment area (an inverter station or the plant panel area): its ring and the pits and items placed with it."""
+    """One equipment area (an inverter station, the plant panel area or a BESS area, by `kind`): its ring and the pits and items placed with it."""
 
     name: str
     ring: tuple[float, float, float, float]
@@ -152,6 +152,34 @@ def _unit_blocks(project: Project, insts) -> dict[tuple[str, int], int]:
     return out
 
 
+def _acdb_assembly(net) -> frozenset[str]:
+    """The AC combiner and what is joined to it without a cable (its breakers, SPD): one assembly at the station. Equipment a cable away
+    (the solar meter, the isolator, the main LT panel) stands in the LT room."""
+    out = {n.id for n in net.nodes if n.kind is NodeKind.ACDB}
+    grown = True
+    while grown:
+        grown = False
+        for e in net.edges:
+            if e.cable is None and e.service is not Service.EARTH and (e.src_node in out) != (e.dst_node in out):
+                out |= {e.src_node, e.dst_node}
+                grown = True
+    return frozenset(out)
+
+
+def _housed_away(net) -> frozenset[str]:
+    """Nodes that repeat with a block but are housed in a panel outside it (a block's feeder VCB and CT in the main HT switchboard at the
+    switchyard): they stand with that panel, not at the block's station."""
+    out = set()
+    for n in net.nodes:
+        chain = net._chain(n.group)
+        if n.housed_in is None or not chain or n.housed_in not in net.group_by_id:
+            continue
+        housing = net._chain(n.housed_in)
+        if chain[0].id not in {g.id for g in housing}:
+            out.add(n.id)
+    return frozenset(out)
+
+
 def equipment(project: Project) -> tuple[dict[int, list[Instance]], list[Instance], list[str]]:
     """Bonded equipment instances (id, tag, kind) per layout block index and the plant-level rest, plus assumptions."""
     layout = project.array_layout
@@ -163,10 +191,13 @@ def equipment(project: Project) -> tuple[dict[int, list[Instance]], list[Instanc
         return per_block, plant, notes
     insts = list(_instances(project))
     unit_block = _unit_blocks(project, insts) if n_blocks > 1 else {}
+    away = _housed_away(project.network)
     for iid, tag, kind, unit in insts:
         if kind not in BONDED_KINDS:
             continue
-        if unit is not None and n_blocks == 1:
+        if iid.split("@")[0] in away:
+            plant.append((iid, tag, kind))
+        elif unit is not None and n_blocks == 1:
             per_block[0].append((iid, tag, kind))
         elif unit in unit_block:
             per_block[unit_block[unit]].append((iid, tag, kind))
@@ -185,7 +216,7 @@ def _ring(x0: float, y0: float, x1: float, y1: float) -> list[tuple[float, float
 
 
 def _cluster(centre: tuple[float, float], n: int, pitch: float) -> list[tuple[float, float]]:
-    cols = max(1, math.ceil(math.sqrt(n * 2)))
+    cols = min(n, max(1, math.ceil(math.sqrt(n * 2))))
     rows = math.ceil(n / cols)
     out = []
     for i in range(n):
@@ -235,7 +266,7 @@ def _two_connections(p: tuple[float, float], ring: list[tuple[float, float]]) ->
 
 def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[tuple[str, str, NodeKind]], label: str, sizes: Sizes,
                   name: str | None = None, avoid: Polygon | None = None, roof: Polygon | None = None, site: Polygon | None = None,
-                  electrode_m: float = 3.0) -> None:  # fmt: skip
+                  electrode_m: float = 3.0, area: str = "station") -> None:  # fmt: skip
     """Equipment cluster with a local ring and each item bonded to the ring by its connections. On the ground its pits stand on or
     beside the ring (off any `avoid` area, e.g. a roof the ring overlaps). On a `roof` the ring is bonded by down conductors to pits
     on the ground at the nearest building edge."""
@@ -279,7 +310,7 @@ def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[
                 pts = [free[round(i * len(free) / len(roles))] for i in range(len(roles))]
         pits = [lay.pit(role, q, (serves,)) for (role, serves), q in zip(roles, pts)]
     bounds = LineString(ring).bounds
-    lay.stations.append(StationGroup(name or label.upper(), bounds, tuple(p.tag for p in pits), tuple(i[0] for i in items)))
+    lay.stations.append(StationGroup(name or label.upper(), bounds, tuple(p.tag for p in pits), tuple(i[0] for i in items), kind=area))
 
 
 def _inside_roof(pos: list[tuple[float, float]], roof: Polygon, station: tuple[float, float], clear: float = 0.4) -> list[tuple[float, float]]:
@@ -619,8 +650,13 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
     panel_items = [it for it in plant if it not in yard_items]
     host = next((i for i, b in enumerate(blocks) if b.station is not None), None) if lay.rooftop else None
-    hosted = panel_items if host is not None else []
-    panel_items = [] if hosted else panel_items
+    if host is not None and layout.switchyard is not None:
+        at_acdb = _acdb_assembly(project.network)
+        hosted = [it for it in panel_items if it[0].split("@")[0] in at_acdb]
+        panel_items = [it for it in panel_items if it not in hosted]
+    else:
+        hosted = panel_items if host is not None else []
+        panel_items = [] if hosted else panel_items
     for i, b in enumerate(blocks):
         items = per_block.get(i, [])
         if b.station is None:
@@ -658,7 +694,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         at = _panel_area(project, lay, site, roof_polys)
         if roof_union is not None:
             at = _free_spot(at, len(panel_items), unary_union([roof_union, *(box(*g.ring).buffer(2.0) for g in lay.stations)]), site)
-        _station_area(lay, at, panel_items, "plant", sizes, name="PLANT EQUIPMENT AREA", avoid=roof_union)
+        _station_area(lay, at, panel_items, "plant", sizes, name="PLANT EQUIPMENT AREA", avoid=roof_union, area="plant")
     if lps is not None:
         _lps(lay, lps, sizes, site, dict(roof_polys), unary_union([Polygon(table_corners(t)) for t in tables]) if tables else None)
     existing = np.asarray([_xy(p.at) for p in lay.pits], dtype=float).reshape(-1, 2)
