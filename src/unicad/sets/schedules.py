@@ -1,6 +1,5 @@
 """Cable schedule and bill of materials pages of a set: the table pages of `unicad.schedules.dxf`, one drawing number per page."""
 
-import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -18,9 +17,6 @@ from unicad.schedules.dxf import NOTE_SOURCE, NOTE_SUMMARY, NOTE_VALUES, NOTE_VD
 from unicad.sets.common import dated
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
-
-PART = re.compile(r" \(PART (\d+) OF (\d+)\)$")
-"""The title's 'PART k OF n' is the title block's 'k of n': a table's pages are counted together, as the parts of an SLD are."""
 
 _last: list[tuple[Project, Catalog, Schedule]] = []
 
@@ -45,10 +41,12 @@ def _paper(project: Project, kind: SheetKind, profile: CompanyProfile) -> PaperS
 
 
 def _plan_pages(parts: Sequence[tuple[str, TableSpec]], paper: PaperSize, numbers: Numberer, kind: SheetKind, block: str, sid: str) -> tuple[Sheet, ...]:
+    counts = [table_pages(spec, paper) for _, spec in parts]
+    total = sum(counts)
     plan = []
-    for title, spec in parts:
-        n = table_pages(spec, paper)
-        plan += [title + (f" (PART {k} OF {n})" if n > 1 else "") for k in range(1, n + 1)]
+    for (title, _), n in zip(parts, counts):
+        first = len(plan)
+        plan += [title + (f" (PART {first + k} OF {total})" if n > 1 else "") for k in range(1, n + 1)]
     out = []
     for i, title in enumerate(plan, start=1):
         old = numbers.reuse(kind.value)
@@ -63,8 +61,7 @@ def _draw(project: Project, profile: CompanyProfile, sheets: Sequence[Sheet], pa
 
     def spec(page: int, pages: int, part: int):
         s = sheets[page - 1]
-        k, n = (int(x) for x in found.groups()) if (found := PART.search(s.title)) else (1, 1)
-        return dated(SheetContext(project, profile, s, paper, notes, params).spec(s.title, k, n, 0), drawn_on)
+        return dated(SheetContext(project, profile, s, paper, notes, params).spec(s.title, page, pages, 0), drawn_on)
 
     render = render_tables([(p, paper) for p in parts], profile, spec)
     if render.pages != len(sheets):

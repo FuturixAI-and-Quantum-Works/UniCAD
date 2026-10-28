@@ -1,7 +1,7 @@
 {
   "project_id": "ground-6mwp",
   "set_pdf": "set.pdf",
-  "sheet_count": 17,
+  "sheet_count": 13,
   "sheets": [
     {
       "drawing_scale": "NTS",
@@ -114,53 +114,13 @@
           "paper": "A3",
           "rev": "00",
           "scale": "NTS",
-          "title": "DC CABLE SCHEDULE (PART 1 OF 5)"
+          "title": "DC CABLE SCHEDULE"
         },
         {
           "date": "28.10.26",
           "issued_for": "Information",
           "kind": "cable_schedule",
           "number": "UDEMO-DRL-G6-EE-502",
-          "paper": "A3",
-          "rev": "00",
-          "scale": "NTS",
-          "title": "DC CABLE SCHEDULE (PART 2 OF 5)"
-        },
-        {
-          "date": "28.10.26",
-          "issued_for": "Information",
-          "kind": "cable_schedule",
-          "number": "UDEMO-DRL-G6-EE-503",
-          "paper": "A3",
-          "rev": "00",
-          "scale": "NTS",
-          "title": "DC CABLE SCHEDULE (PART 3 OF 5)"
-        },
-        {
-          "date": "28.10.26",
-          "issued_for": "Information",
-          "kind": "cable_schedule",
-          "number": "UDEMO-DRL-G6-EE-504",
-          "paper": "A3",
-          "rev": "00",
-          "scale": "NTS",
-          "title": "DC CABLE SCHEDULE (PART 4 OF 5)"
-        },
-        {
-          "date": "28.10.26",
-          "issued_for": "Information",
-          "kind": "cable_schedule",
-          "number": "UDEMO-DRL-G6-EE-505",
-          "paper": "A3",
-          "rev": "00",
-          "scale": "NTS",
-          "title": "DC CABLE SCHEDULE (PART 5 OF 5)"
-        },
-        {
-          "date": "28.10.26",
-          "issued_for": "Information",
-          "kind": "cable_schedule",
-          "number": "UDEMO-DRL-G6-EE-506",
           "paper": "A3",
           "rev": "00",
           "scale": "NTS",
@@ -191,7 +151,7 @@
       "scope": [],
       "sheet_kind": "register",
       "sheet_no": 1,
-      "sheet_of": "1 of 17",
+      "sheet_of": "1 of 13",
       "title": "DRAWING REGISTER",
       "warnings": []
     },
@@ -317,7 +277,7 @@
       "scope": [],
       "sheet_kind": "sld",
       "sheet_no": 2,
-      "sheet_of": "2 of 17",
+      "sheet_of": "2 of 13",
       "title": "OVERALL SINGLE LINE DIAGRAM (PART 1 OF 2)",
       "warnings": []
     },
@@ -384,7 +344,7 @@
       ],
       "sheet_kind": "sld_detail",
       "sheet_no": 3,
-      "sheet_of": "3 of 17",
+      "sheet_of": "3 of 13",
       "title": "OVERALL SINGLE LINE DIAGRAM (PART 2 OF 2)",
       "warnings": []
     },
@@ -430,7 +390,7 @@
       ],
       "sheet_kind": "sld_detail",
       "sheet_no": 4,
-      "sheet_of": "4 of 17",
+      "sheet_of": "4 of 13",
       "title": "TYPICAL STRING INVERTER BLOCK (3 X 352 kVA) SLD FOR BLOCK-01, BLOCK-02, BLOCK-03, BLOCK-04 (SHOWN FOR BLOCK-01)",
       "warnings": []
     },
@@ -470,7 +430,7 @@
       ],
       "sheet_kind": "sld_detail",
       "sheet_no": 5,
-      "sheet_of": "5 of 17",
+      "sheet_of": "5 of 13",
       "title": "TYPICAL STRING INVERTER BLOCK (4 X 352 kVA) SLD (BLOCK-05)",
       "warnings": []
     },
@@ -490,7 +450,7 @@
       "scope": [],
       "sheet_kind": "layout",
       "sheet_no": 6,
-      "sheet_of": "6 of 17",
+      "sheet_of": "6 of 13",
       "title": "SOLAR PV ARRAY LAYOUT",
       "view": "site",
       "warnings": [
@@ -515,7 +475,7 @@
       "scope": [],
       "sheet_kind": "earthing",
       "sheet_no": 7,
-      "sheet_of": "7 of 17",
+      "sheet_of": "7 of 13",
       "target_ohm": 1.0,
       "title": "EARTHING LAYOUT",
       "unbonded": 0,
@@ -540,7 +500,7 @@
       "scope": [],
       "sheet_kind": "lps",
       "sheet_no": 8,
-      "sheet_of": "8 of 17",
+      "sheet_of": "8 of 13",
       "terminals": 5,
       "title": "LIGHTNING ARRESTER (LA) LAYOUT",
       "uncovered": 0,
@@ -563,7 +523,7 @@
       "scope": [],
       "sheet_kind": "string_diagram",
       "sheet_no": 9,
-      "sheet_of": "9 of 17",
+      "sheet_of": "9 of 13",
       "strings_covered": 384,
       "strings_drawn": 24,
       "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01..INV-05-04",
@@ -580,7 +540,7 @@
       "gaps": 1,
       "id": "cables_1",
       "kind": "cable_schedule",
-      "kind_sheet_of": "1 of 6",
+      "kind_sheet_of": "1 of 2",
       "number": "UDEMO-DRL-G6-EE-501",
       "paper": "A3",
       "rows": 432,
@@ -588,8 +548,8 @@
       "scope": [],
       "sheet_kind": "cable_schedule",
       "sheet_no": 10,
-      "sheet_of": "10 of 17",
-      "title": "DC CABLE SCHEDULE (PART 1 OF 5)",
+      "sheet_of": "10 of 13",
+      "title": "DC CABLE SCHEDULE",
       "warnings": []
     },
     {
@@ -601,94 +561,14 @@
       },
       "id": "cables_2",
       "kind": "cable_schedule",
-      "kind_sheet_of": "2 of 6",
+      "kind_sheet_of": "2 of 2",
       "number": "UDEMO-DRL-G6-EE-502",
       "paper": "A3",
       "scale": null,
       "scope": [],
       "sheet_kind": "cable_schedule",
       "sheet_no": 11,
-      "sheet_of": "11 of 17",
-      "title": "DC CABLE SCHEDULE (PART 2 OF 5)",
-      "warnings": []
-    },
-    {
-      "drawing_scale": "NTS",
-      "files": {
-        "dwg": null,
-        "dxf": "12-UDEMO-DRL-G6-EE-503.dxf",
-        "pdf": "12-UDEMO-DRL-G6-EE-503.pdf"
-      },
-      "id": "cables_3",
-      "kind": "cable_schedule",
-      "kind_sheet_of": "3 of 6",
-      "number": "UDEMO-DRL-G6-EE-503",
-      "paper": "A3",
-      "scale": null,
-      "scope": [],
-      "sheet_kind": "cable_schedule",
-      "sheet_no": 12,
-      "sheet_of": "12 of 17",
-      "title": "DC CABLE SCHEDULE (PART 3 OF 5)",
-      "warnings": []
-    },
-    {
-      "drawing_scale": "NTS",
-      "files": {
-        "dwg": null,
-        "dxf": "13-UDEMO-DRL-G6-EE-504.dxf",
-        "pdf": "13-UDEMO-DRL-G6-EE-504.pdf"
-      },
-      "id": "cables_4",
-      "kind": "cable_schedule",
-      "kind_sheet_of": "4 of 6",
-      "number": "UDEMO-DRL-G6-EE-504",
-      "paper": "A3",
-      "scale": null,
-      "scope": [],
-      "sheet_kind": "cable_schedule",
-      "sheet_no": 13,
-      "sheet_of": "13 of 17",
-      "title": "DC CABLE SCHEDULE (PART 4 OF 5)",
-      "warnings": []
-    },
-    {
-      "drawing_scale": "NTS",
-      "files": {
-        "dwg": null,
-        "dxf": "14-UDEMO-DRL-G6-EE-505.dxf",
-        "pdf": "14-UDEMO-DRL-G6-EE-505.pdf"
-      },
-      "id": "cables_5",
-      "kind": "cable_schedule",
-      "kind_sheet_of": "5 of 6",
-      "number": "UDEMO-DRL-G6-EE-505",
-      "paper": "A3",
-      "scale": null,
-      "scope": [],
-      "sheet_kind": "cable_schedule",
-      "sheet_no": 14,
-      "sheet_of": "14 of 17",
-      "title": "DC CABLE SCHEDULE (PART 5 OF 5)",
-      "warnings": []
-    },
-    {
-      "drawing_scale": "NTS",
-      "files": {
-        "dwg": null,
-        "dxf": "15-UDEMO-DRL-G6-EE-506.dxf",
-        "pdf": "15-UDEMO-DRL-G6-EE-506.pdf"
-      },
-      "id": "cables_6",
-      "kind": "cable_schedule",
-      "kind_sheet_of": "6 of 6",
-      "number": "UDEMO-DRL-G6-EE-506",
-      "paper": "A3",
-      "scale": null,
-      "scope": [],
-      "sheet_kind": "cable_schedule",
-      "sheet_no": 15,
-      "sheet_of": "15 of 17",
+      "sheet_of": "11 of 13",
       "title": "AC AND MV CABLE SCHEDULE",
       "warnings": []
     },
@@ -696,8 +576,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "16-UDEMO-DRL-G6-EE-601.dxf",
-        "pdf": "16-UDEMO-DRL-G6-EE-601.pdf"
+        "dxf": "12-UDEMO-DRL-G6-EE-601.dxf",
+        "pdf": "12-UDEMO-DRL-G6-EE-601.pdf"
       },
       "id": "bom_1",
       "kind": "bom",
@@ -708,8 +588,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "bom",
-      "sheet_no": 16,
-      "sheet_of": "16 of 17",
+      "sheet_no": 12,
+      "sheet_of": "12 of 13",
       "title": "BILL OF MATERIALS (PART 1 OF 2)",
       "warnings": []
     },
@@ -717,8 +597,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "17-UDEMO-DRL-G6-EE-602.dxf",
-        "pdf": "17-UDEMO-DRL-G6-EE-602.pdf"
+        "dxf": "13-UDEMO-DRL-G6-EE-602.dxf",
+        "pdf": "13-UDEMO-DRL-G6-EE-602.pdf"
       },
       "id": "bom_2",
       "kind": "bom",
@@ -728,8 +608,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "bom",
-      "sheet_no": 17,
-      "sheet_of": "17 of 17",
+      "sheet_no": 13,
+      "sheet_of": "13 of 13",
       "title": "BILL OF MATERIALS (PART 2 OF 2)",
       "warnings": []
     }

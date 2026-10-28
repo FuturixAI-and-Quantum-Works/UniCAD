@@ -1,4 +1,4 @@
-"""Drafting defects of verifier run 6 (R6-m9, R6-m3, R5-m4, R6-m2, R6-m5, R6-m7, n21, m5)."""
+"""Drafting defects of verifier run 6: R6-m9 isolators, R6-m3 BESS tags, R5-m4 BESS as built, R6-m2 schedule pages, R6-m7 unreadable SLDs."""
 
 import ezdxf
 import json
@@ -10,11 +10,11 @@ from shapely.geometry import box as shapely_box
 from test_design import fixture
 from test_sets_e2e2 import scenario
 from unicad.catalog.store import load_catalog
-from unicad.domain.network import NodeKind
 from unicad.domain.network import NodeKind as NK
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import PaperSize
 from unicad.drafting.sheets.text import text_width
+from unicad.drafting.sld import SldOptions
 from unicad.drafting.sld import annotate
 from unicad.drafting.sld.annotate import system_parameters
 from unicad.drafting.string_diagram import plan_types
@@ -22,13 +22,13 @@ from unicad.drafting.tables.draw import ROW_PAD_Y
 from unicad.drafting.tables.plan import plan_table
 from unicad.schedules import LengthMode, build_schedule
 from unicad.schedules.dxf import schedule_tables
+from unicad.sets import render_set
 from unicad.sets.numbering import Numberer
+from unicad.sets.registry import BUILDERS
 from unicad.sets.registry import builder
-from unicad.sets.render import load_profile
-from unicad.sets.render import plan_set
-from unicad.sets.schedules import ScheduleBuilder, table_pages
+from unicad.sets.render import load_profile, plan_set
+from unicad.sets.sld import SldBuilder
 from unicad.store import parse_project
-
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -177,20 +177,14 @@ def test_r6_m2_part_numbers_in_titles_are_the_title_block_numbers():
     profile = load_profile(utility.company_profile)
     built = build_kind(utility, profile, "cable_schedule")
     assert len(built) > 3 and any("PART" in b.sheet.title for b in built)
-    for b in built:
+    for i, b in enumerate(built, start=1):
         texts = {e.dxf.text for e in b.doc.modelspace().query("TEXT")}
-        found = re.search(r"\(PART (\d+) OF (\d+)\)$", b.sheet.title)
-        k, n = found.groups() if found else ("1", "1")
-        assert f"{k} of {n}" in texts, (b.sheet.title, sorted(t for t in texts if " of " in t))
+        assert f"{i} of {len(built)}" in texts, (b.sheet.title, sorted(t for t in texts if " of " in t))
+        if found := re.search(r"\(PART (\d+) OF (\d+)\)$", b.sheet.title):
+            assert found.groups() == (str(i), str(len(built))), b.sheet.title
 
 
 # ---------------- R6-m7: a diagram drawn below the readable scale is flagged on the sheet and in the set ----------------
-
-import ezdxf as _ezdxf
-from unicad.drafting.sld import SldOptions
-from unicad.sets import render_set
-from unicad.sets.registry import BUILDERS
-from unicad.sets.sld import SldBuilder
 
 
 def test_r6_m7_an_unreadable_sld_says_so_on_the_sheet_and_in_the_set_warnings(monkeypatch, tmp_path):
@@ -200,7 +194,7 @@ def test_r6_m7_an_unreadable_sld_says_so_on_the_sheet_and_in_the_set_warnings(mo
     flagged = [e for e in index.sheets if e["readable"] is False]
     assert flagged
     for e in flagged:
-        doc = _ezdxf.readfile(tmp_path / e["files"]["dxf"])
+        doc = ezdxf.readfile(tmp_path / e["files"]["dxf"])
         assert any(t.dxf.text.startswith("WARNING: THIS DIAGRAM IS DRAWN AT SCALE") for t in doc.modelspace().query("TEXT")), e["number"]
         assert any(w.startswith(f"{e['number']}: NOT READABLE") for w in index.warnings)
 
@@ -209,7 +203,7 @@ def test_r6_m7_a_readable_sld_carries_no_warning(tmp_path):
     index = render_set(fixture("rooftop_500kwp"), tmp_path, kinds=("sld",), formats=("dxf",), catalog=CATALOG)
     assert all(e["readable"] for e in index.sheets)
     assert not [w for w in index.warnings if "NOT READABLE" in w]
-    doc = _ezdxf.readfile(tmp_path / index.sheets[0]["files"]["dxf"])
+    doc = ezdxf.readfile(tmp_path / index.sheets[0]["files"]["dxf"])
     assert not any(t.dxf.text.startswith("WARNING: THIS DIAGRAM") for t in doc.modelspace().query("TEXT"))
 
 
