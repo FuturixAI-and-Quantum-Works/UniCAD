@@ -11453,7 +11453,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -11593,7 +11593,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -14867,7 +14867,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -15007,7 +15007,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -22049,7 +22049,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -22189,7 +22189,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -25463,7 +25463,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -25603,7 +25603,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -30385,7 +30385,7 @@ AcDbText
  40
 2.0
   1
-1R x 4C x 35 sq.mm Al XLPE ARM
+1R x 3 x 1C x 35 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -30523,7 +30523,7 @@ AcDbText
  40
 2.0
   1
-19/33 kV, DIRECTLY BURIED, L = 154.2 m
+19/33 kV, DIRECTLY BURIED, L = 151.3 m
   7
 standard
  72
@@ -30997,7 +30997,7 @@ AcDbText
  40
 2.0
   1
-1R x 4C x 35 sq.mm Al XLPE ARM
+1R x 3 x 1C x 35 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -31135,7 +31135,7 @@ AcDbText
  40
 2.0
   1
-19/33 kV, DIRECTLY BURIED, L = 80.7 m
+19/33 kV, DIRECTLY BURIED, L = 77.7 m
   7
 standard
  72
@@ -31675,7 +31675,7 @@ AcDbText
  40
 2.0
   1
-1R x 4C x 35 sq.mm Al XLPE ARM
+1R x 3 x 1C x 35 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -31813,7 +31813,7 @@ AcDbText
  40
 2.0
   1
-19/33 kV, DIRECTLY BURIED, L = 168.9 m
+19/33 kV, DIRECTLY BURIED, L = 166 m
   7
 standard
  72
@@ -32287,7 +32287,7 @@ AcDbText
  40
 2.0
   1
-1R x 4C x 35 sq.mm Al XLPE ARM
+1R x 3 x 1C x 35 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -32425,7 +32425,7 @@ AcDbText
  40
 2.0
   1
-19/33 kV, DIRECTLY BURIED, L = 178.2 m
+19/33 kV, DIRECTLY BURIED, L = 175.1 m
   7
 standard
  72

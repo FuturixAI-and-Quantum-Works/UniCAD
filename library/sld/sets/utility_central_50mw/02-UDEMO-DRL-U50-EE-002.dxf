@@ -10309,7 +10309,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -10449,7 +10449,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -10745,7 +10745,7 @@ AcDbText
  40
 2.0
   1
-9R x 3 x 1C x 400 sq.mm Al XLPE ARM
+10R x 3 x 1C x 400 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -10847,7 +10847,7 @@ AcDbText
  40
 2.0
   1
-1R x 1C x 4 sq.mm Cu XLPO
+1R x 1C x 6 sq.mm Cu XLPO
   7
 standard
  72
@@ -10949,7 +10949,7 @@ AcDbText
  40
 2.0
   1
-1R x 1C x 240 sq.mm Cu XLPO
+1R x 1C x 185 sq.mm Cu XLPO
   7
 standard
  72
@@ -18887,7 +18887,7 @@ AcDbBlockReference
   2
 UC_SLD_SLD_BLOCK
  10
-173.266608
+174.244464
  20
 372.58
  30

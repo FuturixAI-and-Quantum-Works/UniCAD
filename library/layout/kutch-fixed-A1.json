@@ -7,7 +7,7 @@
   "module_wp": 540.0,
   "pitch_m": 6.6994,
   "gcr": 0.6842,
-  "buildable_m2": 263118.5,
+  "buildable_m2": 262953.5,
   "area_used_m2": 239014.3,
   "strings": 2109,
   "unstrung_modules": 0,
@@ -99,12 +99,13 @@
  "assumptions": [
   "gap between modules on a table: 0.02 (default, not from a cited source)",
   "gap between tables along a row: 1.5 (default, not from a cited source)",
-  "MV switchyard at local (37.5, 259.1): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
+  "MV switchyard at local (40.5, 259.2): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
   "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables and roads, keeps the exclusion setback from exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure).",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [
   "6 blocks instead of 4 so that no block crosses a road or line corridor and the blocks stay balanced",
+  "BLOCK-02, BLOCK-03 stand on both sides of a transmission line corridor: equal whole inverters per block outweigh a block per side here, so each of these blocks' feeders crosses under the line once; network_autobuild keeps every inverter's strings on one side wherever the strings divide, and says where they do not",
   "some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than 10%"
  ],
  "target_reached": null

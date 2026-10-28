@@ -1,17 +1,17 @@
 {
  "metrics": {
-  "tables_full": 1890,
+  "tables_full": 1889,
   "tables_half": 379,
-  "modules": 116452,
-  "dc_kwp": 62884.08,
+  "modules": 116396,
+  "dc_kwp": 62853.84,
   "module_wp": 540.0,
   "pitch_m": 4.3966,
   "gcr": 0.5213,
-  "buildable_m2": 698900.8,
-  "area_used_m2": 605291.6,
-  "strings": 1890,
+  "buildable_m2": 698734.8,
+  "area_used_m2": 605001.1,
+  "strings": 1889,
   "unstrung_modules": 10612,
-  "block_balance": 0.00842
+  "block_balance": 0.00722
  },
  "pitch": {
   "method": "solstice",
@@ -50,13 +50,13 @@
   {
    "id": "B03",
    "name": "BLOCK-03",
-   "tables_full": 352,
+   "tables_full": 351,
    "tables_half": 131,
-   "modules": 23380,
-   "dc_kwp": 12625.2,
+   "modules": 23324,
+   "dc_kwp": 12594.96,
    "station": {
     "x": 335.363,
-    "y": 209.227
+    "y": 208.897
    }
   },
   {
@@ -88,11 +88,12 @@
   "gap between modules on a table: 0.02 (default, not from a cited source)",
   "gap between tables along a row: 1.5 (default, not from a cited source)",
   "tracker rotation limit: 60.0 (default, not from a cited source)",
-  "MV switchyard at local (64.4, 734.4): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
+  "MV switchyard at local (67.4, 734.5): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
   "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables and roads, keeps the exclusion setback from exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure).",
   "modules per string: 56 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [
+  "BLOCK-02, BLOCK-05 stand on both sides of a transmission line corridor: equal whole inverters per block outweigh a block per side here, so each of these blocks' feeders crosses under the line once; network_autobuild keeps every inverter's strings on one side wherever the strings divide, and says where they do not",
   "some blocks cross a road or line corridor: keeping every block to one side would unbalance the blocks by more than 10%",
   "10612 modules do not make up a whole string of 56 and are left unstrung"
  ],

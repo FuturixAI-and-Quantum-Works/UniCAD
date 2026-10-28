@@ -9709,7 +9709,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11
@@ -9849,7 +9849,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 600 V
+3P, TYPE 2, 1 kV
   7
 standard
  11

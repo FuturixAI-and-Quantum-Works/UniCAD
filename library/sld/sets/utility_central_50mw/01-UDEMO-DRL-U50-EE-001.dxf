@@ -7759,7 +7759,7 @@ AcDbPolyline
  70
 1
  10
--252.23928
+-253.4616
  20
 -331.25
  10
@@ -7771,7 +7771,7 @@ AcDbPolyline
  20
 -185.6
  10
--252.23928
+-253.4616
  20
 -185.6
   0
@@ -7787,7 +7787,7 @@ E-SLD-TEXT
 100
 AcDbText
  10
--249.73928
+-250.9616
  20
 -188.725
  30
@@ -7799,7 +7799,7 @@ INVERTER BLOCK 8.8 MVA
   7
 standard
  11
--249.73928
+-250.9616
  21
 -188.725
  31
@@ -7821,7 +7821,7 @@ E-SLD-TEXT
 100
 AcDbText
  10
--249.73928
+-250.9616
  20
 -192.475
  30
@@ -7833,7 +7833,7 @@ BLOCK-01..BLOCK-06  (x 6)
   7
 standard
  11
--249.73928
+-250.9616
  21
 -192.475
  31
@@ -15243,7 +15243,7 @@ AcDbText
  40
 2.0
   1
-1R x 4C x 35 sq.mm Al XLPE ARM
+1R x 4C x 50 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -15549,7 +15549,7 @@ AcDbText
  40
 2.0
   1
-1R x 4C x 70 sq.mm Al XLPE ARM
+1R x 4C x 95 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -15717,7 +15717,7 @@ AcDbText
  40
 2.0
   1
-9R x 3 x 1C x 400 sq.mm Al XLPE ARM
+10R x 3 x 1C x 400 sq.mm Al XLPE ARM
   7
 standard
  72
@@ -25163,15 +25163,15 @@ AcDbBlockReference
   2
 UC_SLD_SLD
  10
-335.829443
+336.583301
  20
-499.12529
+498.652476
  30
 0.0
  41
-1.2203791072593058
+1.2175243861551401
  42
-1.2203791072593058
+1.2175243861551401
   0
 ENDSEC
   0

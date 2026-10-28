@@ -7,7 +7,7 @@
   "down": "25x3"
  },
  "array_fault_current_a": 8400.0,
- "conductor_mass_t": 125.8,
+ "conductor_mass_t": 124.9,
  "pits": 420,
  "pits_by_role": {
   "EP": 335,
@@ -22,13 +22,13 @@
  "pits_needed_by_current": 0,
  "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 0.0247,
+ "resistance_ohm": 0.0248,
  "resistance_method": "switchyard grid Rg (Sverak, IEEE 80) in parallel with the rest of the plant earth bonded to it (Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs)",
  "resistance_parts_ohm": {
   "switchyard_grid": 0.5372,
-  "rest_of_plant": 0.0259,
+  "rest_of_plant": 0.026,
   "rest_pits_and_strip": 0.0022,
-  "rest_network_area_limit": 0.0259
+  "rest_network_area_limit": 0.026
  },
  "target_ohm": 1.0,
  "tables": 2687,
@@ -74,7 +74,7 @@
   {
    "item": "flat.50x6.main",
    "description": "50x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 7348.0,
+   "quantity": 6942.0,
    "unit": "m"
   },
   {
@@ -311,7 +311,7 @@
   },
   {
    "name": "strip_current",
-   "value": 6967448.8,
+   "value": 6918842.4,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
@@ -393,13 +393,13 @@
     },
     {
      "name": "L",
-     "value": 9632135.345642665,
+     "value": 9591597.172567844,
      "unit": "cm",
      "source": null
     },
     {
      "name": "w",
-     "value": 2.738046163371646,
+     "value": 2.728486183478126,
      "unit": "cm",
      "source": null
     },
@@ -425,7 +425,7 @@
   "MV switchyard earth grid centred on the layout's switchyard location (centre of the switchyard area '33 KV POOLING SWITCHYARD (SAMPLE)' marked on the site)",
   "MV switchyard earth grid 56 x 41 m (inside the switchyard area marked on the site)",
   "IS 3043 surface current density applied to the whole electrode surface in soil: the pits and the buried flat conductor",
-  "switchyard grid current IG = Sf x 12,500 A with split factor Sf = R_rest / (Rg + R_rest) = 0.046: the earth fault current divides between the switchyard grid (Rg 0.537 ohm) and the rest of the plant earth bonded to it (R_rest 0.0259 ohm); mutual resistance between them neglected, decrement factor 1",
+  "switchyard grid current IG = Sf x 12,500 A with split factor Sf = R_rest / (Rg + R_rest) = 0.046: the earth fault current divides between the switchyard grid (Rg 0.537 ohm) and the rest of the plant earth bonded to it (R_rest 0.026 ohm); mutual resistance between them neglected, decrement factor 1",
   "ground potential rise GPR = IG x Rg (the fault current times the combined earth resistance); mesh and step voltages from the same IG",
   "flat strip 50x6 taken as a round conductor of diameter half its width in the IEEE 80 mesh equations",
   "tolerable voltages for a 50 kg body",
@@ -445,15 +445,15 @@
   },
   "spacing_m": 10.25,
   "rg_ohm": 0.5372,
-  "rest_of_plant_ohm": 0.0259,
+  "rest_of_plant_ohm": 0.026,
   "split_factor": 0.0461,
   "fault_current_a": 12500,
-  "grid_current_a": 575.7,
-  "gpr_v": 309,
+  "grid_current_a": 576.8,
+  "gpr_v": 310,
   "e_touch_tolerable_v": 519.5,
   "e_step_tolerable_v": 1730.2,
-  "e_mesh_v": 56.3,
-  "e_step_v": 30.9,
+  "e_mesh_v": 56.4,
+  "e_step_v": 31.0,
   "safe": true
  },
  "lps": {
