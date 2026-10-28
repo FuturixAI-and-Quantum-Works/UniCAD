@@ -638,15 +638,15 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
   "earthing": {
     "conductor": {"main": "25x6", "array": "25x6", "equipment": "25x6", "down": "25x3"},
     "array_fault_current_a": 400.0,
-    "conductor_mass_t": 0.8,
-    "pits": 4,
-    "pits_by_role": {"EP": 4},
-    "pits_by_practice": 4,
+    "conductor_mass_t": 0.9,
+    "pits": 6,
+    "pits_by_role": {"EP": 6},
+    "pits_by_practice": 6,
     "pits_needed_by_resistance": 0,
     "pits_needed_by_current": 0,
     "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
-    "resistance_ohm": 0.6957,
-    "resistance_method": "pits in parallel with each other and with the buried conductor (IS 3043)",
+    "resistance_ohm": 0.8187,
+    "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-st...",
     "target_ohm": 2.0,
     "tables": 22,
     "items": 8,
@@ -655,13 +655,13 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "pit.EP",
         "description": "EARTH PIT, 40 MM DIA 3 M LONG GS PIPE (TREATED) - EP",
-        "quantity": 4.0,
+        "quantity": 6.0,
         "unit": "nos"
       },
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 428.0,
+        "quantity": 450.0,
         "unit": "m"
       },
       {
@@ -673,7 +673,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 23.0,
+        "quantity": 26.0,
         "unit": "m"
       },
       "... 1 more"
@@ -684,7 +684,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       "pits spaced at least two electrode lengths apart are combined as parallel resistances, in parallel with the...",
       "conductor sized to the larger of the IS 3043 (k = 80) and IEEE 80 (Kf = 28.96) cross-sections",
       "no corrosion allowance on the conductor cross-section (set corrosion_allowance to add one)",
-      "... 5 more"
+      "... 6 more"
     ]
   }
 }

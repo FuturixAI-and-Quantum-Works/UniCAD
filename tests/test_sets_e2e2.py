@@ -367,7 +367,9 @@ def test_n7_layout_and_lps_sheets_show_the_switchyard_where_the_earthing_mat_is(
     for s in index.sheets:
         msp = ezdxf.readfile(tmp_path / s["files"]["dxf"]).modelspace()
         texts = [e.dxf.text for e in msp.query("TEXT")]
-        assert name in texts if s["kind"] != "earthing" else any(t.startswith("MV SWITCHYARD EARTH MAT") for t in texts), s["kind"]
+        head, _, tail = name.partition(" (")
+        shown = name in texts or (head in texts and f"({tail}" in texts)
+        assert shown if s["kind"] != "earthing" else any(t.startswith("MV SWITCHYARD EARTH MAT") for t in texts), s["kind"]
     assert [a.name for a in plant_areas(project)] == [name]
     assert plant_areas(project)[0].outline == ((sy.x0, sy.y0), (sy.x1, sy.y0), (sy.x1, sy.y1), (sy.x0, sy.y1))
 
