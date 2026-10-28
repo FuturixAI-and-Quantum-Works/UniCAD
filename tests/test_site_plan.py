@@ -106,7 +106,7 @@ def test_choose_scale_takes_the_largest_standard_scale_that_fits():
     room = Region(0, 0, 400, 300)
     assert choose_scale(700, 500, room) == 2000
     assert choose_scale(800, 500, room) == 2500
-    assert choose_scale(100, 50, room) == 500
+    assert choose_scale(100, 50, room) == 300
     assert choose_scale(1e6, 1e6, room) == 20000
 
 

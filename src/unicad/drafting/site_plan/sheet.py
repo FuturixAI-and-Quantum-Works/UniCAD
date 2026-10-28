@@ -37,7 +37,7 @@ from unicad.drafting.sheets.text import text_width
 from unicad.drafting.symbols import REGISTRY
 from unicad.drafting.symbols.install import install
 
-SCALES = (100, 200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000)
+SCALES = (100, 200, 250, 300, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000)
 PALETTE = (1, 5, 6, 30, 4, 200, 94, 40, 150, 12, 180, 230, 54, 110, 240, 70)
 TOTAL_COLOUR = 1
 # LibreCAD prints pure white (ACI 7 and 255, RGB FFFFFF) as black on a white page; off-white stays white.

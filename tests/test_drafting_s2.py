@@ -265,3 +265,34 @@ def test_the_rooftop_fixture_sld_is_a_single_readable_sheet(profile, tmp_path):
     index = render_set(p, tmp_path, kinds=["sld"], formats=("dxf",), catalog=CATALOG)
     assert [(s["id"], s["readable"]) for s in index.sheets] == [("sld", True)], index.sheets
     assert not any("NOT READABLE" in w for w in index.warnings)
+
+
+# ---------------- RV-m2 / R6-m5: plan sheets fill their paper ----------------
+
+from test_earthing import ground, roof, sample_sheets  # noqa: E402,F401
+
+
+def _fill(sheet) -> float:
+    x0, y0, x1, y1 = sheet.extent
+    return max((x1 - x0) * 1000 / sheet.scale / sheet.room.width, (y1 - y0) * 1000 / sheet.scale / sheet.room.height)
+
+
+@pytest.mark.parametrize("name", ["pune-earthing", "pune-lps"])
+def test_r6_m5_a_rooftop_plan_fills_its_plan_area(sample_sheets, name):
+    _, sheet, _, _ = sample_sheets[name]
+    assert _fill(sheet) >= 0.7, f"{name}: the plan spans {_fill(sheet):.0%} of its room at 1:{sheet.scale}"
+
+
+def test_r6_m5_the_run6_rooftop_earthing_sheet_is_drawn_at_the_scale_that_fills_it():
+    """Run 6 scenario A drew its earthing plan at 1:1000 on A2, the plan spanning 72 % of its room; 1:800 spans 90 %."""
+    import ezdxf
+    from test_sets_e2e2 import scenario
+    from unicad.drafting.earthing_plan import earthing_notes, render_earthing_sheet
+    from unicad.sets.common import sheet_spec
+    from unicad.sets.plans import earthing_of
+
+    p, profile = scenario("sgt-chakan")
+    d = earthing_of(p)
+    s = built(p, "earthing", profile)[0].sheet
+    res = render_earthing_sheet(ezdxf.new("R2018", setup=True), p, CATALOG, d, sheet_spec(p, s, 1, 1, notes=earthing_notes(d)), profile)
+    assert res.scale == 800 and _fill(res) >= 0.85
