@@ -11,6 +11,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.catalog import (
     BatterySpec,
     CableSpec,
+    DataLoggerSpec,
     InverterSpec,
     MeterSpec,
     ModuleSpec,
@@ -38,7 +39,7 @@ _KIND_LABEL = {
     NodeKind.BREAKER: "CIRCUIT BREAKER",
     NodeKind.AUX_TRANSFORMER: "AUXILIARY TRANSFORMER",
 }
-_METER_LABEL = {"net": "NET METER", "generation": "GENERATION METER", "abt": "ABT METER", "check": "CHECK METER"}
+_METER_LABEL = {"net": "NET METER", "generation": "GENERATION METER", "abt": "ABT METER", "check": "CHECK METER", "multifunction": "MULTIFUNCTION METER"}
 _LAYING = {
     "air": "IN AIR",
     "tray": "ON TRAY",
@@ -283,6 +284,9 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
         case MeterSpec():
             rating = f"CL {spec.accuracy_class}, {spec.connection.upper().replace('_', '/')} OPERATED"
             desc = node.title or _METER_LABEL[spec.function]
+        case DataLoggerSpec():
+            rating = _join(f"{spec.rs485_ports} x RS-485", f"{spec.ethernet_ports} x ETHERNET" if spec.ethernet_ports else None, f"{spec.max_devices} DEVICES" if spec.max_devices else None)
+            desc = node.title or "DATA LOGGER"
         case _:
             a = node.attributes
             if node.kind in (NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER) and a:

@@ -19,7 +19,8 @@ KeyFields = {
     "transformer": ("rated_kva", "hv_kv", "lv_kv", "vector_group", "impedance_pct"),
     "cable": ("service", "conductor", "cores", "size_mm2", "insulation", "armoured", "voltage_grade", "ampacity_air"),
     "protection": ("device", "rated_current", "rated_voltage", "poles", "breaking_capacity_ka"),
-    "meter": ("function", "accuracy_class", "connection"),
+    "meter": ("function", "accuracy_class", "connection", "communication"),
+    "logger": ("rs485_ports", "max_devices", "max_devices_per_rs485_port", "ethernet_ports"),
 }
 
 

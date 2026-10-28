@@ -24,6 +24,7 @@ from unicad.domain.catalog import (  # noqa: E402
     BatterySpec,
     CableSpec,
     CellTech,
+    DataLoggerSpec,
     EquipmentSpec,
     InverterSpec,
     MeterSpec,
@@ -37,6 +38,8 @@ from unicad.domain.catalog import (  # noqa: E402
 EXTRACTED = ROOT / "references" / "catalog-sources" / "extracted"
 EXTRACTED_REL = "references/catalog-sources/extracted"
 RETRIEVED = "2026-10-26"
+LATER_RETRIEVED = "2026-10-29"
+LATER_DATASHEETS = ("Avaada_", "Solis_S6-GC3P150-200K", "Secure_Elite440", "Solis_S3-Logger")
 ALMM_REF = "ALMM List-I"
 
 KIND_FILES = {
@@ -48,6 +51,7 @@ KIND_FILES = {
     "cable": "cables.json",
     "protection": "protection.json",
     "meter": "meters.json",
+    "logger": "loggers.json",
 }
 ADAPTER = TypeAdapter(EquipmentSpec)
 
@@ -103,7 +107,7 @@ def slug(*parts: object) -> str:
 def source(kind: str, raw: str, csv_name: str, row: int, page: str | int | None = None, extra: str = "") -> Source:
     where = f"{raw} p.{page}" if page else raw
     ref = f"{where}; {EXTRACTED_REL}/{csv_name} row {row}" + (f"; {extra}" if extra else "")
-    return Source(kind=kind, ref=ref, retrieved=RETRIEVED)
+    return Source(kind=kind, ref=ref, retrieved=LATER_RETRIEVED if Path(raw).name.startswith(LATER_DATASHEETS) else RETRIEVED)
 
 
 def missing(**fields: object) -> list[str]:
@@ -167,6 +171,7 @@ DATASHEET_ALMM_CODE = {
     "Adani_": lambda r: f"ASB-M10-144-{r['pmax_w']}",
     "VikramSolar_": lambda r: f"HYPERSOL VSMDH.72.{r['pmax_w']}.05",
     "TataPowerSolar_": lambda r: f"TP{r['pmax_w']}LG10TB",
+    "Avaada_": lambda r: f"AVN66G12G{r['pmax_w']}",
 }
 
 
@@ -179,6 +184,10 @@ def almm_code_for(row: dict[str, str]) -> str | None:
 
 
 def import_modules(b: Build, almm: Almm) -> None:
+    b.notes.append(
+        "720 Wp class: Avaada Electro AVN66G12G (ENLUME G12, N-type TOPCon bifacial glass-glass, 132 half-cut cells of 210 mm, 2384 x 1303 mm), 700-720 Wp, ALMM List-I enlisted. A 720 Wp TOPCon module is G12 (full 210 mm "
+        "cells); the G12R modules in the catalog stop at 635 Wp. The datasheet states no maximum series fuse rating, so `max_series_fuse` is empty and the string-fuse rule warns above two strings per MPPT."
+    )
     for line, r in read_csv("module_datasheets.csv"):
         ref = f"module_datasheets.csv row {line} ({r['manufacturer']} {r['model']})"
         listed, match = almm.lookup(almm_code_for(r))
@@ -240,6 +249,10 @@ def import_modules(b: Build, almm: Almm) -> None:
 
 
 def import_inverters(b: Build) -> None:
+    b.notes.append(
+        "150 kW class: Solis S6-GC3P150K07-NV-ND (150 kW / 165 kVA, 400 V, 7 MPPT, 21 strings = 3 inputs per MPPT, 54 A and 75 A per MPPT). The RVUNL brief asked for 7 MPPT with 2 strings each; "
+        "no datasheet found with 7 x 2 inputs, so the closest real unit is catalogued and two strings per MPPT stay within its limits for the 720 Wp module."
+    )
     for line, r in read_csv("inverter_datasheets.csv"):
         ref = f"inverter_datasheets.csv row {line} ({r['manufacturer']} {r['model']})"
         if "transformer" in r["note"]:
@@ -264,6 +277,8 @@ def import_inverters(b: Build) -> None:
         extra = "inputs per MPPT differ between trackers; smallest used" if len(set(strings)) > 1 else ""
         if int(r["mppt_count"]) > 1 and not r["idc_max_per_mppt_a"]:
             extra = "datasheet gives DC input totals only; per-MPPT currents left empty"
+        if "(derived)" in r["note"]:
+            extra = f"{extra}; {r['note']}" if extra else r["note"]
         if r["ac_terminal_max_mm2"]:
             fields["ac_terminal_max_mm2"] = num(r["ac_terminal_max_mm2"])
             t = f"AC terminal from p.{r['ac_terminal_pdf_page']}: '{r['ac_terminal_text']}'; cables per pole not stated"
@@ -842,6 +857,41 @@ def import_meters(b: Build) -> None:
         )
 
 
+def import_meter_datasheets(b: Build) -> None:
+    b.notes.append(
+        "Multifunction meter: Secure Elite 440 (Secure Meters, India), RS-485 Modbus RTU, CT operated, classes 0.2S / 0.5S / 1.0. The datasheet lists the three classes without tying them to model numbers 441-448, "
+        "so one entry per class carries the family name. Schneider EasyLogic PM2230 was not catalogued: its datasheet host refused the download (HTTP 403)."
+    )
+    for line, r in read_csv("meter_datasheets.csv"):
+        b.add(
+            "meter", f"meter_datasheets.csv row {line}", MeterSpec, id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
+            source=source("datasheet", r["source_file"], "meter_datasheets.csv", line, r["pdf_page"], r["note"]),
+            function=r["function"], accuracy_class=r["accuracy_class"], connection=r["connection"], communication=r["communication"] or None,
+        )
+
+
+def import_loggers(b: Build) -> None:
+    b.notes.append(
+        "Data logger: a catalog kind of its own (`logger`, DataLoggerSpec), drawn with the inst.datalogger symbol. Solis S3-Logger (India edition datasheet) is the only entry: it reads Solis inverters, meters and weather stations "
+        "over four RS-485 ports, so it matches the Solis inverter catalogued for the 150 kW class. A logger of another make needs its own datasheet; the Huawei SmartLogger and Sungrow Logger1000 sheets were not fetched."
+    )
+    def span(r: dict[str, str], key: str) -> tuple[float, float] | None:
+        lo, hi = num(r[f"{key}_min"]), num(r[f"{key}_max"])
+        return (lo, hi) if lo is not None and hi is not None else None
+
+    for line, r in read_csv("logger_datasheets.csv"):
+        b.add(
+            "logger", f"logger_datasheets.csv row {line}", DataLoggerSpec, id=slug(r["manufacturer"], r["model"]), manufacturer=r["manufacturer"], model=r["model"],
+            source=source("datasheet", r["source_file"], "logger_datasheets.csv", line, r["pdf_page"], r["note"]),
+            rs485_ports=int(r["rs485_ports"]), max_devices=int(r["max_devices"]) if r["max_devices"] else None,
+            max_devices_per_rs485_port=int(r["max_devices_per_rs485_port"]) if r["max_devices_per_rs485_port"] else None,
+            rs485_protocols=tuple(p.strip() for p in r["rs485_protocols"].split(";") if p.strip()), ethernet_ports=int(r["ethernet_ports"] or 0),
+            ethernet_protocols=tuple(p.strip() for p in r["ethernet_protocols"].split(";") if p.strip()),
+            ac_supply_v=span(r, "ac_supply_v"), dc_supply_v=span(r, "dc_supply_v"), ip_rating=r["ip_rating"] or None,
+            dimensions_mm=(num(r["length_mm"]), num(r["width_mm"]), num(r["height_mm"])) if r["length_mm"] else None,
+        )
+
+
 def serialise(specs: list[BaseModel]) -> str:
     ordered = sorted(specs, key=lambda s: s.id)
     return json.dumps([s.model_dump(mode="json") for s in ordered], indent=2, ensure_ascii=False) + "\n"
@@ -906,6 +956,8 @@ def build(out: Path) -> Build:
     import_switchgear(b)
     import_p5_protection(b)
     import_meters(b)
+    import_meter_datasheets(b)
+    import_loggers(b)
 
     ids = Counter(s.id for specs in b.entries.values() for s in specs)
     if dupes := [i for i, n in ids.items() if n > 1]:

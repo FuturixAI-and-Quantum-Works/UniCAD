@@ -315,14 +315,43 @@ class MeterSpec(Spec):
 
     @classmethod
     def symbol_for(cls, data: dict) -> str:
-        return {"net": "inst.net_meter", "generation": "inst.kwh", "abt": "inst.abt", "check": "inst.kwh"}[data["function"]]
+        return {"net": "inst.net_meter", "generation": "inst.kwh", "abt": "inst.abt", "check": "inst.kwh", "multifunction": "inst.mfm"}[data["function"]]
 
-    function: Literal["net", "generation", "abt", "check"]
+    function: Literal["net", "generation", "abt", "check", "multifunction"]
     accuracy_class: str
     connection: Literal["direct", "ct", "ct_pt"]
+    communication: str | None = Field(default=None, description="serial or network interface the datasheet states, e.g. 'RS-485 Modbus RTU'; None when the meter has none or the source is silent")
+
+
+class DataLoggerSpec(Spec):
+    kind: Literal["logger"] = "logger"
+
+    @classmethod
+    def symbol_for(cls, data: dict) -> str:
+        return "inst.datalogger"
+
+    rs485_ports: int = Field(gt=0, description="RS-485 ports for inverters, meters and weather stations")
+    max_devices: int | None = Field(default=None, gt=0, description="most devices the datasheet lets one logger manage")
+    max_devices_per_rs485_port: int | None = Field(default=None, gt=0)
+    rs485_protocols: tuple[str, ...] = Field(default=(), description="protocols as the datasheet names them")
+    ethernet_ports: int = Field(default=0, ge=0)
+    ethernet_protocols: tuple[str, ...] = ()
+    ac_supply_v: tuple[Volts, Volts] | None = Field(default=None, description="(lowest, highest) AC auxiliary supply, 50/60 Hz; None when the logger has no AC input")
+    dc_supply_v: tuple[Volts, Volts] | None = Field(default=None, description="(lowest, highest) DC auxiliary supply")
+    ip_rating: str | None = None
+    dimensions_mm: tuple[Mm, Mm, Mm] | None = Field(default=None, description="(length, width, height) as the datasheet gives them")
+
+    @model_validator(mode="after")
+    def _ranges(self) -> "DataLoggerSpec":
+        for rng in (self.ac_supply_v, self.dc_supply_v):
+            if rng is not None and rng[0] > rng[1]:
+                raise ValueError("a supply range is (lowest, highest)")
+        if self.max_devices is not None and self.max_devices_per_rs485_port is not None and self.max_devices_per_rs485_port > self.max_devices:
+            raise ValueError("max_devices_per_rs485_port exceeds max_devices")
+        return self
 
 
 EquipmentSpec = Annotated[
-    ModuleSpec | InverterSpec | BatterySpec | PCSSpec | TransformerSpec | CableSpec | ProtectionSpec | MeterSpec,
+    ModuleSpec | InverterSpec | BatterySpec | PCSSpec | TransformerSpec | CableSpec | ProtectionSpec | MeterSpec | DataLoggerSpec,
     Field(discriminator="kind"),
 ]

@@ -152,7 +152,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `text` | string | no | Words that must all appear in id, kind, manufacturer or model, e.g. 'growatt 100' |
-| `kind` | `module` \| `inverter` \| `battery` \| `pcs` \| `transformer` \| `cable` \| `protection` \| `meter` | no | Catalog kind: module, inverter, battery, pcs, transformer, cable, protection or meter |
+| `kind` | `module` \| `inverter` \| `battery` \| `pcs` \| `transformer` \| `cable` \| `protection` \| `meter` \| `logger` | no | Catalog kind: module, inverter, battery, pcs, transformer, cable, protection, meter or logger (data logger) |
 | `manufacturer` | string | no | Exact manufacturer name, case-insensitive |
 | `min_power` | number | no | Inclusive lower bound: W for modules, kVA for inverter, pcs and transformer |
 | `max_power` | number | no | Inclusive upper bound, same units as min_power |

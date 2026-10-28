@@ -12,7 +12,8 @@
     "kind": "meter",
     "function": "abt",
     "accuracy_class": "0.2S",
-    "connection": "ct_pt"
+    "connection": "ct_pt",
+    "communication": null
   },
   {
     "id": "generic-meter-check-ct_pt-0.2s",
@@ -27,7 +28,8 @@
     "kind": "meter",
     "function": "check",
     "accuracy_class": "0.2S",
-    "connection": "ct_pt"
+    "connection": "ct_pt",
+    "communication": null
   },
   {
     "id": "generic-meter-generation-ct-0.5s",
@@ -42,7 +44,8 @@
     "kind": "meter",
     "function": "generation",
     "accuracy_class": "0.5S",
-    "connection": "ct"
+    "connection": "ct",
+    "communication": null
   },
   {
     "id": "generic-meter-generation-ct_pt-0.5s",
@@ -57,7 +60,8 @@
     "kind": "meter",
     "function": "generation",
     "accuracy_class": "0.5S",
-    "connection": "ct_pt"
+    "connection": "ct_pt",
+    "communication": null
   },
   {
     "id": "generic-meter-generation-direct-1.0",
@@ -72,7 +76,8 @@
     "kind": "meter",
     "function": "generation",
     "accuracy_class": "1.0",
-    "connection": "direct"
+    "connection": "direct",
+    "communication": null
   },
   {
     "id": "generic-meter-net-ct-0.5s",
@@ -87,7 +92,8 @@
     "kind": "meter",
     "function": "net",
     "accuracy_class": "0.5S",
-    "connection": "ct"
+    "connection": "ct",
+    "communication": null
   },
   {
     "id": "generic-meter-net-ct_pt-0.5s",
@@ -102,7 +108,8 @@
     "kind": "meter",
     "function": "net",
     "accuracy_class": "0.5S",
-    "connection": "ct_pt"
+    "connection": "ct_pt",
+    "communication": null
   },
   {
     "id": "generic-meter-net-direct-1.0",
@@ -117,6 +124,55 @@
     "kind": "meter",
     "function": "net",
     "accuracy_class": "1.0",
-    "connection": "direct"
+    "connection": "direct",
+    "communication": null
+  },
+  {
+    "id": "secure-meters-elite-440-class-0.2s",
+    "manufacturer": "Secure Meters",
+    "model": "Elite 440 class 0.2S",
+    "symbol": "inst.mfm",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/meters/Secure_Elite440_DS.pdf p.4; references/catalog-sources/extracted/meter_datasheets.csv row 2; Technical specifications: accuracy class 0.2s, 0.5s, 1.0 (the sheet does not tie a class to a model number 441-448); CT secondary 1-2 A or 5-10 A field configurable; measurement voltage 57.7 V (100 V) to 240 V (415 V) AC 3-phase 4-wire or 3-wire; aux supply 80-300 V AC/DC or 24-60 V DC; RS485 Modbus half duplex, 1200-38400 bps; panel mount 96 x 96 mm",
+      "retrieved": "2026-10-29"
+    },
+    "kind": "meter",
+    "function": "multifunction",
+    "accuracy_class": "0.2S",
+    "connection": "ct",
+    "communication": "RS-485 Modbus RTU"
+  },
+  {
+    "id": "secure-meters-elite-440-class-0.5s",
+    "manufacturer": "Secure Meters",
+    "model": "Elite 440 class 0.5S",
+    "symbol": "inst.mfm",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/meters/Secure_Elite440_DS.pdf p.4; references/catalog-sources/extracted/meter_datasheets.csv row 3; Technical specifications: accuracy class 0.2s, 0.5s, 1.0 (the sheet does not tie a class to a model number 441-448); CT secondary 1-2 A or 5-10 A field configurable; measurement voltage 57.7 V (100 V) to 240 V (415 V) AC 3-phase 4-wire or 3-wire; aux supply 80-300 V AC/DC or 24-60 V DC; RS485 Modbus half duplex, 1200-38400 bps; panel mount 96 x 96 mm",
+      "retrieved": "2026-10-29"
+    },
+    "kind": "meter",
+    "function": "multifunction",
+    "accuracy_class": "0.5S",
+    "connection": "ct",
+    "communication": "RS-485 Modbus RTU"
+  },
+  {
+    "id": "secure-meters-elite-440-class-1.0",
+    "manufacturer": "Secure Meters",
+    "model": "Elite 440 class 1.0",
+    "symbol": "inst.mfm",
+    "source": {
+      "kind": "datasheet",
+      "ref": "raw/datasheets/meters/Secure_Elite440_DS.pdf p.4; references/catalog-sources/extracted/meter_datasheets.csv row 4; Technical specifications: accuracy class 0.2s, 0.5s, 1.0 (the sheet does not tie a class to a model number 441-448); CT secondary 1-2 A or 5-10 A field configurable; measurement voltage 57.7 V (100 V) to 240 V (415 V) AC 3-phase 4-wire or 3-wire; aux supply 80-300 V AC/DC or 24-60 V DC; RS485 Modbus half duplex, 1200-38400 bps; panel mount 96 x 96 mm",
+      "retrieved": "2026-10-29"
+    },
+    "kind": "meter",
+    "function": "multifunction",
+    "accuracy_class": "1.0",
+    "connection": "ct",
+    "communication": "RS-485 Modbus RTU"
   }
 ]
