@@ -15,9 +15,8 @@ from ezdxf.enums import TextEntityAlignment
 
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet
-from unicad.drafting.assumptions import sheet_assumptions
+from unicad.drafting import assumptions, project_fields
 from unicad.drafting.legend import COMMS_LEGEND, legend_drawer
-from unicad.drafting.project_fields import project_fields
 from unicad.drafting.sheets.layout import metrics_for
 from unicad.drafting.sheets.model import (
     CompanyProfile,
@@ -104,7 +103,7 @@ def sheet_spec(
     ids = [s.id for s in sheets]
     index = ids.index(sheet.id) + 1 if sheet.id in ids else 1
     tb = TitleBlockData(
-        **project_fields(project),
+        **project_fields.project_fields(project),
         drawing_title=annotate.prose(sheet.title),
         drawing_number=sheet.number,
         revision=latest.rev if latest else "00",
@@ -134,7 +133,7 @@ def sheet_spec(
         legend=legend,
         notes=notes,
         parameters=annotate.system_parameters(project, catalog),
-        assumptions=sheet_assumptions(project, "sld"),
+        assumptions=assumptions.sheet_assumptions(project, "sld"),
     )
 
 
