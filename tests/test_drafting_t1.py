@@ -304,3 +304,30 @@ def test_rvunl_block_labels_stand_clear_of_the_tables(tmp_path):
     assert len(boxes) == 12
     covered = [sum(b.intersection(t).area for t in tables) / b.area for b in boxes]
     assert max(covered) < 0.15, [round(c, 2) for c in covered]
+
+
+# ---------------- hybrid earthing: BESS tag stack leaders do not cross (item 6) ----------------
+
+
+def test_hybrid_earthing_bess_tag_stack_leaders_do_not_cross(tmp_path):
+    import gzip
+    from collections import defaultdict
+
+    import ezdxf
+    from shapely.geometry import LineString
+
+    from unicad.sets import render_set
+    from unicad.store import parse_project
+
+    root = Path(__file__).resolve().parents[1]
+    p = parse_project(gzip.decompress((root / "fixtures" / "projects" / "kutch_hybrid.json.gz").read_bytes()).decode("utf-8"), CATALOG)
+    index = render_set(p, tmp_path, kinds=["earthing"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    msp = ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace()
+    stacks = defaultdict(list)
+    for e in msp.query("LINE[layer=='E-PIT-TAG']"):
+        stacks[round(e.dxf.end.x, 2)].append(LineString([e.dxf.start.vec2, e.dxf.end.vec2]))
+    stacks = {x: legs for x, legs in stacks.items() if len(legs) >= 3}
+    assert stacks, "the BESS units are tagged in a stack"
+    crossing = [(x, i, j) for x, legs in stacks.items() for i in range(len(legs)) for j in range(i + 1, len(legs)) if legs[i].crosses(legs[j])]
+    assert not crossing, crossing
+    assert not [w for w in index["sheets"][0]["warnings"] if "found no room" in w]

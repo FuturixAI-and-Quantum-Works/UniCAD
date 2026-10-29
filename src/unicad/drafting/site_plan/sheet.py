@@ -719,16 +719,18 @@ class LayoutSheetWriter:
         d = clear
         shifts = [0.0] + [k * s * (ht + gap) for k in range(1, 9) for s in (1, -1)]
         squares = [Region(a[0] - clear, a[1] - clear, a[0] + clear, a[1] + clear) for _, a in items]
+        drawn = [q.leader for q in self.placer.labels if q.leader is not None]
         while d <= self.placer.max_leader + 1e-9:
             best: tuple[float, float, dict[int, Region]] | None = None
             for side in ("E", "W", "N", "S"):
                 column = side in "EW"
                 total = (ht + gap) * len(items) - gap if column else sum(sizes) + gap * (len(items) - 1)
-                for sign in (1, -1):
-                    order = sorted(range(len(items)), key=lambda i: (-items[i][1][1], sign * items[i][1][0]) if column else (items[i][1][0], sign * items[i][1][1]))
-                    for shift in shifts:
+                for shift in shifts:
+                    start = (cy + total / 2 + shift) if column else (cx - total / 2 + shift)
+
+                    def slots(order: Sequence[int]) -> dict[int, Region]:
                         boxes: dict[int, Region] = {}
-                        pos = (cy + total / 2 + shift) if column else (cx - total / 2 + shift)
+                        pos = start
                         for i in order:
                             w = sizes[i]
                             if column:
@@ -739,12 +741,41 @@ class LayoutSheetWriter:
                                 by = y1 + d if side == "N" else y0 - d - ht
                                 boxes[i] = Region(pos, by, pos + w, by + ht)
                                 pos += w + gap
-                        if not all(self.placer._free(b) and (allow is None or allow(b, items[i][1])) for i, b in boxes.items()):
-                            continue
+                        return boxes
+
+                    def crossings(boxes: dict[int, Region]) -> int:
                         legs = [(items[i][1], nearest_on(boxes[i], items[i][1])) for i in range(len(items))]
-                        crossings = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
-                        crossings += sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j)
-                        key = (crossings, abs(shift))
+                        n = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
+                        n += sum(_segments_cross(leg, q) for leg in legs for q in drawn)
+                        return n + sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j)
+
+                    def free(boxes: dict[int, Region]) -> bool:
+                        return all(self.placer._free(b) and (allow is None or allow(b, items[i][1])) for i, b in boxes.items())
+
+                    # Stack orders: by position across the stack's direction, both ways, and by the angle each item is seen at from the
+                    # middle of the stack, which leaves the leaders uncrossed for items spread around it.
+                    mid = ((x1 + d) if side == "E" else (x0 - d), start - total / 2) if column else (start + total / 2, (y1 + d) if side == "N" else (y0 - d))
+                    orders = [sorted(range(len(items)), key=lambda i, sign=sign: (-items[i][1][1], sign * items[i][1][0]) if column else (items[i][1][0], sign * items[i][1][1]))
+                              for sign in (1, -1)]
+                    angle = [math.atan2(items[i][1][1] - mid[1], abs(items[i][1][0] - mid[0]) + 1e-9) if column
+                             else math.atan2(items[i][1][0] - mid[0], abs(items[i][1][1] - mid[1]) + 1e-9) for i in range(len(items))]
+                    orders.append(sorted(range(len(items)), key=lambda i: -angle[i] if column else angle[i]))
+                    for order in orders:
+                        boxes = slots(order)
+                        if not free(boxes):
+                            continue
+                        n = crossings(boxes)
+                        improved = n > 0
+                        while improved:
+                            improved = False
+                            for a_ in range(len(order)):
+                                for b_ in range(a_ + 1, len(order)):
+                                    trial = list(order)
+                                    trial[a_], trial[b_] = trial[b_], trial[a_]
+                                    tb = slots(trial)
+                                    if (m := crossings(tb)) < n and free(tb):
+                                        order, boxes, n, improved = trial, tb, m, True
+                        key = (n, abs(shift))
                         if best is None or key < best[:2]:
                             best = (*key, boxes)
             if best is not None:
@@ -753,7 +784,7 @@ class LayoutSheetWriter:
                     tip = nearest_on(b, at)
                     ln = math.dist(at, tip) or 1.0
                     start = (at[0] + (tip[0] - at[0]) * clear / ln, at[1] + (tip[1] - at[1]) * clear / ln)
-                    self.placer.fixed(Label(f"equipment {tag}", at, b.width, b.height, clear), b)
+                    self.placer.fixed(Label(f"equipment {tag}", at, b.width, b.height, clear), b, (start, tip))
                     self._mask(b)
                     self.msp.add_line(start, tip, dxfattribs={"layer": layer})
                     self._text(tag, (b.x0 + pad, b.y0 + pad), h, layer=layer, align="BL")

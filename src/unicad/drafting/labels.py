@@ -125,15 +125,29 @@ class LabelPlacer:
                 bx, by = x0 + (x1 - x0) * (i + 1) / n, y0 + (y1 - y0) * (i + 1) / n
                 self._add(Region(min(ax, bx) - half, min(ay, by) - half, max(ax, bx) + half, max(ay, by) + half))
 
-    def _leader_clear(self, a: tuple[float, float], b: tuple[float, float]) -> bool:
+    def _leader_clear(self, a: tuple[float, float], b: tuple[float, float], uncrossed: bool = False) -> bool:
+        """A leader from `a` to `b` crosses no placed label (and with `uncrossed`, no placed leader)."""
         seg = Region(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
-        return not any(_segment_hits(p.box, a, b) for p in self.labels if p.box.overlaps(seg.inset(-1e-6)))
+        return not any(_segment_hits(p.box, a, b) for p in self.labels if p.box.overlaps(seg.inset(-1e-6))) and not (
+            uncrossed and any(_crosses((a, b), p.leader) for p in self.labels if p.leader is not None))
 
     def place(self, label: Label, cost: Callable[[Region], float] | None = None, allow: Callable[[Region, tuple[float, float]], bool] | None = None,
               patience: int = 0, commit: bool = True) -> Placement | None:  # fmt: skip
         """The free spot nearest `label.anchor` (cheapest by `cost` among equally near ones). With `patience`, up to that many rings further
         out are searched too, and a spot there wins when it costs less (a label kept off the tables a ring or two further away). Without
-        `commit` the spot is only found, not taken."""
+        `commit` the spot is only found, not taken. A leader crossing another leader is taken only when no spot avoids that."""
+        for uncrossed in (True, False):
+            p = self._search(label, cost, allow, patience, uncrossed)
+            if p is not None:
+                if commit:
+                    self._add(p.box)
+                    self.labels.append(p)
+                return p
+        if commit:
+            self.overflow.append(label)
+        return None
+
+    def _search(self, label: Label, cost, allow, patience: int, uncrossed: bool) -> Placement | None:
         w, h, a = label.width, label.height, label.anchor
         d0 = label.clear + max(self.gap, 0.15 * h)
         rings: list[list[Region]] = [[_box_at(a, w, h, dx, dy, d0) for dx, dy in ADJACENT]]
@@ -148,7 +162,7 @@ class LabelPlacer:
                 break
             ok = [(i, r) for i, r in enumerate(ring) if self._free(r) and (allow is None or allow(r, label.anchor))]
             if n:
-                ok = [(i, r) for i, r in ok if self._leader_clear(a, nearest_on(r, a))]
+                ok = [(i, r) for i, r in ok if self._leader_clear(a, nearest_on(r, a), uncrossed)]
             if not ok:
                 continue
             _, box = min(ok, key=lambda t: (round(cost(t[1]), 6) if cost else 0.0, t[0]))
@@ -165,26 +179,31 @@ class LabelPlacer:
                 ln = math.dist(a, tip) or 1.0
                 start = (a[0] + (tip[0] - a[0]) * label.clear / ln, a[1] + (tip[1] - a[1]) * label.clear / ln)
                 leader = (start, tip)
-            p = Placement(label, box, leader)
-            if commit:
-                self._add(box)
-                self.labels.append(p)
-            return p
-        if commit:
-            self.overflow.append(label)
+            return Placement(label, box, leader)
         return None
 
-    def fixed(self, label: Label, box: Region) -> Placement | None:
-        """Place `label` exactly at `box` if that is clear (feature names centred on their feature), else nothing."""
+    def fixed(self, label: Label, box: Region, leader: tuple[tuple[float, float], tuple[float, float]] | None = None) -> Placement | None:
+        """Place `label` exactly at `box` (with the leader drawn to it, which later leaders keep from crossing) if that is clear, else nothing."""
         if not self._free(box):
             return None
-        p = Placement(label, box)
+        p = Placement(label, box, leader)
         self._add(box)
         self.labels.append(p)
         return p
 
     def place_all(self, labels: Sequence[Label]) -> list[Placement | None]:
         return [self.place(lb) for lb in labels]
+
+
+def _crosses(s: tuple[tuple[float, float], tuple[float, float]], t: tuple[tuple[float, float], tuple[float, float]]) -> bool:
+    """Whether two segments cross at a point inside both (touching ends and collinear runs do not count)."""
+    (p, q), (r, u) = s, t
+
+    def side(o, v, w) -> float:
+        return (v[0] - o[0]) * (w[1] - o[1]) - (v[1] - o[1]) * (w[0] - o[0])
+
+    d1, d2, d3, d4 = side(p, q, r), side(p, q, u), side(r, u, p), side(r, u, q)
+    return d1 * d2 < -1e-12 and d3 * d4 < -1e-12
 
 
 def overlapping(boxes: Sequence[Region], tol: float = 1e-6) -> list[tuple[int, int]]:
