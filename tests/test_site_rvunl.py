@@ -75,7 +75,7 @@ def test_rvunl_single_mast_stands_where_it_shades_least_and_says_so(tmp_path):
     async def scenario(c):
         pid = await rvunl_plot(c, tmp_path)
         await c.call("layout_place", project_id=pid, **LAYOUT)
-        res = await c.call("lps_design", project_id=pid, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6)
+        res = await c.call("lps_design", project_id=pid, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement="array")
         return pid, res["lps"]
 
     pid, lps = run(tmp_path, scenario)

@@ -80,8 +80,8 @@ def test_explain_finding_over_stdio(tmp_path):
         assert ex["title"] and "derating" in ex["message"]
         assert {q["name"] for q in ex["inputs"]} >= {"I_table", "k_derating", "runs", "V"}
 
-        msg = await c.fail("explain_finding", project_id="rooftop-500kwp", rule_id="cables.protection", subject="inv_mccb")
-        assert "no finding" in msg and "passed" in msg
+        passed = await c.call("explain_finding", project_id="rooftop-500kwp", rule_id="cables.protection", subject="inv_mccb")
+        assert passed["passed"] is True and passed["explanations"] == [] and "passed" in passed["message"]
         msg = await c.fail("explain_finding", project_id="rooftop-500kwp", rule_id="nope.x", subject="inv")
         assert "'cables.ampacity'" in msg and "'earthing.touch_step'" in msg, msg  # the schema lists the rule ids
 
