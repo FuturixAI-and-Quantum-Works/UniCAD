@@ -340,6 +340,7 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `switchyard_x` | number | no | Local x (m) of the MV switchyard (main LT panel on an LT plant); cable routing and earthing read it. Default: a site area of kind 'switchyard', else derived and reported |
 | `switchyard_y` | number | no | Local y (m) of the MV switchyard |
 | `bess_area_m` | list of number | no | BESS area length x width (m) kept free of tables beside the switchyard, where network_autobuild then places the BESS units. Default on hybrid and BESS plants: the grid of the network's BESS units, else an assumed area (reported) |
+| `inverter_strings` | list of object | no | Strings given per inverter and MPPT, as for network_autobuild: one block per inverter holding exactly its strings, with tables as long as each string length (e.g. 2 x 19 tables for 19-module strings). Default: read from the network when network_autobuild built it with inverter_strings |
 
 ### `layout_summary`
 
@@ -447,6 +448,9 @@ network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="ada
 | `relay` | object | no | utility_lt: add a bus PT and a numerical relay with these ANSI functions and protocol on the ACCB outgoing, e.g. {"functions": ["50", "51", "67", "67N", "27", "59", "50N", "51N"], "protocol": "IEC 61850"} |
 | `data_logger` | boolean | no | utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter Default: `False`. |
 | `keep_hand_edits` | boolean | no | Re-apply the network edits made since the last network_autobuild (added, changed and removed nodes, connections and groups) onto the new network; edits that no longer fit are listed as skipped Default: `False`. |
+| `breaking_ka` | number | no | Least breaking capacity in kA for every LV breaker, as the brief or client specification states (e.g. 50 for 50 kA MCCBs); default the fault level |
+| `cables` | object | no | Cables the brief states, by route role, kept as given (not resized; the rules check ampacity and voltage drop): e.g. {"string": {"cable": "polycab-h1z2z2-k-6mm2"}, "inv_accb": {"cable": "kei-lt-pvc-al-3.5c-240-arm"}, "accb_ltp": {"cable": "kei-lt-pvc-al-3.5c-300-arm", "runs": 7}} |
+| `accb_at` | `layout` \| `electrical_centre` | no | utility_lt: the ACCB at the layout's switchyard location, or at the electrical centre of the field inverters (least total inverter cable length along the array axes) Default: `layout`. |
 
 ### `network_add_group`
 
@@ -617,8 +621,8 @@ cross-check), count pits for the target resistance and the fault current, check 
 (IEEE 80, grid current split between the switchyard grid and the rest of the plant earth) and lay out pits and conductors bonding
 every table row, station, panel, switchyard item and lightning terminal.
 
-Inputs you leave out keep the values already in the design basis (set with project_design_basis or an earlier call); use
-project_design_basis to clear one. Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the
+Inputs you leave out keep the values already in the design basis (set with project_design_basis or an earlier call); the result lists
+every input with where it came from (inputs, inputs_kept); use project_design_basis to clear one. Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the
 design summary and quantities.
 Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1, switchyard_m=[60, 45]).
 
@@ -672,6 +676,7 @@ Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=6
 | `ese_delta_t_us` | number | no | ESE efficiency dT in microseconds (µs) from the test certificate (radius computed by NF C 17-102) |
 | `mast_height_m` | number | no | Terminal height in metres above the protected plane (ESE) or rod height |
 | `protected_height_m` | number | no | Height in metres to protect for rods (table top or roof plant) |
+| `placement` | `auto` \| `array` \| `perimeter` | no | Ground plants: 'perimeter' keeps every terminal outside the array (boundary strip, roads) so no mast shades the tables; 'array' lets them stand in row gaps (fewest masts); 'auto' takes the perimeter when it covers every target, else the array Default: `auto`. |
 
 ## Cable tools
 
