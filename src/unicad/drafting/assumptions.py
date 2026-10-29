@@ -67,7 +67,7 @@ def entries(project: Project) -> list[tuple[frozenset[str], str]]:
             out.append((SITE_SHEETS, f"{prose(e.tag)} POSITION NOT GIVEN, TAKEN AS {_basis(e.basis)}"))
         sy = lay.switchyard
         if sy is not None and DERIVED.search(sy.basis) and not any("switchyard location" in e.basis for e in derived):
-            out.append((SITE_SHEETS, f"SWITCHYARD POSITION NOT GIVEN, TAKEN AS {_basis(sy.basis)}"))
+            out.append((frozenset({"layout"}), f"SWITCHYARD POSITION NOT GIVEN, TAKEN AS {_basis(sy.basis)}"))
     net = project.network
     for n in net.nodes:
         text = " ".join(filter(None, [n.title or "", _attr_text(n.attributes)]))
@@ -82,7 +82,7 @@ def entries(project: Project) -> list[tuple[frozenset[str], str]]:
 
 DERIVED = re.compile(r"\bderived\b|free ground|assum", re.IGNORECASE)
 """A layout position the layout placement worked out itself rather than was given."""
-_HINT = re.compile(r"\s*\((?:pass|assumed electrical room)[^)]*\)", re.IGNORECASE)
+_HINT = re.compile(r"\s*\((?:pass|assumed electrical room)[^)]*\)|:\s*(?:set|pass)\b[^)]*", re.IGNORECASE)
 
 
 def _basis(text: str) -> str:
