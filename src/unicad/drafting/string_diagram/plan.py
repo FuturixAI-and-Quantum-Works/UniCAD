@@ -14,7 +14,7 @@ from unicad.rules.cables import cable_of
 from unicad.rules.protection import isolator_devices
 from unicad.rules.pv import cell_temp_min, string_voltage
 from unicad.rules.thresholds import ISC_FACTOR
-from unicad.rules.topology import EVEN_MPPT, instance_tag, mppt_of, mppt_split, string_feeds
+from unicad.rules.topology import instance_tag, mppt_of, mppt_split, string_feeds
 from unicad.schedules import LengthMode, build_schedule
 from unicad.schedules.ids import Ids, indices
 
@@ -269,8 +269,11 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
         first = feeds[0]
         member_ids = net.instance_ids(sink)
         members: list[Member] = []
+        recorded = kind == "inverter" and first.mppt_inputs is not None
         for mid in member_ids:
             strings = _upstream_strings(net, feeders, mid)
+            if recorded:
+                strings.sort(key=lambda s: expanded.node(s).mppt[0])
             tables = tuple(dict.fromkeys(t for s in strings for t, _, _ in slots_of.get(s, ())))
             nxt = next(iter(successors[mid]), None)
             dest = ""
@@ -290,20 +293,26 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
         n_inputs = len(rep.strings)
         mppt = None
         if kind == "inverter":
-            split = mppt_split(n_inputs, inv_spec.mppt_count)
-            ipm, used = max(split, default=1), len(split)
-            overflow = used > inv_spec.mppt_count or (inv_spec.inputs_per_mppt is not None and ipm > inv_spec.inputs_per_mppt)
+            if recorded:
+                split = tuple(first.mppt_inputs)
+            else:
+                split = mppt_split(n_inputs, inv_spec.mppt_count)
+            ipm, used = max(split, default=1), sum(1 for n in split if n)
+            overflow = len(split) > inv_spec.mppt_count or (inv_spec.inputs_per_mppt is not None and ipm > inv_spec.inputs_per_mppt)
             mppt = MpptPlan(inv_spec.mppt_count, ipm, n_inputs, used, overflow)
         lines: list[StringLine] = []
         for i, s in enumerate(rep.strings, start=1):
             node = net.node(s.partition("@")[0])
             sid = ids.string_id(s)
+            n_mod = node.modules_in_series or n_series
             lines.append(StringLine(
-                instance=s, tag=instance_tag(net, s), number=i, ip=f"IP{sid.input_no:02d}",
-                cable_id=string_cable_ids.get(s, sid.text()), modules=node.modules_in_series or n_series,
-                mppt=mppt_of(i, split) if mppt else None, voc_cold_v=round(voc, 1), isc_a=module.isc,
+                instance=s, tag=instance_tag(net, s), number=i, ip=f"IP{i:02d}",
+                cable_id=string_cable_ids.get(s, sid.text()), modules=n_mod,
+                mppt=(expanded.node(s).mppt[0] if recorded else mppt_of(i, split)) if mppt else None,
+                voc_cold_v=round(string_voltage(module, n_mod, "voc", cold).value, 1), isc_a=module.isc,
                 length_m=edge.length_m if edge else None, slots=slots_of.get(s, ()),
             ))  # fmt: skip
+        voc = max([voc, *(ln.voc_cold_v for ln in lines)])
         path_nodes = first.path
         modelled = next((net.node(n) for n in path_nodes if net.node(n).kind is NodeKind.FUSE and net.node(n).spec), None)
         notes: list[str] = []
@@ -321,7 +330,7 @@ def plan_types(project: Project, catalog: Catalog) -> tuple[list[DiagramType], l
         if fuse is None and mppt is not None:
             notes.append(f"No string fuses are drawn: an MPPT takes at most {mppt.inputs_per_mppt * first.strings_per_input} string(s), below the 3 parallel strings from which the string fuse rule asks for fuses.")
         if mppt is not None:
-            notes.append(EVEN_MPPT)
+            notes.append(first.mppt_source)
             if mppt.overflow:
                 notes.append(f"The {mppt.inputs} string inputs exceed the {inv_spec.mppt_count} MPPT x {inv_spec.inputs_per_mppt or '?'} inputs of {inv_spec.model}.")
         chain = _chain(net, successors, rep.strings[0], frozenset(path_nodes)) if rep.strings else {}
