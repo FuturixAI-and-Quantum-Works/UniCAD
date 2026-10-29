@@ -1,0 +1,80 @@
+name: windows
+
+on:
+  push:
+    branches: [win-native]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Give Claude Desktop an existing config to merge into
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$env:APPDATA\Claude" | Out-Null
+          '{"mcpServers":{"other":{"command":"other.exe","args":[]}},"theme":"dark"}' | Set-Content -Encoding ascii "$env:APPDATA\Claude\claude_desktop_config.json"
+
+      - name: Install from this checkout
+        shell: powershell
+        run: .\tools\install.ps1 -Source $env:GITHUB_WORKSPACE
+
+      - name: Re-run the way users do (irm | iex with a token, zipball of this commit)
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UNICAD_REF: ${{ github.sha }}
+        run: irm "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/tools/install.ps1" -Headers @{Authorization="token $env:GH_TOKEN"} | iex
+
+      - name: Check what the installer left behind
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $cfgPath = "$env:APPDATA\Claude\claude_desktop_config.json"
+          $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+          if (-not $cfg.mcpServers.other) { throw "the existing 'other' server was lost" }
+          if ($cfg.theme -ne "dark") { throw "other settings were lost" }
+          if (-not (Test-Path $cfg.mcpServers.unicad.command)) { throw "unicad command missing: $($cfg.mcpServers.unicad.command)" }
+          if (-not (Get-ChildItem "$cfgPath.bak-*")) { throw "no backup of the Desktop config" }
+          $names = "LIBRECAD", "LIBREDWG_BIN", "UNICAD_WORKSPACE"
+          foreach ($n in $names) {
+            $v = [Environment]::GetEnvironmentVariable($n, "User")
+            if (-not $v) { throw "user env $n not set" }
+            "$n=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          }
+          if (-not (Test-Path ([Environment]::GetEnvironmentVariable("LIBRECAD", "User")))) { throw "librecad.exe missing" }
+          if (-not (Test-Path "$([Environment]::GetEnvironmentVariable('LIBREDWG_BIN', 'User'))\dxf2dwg.exe")) { throw "dxf2dwg.exe missing" }
+          $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
+          if (-not $uv) { $uv = "$env:USERPROFILE\.local\bin\uv.exe" }
+          Split-Path $uv | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          (& $uv tool dir --bin).Trim() | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          Get-ChildItem "$env:LOCALAPPDATA\UniCAD"
+          New-Item -ItemType Directory -Force smoke-pdfs | Out-Null
+          Copy-Item -Recurse "$env:LOCALAPPDATA\UniCAD\self-check" smoke-pdfs\self-check
+          $cfg | ConvertTo-Json -Depth 8
+
+      - name: Smoke test over MCP stdio (rooftop project, SLD and layout to DXF, PDF, DWG)
+        shell: pwsh
+        run: |
+          Get-Command unicad-mcp
+          uv run --no-project --python 3.12 --with "mcp>=2.3.0" --with "pymupdf>=1.24" python .github/scripts/smoke.py --out smoke-pdfs
+
+      - name: Upload rendered PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-rendered-pdfs
+          path: smoke-pdfs
+          if-no-files-found: warn
+
+      - name: Test suite
+        shell: pwsh
+        run: |
+          uv sync
+          uv run pytest -q -ra
