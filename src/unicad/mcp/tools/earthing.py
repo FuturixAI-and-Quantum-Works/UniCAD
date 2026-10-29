@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -112,6 +112,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         ese_delta_t_us: Annotated[float | None, Field(gt=0, le=60, description="ESE efficiency dT in microseconds (µs) from the test certificate (radius computed by NF C 17-102)")] = None,
         mast_height_m: Annotated[float | None, Field(gt=0, description="Terminal height in metres above the protected plane (ESE) or rod height")] = None,
         protected_height_m: Annotated[float | None, Field(ge=0, description="Height in metres to protect for rods (table top or roof plant)")] = None,
+        placement: Annotated[Literal["auto", "array", "perimeter"], Field(description="Ground plants: 'perimeter' keeps every terminal outside the array (boundary strip, "
+                                                                          "roads) so no mast shades the tables; 'array' lets them stand in row gaps (fewest masts); "
+                                                                          "'auto' takes the perimeter when it covers every target, else the array")] = "auto",
     ) -> dict[str, Any]:
         """Design the lightning protection: store the inputs, then place the fewest terminals that put every table centroid and corner,
         inverter station, MV switchyard, BESS unit, string inverter and building inside a protection zone, and prove it with covered / total per
@@ -121,7 +124,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         Example: lps_design(project_id="p1", method="ese", level="III", ese_delta_t_us=60, mast_height_m=6)."""
 
         def change(p: Project) -> Edit:
-            basis = LpsBasis(level=level, method=method, ese_radius_m=ese_radius_m, ese_delta_t_us=ese_delta_t_us, mast_height_m=mast_height_m, protected_height_m=protected_height_m)
+            basis = LpsBasis(level=level, method=method, ese_radius_m=ese_radius_m, ese_delta_t_us=ese_delta_t_us, mast_height_m=mast_height_m, protected_height_m=protected_height_m,
+                             placement=placement)
             updated = _with(ws, p, lps=basis)
             d = design_lps(updated)
             return Edit(updated, ("design_basis.lps",), {"lps": _lps_json(d)})

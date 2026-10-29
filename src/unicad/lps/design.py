@@ -14,7 +14,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import nearest_points, unary_union
 from shapely.prepared import prep
 
-from unicad.arrays.geometry import table_centre, table_corners
+from unicad.arrays.geometry import frame, table_centre, table_corners
 from unicad.arrays.sun import sun_path
 from unicad.arrays.siting import FENCE_CLEAR_MIN_M, equipment_ground
 from unicad.domain.layout import Point
@@ -176,10 +176,11 @@ def targets(project: Project, extra: tuple[Target, ...] = ()) -> tuple[Target, .
                 out += _footprint_targets(f"{b.id}~station", "station", equipment_footprint("station", (b.station.x, b.station.y)))
         for cls, node, kind, at in placed_equipment(project):
             out += _footprint_targets(node, cls, equipment_footprint(kind, at))
+    panels = any(t.kind == "lt_panel" for t in out)
     yard = switchyard_footprint(project)
     if yard is not None:
         out += _footprint_targets("switchyard", "switchyard", box(*yard))
-    elif layout is not None and layout.switchyard is not None and not is_rooftop(project):
+    elif layout is not None and layout.switchyard is not None and not is_rooftop(project) and not panels:
         out.append(Target("switchyard", "switchyard", (layout.switchyard.at.x, layout.switchyard.at.y)))
     kind = "roof" if is_rooftop(project) else "building"
     for rid, poly in roofs(project):
@@ -257,7 +258,21 @@ def _hull_vertices(pts: np.ndarray) -> np.ndarray:
     return np.unique(shapely.get_coordinates(MultiPoint([tuple(p) for p in pts]).convex_hull), axis=0)
 
 
-def reposition(project: Project, terminals: list[tuple[float, float, str | None]], pts: np.ndarray, radius: float, height_m: float, clear: float) -> list[tuple[float, float, str | None, float]]:
+def array_area(project: Project) -> BaseGeometry:
+    """The ground the array covers: its tables merged across row and table gaps."""
+    layout = project.array_layout
+    if layout is None or not layout.blocks:
+        return Polygon()
+    tables = list(layout.table_by_id.values())
+    _, (vx, vy) = frame(tables[0].azimuth_deg)
+    rows = sorted({round(t.origin.x * vx + t.origin.y * vy, 2) for t in tables})
+    steps = [b - a for a, b in zip(rows, rows[1:]) if b - a > 0.5]
+    close = (float(np.median(steps)) if steps else 10.0) / 2 + 1.0
+    return unary_union([Polygon(table_corners(t)) for t in tables]).buffer(close, join_style="mitre").buffer(-close, join_style="mitre")
+
+
+def reposition(project: Project, terminals: list[tuple[float, float, str | None]], pts: np.ndarray, radius: float, height_m: float, clear: float,
+               keep_out: BaseGeometry | None = None) -> list[tuple[float, float, str | None, float]]:  # fmt: skip
     """Move each terminal, one at a time, to the free spot that keeps every point it alone covers inside its radius and puts the least table
     area under the swept shadow of its mast, then the most room round it. Returns (x, y, roof, shaded m2) per terminal."""
     layout = project.array_layout
@@ -269,6 +284,8 @@ def reposition(project: Project, terminals: list[tuple[float, float, str | None]
     shape = sweep(geo.origin.lat, height_m)
     reach = max(math.hypot(x, y) for x, y in shape.exterior.coords)
     ground = [(rid, free.buffer(-RELOCATE_INSET_M, join_style="mitre")) for rid, free in free_ground(project, clear)]
+    if keep_out is not None and not keep_out.is_empty:
+        ground = [(rid, free.difference(keep_out)) for rid, free in ground]
 
     def shaded(x: float, y: float) -> float:
         moved = shapely.transform(shape, lambda c: c + (x, y))
@@ -370,13 +387,31 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
         assumptions.append(f"no cover at {MAST_CLEAR_M:g} m from the tables: terminals may stand {clear:g} m from a table edge")
     if not len(cand) and len(pts):
         raise CoverageError("no free position for a lightning terminal inside the site")
+    keep_out = None
+    if not rooftop and basis.placement != "array" and len(pts):
+        inside = array_area(project).buffer(clear)
+        out_mask = ~shapely.contains_xy(inside, cand[:, 0], cand[:, 1]) if not inside.is_empty else np.ones(len(cand), dtype=bool)
+        outer = greedy_cover(pts, cand[out_mask], radius) if out_mask.any() else None
+        inner_n = len(cover.terminals) if cover is not None else 0
+        if outer is not None and (not outer.uncovered or basis.placement == "perimeter"):
+            assumptions.append(
+                f"terminals on the perimeter, outside the array (lps placement {basis.placement}): {len(outer.terminals)} mast(s) on the boundary strip and roads "
+                f"against {inner_n} standing in the array's row gaps, so no mast shades the tables"
+                + (f"; {len(outer.uncovered)} target(s) stay uncovered from the perimeter" if outer.uncovered else "")
+            )
+            cand, where = cand[out_mask], [w for w, m in zip(where, out_mask) if m]
+            cover, keep_out = outer, inside
+        elif basis.placement == "perimeter":
+            assumptions.append("no free ground outside the array holds a terminal: they stand in the array's row gaps")
+        elif outer is not None:
+            assumptions.append(f"perimeter masts outside the array would leave {len(outer.uncovered)} target(s) uncovered over a {radius:g} m radius: terminals stand in the array's row gaps")
     terms: list[Terminal] = []
     shade_height = mast if mast is not None else ESE_TIP_ASSUMED_M
     if cover is not None:
         index = {(float(c[0]), float(c[1])): i for i, c in enumerate(cand)}
         prefix = "ESE" if basis.method == "ese" else "LA"
         start = [(x, y, where[index[(x, y)]]) for x, y in sorted(cover.terminals, key=lambda p: (-round(p[1], 1), p[0]))]
-        moved = reposition(project, start, pts, radius, shade_height, clear)
+        moved = reposition(project, start, pts, radius, shade_height, clear, keep_out)
         for i, (x, y, roof, area) in enumerate(sorted(moved, key=lambda m: (-round(m[1], 1), m[0]))):
             terms.append(Terminal(f"{prefix}-{i + 1:02d}", Point(x=round(x, 3), y=round(y, 3)), roof is not None, roof, area))
     uncovered = tuple(tg[i] for i in cover.uncovered) if cover is not None else ()

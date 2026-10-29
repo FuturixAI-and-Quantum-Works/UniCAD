@@ -148,3 +148,19 @@ def test_earth_conductors_run_along_the_axes_and_the_ring_closes(project):
                 assert min(abs(a.x - b.x), abs(a.y - b.y)) < 0.5, f"{r.role.value} conductor {r.links} runs diagonally: {a} -> {b}"
     ring = [r for r in d.layout.runs if r.links == ("array ring",) and len(r.points) == 5]
     assert len(ring) == 1 and (ring[0].points[0].x, ring[0].points[0].y) == (ring[0].points[-1].x, ring[0].points[-1].y)
+
+
+def test_lightning_masts_stand_outside_the_array(run, project):
+    from unicad.lps import design_lps
+    from unicad.lps.design import array_area
+
+    lps = run["lps"]["lps"]
+    assert lps["uncovered_count"] == 0 and lps["terminal_count"] >= 2 and all(t["shade_m2"] == 0 for t in lps["terminals"])
+    assert any("terminals on the perimeter" in a for a in lps["assumptions"])
+    assert "MV switchyard" not in {c["class"] for c in lps["coverage"]}
+    area = array_area(project)
+    from shapely.geometry import Point as SPoint
+
+    assert all(not area.contains(SPoint(t["x"], t["y"])) for t in lps["terminals"])
+    inside = design_lps(project, project.design_basis.lps.model_copy(update={"placement": "array"}))
+    assert len(inside.terminals) == 1 and inside.terminals[0].shade_m2 >= 0
