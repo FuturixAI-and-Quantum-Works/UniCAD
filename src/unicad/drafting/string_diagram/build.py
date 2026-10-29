@@ -260,4 +260,3 @@ def _overlaps(texts: list[draw.Placed]) -> list[str]:
             if a.box.overlaps(b.box, tol=1e-3):
                 out.append(f"text {a.tag!r} overlaps {b.tag!r}")
     return out
-                                                                                                                                                                                  
