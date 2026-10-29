@@ -7025,7 +7025,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1.5 kV DC
+3P, TYPE 2, 1.5 kV DC, In/Imax 15/40 kA
   7
 standard
  11
@@ -7165,7 +7165,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1.5 kV DC
+3P, TYPE 2, 1.5 kV DC, In/Imax 15/40 kA
   7
 standard
  11

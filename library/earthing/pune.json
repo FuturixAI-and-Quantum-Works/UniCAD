@@ -399,7 +399,6 @@
   "tables": 81,
   "coverage": {
    "tables": "81/81",
-   "inverter stations": "1/1",
    "roofs": "2/2"
   },
   "uncovered": 0

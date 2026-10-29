@@ -7,7 +7,7 @@
   "down": "25x3"
  },
  "array_fault_current_a": 8400.0,
- "conductor_mass_t": 124.9,
+ "conductor_mass_t": 125.6,
  "pits": 420,
  "pits_by_role": {
   "EP": 335,
@@ -74,13 +74,13 @@
   {
    "item": "flat.50x6.main",
    "description": "50x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 6942.0,
+   "quantity": 7276.0,
    "unit": "m"
   },
   {
    "item": "flat.50x6.equipment",
    "description": "50x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 1955.0,
+   "quantity": 1932.0,
    "unit": "m"
   },
   {
@@ -311,7 +311,7 @@
   },
   {
    "name": "strip_current",
-   "value": 6918842.4,
+   "value": 6956117.5,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
@@ -393,13 +393,13 @@
     },
     {
      "name": "L",
-     "value": 9591597.172567844,
+     "value": 9622684.972567845,
      "unit": "cm",
      "source": null
     },
     {
      "name": "w",
-     "value": 2.728486183478126,
+     "value": 2.735824713984589,
      "unit": "cm",
      "source": null
     },
@@ -448,11 +448,11 @@
   "rest_of_plant_ohm": 0.026,
   "split_factor": 0.0461,
   "fault_current_a": 12500,
-  "grid_current_a": 576.8,
+  "grid_current_a": 576.2,
   "gpr_v": 310,
   "e_touch_tolerable_v": 519.5,
   "e_step_tolerable_v": 1730.2,
-  "e_mesh_v": 56.4,
+  "e_mesh_v": 56.3,
   "e_step_v": 31.0,
   "safe": true
  },
@@ -465,7 +465,6 @@
   "tables": 2687,
   "coverage": {
    "tables": "2687/2687",
-   "inverter stations": "6/6",
    "MV switchyard": "1/1"
   },
   "uncovered": 0

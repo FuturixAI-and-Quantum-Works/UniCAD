@@ -8525,11 +8525,11 @@ AcDbPolyline
  20
 -209.85
  10
-108.15602
+136.6953
  20
 -209.85
  10
-108.15602
+136.6953
  20
 -82.6
  10
@@ -10437,7 +10437,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1.5 kV DC
+3P, TYPE 2, 1.5 kV DC, In/Imax 15/40 kA
   7
 standard
  11
@@ -10577,7 +10577,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1.5 kV DC
+3P, TYPE 2, 1.5 kV DC, In/Imax 15/40 kA
   7
 standard
  11
@@ -10715,7 +10715,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1 kV
+3P, TYPE 2, 1 kV, In/Imax 20/40 kA
   7
 standard
  11
@@ -10855,7 +10855,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1 kV
+3P, TYPE 2, 1 kV, In/Imax 20/40 kA
   7
 standard
  11
