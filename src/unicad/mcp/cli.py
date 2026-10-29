@@ -12,11 +12,11 @@ from unicad.mcp.registry import build_server
 EPILOG = f"""Environment:
   UNICAD_WORKSPACE  project directory (default {DEFAULT_WORKSPACE})
   UNICAD_CATALOG    catalog directory override
-  UNICAD_PROFILES   extra company-profile directories, separated by ':'
+  UNICAD_PROFILES   extra company-profile directories, separated by '{os.pathsep}'
   UNICAD_TOKEN      bearer token required by --http (unless --no-auth)
-  LIBRECAD          LibreCAD executable or AppRun used to render drawings
+  LIBRECAD          LibreCAD executable (librecad.exe on Windows) or AppRun used to render drawings
   LIBREDWG_BIN      directory holding LibreDWG's dxf2dwg and dwg2dxf
-  DISPLAY           an X display for LibreCAD; run under xvfb-run on a headless host
+  DISPLAY           Linux only: an X display for LibreCAD; run under xvfb-run on a headless host
 """
 
 

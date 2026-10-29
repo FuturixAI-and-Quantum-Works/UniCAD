@@ -138,7 +138,7 @@ def test_diff_reports_node_quantity_and_field_changes():
 def test_revision_files_are_plain_project_json(store, tmp_path):
     p = fixture("rooftop_500kwp")
     store.save(p)
-    assert json.loads((tmp_path / p.id / "revisions" / "1.json").read_text())["id"] == p.id
+    assert json.loads((tmp_path / p.id / "revisions" / "1.json").read_text(encoding="utf-8"))["id"] == p.id
 
 
 SITES = Path(__file__).resolve().parents[1] / "fixtures" / "sites"

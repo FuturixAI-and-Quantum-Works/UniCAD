@@ -85,7 +85,7 @@ def test_real_pan_round_trip_preserves_every_spec_field():
 
 
 def test_thin_film_and_poly_technology_map_without_override():
-    text = (FIXTURES / "synthetic_module_mono_1500V.PAN").read_text()
+    text = (FIXTURES / "synthetic_module_mono_1500V.PAN").read_text(encoding="utf-8")
     assert module_from_pan(text.replace("mtSiMono", "mtSiPoly")).tech == CellTech.POLY
     assert module_from_pan(text.replace("mtSiMono", "mtCdTe")).tech == CellTech.THIN_FILM
 

@@ -194,7 +194,7 @@ def test_fixture_projects_without_an_earthing_basis_are_not_checked():
 
     from unicad.domain.project import Project
 
-    data = json.loads((ROOT / "fixtures" / "projects" / "rooftop_500kwp.json").read_text())
+    data = json.loads((ROOT / "fixtures" / "projects" / "rooftop_500kwp.json").read_text(encoding="utf-8"))
     report = run_rules(Project.model_validate(data, context={"catalog": CATALOG}), CATALOG, ["earthing", "lps"])
     assert report.findings == ()
 

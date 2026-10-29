@@ -27,7 +27,7 @@ from .backend import RenderError, RenderFailed, RenderTimeout
 
 DwgVersion = Literal["R12", "R14", "R2000", "R2004", "R2007", "R2010", "R2013", "R2018"]
 
-DEFAULT_LIBREDWG_BIN = Path("/tmp/opencode/libredwg/install/bin")
+WINDOWS = os.name == "nt"
 _LIBREDWG_WRITES: frozenset[str] = frozenset({"R12", "R14", "R2000"})
 _STRUCTURAL = frozenset({"SECTION", "ENDSEC", "EOF", "BLOCK", "ENDBLK", "SEQEND"})
 
@@ -87,14 +87,28 @@ def entity_counts(dxf: Path) -> dict[str, int]:
     return dict(counts)
 
 
+def default_libredwg_dirs() -> list[Path]:
+    if WINDOWS:
+        local = os.environ.get("LOCALAPPDATA")
+        return [Path(local, "UniCAD", "libredwg")] if local else []
+    return [Path.home() / ".local/opt/libredwg/bin", Path("/opt/libredwg/bin")]
+
+
 def _libredwg_tool(name: str) -> Path | None:
+    exe = f"{name}.exe" if WINDOWS else name
     env_dir = os.environ.get("LIBREDWG_BIN")
-    for directory in filter(None, [env_dir, str(DEFAULT_LIBREDWG_BIN)]):
-        candidate = Path(directory) / name
+    if env_dir:
+        candidate = Path(env_dir) / exe
         if candidate.is_file() and os.access(candidate, os.X_OK):
             return candidate
     found = shutil.which(name)
-    return Path(found) if found else None
+    if found:
+        return Path(found)
+    for directory in default_libredwg_dirs():
+        candidate = directory / exe
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+    return None
 
 
 def _oda_available() -> bool:
@@ -147,7 +161,10 @@ class DwgConverter:
         if not dxf.is_file():
             raise RenderFailed(f"DXF not found: {dxf}")
         dwg.parent.mkdir(parents=True, exist_ok=True)
-        dwg.unlink(missing_ok=True)
+        try:
+            dwg.unlink(missing_ok=True)
+        except PermissionError as exc:
+            raise RenderFailed(f"cannot replace {dwg}: it is open in another program (close it and export again)") from exc
         if converter == "libredwg":
             self._libredwg_write(dxf, dwg, version)
         else:
@@ -203,7 +220,16 @@ class DwgConverter:
 
     def _run(self, cmd: list[str], output: Path) -> None:
         try:
-            done = subprocess.run(cmd, capture_output=True, timeout=self.timeout, text=True)
+            done = subprocess.run(
+                cmd,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                timeout=self.timeout,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=subprocess.CREATE_NO_WINDOW if WINDOWS else 0,
+            )
         except subprocess.TimeoutExpired as exc:
             raise RenderTimeout(f"{Path(cmd[0]).name} did not finish within {self.timeout:g} s") from exc
         if done.returncode != 0 or not output.is_file():

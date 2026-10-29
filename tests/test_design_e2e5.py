@@ -157,7 +157,7 @@ def test_r5_m2_the_solar_feeder_ends_in_an_incomer_breaker_at_the_lt_panel(rooft
     from unicad.rules import run_rules
     from unicad.store.files import parse_project
 
-    hand = parse_project((ROOT / "fixtures" / "projects" / "rooftop_500kwp.json").read_text(), CATALOG)
+    hand = parse_project((ROOT / "fixtures" / "projects" / "rooftop_500kwp.json").read_text(encoding="utf-8"), CATALOG)
     assert not run_rules(hand, CATALOG, ["protection"]).by_rule("protection.lv_both_ends")
     data = hand.model_dump(mode="json")
     data["network"]["nodes"] = [n for n in data["network"]["nodes"] if n["id"] != "solar_inc"]

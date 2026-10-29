@@ -154,7 +154,7 @@ def test_set_dxf_and_index_are_byte_identical_across_runs(projects, tmp_path):
     assert names == ["01-UDEMO-DRL-U50-EE-001.dxf", "02-UDEMO-DRL-U50-EE-002.dxf", "index.json"]
     for n in names:
         assert (tmp_path / "a" / n).read_bytes() == (tmp_path / "b" / n).read_bytes(), n
-    index = json.loads((tmp_path / "a" / "index.json").read_text())
+    index = json.loads((tmp_path / "a" / "index.json").read_text(encoding="utf-8"))
     assert [s["sheet_of"] for s in index["sheets"]] == ["1 of 2", "2 of 2"] and a.as_dict() == b.as_dict()
     again = render_set(p, tmp_path / "a", formats=("dxf",), profile=PROFILE, catalog=CATALOG, drawn_on=DRAWN_ON)
     assert again.as_dict() == a.as_dict() and sorted(x.name for x in (tmp_path / "a").iterdir()) == names

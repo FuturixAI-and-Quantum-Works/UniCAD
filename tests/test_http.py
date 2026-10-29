@@ -37,7 +37,7 @@ class Server:
         self.port = free_port()
         self.url = f"http://127.0.0.1:{self.port}"
         environ = {**os.environ, "UNICAD_WORKSPACE": str(workspace), "UNICAD_TOKEN": TOKEN} | (env or {})
-        self.log = open(workspace.parent / f"server-{self.port}.log", "w+")
+        self.log = open(workspace.parent / f"server-{self.port}.log", "w+", encoding="utf-8")
         self.proc = subprocess.Popen(
             [sys.executable, "-m", "unicad", "--http", "--port", str(self.port), *flags], env=environ, stdout=self.log, stderr=subprocess.STDOUT
         )
@@ -191,8 +191,8 @@ def test_tenants_get_separate_workspaces(which, request):
     root = server.workspace
     assert (root / "acme" / "tenant-roof" / "revisions" / "1.json").is_file()
     assert (root / "globex" / "tenant-roof" / "revisions" / "1.json").is_file()
-    assert json.loads((root / "acme" / "tenant-roof" / "snapshots.json").read_text()) == {"a-only": 1}
-    assert json.loads((root / "globex" / "tenant-roof" / "snapshots.json").read_text()) == {"g-only": 1}
+    assert json.loads((root / "acme" / "tenant-roof" / "snapshots.json").read_text(encoding="utf-8")) == {"a-only": 1}
+    assert json.loads((root / "globex" / "tenant-roof" / "snapshots.json").read_text(encoding="utf-8")) == {"g-only": 1}
     assert not (root / "tenant-roof").exists()
 
 

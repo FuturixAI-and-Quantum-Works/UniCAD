@@ -35,10 +35,24 @@ from .backend import (
     paper_size_mm,
 )
 
-DEFAULT_BINARY = Path("/tmp/opencode/proto/squashfs-root/AppRun")
+WINDOWS = os.name == "nt"
 PAGE_TOLERANCE_PT = 2.0
 INSUNITS_MM = 4
 CRASH_ENTITIES = {"IMAGE": "LibreCAD 2.2.1.6 segfaults in dxf2pdf on IMAGE entities"}
+
+
+def default_binaries() -> list[Path]:
+    """Install locations tried after $LIBRECAD and PATH: the UniCAD installer's, then the vendor's."""
+    if WINDOWS:
+        roots = [
+            (os.environ.get("LOCALAPPDATA"), ("UniCAD", "librecad", "librecad.exe")),
+            (os.environ.get("ProgramFiles"), ("LibreCAD", "librecad.exe")),
+        ]
+        return [Path(root, *parts) for root, parts in roots if root]
+    return [
+        Path.home() / ".local/opt/librecad/squashfs-root/AppRun",
+        Path("/opt/librecad/squashfs-root/AppRun"),
+    ]
 
 
 def locate_librecad(binary: str | os.PathLike[str] | None = None) -> Path:
@@ -52,12 +66,15 @@ def locate_librecad(binary: str | os.PathLike[str] | None = None) -> Path:
             return Path(on_path)
         source = "binary argument" if binary else "$LIBRECAD"
         raise BackendUnavailable(f"LibreCAD binary from {source} not found or not executable: {explicit}")
-    if DEFAULT_BINARY.is_file():
-        return DEFAULT_BINARY
     on_path = shutil.which("librecad")
     if on_path:
         return Path(on_path)
-    raise BackendUnavailable("LibreCAD not found: set $LIBRECAD to the AppRun/librecad binary or put `librecad` on PATH")
+    for candidate in default_binaries():
+        if candidate.is_file():
+            return candidate
+    tried = ", ".join(str(c) for c in default_binaries())
+    what = "librecad.exe" if WINDOWS else "the AppRun/librecad binary"
+    raise BackendUnavailable(f"LibreCAD not found: set $LIBRECAD to {what} or put `librecad` on PATH (also tried {tried})")
 
 
 def check_dxf(dxf: Path, *, strict_units: bool = True) -> None:
@@ -97,7 +114,7 @@ class LibreCadRenderer:
     def _command_prefix(self) -> tuple[list[str], dict[str, str]]:
         binary = locate_librecad(self._binary)
         env = dict(os.environ)
-        if env.get("DISPLAY"):
+        if WINDOWS or env.get("DISPLAY"):
             return [str(binary)], env
         xvfb = shutil.which("xvfb-run")
         if xvfb:
@@ -110,23 +127,25 @@ class LibreCadRenderer:
     def _run(self, args: Sequence[str], output: Path) -> None:
         prefix, env = self._command_prefix()
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.unlink(missing_ok=True)
+        _remove_stale(output)
+        session = {"creationflags": subprocess.CREATE_NO_WINDOW} if WINDOWS else {"start_new_session": True}
         proc = subprocess.Popen(
             [*prefix, *args],
             env=env,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            start_new_session=True,
+            **session,
         )
         try:
             _, stderr = proc.communicate(timeout=self.timeout)
         except subprocess.TimeoutExpired as exc:
-            os.killpg(proc.pid, signal.SIGKILL)
+            _kill_tree(proc)
             proc.communicate()
             raise RenderTimeout(f"LibreCAD did not finish within {self.timeout:g} s and was killed") from exc
         detail = _tail(stderr.decode(errors="replace"))
         if proc.returncode != 0:
-            hint = " (is DISPLAY reachable?)" if "display" in detail.lower() or "xcb" in detail.lower() else ""
+            hint = " (is DISPLAY reachable?)" if not WINDOWS and ("display" in detail.lower() or "xcb" in detail.lower()) else ""
             raise RenderFailed(f"LibreCAD exited with {proc.returncode}{hint}: {detail}")
         if not output.is_file() or output.stat().st_size == 0:
             raise RenderFailed(f"LibreCAD produced no {output.name}: {detail}")
@@ -201,6 +220,27 @@ def _check_page(pdf: Path, w_mm: float, h_mm: float) -> None:
         raise RenderFailed(
             f"{pdf.name} page is {rect.width:.1f}x{rect.height:.1f} pt, expected {want_w:.1f}x{want_h:.1f} pt"
         )
+
+
+def _remove_stale(output: Path) -> None:
+    try:
+        output.unlink(missing_ok=True)
+    except PermissionError as exc:
+        raise RenderFailed(f"cannot replace {output}: it is open in another program (close it and render again)") from exc
+
+
+def _kill_tree(proc: subprocess.Popen) -> None:
+    if WINDOWS:
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        if proc.poll() is None:
+            proc.kill()
+        return
+    os.killpg(proc.pid, signal.SIGKILL)
 
 
 def _tail(text: str, lines: int = 4) -> str:

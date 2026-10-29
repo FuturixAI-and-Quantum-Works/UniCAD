@@ -116,5 +116,5 @@ def test_transformer_spec_additions_are_validated():
 
 
 def test_catalog_json_for_new_kinds_round_trips(catalog):
-    raw = json.loads((ROOT / "catalog" / "protection.json").read_text())
+    raw = json.loads((ROOT / "catalog" / "protection.json").read_text(encoding="utf-8"))
     assert next(e for e in raw if e["id"] == "generic-la-36kv-ur30-20ka-counter")["surge_counter"] is True

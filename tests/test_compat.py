@@ -10,7 +10,7 @@ from unicad.render.backend import BackendUnavailable
 
 ROOT = Path(__file__).resolve().parent.parent
 COMPAT = ROOT / "library" / "compat"
-MATRIX = json.loads((COMPAT / "matrix.json").read_text())
+MATRIX = json.loads((COMPAT / "matrix.json").read_text(encoding="utf-8"))
 ENTRIES = {e["id"]: e for e in MATRIX["probes"]}
 VERDICTS = {"works", "degraded", "broken"}
 
@@ -23,7 +23,7 @@ def _ready() -> bool:
     import os
     import shutil
 
-    return bool(os.environ.get("DISPLAY") or shutil.which("xvfb-run"))
+    return bool(os.name == "nt" or os.environ.get("DISPLAY") or shutil.which("xvfb-run"))
 
 
 needs_librecad = pytest.mark.skipif(not _ready(), reason="LibreCAD or a display is not available")
@@ -58,7 +58,7 @@ def test_no_stale_evidence_files_without_a_probe():
 
 
 def test_docs_table_lists_every_probe_with_its_verdict_and_evidence_path():
-    docs = (ROOT / "docs" / "compat.md").read_text()
+    docs = (ROOT / "docs" / "compat.md").read_text(encoding="utf-8")
     for entry in MATRIX["probes"]:
         row = next((ln for ln in docs.splitlines() if f"`{entry['evidence']}`" in ln), None)
         assert row is not None, f"{entry['id']} missing from docs/compat.md"

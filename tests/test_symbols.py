@@ -299,7 +299,7 @@ def test_manifest_matches_registry_and_committed_file():
     assert [e["key"] for e in m] == list(REGISTRY)
     committed = ROOT / "library" / "unicad-symbols.json"
     if committed.exists():
-        assert json.loads(committed.read_text()) == m, "run tools/build_symbol_library.py"
+        assert json.loads(committed.read_text(encoding="utf-8")) == m, "run tools/build_symbol_library.py"
 
 
 @pytest.fixture(scope="module")

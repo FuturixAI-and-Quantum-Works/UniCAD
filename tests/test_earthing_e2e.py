@@ -48,7 +48,7 @@ def _replay(tmp: Path, steps) -> tuple[dict, Path]:
 
 def _load(ws: Path, pid: str, rev: int | None = None) -> Project:
     path = ws / pid / ("project.json" if rev is None else f"revisions/{rev}.json")
-    return Project.model_validate(json.loads(path.read_text()), context={"catalog": CATALOG})
+    return Project.model_validate(json.loads(path.read_text(encoding="utf-8")), context={"catalog": CATALOG})
 
 
 @pytest.fixture(scope="module")

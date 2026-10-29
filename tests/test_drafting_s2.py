@@ -45,7 +45,7 @@ def sheets(project, tmp_path_factory):
     render_set(project, out, kinds=["register", "sld", "layout", "earthing", "lps", "strings", "cable_schedule", "bom"], formats=("dxf",), catalog=CATALOG)
     import ezdxf
 
-    index = json.loads((out / "index.json").read_text())
+    index = json.loads((out / "index.json").read_text(encoding="utf-8"))
     return {s["number"]: (s["kind"], words(ezdxf.readfile(out / s["files"]["dxf"]))) for s in index["sheets"]}
 
 

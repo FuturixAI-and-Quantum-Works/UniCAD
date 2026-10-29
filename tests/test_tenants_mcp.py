@@ -113,7 +113,7 @@ def test_updating_a_bundled_profile_copies_it_into_the_workspace(tmp_path):
         assert (await c.call("company_get", profile_id="default"))["origin"] == "bundled"
         u = await c.call("company_update", profile_id="default", fields={"address": "New address, Pune", "thresholds": {"stc_temp": {"value": 25, "source": "unchanged"}}})
         assert u["origin"] == "workspace" and u["address"] == "New address, Pune" and u["version"] == 2
-        saved = json.loads((ws / "profiles" / "default.json").read_text())
+        saved = json.loads((ws / "profiles" / "default.json").read_text(encoding="utf-8"))
         assert saved["version"] == 2 and saved["name"] == "UniCAD Demo EPC" and saved["logo"].endswith("demo-logo.dxf")
         assert (await c.call("company_get", project_id="roof-low-ratio"))["address"] == "New address, Pune"
 
@@ -140,7 +140,7 @@ def test_drawings_use_the_assigned_company_profile(tmp_path):
         r = await c.call("drawings_render", project_id="roof-low-ratio", formats=["dxf"])
         (sheet,) = r["sheets"]
         assert sheet["number"].startswith("ACME/")
-        assert "Acme Solar EPC Pvt. Ltd." in Path(sheet["files"]["dxf"]).read_text()
+        assert "Acme Solar EPC Pvt. Ltd." in Path(sheet["files"]["dxf"]).read_text(encoding="utf-8")
 
     session(tmp_path, check)
 

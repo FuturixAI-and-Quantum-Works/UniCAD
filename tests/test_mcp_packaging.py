@@ -1,5 +1,6 @@
 """Packaging: bundled data, the console script, and the static shape of the Docker files."""
 
+import os
 import shutil
 import subprocess
 import sys
@@ -15,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_console_script_is_unicad_mcp():
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert project["project"]["scripts"] == {"unicad-mcp": "unicad.mcp.cli:main"}
 
 
@@ -45,7 +46,7 @@ def test_help_runs_without_a_workspace(tmp_path):
 
 
 def test_dockerfile_pins_and_wires_the_toolchain():
-    text = (ROOT / "Dockerfile").read_text()
+    text = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "FROM base" in text and "python:3.12-slim" in text
     assert "LIBRECAD_VERSION=2.2.1.6" in text and "--appimage-extract" in text and "fuse" not in text.lower()
     assert "LIBREDWG_VERSION=0.13." in text and "ftp.gnu.org/gnu/libredwg" in text
@@ -56,7 +57,7 @@ def test_dockerfile_pins_and_wires_the_toolchain():
     assert "docker/entrypoint.sh" in text and (ROOT / "docker" / "entrypoint.sh").is_file()
 
 
-@pytest.mark.skipif(shutil.which("sh") is None, reason="sh not available")
+@pytest.mark.skipif(shutil.which("sh") is None or os.name == "nt", reason="POSIX sh and executable bits are Linux-only")
 @pytest.mark.parametrize("script", ["entrypoint.sh", "smoke.sh"])
 def test_docker_scripts_parse(script):
     path = ROOT / "docker" / script
@@ -65,5 +66,5 @@ def test_docker_scripts_parse(script):
 
 
 def test_dockerignore_keeps_build_inputs():
-    ignored = {line.strip() for line in (ROOT / ".dockerignore").read_text().splitlines()}
+    ignored = {line.strip() for line in (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()}
     assert not ignored & {"src", "catalog", "profiles", "docker", "pyproject.toml", "README.md"}

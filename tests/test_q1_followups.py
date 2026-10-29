@@ -12,7 +12,7 @@ CATALOG = load_catalog()
 
 
 def _utility(poi_attributes: dict):
-    data = json.loads((ROOT / "fixtures" / "projects" / "utility_50mwac.json").read_text())
+    data = json.loads((ROOT / "fixtures" / "projects" / "utility_50mwac.json").read_text(encoding="utf-8"))
     for n in data["network"]["nodes"]:
         if n["id"] == "poi":
             n["attributes"] = {**n.get("attributes", {}), **poi_attributes}

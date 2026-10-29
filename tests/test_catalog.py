@@ -37,7 +37,7 @@ def catalog() -> Catalog:
 
 
 def raw_entries() -> list[tuple[str, dict]]:
-    return [(kind, e) for kind, name in KIND_FILES.items() for e in json.loads((CATALOG / name).read_text())]
+    return [(kind, e) for kind, name in KIND_FILES.items() for e in json.loads((CATALOG / name).read_text(encoding="utf-8"))]
 
 
 def test_every_entry_validates_and_matches_its_file():
@@ -56,7 +56,7 @@ def test_ids_unique_across_kinds():
 
 def test_files_sorted_by_id():
     for name in KIND_FILES.values():
-        ids = [e["id"] for e in json.loads((CATALOG / name).read_text())]
+        ids = [e["id"] for e in json.loads((CATALOG / name).read_text(encoding="utf-8"))]
         assert ids == sorted(ids), name
 
 
@@ -126,7 +126,7 @@ def test_solar_cable_matches_polycab_row(catalog):
 
 
 def test_gpv_fuse_ladder_matches_json(catalog):
-    ladder = json.loads((EXTRACTED / "protection_ladders.json").read_text())["gpv_fuse"]
+    ladder = json.loads((EXTRACTED / "protection_ladders.json").read_text(encoding="utf-8"))["gpv_fuse"]
     fuses = [p for p in catalog.filter(kind="protection", manufacturer="Eaton Bussmann") if p.device == "fuse_gpv"]
     assert sorted(f.rated_current for f in fuses) == sorted(float(a) for a in ladder["rated_current_a"])
     assert {f.rated_voltage for f in fuses} == {float(ladder["rated_voltage_vdc"])}
@@ -244,7 +244,7 @@ def test_single_core_cable_keeps_both_circuit_ampacities(catalog):
 
 
 def test_no_cable_is_dropped_for_core_count_or_arrangement():
-    report = (CATALOG / "REPORT.md").read_text()
+    report = (CATALOG / "REPORT.md").read_text(encoding="utf-8")
     assert "3.5-core" not in report and "2x1c arrangement" not in report
 
 
@@ -282,7 +282,7 @@ def test_central_inverters_imported_from_datasheet_totals(catalog):
 
 
 def test_1500v_gpv_fuse_ladder_matches_mersen_json(catalog):
-    ladder = json.loads((EXTRACTED / "protection_ladders.json").read_text())["gpv_fuse_1500v"]
+    ladder = json.loads((EXTRACTED / "protection_ladders.json").read_text(encoding="utf-8"))["gpv_fuse_1500v"]
     fuses = [p for p in catalog.filter(kind="protection", manufacturer="Mersen") if p.device == "fuse_gpv"]
     assert sorted(f.rated_current for f in fuses) == sorted(float(a) for a in ladder["rated_current_a"])
     assert {(f.rated_voltage, f.breaking_capacity_ka) for f in fuses} == {(1500.0, 50.0)}
@@ -305,6 +305,6 @@ def test_mv_switchgear_entries(catalog):
 
 
 def test_report_skip_counts_dropped_for_closed_gaps():
-    report = (CATALOG / "REPORT.md").read_text()
+    report = (CATALOG / "REPORT.md").read_text(encoding="utf-8")
     assert "datasheet gives DC input totals only" not in report.split("## Notes")[0]
     assert "| cable | 3.5-core" not in report

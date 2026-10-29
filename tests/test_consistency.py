@@ -276,7 +276,7 @@ def test_the_server_keeps_ezdxf_bookkeeping_off_stderr(tmp_path):
                 assert r["sheet_count"] == 2
 
     asyncio.run(asyncio.wait_for(run(), 300))
-    assert "dictionary" not in log.read_text()
+    assert "dictionary" not in log.read_text(encoding="utf-8")
 
 
 def test_the_sld_parameters_and_the_bom_count_the_strings_the_network_defines(projects, tmp_path):

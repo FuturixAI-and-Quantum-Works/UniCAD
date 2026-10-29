@@ -2,6 +2,8 @@ import io
 import os
 import shutil
 import stat
+import subprocess
+import sys
 from pathlib import Path
 
 import ezdxf
@@ -33,6 +35,8 @@ from unicad.render.dwg import entity_counts
 from unicad.render.preview import pdf_to_png
 
 PAPERS = ["A4", "A3", "A2", "A1", "A0"]
+WINDOWS = os.name == "nt"
+linux_only = pytest.mark.skipif(WINDOWS, reason="X display handling (DISPLAY, xvfb-run) exists only on Linux")
 
 
 def _librecad_ready() -> str | None:
@@ -40,7 +44,7 @@ def _librecad_ready() -> str | None:
         locate_librecad()
     except BackendUnavailable as exc:
         return str(exc)
-    if not os.environ.get("DISPLAY") and not shutil.which("xvfb-run"):
+    if not WINDOWS and not os.environ.get("DISPLAY") and not shutil.which("xvfb-run"):
         return "no DISPLAY and no xvfb-run"
     return None
 
@@ -64,10 +68,28 @@ def write_sheet(path: Path, paper: str = "A3", *, units: int = 4) -> Path:
 
 
 def fake_binary(tmp_path: Path, body: str, name: str = "fake-librecad") -> Path:
+    """An executable that runs the Python `body` with `sys`, `os`, `shutil`, `time` and `Path` imported."""
+    code = tmp_path / f"{name}.py"
+    code.write_text(f"import os, shutil, sys, time\nfrom pathlib import Path\n{body}\n", encoding="utf-8")
+    if WINDOWS:
+        script = tmp_path / f"{name}.cmd"
+        script.write_text(f'@"{sys.executable}" "{code}" %*\r\n', encoding="utf-8")
+        return script
     script = tmp_path / name
-    script.write_text(f"#!/bin/sh\n{body}\n")
+    script.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{code}" "$@"\n', encoding="utf-8")
     script.chmod(script.stat().st_mode | stat.S_IEXEC)
     return script
+
+
+def process_alive(pid: int) -> bool:
+    if WINDOWS:
+        listing = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True).stdout
+        return str(pid) in listing.split()
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 
 
 @pytest.fixture
@@ -133,8 +155,8 @@ def test_png_long_side_equals_requested_pixels(sheet_a3, tmp_path):
 @needs_librecad
 def test_svg_export_is_written(sheet_a3, tmp_path):
     svg = LibreCadRenderer().to_svg(sheet_a3, tmp_path / "o.svg")
-    assert svg.read_text().lstrip().startswith("<?xml")
-    assert "<svg" in svg.read_text()
+    assert svg.read_text(encoding="utf-8").lstrip().startswith("<?xml")
+    assert "<svg" in svg.read_text(encoding="utf-8")
 
 
 @needs_librecad
@@ -253,39 +275,112 @@ def test_binary_from_environment_variable_is_checked(tmp_path, monkeypatch):
         locate_librecad()
 
 
+def test_windows_install_locations_are_searched(tmp_path, monkeypatch):
+    monkeypatch.setattr(librecad_module, "WINDOWS", True)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "pf"))
+    assert librecad_module.default_binaries() == [
+        tmp_path / "local" / "UniCAD" / "librecad" / "librecad.exe",
+        tmp_path / "pf" / "LibreCAD" / "librecad.exe",
+    ]
+    monkeypatch.delenv("LIBRECAD", raising=False)
+    monkeypatch.setattr(librecad_module.shutil, "which", lambda name: None)
+    with pytest.raises(BackendUnavailable, match=r"librecad\.exe.*UniCAD"):
+        locate_librecad()
+    installed = tmp_path / "pf" / "LibreCAD" / "librecad.exe"
+    installed.parent.mkdir(parents=True)
+    installed.write_bytes(b"")
+    assert locate_librecad() == installed
+
+
+def test_librecad_on_path_wins_over_install_locations(tmp_path, monkeypatch):
+    fallback = tmp_path / "fallback"
+    fallback.write_bytes(b"")
+    monkeypatch.delenv("LIBRECAD", raising=False)
+    monkeypatch.setattr(librecad_module, "default_binaries", lambda: [fallback])
+    monkeypatch.setattr(librecad_module.shutil, "which", lambda name: str(tmp_path / "on-path"))
+    assert locate_librecad() == tmp_path / "on-path"
+    monkeypatch.setattr(librecad_module.shutil, "which", lambda name: None)
+    assert locate_librecad() == fallback
+
+
+def test_windows_needs_no_display(tmp_path, monkeypatch):
+    monkeypatch.setattr(librecad_module, "WINDOWS", True)
+    monkeypatch.delenv("DISPLAY", raising=False)
+    binary = fake_binary(tmp_path, "sys.exit(0)")
+    prefix, _ = LibreCadRenderer(binary)._command_prefix()
+    assert prefix == [str(binary)]
+
+
+def test_libredwg_tools_are_found_as_exe_on_windows(tmp_path, monkeypatch):
+    from unicad.render import dwg as dwg_module
+
+    monkeypatch.setattr(dwg_module, "WINDOWS", True)
+    monkeypatch.setattr(dwg_module.shutil, "which", lambda name: None)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.delenv("LIBREDWG_BIN", raising=False)
+    installed = tmp_path / "UniCAD" / "libredwg"
+    installed.mkdir(parents=True)
+    for name in ("dxf2dwg.exe", "dwg2dxf.exe"):
+        (installed / name).write_bytes(b"")
+        (installed / name).chmod(0o755)
+    assert dwg_module._libredwg_tool("dxf2dwg") == installed / "dxf2dwg.exe"
+    custom = tmp_path / "custom"
+    custom.mkdir()
+    (custom / "dwg2dxf.exe").write_bytes(b"")
+    (custom / "dwg2dxf.exe").chmod(0o755)
+    monkeypatch.setenv("LIBREDWG_BIN", str(custom))
+    assert dwg_module._libredwg_tool("dwg2dxf") == custom / "dwg2dxf.exe"
+
+
+def test_output_locked_by_a_viewer_is_a_clear_error(tmp_path, monkeypatch, with_display):
+    dxf = write_sheet(tmp_path / "s.dxf", "A4")
+    out = tmp_path / "o.pdf"
+    out.write_bytes(b"%PDF-open")
+
+    def locked(self, missing_ok=False):
+        raise PermissionError(13, "The process cannot access the file because it is being used by another process")
+
+    monkeypatch.setattr(Path, "unlink", locked)
+    with pytest.raises(RenderFailed, match="open in another program"):
+        LibreCadRenderer(fake_binary(tmp_path, "sys.exit(0)")).to_pdf(dxf, out, "A4")
+
+
+@linux_only
 def test_missing_display_without_xvfb_is_a_clear_error(tmp_path, monkeypatch):
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
-    binary = fake_binary(tmp_path, "exit 0")
+    binary = fake_binary(tmp_path, "sys.exit(0)")
     monkeypatch.delenv("DISPLAY", raising=False)
     monkeypatch.setattr(librecad_module.shutil, "which", lambda name: None)
     with pytest.raises(BackendUnavailable, match="DISPLAY is unset and xvfb-run is not installed"):
         LibreCadRenderer(binary).to_pdf(dxf, tmp_path / "o.pdf", "A4")
 
 
+@linux_only
 def test_missing_display_wraps_in_xvfb_run_when_available(tmp_path, monkeypatch):
     log = tmp_path / "argv.txt"
-    xvfb = fake_binary(tmp_path, f'echo "$@" > {log}; exit 1', "fake-xvfb-run")
-    binary = fake_binary(tmp_path, "exit 0")
+    xvfb = fake_binary(tmp_path, f"Path({str(log)!r}).write_text(' '.join(sys.argv[1:]))\nsys.exit(1)", "fake-xvfb-run")
+    binary = fake_binary(tmp_path, "sys.exit(0)")
     monkeypatch.delenv("DISPLAY", raising=False)
     monkeypatch.setattr(librecad_module.shutil, "which", lambda name: str(xvfb) if name == "xvfb-run" else None)
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
     with pytest.raises(RenderFailed):
         LibreCadRenderer(binary).to_pdf(dxf, tmp_path / "o.pdf", "A4")
-    assert log.read_text().startswith(f"-a {binary} dxf2pdf")
+    assert log.read_text(encoding="utf-8").startswith(f"-a {binary} dxf2pdf")
 
 
 def test_garbage_dxf_is_rejected_before_launching_librecad(tmp_path, with_display):
     bad = tmp_path / "bad.dxf"
-    bad.write_text("garbage\n")
+    bad.write_text("garbage\n", encoding="utf-8")
     marker = tmp_path / "launched"
-    binary = fake_binary(tmp_path, f"touch {marker}")
+    binary = fake_binary(tmp_path, f"Path({str(marker)!r}).touch()")
     with pytest.raises(InvalidDrawing, match="not a readable DXF"):
         LibreCadRenderer(binary).to_pdf(bad, tmp_path / "o.pdf", "A4")
     assert not marker.exists()
 
 
 def test_missing_dxf_is_rejected(tmp_path, with_display):
-    binary = fake_binary(tmp_path, "exit 0")
+    binary = fake_binary(tmp_path, "sys.exit(0)")
     with pytest.raises(InvalidDrawing, match="not found"):
         LibreCadRenderer(binary).to_pdf(tmp_path / "gone.dxf", tmp_path / "o.pdf", "A4")
 
@@ -293,7 +388,7 @@ def test_missing_dxf_is_rejected(tmp_path, with_display):
 @pytest.mark.parametrize("units, pattern", [(6, r"INSUNITS=6.*1000x"), (0, r"INSUNITS=0")])
 def test_non_mm_insunits_is_rejected_because_librecad_rescales_the_page(units, pattern, tmp_path, with_display):
     dxf = write_sheet(tmp_path / "u.dxf", "A4", units=units)
-    binary = fake_binary(tmp_path, "exit 0")
+    binary = fake_binary(tmp_path, "sys.exit(0)")
     with pytest.raises(InvalidDrawing, match=pattern):
         LibreCadRenderer(binary).to_pdf(dxf, tmp_path / "o.pdf", "A4")
 
@@ -305,31 +400,31 @@ def test_image_entities_are_rejected_because_librecad_segfaults(tmp_path, with_d
     doc.modelspace().add_image(idef, insert=(10, 10), size_in_units=(10, 10))
     doc.saveas(dxf)
     with pytest.raises(InvalidDrawing, match="IMAGE.*segfaults"):
-        LibreCadRenderer(fake_binary(tmp_path, "exit 0")).to_pdf(dxf, tmp_path / "o.pdf", "A4")
+        LibreCadRenderer(fake_binary(tmp_path, "sys.exit(0)")).to_pdf(dxf, tmp_path / "o.pdf", "A4")
 
 
 def test_hung_librecad_is_killed_at_the_timeout(tmp_path, with_display):
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
     pidfile = tmp_path / "pid"
-    binary = fake_binary(tmp_path, f"echo $$ > {pidfile}\nsleep 30")
+    binary = fake_binary(tmp_path, f"Path({str(pidfile)!r}).write_text(str(os.getpid()))\ntime.sleep(30)")
     with pytest.raises(RenderTimeout, match="killed"):
-        LibreCadRenderer(binary, timeout=0.5).to_pdf(dxf, tmp_path / "o.pdf", "A4")
-    pid = int(pidfile.read_text())
-    with pytest.raises(ProcessLookupError):
-        os.kill(pid, 0)
+        LibreCadRenderer(binary, timeout=3).to_pdf(dxf, tmp_path / "o.pdf", "A4")
+    pid = int(pidfile.read_text(encoding="utf-8"))
+    assert not process_alive(pid)
 
 
 def test_exit_zero_without_output_is_a_failure(tmp_path, with_display):
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
-    binary = fake_binary(tmp_path, "echo 'Cannot open display' >&2; exit 0")
+    binary = fake_binary(tmp_path, "print('Cannot open display', file=sys.stderr)\nsys.exit(0)")
     with pytest.raises(RenderFailed, match="produced no o.pdf"):
         LibreCadRenderer(binary).to_pdf(dxf, tmp_path / "o.pdf", "A4")
 
 
 def test_nonzero_exit_includes_filtered_stderr(tmp_path, with_display):
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
-    binary = fake_binary(tmp_path, "echo 'qt.qpa noise' >&2; echo 'xcb: could not connect to display' >&2; exit 1")
-    with pytest.raises(RenderFailed, match=r"is DISPLAY reachable\?.*could not connect") as err:
+    binary = fake_binary(tmp_path, "print('qt.qpa noise', file=sys.stderr)\nprint('xcb: could not connect to display', file=sys.stderr)\nsys.exit(1)")
+    hint = r"could not connect" if WINDOWS else r"is DISPLAY reachable\?.*could not connect"
+    with pytest.raises(RenderFailed, match=hint) as err:
         LibreCadRenderer(binary).to_pdf(dxf, tmp_path / "o.pdf", "A4")
     assert "qt.qpa" not in str(err.value)
 
@@ -338,7 +433,7 @@ def test_stale_output_does_not_mask_a_failed_run(tmp_path, with_display):
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
     out = tmp_path / "o.pdf"
     out.write_bytes(b"%PDF-stale")
-    binary = fake_binary(tmp_path, "exit 0")
+    binary = fake_binary(tmp_path, "sys.exit(0)")
     with pytest.raises(RenderFailed):
         LibreCadRenderer(binary).to_pdf(dxf, out, "A4")
 
@@ -350,7 +445,7 @@ def test_wrong_page_size_from_librecad_is_caught(tmp_path, with_display):
     doc.new_page(width=5000, height=4000)
     donor = tmp_path / "donor.pdf"
     doc.save(donor)
-    binary = fake_binary(tmp_path, f"cp {donor} {out}")
+    binary = fake_binary(tmp_path, f"shutil.copy({str(donor)!r}, {str(out)!r})")
     with pytest.raises(RenderFailed, match="page is 5000.0x4000.0 pt"):
         LibreCadRenderer(binary).to_pdf(dxf, out, "A4")
 
@@ -392,7 +487,7 @@ def test_dwg_round_trip_preserves_entity_counts(tmp_path):
 @needs_dwg
 def test_dwg_of_garbage_dxf_fails_cleanly(tmp_path):
     bad = tmp_path / "bad.dxf"
-    bad.write_text("garbage\n")
+    bad.write_text("garbage\n", encoding="utf-8")
     with pytest.raises(RenderFailed):
         DwgConverter().to_dwg(bad, tmp_path / "bad.dwg")
     assert not (tmp_path / "bad.dwg").exists()

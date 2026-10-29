@@ -60,14 +60,14 @@ def test_site_and_layout_tools_live_under_tools():
 
 def test_a_new_module_registers_without_editing_the_registry(extra_tools_dir):
     assert "zz_probe_ping" not in tool_names(build())
-    (extra_tools_dir / "zz_probe.py").write_text(PROBE)
+    (extra_tools_dir / "zz_probe.py").write_text(PROBE, encoding="utf-8")
     server = build()
     assert tool_names(server).count("zz_probe_ping") == 1
     assert "unicad.mcp.tools.zz_probe" in registry.module_names()
 
 
 def test_a_module_without_register_is_ignored(extra_tools_dir):
-    (extra_tools_dir / "zz_helpers.py").write_text("VALUE = 1\n")
+    (extra_tools_dir / "zz_helpers.py").write_text("VALUE = 1\n", encoding="utf-8")
     assert "unicad.mcp.tools.zz_helpers" not in registry.tool_modules()
     assert tool_names(build()) == tool_names(build())
 
@@ -80,7 +80,7 @@ def test_an_explicit_modules_entry_for_a_tools_module_is_not_registered_twice(mo
 
 
 def test_explicit_entries_outside_tools_still_register(monkeypatch, extra_tools_dir):
-    (extra_tools_dir / "zz_probe.py").write_text(PROBE)
+    (extra_tools_dir / "zz_probe.py").write_text(PROBE, encoding="utf-8")
     monkeypatch.setattr(registry, "MODULES", (*registry.MODULES, "unicad.mcp.tools.zz_probe"))
     assert tool_names(build()).count("zz_probe_ping") == 1
 

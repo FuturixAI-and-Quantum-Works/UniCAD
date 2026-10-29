@@ -29,7 +29,7 @@ def run(tmp_path: Path, scenario):
 async def rvunl_plot(c, tmp_path: Path, csv: str = PLOT_180X120, setback: float | None = 5) -> str:
     pid = (await c.call("project_create", **{**CREATE, "segment": "utility", "grid_voltage_v": 415}))["project_id"]
     f = tmp_path / "plot.csv"
-    f.write_text("# boundary heerapura_plot_ASSUMED\n" + csv)
+    f.write_text("# boundary heerapura_plot_ASSUMED\n" + csv, encoding="utf-8")
     await c.call("site_import", project_id=pid, file_path=str(f), format="coords", coordinate_system="lonlat")
     if setback is not None:
         await c.call("site_set_setbacks", project_id=pid, boundary_m=setback)
@@ -37,7 +37,7 @@ async def rvunl_plot(c, tmp_path: Path, csv: str = PLOT_180X120, setback: float 
 
 
 def stored(tmp_path: Path, pid: str) -> dict:
-    return json.loads((tmp_path / "ws" / pid / "project.json").read_text())
+    return json.loads((tmp_path / "ws" / pid / "project.json").read_text(encoding="utf-8"))
 
 
 def test_rvunl_blocks_are_compact_not_interleaved(tmp_path):
@@ -174,7 +174,7 @@ def test_site_import_replace_keeps_the_setbacks(tmp_path):
         pid = await rvunl_plot(c, tmp_path, setback=5)
         before = await c.call("site_set_setbacks", project_id=pid, boundary_m=5, exclusion_m=3)
         smaller = tmp_path / "smaller.csv"
-        smaller.write_text("# boundary smaller\n" + PLOT_170X110)
+        smaller.write_text("# boundary smaller\n" + PLOT_170X110, encoding="utf-8")
         again = await c.call("site_import", project_id=pid, file_path=str(smaller), format="coords", coordinate_system="lonlat", replace=True)
         return before, again
 
@@ -200,7 +200,7 @@ def test_layout_place_reports_shortfall_and_a_plot_that_fits(tmp_path):
         dlat = h / 110574
         pid2 = (await c.call("project_create", **{**CREATE, "name": "grown", "segment": "utility", "grid_voltage_v": 415}))["project_id"]
         f = grown / "plot.csv"
-        f.write_text(f"# boundary grown\n{lon}, {lat}\n{lon + dlon}, {lat}\n{lon + dlon}, {lat + dlat}\n{lon}, {lat + dlat}\n")
+        f.write_text(f"# boundary grown\n{lon}, {lat}\n{lon + dlon}, {lat}\n{lon + dlon}, {lat + dlat}\n{lon}, {lat + dlat}\n", encoding="utf-8")
         await c.call("site_import", project_id=pid2, file_path=str(f), format="coords", coordinate_system="lonlat")
         await c.call("site_set_setbacks", project_id=pid2, boundary_m=5)
         return short, await c.call("layout_place", project_id=pid2, **LAYOUT)
