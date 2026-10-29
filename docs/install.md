@@ -1,5 +1,47 @@
 # Install and connect
 
+## Windows (one command)
+
+On Windows 10 or 11, open PowerShell (no admin rights needed) and run:
+
+```powershell
+$env:GH_TOKEN = "github_pat_..."   # see below
+irm https://raw.githubusercontent.com/Aqua-123/unicad/master/tools/install.ps1 -Headers @{Authorization="token $env:GH_TOKEN"} | iex
+```
+
+**GH_TOKEN.** The repository is private, so the installer needs a GitHub token that can read it. On GitHub: Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token; Repository access: Only select repositories, `Aqua-123/unicad`; Permissions: Repository permissions > Contents: Read-only. Copy the `github_pat_...` value into the command above. It is only used for the download and is not stored.
+
+**What it does** (everything for the current user, under `%LOCALAPPDATA%\UniCAD` unless noted):
+
+| Step | Result |
+| --- | --- |
+| uv | Installed with Astral's official installer if `uv` is missing (`%USERPROFILE%\.local\bin`). uv provides Python 3.12. |
+| UniCAD | The repository at `master` is downloaded through the GitHub API into `%LOCALAPPDATA%\UniCAD\src` and installed with `uv tool install --force`; `unicad-mcp.exe` lands on `PATH` (`%USERPROFILE%\.local\bin`). |
+| LibreCAD 2.2.1.6 | The official `LibreCAD-v2.2.1.6-win64-msvc.exe`, checked against the release `SHA256SUMS`, installed silently into `%LOCALAPPDATA%\UniCAD\librecad`. The installer is run as the current user, so its machine-wide Start-menu entries and file associations are skipped; the program itself is complete. |
+| LibreDWG 0.13.4 | `libredwg-0.13.4-win64.zip`, checked against the release `dist.sha256`, unpacked into `%LOCALAPPDATA%\UniCAD\libredwg`. |
+| Environment | User variables `LIBRECAD` (`...\librecad\librecad.exe`), `LIBREDWG_BIN` (`...\libredwg`) and `UNICAD_WORKSPACE` (`%USERPROFILE%\unicad-projects`, where projects and drawings go). |
+| Claude Code | When `claude` is on `PATH`: `claude mcp add --scope user unicad -e ... -- unicad-mcp.exe`. |
+| Claude Desktop | When Claude Desktop is installed: an `unicad` entry is merged into `%APPDATA%\Claude\claude_desktop_config.json` (other servers and settings are kept; the old file is saved next to it as `claude_desktop_config.json.bak-<date>`). |
+| Self-check | `unicad-mcp --help`, then a small DXF rendered to PDF with LibreCAD and to DWG with LibreDWG (`%LOCALAPPDATA%\UniCAD\self-check`). |
+
+Afterwards restart Claude Desktop (or start a new Claude Code session) and ask for a drawing; open a new terminal to pick up `PATH` and the variables.
+
+**Update.** Run the same command again. UniCAD is reinstalled from the latest `master`; LibreCAD and LibreDWG are kept when the pinned versions are already there. Quit Claude Desktop and Claude Code first: Windows cannot replace `unicad-mcp.exe` while it runs, and the installer stops with a message if it is.
+
+**Options.** To pass parameters, run the downloaded script as a script block:
+
+```powershell
+$src = irm https://raw.githubusercontent.com/Aqua-123/unicad/master/tools/install.ps1 -Headers @{Authorization="token $env:GH_TOKEN"}
+& ([scriptblock]::Create($src)) -Ref some-branch     # install another branch, tag or commit
+& ([scriptblock]::Create($src)) -Uninstall           # remove UniCAD
+```
+
+From a checkout: `.\tools\install.ps1 -Source C:\path\to\unicad` installs that checkout without a token.
+
+**Uninstall.** `-Uninstall` (above) runs `uv tool uninstall unicad`, removes the `unicad` entry from Claude Code and Claude Desktop, deletes the three user variables and `%LOCALAPPDATA%\UniCAD` (LibreCAD and LibreDWG included). Your projects in `%USERPROFILE%\unicad-projects` and uv itself stay; delete them by hand if you want them gone.
+
+On Windows LibreCAD needs no display server: `DISPLAY` and `xvfb` below apply to Linux only.
+
 UniCAD is one MCP server, `unicad-mcp`, with two transports: stdio for desktop clients and Streamable HTTP for your own agent app. Drawings are rendered by LibreCAD 2.2.1.6, DWG files by LibreDWG; both are optional until you ask for PDF or DWG output (DXF, XLSX and every design tool work without them).
 
 ## Requirements

@@ -10,6 +10,7 @@ UNICAD_TOKEN=change-me uvx --from . unicad-mcp --http --port 8765   # Streamable
 docker build -t unicad-mcp . && docker run -e UNICAD_TOKEN=change-me -p 8765:8765 -v unicad-data:/data unicad-mcp
 ```
 
+Windows: one PowerShell command installs everything and registers it with Claude, see [docs/install.md](docs/install.md#windows-one-command).
 Client configuration, environment variables and the Docker image: [docs/install.md](docs/install.md).
 
 ## Use it
