@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from shapely.geometry.base import BaseGeometry
 from shapely.prepared import prep
 
-from unicad.arrays.blocks import _median, compact
+from unicad.arrays.blocks import WIDE_GAP_RATIO, _median, compact
 from unicad.arrays.geometry import frame, table_centre, table_polygon
 from unicad.arrays.place import INSIDE_TOL, PlacementError
 from unicad.arrays.spec import FillOrder, PlacementSpec
@@ -127,9 +127,11 @@ def _partition(tables: Sequence[Table], units: Sequence[int], targets: Sequence[
         orders = list(dict.fromkeys(tuple(o) for o in (ids, ids[::-1], even + odd, odd + even)))
         tries = []
         for rank, order in enumerate(orders):
-            for axis in (longer, 1 - longer):
-                score, pos, ordered, d = cut(idx, [targets[t] for t in order], axis)
-                tries.append(((score == -math.inf, -score if score > -math.inf else 0.0, rank, axis != longer), list(order), axis, pos, ordered, d))
+            cuts = {axis: cut(idx, [targets[t] for t in order], axis) for axis in (longer, 1 - longer)}
+            wide = cuts[1 - longer][0] >= WIDE_GAP_RATIO and cuts[1 - longer][0] > cuts[longer][0]
+            for axis, (score, pos, ordered, d) in cuts.items():
+                across = (axis != longer) != wide
+                tries.append(((score == -math.inf, across, rank, -score if score > -math.inf else 0.0), list(order), axis, pos, ordered, d))
         last = None
         for _, order, axis, pos, ordered, d in sorted(tries, key=lambda t: t[0]):
             try:

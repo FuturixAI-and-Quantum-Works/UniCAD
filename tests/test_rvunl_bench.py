@@ -103,7 +103,8 @@ def test_relayout_keeps_the_lt_panels_and_the_stations(run):
     assert max(moved) < 2.0, moved
     stations = [(b["station"]["x"], b["station"]["y"]) for b in run["replace"]["blocks"]]
     assert len(set(stations)) == len(stations)
-    assert first["lt_panels"] == again["lt_panels"]
+    assert [(p["tag"], p["x"], p["y"]) for p in first["lt_panels"]] == [(p["tag"], p["x"], p["y"]) for p in again["lt_panels"]]
+    assert "kept from the previous layout" in again["lt_panels"][0]["basis"]
 
 
 def test_no_block_station_details_with_inverters_in_the_field(run, project):

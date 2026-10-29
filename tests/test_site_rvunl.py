@@ -206,9 +206,9 @@ def test_layout_place_reports_shortfall_and_a_plot_that_fits(tmp_path):
         return short, await c.call("layout_place", project_id=pid2, **LAYOUT)
 
     short, fitted = run(tmp_path, scenario)
-    assert short["target_reached"] is False and short["metrics"]["dc_kwp"] == pytest.approx(800.1)
+    assert short["target_reached"] is False and short["metrics"]["dc_kwp"] == pytest.approx(1028.7)
     s = short["shortfall"]
-    assert s["target_kwp"] == 1371.6 and s["short_kwp"] == pytest.approx(571.5) and s["plot_now_m"] == pytest.approx([150, 100], abs=1.5)
+    assert s["target_kwp"] == 1371.6 and s["short_kwp"] == pytest.approx(342.9) and s["plot_now_m"] == pytest.approx([150, 100], abs=1.5)
     assert s["plot_that_fits_m"][0] > 150 and s["plot_that_fits_m"][1] > 100
-    assert any("fits 800.1 kWp" in p["message"] and "scaled to about" in p["message"] for p in short["problems"])
+    assert any("fits 1028.7 kWp" in p["message"] and "scaled to about" in p["message"] for p in short["problems"])
     assert fitted["target_reached"] is True, f"the plot the shortfall names does not fit the target: {fitted['metrics']}"

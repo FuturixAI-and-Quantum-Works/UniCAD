@@ -73,9 +73,6 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     notes: list[str] = []
     if spec.fill is FillOrder.SWITCHYARD:
         anchor = fill_anchor(site, spec) if spec.target_dc_kwp is not None or spec.inverter_strings else None
-        if anchor is None and spec.inverter_strings and (areas := regions_for(site, spec)):
-            c = unary_union([r.geom for r in areas]).centroid
-            anchor = Point(x=round(c.x, 3), y=round(c.y, 3)), "the centre of the buildable area"
         if anchor is not None:
             spec = spec.model_copy(update={"fill": FillOrder.NEAREST, "fill_from": anchor[0]})
             notes.append(f"the target capacity is filled nearest {anchor[1]}, at local ({anchor[0].x:.1f}, {anchor[0].y:.1f}), to keep the MV feeders short")
@@ -125,7 +122,8 @@ def _yard_target(site: SiteGeometry, spec: PlacementSpec) -> tuple[Point, str] |
     if siting.marked_switchyard(site) is not None:
         return None
     if spec.switchyard is not None:
-        return spec.switchyard, "given (layout_place switchyard_x, switchyard_y)"
+        return spec.switchyard, ("kept from the previous layout, where the ACCB stood (pass switchyard_x/y to move it)" if spec.switchyard_kept
+                                 else "given (layout_place switchyard_x, switchyard_y)")
     anchor = fill_anchor(site, spec.model_copy(update={"switchyard": None}))
     return None if anchor is None else (anchor[0], "nearest the transmission line on the site (where the export line leaves)")
 
