@@ -138,3 +138,13 @@ def test_breakers_break_the_stated_fault_with_the_reason(run, project):
 
 def test_validates_without_errors(run):
     assert run["validate"]["counts"]["error"] == 0, run["validate"]["findings"]
+
+
+def test_earth_conductors_run_along_the_axes_and_the_ring_closes(project):
+    d = design_earthing(project)
+    for r in d.layout.runs:
+        if r.role.value in ("equipment", "main"):
+            for a, b in zip(r.points, r.points[1:]):
+                assert min(abs(a.x - b.x), abs(a.y - b.y)) < 0.5, f"{r.role.value} conductor {r.links} runs diagonally: {a} -> {b}"
+    ring = [r for r in d.layout.runs if r.links == ("array ring",) and len(r.points) == 5]
+    assert len(ring) == 1 and (ring[0].points[0].x, ring[0].points[0].y) == (ring[0].points[-1].x, ring[0].points[-1].y)
