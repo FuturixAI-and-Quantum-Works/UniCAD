@@ -114,6 +114,16 @@ class Renderer(Protocol):
     ) -> SetResult: ...
 
 
+def ensure_replaceable(path: Path) -> None:
+    """Fail clearly when an existing output is locked by another program (a PDF viewer on Windows)."""
+    try:
+        if path.exists():
+            with open(path, "r+b"):
+                pass
+    except PermissionError as exc:
+        raise RenderFailed(f"cannot replace {path}: it is open in another program or read-only (close it and render again)") from exc
+
+
 def merge_pdfs(pdfs: Sequence[Path], titles: Sequence[str | None], out_pdf: Path) -> None:
     merged = pymupdf.open()
     toc: list[list] = []
@@ -127,6 +137,7 @@ def merge_pdfs(pdfs: Sequence[Path], titles: Sequence[str | None], out_pdf: Path
         if toc:
             merged.set_toc(toc)
         out_pdf.parent.mkdir(parents=True, exist_ok=True)
+        ensure_replaceable(out_pdf)
         merged.save(out_pdf, garbage=3, deflate=True)
     finally:
         merged.close()

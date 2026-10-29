@@ -312,6 +312,21 @@ def test_windows_needs_no_display(tmp_path, monkeypatch):
     assert prefix == [str(binary)]
 
 
+def test_merging_onto_a_locked_set_pdf_is_a_clear_error(tmp_path):
+    doc = pymupdf.open()
+    doc.new_page(width=200, height=100)
+    part = tmp_path / "p.pdf"
+    doc.save(part)
+    target = tmp_path / "set.pdf"
+    target.write_bytes(b"%PDF-old")
+    target.chmod(0o444)
+    try:
+        with pytest.raises(RenderFailed, match="open in another program or read-only"):
+            merge_pdfs([part], [None], target)
+    finally:
+        target.chmod(0o644)
+
+
 def test_libredwg_tools_are_found_as_exe_on_windows(tmp_path, monkeypatch):
     from unicad.render import dwg as dwg_module
 

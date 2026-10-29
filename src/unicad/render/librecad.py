@@ -31,6 +31,7 @@ from .backend import (
     ScaleMode,
     SetResult,
     Sheet,
+    ensure_replaceable,
     merge_pdfs,
     paper_size_mm,
 )
@@ -223,10 +224,11 @@ def _check_page(pdf: Path, w_mm: float, h_mm: float) -> None:
 
 
 def _remove_stale(output: Path) -> None:
+    ensure_replaceable(output)
     try:
         output.unlink(missing_ok=True)
     except PermissionError as exc:
-        raise RenderFailed(f"cannot replace {output}: it is open in another program (close it and render again)") from exc
+        raise RenderFailed(f"cannot replace {output}: it is open in another program or read-only (close it and render again)") from exc
 
 
 def _kill_tree(proc: subprocess.Popen) -> None:

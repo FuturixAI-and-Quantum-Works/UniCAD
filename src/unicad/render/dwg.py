@@ -164,7 +164,7 @@ class DwgConverter:
         try:
             dwg.unlink(missing_ok=True)
         except PermissionError as exc:
-            raise RenderFailed(f"cannot replace {dwg}: it is open in another program (close it and export again)") from exc
+            raise RenderFailed(f"cannot replace {dwg}: it is open in another program or read-only (close it and export again)") from exc
         if converter == "libredwg":
             self._libredwg_write(dxf, dwg, version)
         else:
