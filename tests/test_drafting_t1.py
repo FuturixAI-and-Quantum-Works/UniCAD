@@ -267,3 +267,14 @@ def test_register_lists_every_assumption_in_its_table_and_drops_none(tmp_path):
     for i in range(40):
         assert f"ASSUMED TEST INPUT {i:02d}" in text, i
     assert len(set_assumptions(p)) >= 40 and "DRIVES: SLD" in text
+
+
+def test_derived_equipment_positions_are_assumptions_on_the_plan_sheets():
+    from unicad.drafting.assumptions import sheet_assumptions
+
+    p = bench2()
+    for kind in ("layout", "earthing"):
+        got = sheet_assumptions(p, kind)
+        assert any(a.startswith("ACCB-01 POSITION NOT GIVEN") for a in got) and any(a.startswith("POI-01 POSITION NOT GIVEN") for a in got), got
+        assert not any("PASS SWITCHYARD" in a for a in got)
+    assert not any("POSITION NOT GIVEN" in a for a in sheet_assumptions(p, "sld"))

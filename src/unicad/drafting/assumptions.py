@@ -61,6 +61,13 @@ def entries(project: Project) -> list[tuple[frozenset[str], str]]:
         out.append((frozenset({"earthing"}), f"{', '.join(parts)}: NO WENNER TEST OR FAULT STUDY REFERENCE RECORDED"))
     if (lb := db.lps) is not None and not getattr(lb, "source", None):
         out.append((frozenset({"lps"}), f"LIGHTNING PROTECTION LEVEL {lb.level}: NO IS/IEC 62305-2 RISK ASSESSMENT REFERENCE RECORDED"))
+    if (lay := project.array_layout) is not None:
+        derived = [e for e in lay.equipment if DERIVED.search(e.basis)]
+        for e in derived:
+            out.append((SITE_SHEETS, f"{prose(e.tag)} POSITION NOT GIVEN, TAKEN AS {_basis(e.basis)}"))
+        sy = lay.switchyard
+        if sy is not None and DERIVED.search(sy.basis) and not any("switchyard location" in e.basis for e in derived):
+            out.append((SITE_SHEETS, f"SWITCHYARD POSITION NOT GIVEN, TAKEN AS {_basis(sy.basis)}"))
     net = project.network
     for n in net.nodes:
         text = " ".join(filter(None, [n.title or "", _attr_text(n.attributes)]))
@@ -71,6 +78,16 @@ def entries(project: Project) -> list[tuple[frozenset[str], str]]:
             a, b = net.node(e.src_node), net.node(e.dst_node)
             out.append((EDGE_SHEETS, f"{_tag(a.tag)} TO {_tag(b.tag)}: {prose(e.remarks)}"))
     return out
+
+
+DERIVED = re.compile(r"\bderived\b|free ground|assum", re.IGNORECASE)
+"""A layout position the layout placement worked out itself rather than was given."""
+_HINT = re.compile(r"\s*\((?:pass|assumed electrical room)[^)]*\)", re.IGNORECASE)
+
+
+def _basis(text: str) -> str:
+    """A placement basis as drawing text: without the 'derived:' prefix and the hint naming the tool parameters that would give it."""
+    return prose(_HINT.sub("", re.sub(r"^\s*derived:\s*", "", text, flags=re.IGNORECASE)))
 
 
 ASSUMED_PREFIX = re.compile(r"^\s*assumed\s*[:\-]\s*", re.IGNORECASE)
