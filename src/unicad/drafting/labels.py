@@ -129,7 +129,11 @@ class LabelPlacer:
         seg = Region(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
         return not any(_segment_hits(p.box, a, b) for p in self.labels if p.box.overlaps(seg.inset(-1e-6)))
 
-    def place(self, label: Label, cost: Callable[[Region], float] | None = None, allow: Callable[[Region, tuple[float, float]], bool] | None = None) -> Placement | None:
+    def place(self, label: Label, cost: Callable[[Region], float] | None = None, allow: Callable[[Region, tuple[float, float]], bool] | None = None,
+              patience: int = 0, commit: bool = True) -> Placement | None:  # fmt: skip
+        """The free spot nearest `label.anchor` (cheapest by `cost` among equally near ones). With `patience`, up to that many rings further
+        out are searched too, and a spot there wins when it costs less (a label kept off the tables a ring or two further away). Without
+        `commit` the spot is only found, not taken."""
         w, h, a = label.width, label.height, label.anchor
         d0 = label.clear + max(self.gap, 0.15 * h)
         rings: list[list[Region]] = [[_box_at(a, w, h, dx, dy, d0) for dx, dy in ADJACENT]]
@@ -138,13 +142,23 @@ class LabelPlacer:
         while d <= self.max_leader + 1e-9:
             rings.append([_ring_box(a, w, h, 2 * math.pi * i / RING_DIRECTIONS, d) for i in range(RING_DIRECTIONS)])
             d += step
+        found: tuple[float, int, Region] | None = None
         for n, ring in enumerate(rings):
+            if found is not None and n > found[1] + patience:
+                break
             ok = [(i, r) for i, r in enumerate(ring) if self._free(r) and (allow is None or allow(r, label.anchor))]
             if n:
                 ok = [(i, r) for i, r in ok if self._leader_clear(a, nearest_on(r, a))]
             if not ok:
                 continue
             _, box = min(ok, key=lambda t: (round(cost(t[1]), 6) if cost else 0.0, t[0]))
+            c = round(cost(box), 6) if cost else 0.0
+            if found is None or c < found[0] - 1e-6:
+                found = (c, n, box)
+            if c <= 0.0:
+                break
+        if found is not None:
+            _, n, box = found
             leader = None
             if n:
                 tip = nearest_on(box, a)
@@ -152,10 +166,12 @@ class LabelPlacer:
                 start = (a[0] + (tip[0] - a[0]) * label.clear / ln, a[1] + (tip[1] - a[1]) * label.clear / ln)
                 leader = (start, tip)
             p = Placement(label, box, leader)
-            self._add(box)
-            self.labels.append(p)
+            if commit:
+                self._add(box)
+                self.labels.append(p)
             return p
-        self.overflow.append(label)
+        if commit:
+            self.overflow.append(label)
         return None
 
     def fixed(self, label: Label, box: Region) -> Placement | None:

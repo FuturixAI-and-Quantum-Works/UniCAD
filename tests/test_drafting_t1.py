@@ -278,3 +278,29 @@ def test_derived_equipment_positions_are_assumptions_on_the_plan_sheets():
         assert any(a.startswith("ACCB-01 POSITION NOT GIVEN") for a in got) and any(a.startswith("POI-01 POSITION NOT GIVEN") for a in got), got
         assert not any("PASS SWITCHYARD" in a for a in got)
     assert not any("POSITION NOT GIVEN" in a for a in sheet_assumptions(p, "sld"))
+
+
+# ---------------- RVUNL layout: block labels off the tables (item 5) ----------------
+
+
+def test_rvunl_block_labels_stand_clear_of_the_tables(tmp_path):
+    import ezdxf
+    from ezdxf import bbox
+    from shapely.geometry import box as sbox
+
+    from unicad.sets import render_set
+
+    p = Project.model_validate_json((DATA / "rvunl_heerapura.json").read_text(encoding="utf-8"))
+    index = render_set(p, tmp_path, kinds=["layout"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    msp = ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace()
+    tables = [sbox(b.extmin.x, b.extmin.y, b.extmax.x, b.extmax.y) for e in msp.query("INSERT[layer=='L-ARRAY']") if (b := bbox.extents([e])).has_data]
+    names = [t for t in msp.query("TEXT") if t.dxf.text.startswith("BLOCK-")]
+    boxes = []
+    for pl in msp.query("LWPOLYLINE[layer=='L-STATION']"):
+        xs, ys = zip(*((x, y) for x, y, *_ in pl.get_points()))
+        b = sbox(min(xs), min(ys), max(xs), max(ys))
+        if any(b.contains(sbox(*t.dxf.insert.vec2, *t.dxf.insert.vec2)) for t in names):
+            boxes.append(b)
+    assert len(boxes) == 12
+    covered = [sum(b.intersection(t).area for t in tables) / b.area for b in boxes]
+    assert max(covered) < 0.15, [round(c, 2) for c in covered]

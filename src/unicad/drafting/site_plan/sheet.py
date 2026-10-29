@@ -601,7 +601,23 @@ class LayoutSheetWriter:
             self.msp.add_blockref(sym.block_name, (cx - w / 2, cy - h / 2), dxfattribs={"layer": L_STATION.name, "xscale": s, "yscale": s})
             stations.append((b, lines, hs, (cx, cy), icon, colour))
         for b, lines, hs, (x, y), icon, colour in stations:
-            p = self.placer.place(Label(b.id, (x, y), max(text_width(t, hh) for t, hh in zip(lines, hs)) + 0.8 * th, 2.9 * th, clear=(icon.x1 - icon.x0) / 2 + 0.3 * th), cost=clash)
+            clear = (icon.x1 - icon.x0) / 2 + 0.3 * th
+            two = Label(b.id, (x, y), max(text_width(t, hh) for t, hh in zip(lines, hs)) + 0.8 * th, 2.9 * th, clear=clear)
+            one_line = f"{lines[0]}  {lines[1]}"
+            one = Label(b.id, (x, y), text_width(one_line, hs[1]) + 0.8 * th, 1.7 * hs[1], clear=clear)
+            # The label covering the least of the tables, a leader counting as the area of a line of its length: two lines beside the
+            # station, one line in the aisle between two table rows, or either a ring further out.
+            def score(option: tuple[Label, int]) -> float:
+                q = self.placer.place(option[0], cost=clash, patience=option[1], commit=False)
+                if q is None:
+                    return math.inf
+                lead = math.dist(*q.leader) if q.leader else 0.0
+                return clash(q.box) + lead * th + (0.0 if option[0] is two else 0.01)
+
+            options = [(two, 0), (one, 0), (two, 1), (one, 1)]
+            pick = min(options, key=score)
+            compact = pick[0] is one
+            p = self.placer.place(pick[0], cost=clash, patience=pick[1])
             if p is None:
                 self.warnings.append(f"no room for the {b.name} station label")
                 continue
@@ -612,6 +628,9 @@ class LayoutSheetWriter:
             if p.leader is not None:
                 self.msp.add_line(p.leader[0], p.leader[1], dxfattribs={"layer": L_STATION.name, "color": colour})
             tx, cy = label.x0 + 0.4 * th, label.centre[1]
+            if compact:
+                self._text(one_line, (tx, cy), hs[1], align="ML")
+                continue
             self._text(lines[0], (tx, cy + 0.6 * th), hs[0], align="ML")
             self._text(lines[1], (tx, cy - 0.65 * th), hs[1], align="ML")
 
