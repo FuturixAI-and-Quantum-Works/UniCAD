@@ -236,3 +236,12 @@ def test_register_names_the_state_once_and_prints_the_degree_sign(tmp_path):
         row = " ".join(texts[i:i + 4])
         row = row[:row.index(" E", row.index("LONG")) + 2]
         assert row.count("RAJASTHAN") == 1 and ("26%%d53'" in row or "26°53'" in row) and "DEG" not in row, row
+
+
+def test_layout_notes_give_the_site_point_as_the_client_gave_it():
+    from unicad.sets.plans import layout_notes
+
+    p = bench2()
+    note = next(n for n in layout_notes(p, None) if n.startswith("SITE LOCATION AS GIVEN"))
+    x, y = p.site.geometry.lonlat_to_local(p.site.longitude, p.site.latitude)
+    assert "LAT 26.887058 N LONG 75.719544 E" in note and f"X {x:.1f} m, Y {y:.1f} m" in note and 0 < x < 230 and 0 < y < 140, note

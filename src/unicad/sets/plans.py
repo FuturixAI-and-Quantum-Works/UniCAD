@@ -15,6 +15,7 @@ from unicad.domain.network import NodeKind
 from unicad.domain.project import Project, Segment, Sheet, SheetKind
 from unicad.domain.site import FeatureKind
 from unicad.drafting.earthing_plan import earthing_notes, lps_notes, render_earthing_sheet, render_lps_sheet
+from unicad.drafting.project_fields import coordinates
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.site_plan import EquipmentArea, LayoutDrawing, render_layout_sheet
 from unicad.drafting.site_plan.sheet import CableRoute, with_current_equipment
@@ -146,6 +147,10 @@ def layout_notes(project: Project, pitch: float | None) -> tuple[str, ...]:
         f"{modules:,} MODULES ON {len(tables)} TABLES IN {len(layout.blocks)} BLOCK{'S' if len(layout.blocks) != 1 else ''}.",
         f"SITE GRID {site.crs}, LOCAL ORIGIN {site.origin.lon:.5f} E, {site.origin.lat:.5f} N. NORTH IS GRID NORTH.",
     ]
+    given = project.site
+    if given.latitude is not None and given.longitude is not None:
+        x, y = site.lonlat_to_local(given.longitude, given.latitude)
+        notes.insert(-1, f"SITE LOCATION AS GIVEN: {coordinates(given)}, AT LOCAL X {x:.1f} m, Y {y:.1f} m.")
     if any(b.station for b in layout.blocks):
         notes.append("INVERTER STATION LOCATIONS ARE INDICATIVE AND SUBJECT TO DETAILED ENGINEERING.")
     if project.segment not in (Segment.CI_ROOFTOP, Segment.RESIDENTIAL):
