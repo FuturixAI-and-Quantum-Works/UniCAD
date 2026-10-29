@@ -49,7 +49,11 @@ def bench(tmp: Path) -> dict:
             out["rebuild"] = await c.call("network_autobuild", **BUILD)
             out["earthing"] = await c.call("earthing_design", project_id=PID, soil_resistivity=100, fault_ka=31.5, clearing_s=1)
             out["lps"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6)
+            out["earthing_again"] = await c.call("earthing_design", project_id=PID, surface_resistivity=3000, surface_layer_m=0.1)
+            out["earthing_kept"] = await c.call("earthing_design", project_id=PID)
             out["validate"] = await c.call("validate", project_id=PID)
+            out["explain_pass"] = await c.call("explain_finding", project_id=PID, rule_id="vdrop.ac", subject="inva")
+            out["explain_none"] = await c.call("explain_finding", project_id=PID, rule_id="cables.ampacity", subject="poi")
             out["project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
 
     asyncio.run(asyncio.wait_for(go(), 600))
@@ -164,3 +168,15 @@ def test_lightning_masts_stand_outside_the_array(run, project):
     assert all(not area.contains(SPoint(t["x"], t["y"])) for t in lps["terminals"])
     inside = design_lps(project, project.design_basis.lps.model_copy(update={"placement": "array"}))
     assert len(inside.terminals) == 1 and inside.terminals[0].shade_m2 >= 0
+
+
+def test_explain_finding_on_a_passed_rule_gives_the_margin(run):
+    ok = run["explain_pass"]
+    assert ok["passed"] is True and ok["margins"] and ok["margins"][0]["limit"] == 2.0 and ok["margins"][0]["margin"] > 0
+    assert run["explain_none"]["passed"] is True and "passed" in run["explain_none"]["message"]
+
+
+def test_earthing_inputs_say_where_they_come_from(run):
+    kept = run["earthing_kept"]
+    assert kept["inputs"]["surface_resistivity_ohm_m"] == {"value": 3000.0, "from": "kept from the design basis (an earlier call or project_design_basis)"}
+    assert "surface_layer_m" in kept["inputs_kept"] and run["earthing_again"]["inputs"]["surface_layer_m"]["from"] == "this call"

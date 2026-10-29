@@ -64,8 +64,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         (IEEE 80, grid current split between the switchyard grid and the rest of the plant earth) and lay out pits and conductors bonding
         every table row, station, panel, switchyard item and lightning terminal.
 
-        Inputs you leave out keep the values already in the design basis (set with project_design_basis or an earlier call); use
-        project_design_basis to clear one. Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the
+        Inputs you leave out keep the values already in the design basis (set with project_design_basis or an earlier call); the result lists
+        every input with where it came from (inputs, inputs_kept); use project_design_basis to clear one. Run layout_place first; run lps_design to include the lightning terminals' pits. Returns the
         design summary and quantities.
         Example: earthing_design(project_id="p1", soil_resistivity=50, fault_ka=12.5, clearing_s=1, switchyard_m=[60, 45])."""
 
@@ -84,6 +84,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
             lps = design_lps(updated) if updated.design_basis.lps is not None else None
             s = summary(design_earthing(updated, lps=lps, catalog=ws.catalog))
             extra: dict[str, Any] = {"earthing": _brief(s) | {"assumptions": s["assumptions"]}}
+            extra["inputs"] = {k: {"value": v, "from": "this call" if given.get(k) is not None else "kept from the design basis (an earlier call or project_design_basis)"}
+                               for k, v in data.items() if k in given}
+            kept = sorted(k for k in data if k in given and given[k] is None)
+            if kept:
+                extra["inputs_kept"] = (f"{', '.join(kept)} kept from earlier calls (inputs left out keep their stored value); clear one with "
+                                        "project_design_basis(clear=['earthing']) and pass the rest again")
             problems = []
             if lps is not None:
                 extra["lps_terminal_count"] = len(lps.terminals)
