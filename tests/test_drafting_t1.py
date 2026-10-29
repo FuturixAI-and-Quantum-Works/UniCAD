@@ -245,3 +245,25 @@ def test_layout_notes_give_the_site_point_as_the_client_gave_it():
     note = next(n for n in layout_notes(p, None) if n.startswith("SITE LOCATION AS GIVEN"))
     x, y = p.site.geometry.lonlat_to_local(p.site.longitude, p.site.latitude)
     assert "LAT 26.887058 N LONG 75.719544 E" in note and f"X {x:.1f} m, Y {y:.1f} m" in note and 0 < x < 230 and 0 < y < 140, note
+
+
+# ---------------- register: every assumption listed, over more pages if need be (N10) ----------------
+
+
+def test_register_lists_every_assumption_in_its_table_and_drops_none(tmp_path):
+    import ezdxf
+
+    from unicad.drafting.assumptions import set_assumptions
+    from unicad.sets import render_set
+
+    p = bench2()
+    many = tuple(f"Assumed test input {i:02d}: placeholder text long enough to take a line of the register" for i in range(40))
+    p = p.model_copy(update={"design_basis": p.design_basis.model_copy(update={"assumptions": p.design_basis.assumptions + many})})
+    index = render_set(p, tmp_path, kinds=["register", "sld"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    registers = [s for s in index["sheets"] if s["kind"] == "register"]
+    assert len(registers) >= 2, "the register continues on a second page"
+    assert not [w for s in registers for w in s["warnings"] if "did not fit" in w], [s["warnings"] for s in registers]
+    text = " ".join(e.dxf.text for s in registers for e in ezdxf.readfile(s["files"]["dxf"]).modelspace().query("TEXT"))
+    for i in range(40):
+        assert f"ASSUMED TEST INPUT {i:02d}" in text, i
+    assert len(set_assumptions(p)) >= 40 and "DRIVES: SLD" in text

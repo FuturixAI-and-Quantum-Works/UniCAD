@@ -83,3 +83,11 @@ def _tag(tag: str) -> str:
 def sheet_assumptions(project: Project, kind: str) -> tuple[str, ...]:
     """The assumed inputs a sheet of drawing kind `kind` is drawn from; the register (kind 'register') lists every one of the set."""
     return tuple(dict.fromkeys(t for kinds, t in entries(project) if kind == "register" or kind in kinds))
+
+
+def set_assumptions(project: Project) -> tuple[tuple[frozenset[str], str], ...]:
+    """Every assumed input of the project once, with the drawing kinds it drives."""
+    out: dict[str, frozenset[str]] = {}
+    for kinds, text in entries(project):
+        out[text] = out.get(text, frozenset()) | kinds
+    return tuple((kinds, text) for text, kinds in out.items())
