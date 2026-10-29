@@ -5,11 +5,11 @@ from typing import Literal
 
 Align = Literal["left", "center", "right"]
 
-_ASCII = {"°": "deg", "Ω": "ohm", "²": "2", "³": "3", "×": "x", "–": "-", "—": "-", "±": "+/-", "√": "sqrt", "·": ".", "µ": "u", "’": "'", "‘": "'", "“": '"', "”": '"'}
+_ASCII = {"°": "%%d", "Ω": "ohm", "²": "2", "³": "3", "×": "x", "–": "-", "—": "-", "±": "%%p", "√": "sqrt", "·": ".", "µ": "u", "’": "'", "‘": "'", "“": '"', "”": '"'}
 
 
 def ascii_safe(text: str) -> str:
-    """The sheet font covers printable ASCII only; map common symbols and replace the rest with '?'."""
+    """The sheet font covers printable ASCII only: map common symbols (the degree and plus-minus signs to their %%d and %%p codes, which LibreCAD prints as the glyphs) and replace the rest with "?"."""
     mapped = "".join(_ASCII.get(c, c) for c in text)
     return "".join(c if c == "\n" or " " <= c <= "~" else "?" for c in mapped)
 

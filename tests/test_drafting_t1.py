@@ -214,3 +214,25 @@ def test_layout_and_earthing_sheets_skip_equipment_whose_node_was_removed(tmp_pa
         doc = ezdxf.readfile(s["files"]["dxf"])
         text = " ".join(e.dxf.text for e in doc.modelspace().query("TEXT"))
         assert "INV-99" not in text and "ACCB-01" in text, s["kind"]
+
+
+# ---------------- register: location named once, degree sign kept (N8) ----------------
+
+
+def test_register_names_the_state_once_and_prints_the_degree_sign(tmp_path):
+    import ezdxf
+
+    from unicad.sets import render_set
+
+    p = bench2()
+    site = p.site.model_copy(update={"name": "Heerapura (26°53'13.41\"N 75°43'10.36\"E)", "address": "Heerapura, Jaipur, Rajasthan 302026", "state": "Rajasthan"})
+    p = p.model_copy(update={"site": site})
+    index = render_set(p, tmp_path, kinds=["register"], formats=("dxf",), catalog=CATALOG)
+    doc = ezdxf.readfile(index.as_dict(absolute=True)["sheets"][0]["files"]["dxf"])
+    texts = [e.dxf.text for e in doc.modelspace().query("TEXT")]
+    starts = [i for i, t in enumerate(texts) if t.startswith("HEERAPURA (")]
+    assert len(starts) == 2, "the register table and the title block"
+    for i in starts:
+        row = " ".join(texts[i:i + 4])
+        row = row[:row.index(" E", row.index("LONG")) + 2]
+        assert row.count("RAJASTHAN") == 1 and ("26%%d53'" in row or "26°53'" in row) and "DEG" not in row, row
