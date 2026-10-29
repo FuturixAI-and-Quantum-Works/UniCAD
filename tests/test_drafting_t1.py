@@ -148,7 +148,8 @@ def test_every_inverter_rs485_link_is_drawn_or_continued(bench_sld):
     continued = {st.pin for _, lay, _ in bench_sld for st in lay.stubs if st.kind is WireKind.COMMS}
     assert links <= drawn | continued, links - drawn - continued
     stubs = [lb.text for _, lay, _ in bench_sld for st in lay.stubs if st.kind is WireKind.COMMS for lb in st.labels]
-    assert all("DL-01" in t and "SEE ROW 1" in t for t in stubs), stubs
+    at_inverters = [t for t in stubs if "DL-01" in t]
+    assert at_inverters and all("SEE ROW 1" in t for t in at_inverters), stubs
 
 
 def test_no_symbol_sits_on_a_row_marker_or_the_poi_text(bench_sld):
@@ -172,3 +173,23 @@ def test_rs485_links_share_one_note_naming_every_inverter(bench_sld):
     notes = [n for n in sheet_spec(p, s, lay, CATALOG).notes if n.startswith("COMMUNICATION LINK")]
     assert notes == ["COMMUNICATION LINKS INV-01..INV-04, INV-05, INV-06, INV-07, INV-08 TO DL-01: RS-485 DAISY CHAIN THROUGH THE INVERTERS.",
                      "COMMUNICATION LINK SM-01 TO DL-01: RS-485."], notes
+
+
+def test_a_daisy_chain_the_edges_hold_is_drawn_inverter_to_inverter_to_logger():
+    from unicad.domain.network import ElectricalNetwork
+    from unicad.drafting.sld.model import WireKind
+
+    p = bench2()
+    net = p.network
+    chain = ["inva", "invx05", "invx06", "invx07", "invx08", "dlog"]
+    links = [e for e in net.edges if e.dst_node == "dlog" and e.src_node.startswith("inv")]
+    others = [e for e in net.edges if e not in links]
+    daisy = tuple(links[0].model_copy(update={"id": f"c_rs485_{a}", "src": f"{a}:sig", "dst": f"{b}:sig"}) for a, b in zip(chain, chain[1:]))
+    p = p.model_copy(update={"network": ElectricalNetwork(groups=net.groups, nodes=net.nodes, edges=(*others, *daisy))})
+    sheets = sld_sheets(p)
+    drawn = {w.edge_id for _, lay, _ in sheets for w in lay.wires if w.kind is WireKind.COMMS}
+    drawn |= {st.pin for _, lay, _ in sheets for st in lay.stubs if st.kind is WireKind.COMMS}
+    assert {e.id for e in daisy} <= drawn, {e.id for e in daisy} - drawn
+    warnings = [w for _, _, ws in sheets for w in ws]
+    assert not [w for w in warnings if "no host" in w or "missing pin" in w], warnings
+    assert sum(x.node_id == "dlog" for _, lay, _ in sheets for x in lay.symbols) == 1
