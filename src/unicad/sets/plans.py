@@ -17,7 +17,7 @@ from unicad.domain.site import FeatureKind
 from unicad.drafting.earthing_plan import earthing_notes, lps_notes, render_earthing_sheet, render_lps_sheet
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.site_plan import EquipmentArea, LayoutDrawing, render_layout_sheet
-from unicad.drafting.site_plan.sheet import CableRoute
+from unicad.drafting.site_plan.sheet import CableRoute, with_current_equipment
 from unicad.drafting.sld import annotate
 from unicad.earthing import EarthingDesign, EarthingError, design_earthing
 from unicad.lps import design_lps
@@ -107,7 +107,7 @@ def main_lt_panel(project: Project):
 def drawn_layout(project: Project) -> ArrayLayout:
     """The layout as the sheet draws it: no block stations where nothing stands at them, and on an LT plant the main LT panel at its
     location when the layout does not place it itself."""
-    layout = project.array_layout
+    layout = with_current_equipment(project.array_layout, project.network)
     if not has_stations(project):
         layout = layout.model_copy(update={"blocks": tuple(b.model_copy(update={"station": None}) for b in layout.blocks)})
     panel = main_lt_panel(project)

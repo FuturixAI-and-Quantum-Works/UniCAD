@@ -25,6 +25,7 @@ from unicad.arrays.geometry import frame, plan_depth, plan_length, table_corners
 from unicad.arrays.spec import PlacementResult, RoadLine
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Table
+from unicad.domain.network import ElectricalNetwork
 from unicad.domain.site import FeatureKind, SiteFeature, SiteGeometry, shape_of
 from unicad.drafting.dxfrules import MIN_LINEWEIGHT, plain
 from unicad.drafting.labels import Label, LabelPlacer, _segment_hits, nearest_on
@@ -99,6 +100,14 @@ class CableRoute:
 
     label: str
     points: tuple[tuple[float, float], ...]
+
+
+def with_current_equipment(layout: ArrayLayout, network: ElectricalNetwork) -> ArrayLayout:
+    """`layout` without the equipment of nodes the network no longer holds (network_remove leaves their layout entries behind)."""
+    if not network.nodes:
+        return layout
+    keep = tuple(e for e in layout.equipment if e.node.split("@")[0] in network.node_by_id)
+    return layout if len(keep) == len(layout.equipment) else layout.model_copy(update={"equipment": keep})
 
 
 @dataclass(frozen=True)

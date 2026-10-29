@@ -193,3 +193,24 @@ def test_a_daisy_chain_the_edges_hold_is_drawn_inverter_to_inverter_to_logger():
     warnings = [w for _, _, ws in sheets for w in ws]
     assert not [w for w in warnings if "no host" in w or "missing pin" in w], warnings
     assert sum(x.node_id == "dlog" for _, lay, _ in sheets for x in lay.symbols) == 1
+
+
+# ---------------- stale layout equipment (item 7) ----------------
+
+
+def test_layout_and_earthing_sheets_skip_equipment_whose_node_was_removed(tmp_path):
+    """network_remove leaves the node's layout.equipment entry behind; the plan sheets draw only what the network still holds."""
+    import ezdxf
+
+    from unicad.domain.layout import PlacedEquipment, Point
+    from unicad.sets import render_set
+
+    p = bench2()
+    lay = p.array_layout
+    stale = PlacedEquipment(node="inv_removed", tag="INV-99", kind="inverter", at=Point(x=60.0, y=40.0), basis="left by network_remove")
+    p = p.model_copy(update={"array_layout": lay.model_copy(update={"equipment": (*lay.equipment, stale)})})
+    index = render_set(p, tmp_path, kinds=["layout", "earthing"], formats=("dxf",), catalog=CATALOG)
+    for s in index.as_dict(absolute=True)["sheets"]:
+        doc = ezdxf.readfile(s["files"]["dxf"])
+        text = " ".join(e.dxf.text for e in doc.modelspace().query("TEXT"))
+        assert "INV-99" not in text and "ACCB-01" in text, s["kind"]

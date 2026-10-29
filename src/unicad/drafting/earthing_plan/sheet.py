@@ -27,7 +27,7 @@ from unicad.drafting.sheets.canvas import Canvas, Region
 from unicad.drafting.sheets.model import CompanyProfile, LayerRole, SheetSpec
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
-from unicad.drafting.site_plan.sheet import SCALES, EquipmentArea, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale
+from unicad.drafting.site_plan.sheet import SCALES, EquipmentArea, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale, with_current_equipment
 from unicad.earthing import ConductorRole, EarthingDesign, PitRole, pit_text
 from unicad.earthing.design import GOVERNING_CURRENT, GOVERNING_PRACTICE, GOVERNING_RESISTANCE, ROLE_TEXT
 from unicad.earthing.layout import StationGroup
@@ -170,7 +170,7 @@ def expand_ranges(text: str) -> set[str]:
 class _Writer(LayoutSheetWriter):
     def __init__(self, doc: Drawing, project: Project, module: ModuleSpec, sheet: SheetSpec, profile: CompanyProfile, scale: int | None,
                  areas: Sequence[EquipmentArea] = ()):  # fmt: skip
-        layout = project.array_layout
+        layout = with_current_equipment(project.array_layout, project.network) if project.array_layout else None
         d = LayoutDrawing(project.site.geometry, layout, module, max(t.cols for t in layout.table_by_id.values()) if layout and layout.table_by_id else 1,
                           areas=tuple(areas))  # fmt: skip
         super().__init__(doc, d, sheet, profile, "site", scale)
