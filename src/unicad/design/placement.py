@@ -13,7 +13,7 @@ from unicad.arrays import siting
 from unicad.arrays.geometry import frame, table_corners
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec
-from unicad.domain.layout import ArrayLayout, Mounting, PlacedEquipment, Point
+from unicad.domain.layout import ArrayLayout, Located, Mounting, PlacedEquipment, Point
 from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.domain.project import Project, Segment
 from unicad.domain.site import ROOF_CARVE_KINDS, FeatureKind, buildable_area, shape_of
@@ -278,7 +278,28 @@ def _bess(net: ElectricalNetwork, layout: ArrayLayout, project: Project, at: Poi
     return out, notes
 
 
-def place_equipment(project: Project, catalog: Catalog, bess_at: Point | None = None) -> tuple[ArrayLayout | None, list[str]]:
+def electrical_centre(project: Project, inverters: list[PlacedEquipment]) -> Located | None:
+    """The free ground (outside the tables, roads and exclusions by LT_PANEL_CLEAR_M) nearest the point of least total inverter cable length along the
+    array axes: the median of the field inverters along the rows and across them."""
+    layout, site = project.array_layout, project.site.geometry
+    if not inverters or layout is None or site is None:
+        return None
+    t0 = next(iter(layout.table_by_id.values()))
+    (ux, uy), (vx, vy) = frame(t0.azimuth_deg)
+    us = sorted(e.at.x * ux + e.at.y * uy for e in inverters)
+    vs = sorted(e.at.x * vx + e.at.y * vy for e in inverters)
+    mu, mv = (us[(len(us) - 1) // 2] + us[len(us) // 2]) / 2, (vs[(len(vs) - 1) // 2] + vs[len(vs) // 2]) / 2
+    target = (mu * ux + mv * vx, mu * uy + mv * vy)
+    tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()])
+    taken = unary_union([tables, *(ShapelyPoint(e.at.x, e.at.y).buffer(INVERTER_SPACING_M) for e in inverters)])
+    spot = siting.nearest_in(siting.room(site, taken, LT_PANEL_CLEAR_M), target)
+    if spot is None:
+        return None
+    return Located(at=spot, basis=(f"electrical centre of the {len(inverters)} field inverters: the free spot nearest the point of least total inverter cable length "
+                                   f"along the array axes, ({target[0]:.1f}, {target[1]:.1f}), {LT_PANEL_CLEAR_M:g} m clear of tables (network_autobuild accb_at)"))  # fmt: skip
+
+
+def place_equipment(project: Project, catalog: Catalog, bess_at: Point | None = None, accb_at: str = "layout") -> tuple[ArrayLayout | None, list[str]]:
     """The project's array layout with the field equipment of its network placed, and the assumptions made. Needs a layout with string links
     for inverters; BESS units need a site or a stated position."""
     layout = project.array_layout
@@ -294,6 +315,13 @@ def place_equipment(project: Project, catalog: Catalog, bess_at: Point | None = 
             placed += inv
             notes.append(FIELD_INVERTERS)
     if lt_ground_plant(project):
+        if accb_at == "electrical_centre":
+            centre = electrical_centre(project, [e for e in placed if e.kind == NodeKind.INVERTER.value])
+            if centre is not None:
+                layout = layout.model_copy(update={"switchyard": centre})
+                notes.append(f"ACCB at local ({centre.at.x:.1f}, {centre.at.y:.1f}): {centre.basis}.")
+            else:
+                notes.append("accb_at='electrical_centre' needs field inverters on a sited layout; the ACCB stays at the layout's switchyard location.")
         panels, more = _lt_panels(project.network, layout, project)
         placed += panels
         notes += more

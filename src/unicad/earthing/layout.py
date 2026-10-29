@@ -52,6 +52,22 @@ GROUP_PITS = 2
 BESS_LINK_M = 25.0
 FIELD_BOXES = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 MV_KINDS = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.HT_PANEL, NodeKind.PT, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.LIGHTNING_ARRESTER, NodeKind.CT})
+LV_MAX_V = 1000.0
+VOLTAGE_RATED_KINDS = frozenset({NodeKind.PT, NodeKind.CT, NodeKind.LIGHTNING_ARRESTER})
+
+
+def mv_item(project: Project, item: "Instance") -> bool:
+    """Switchyard (MV) equipment: switchgear and transformers always, CTs, PTs and arresters unless they sit on an LV circuit (an LT plant's
+    ACCB CT and bus PT are LV equipment inside the ACCB, earthed with it)."""
+    iid, _, kind = item
+    if kind not in MV_KINDS:
+        return False
+    if kind not in VOLTAGE_RATED_KINDS:
+        return True
+    v = project.network.node(iid.split("@")[0]).voltage_v
+    return v is None or v > LV_MAX_V
+
+
 KIND_ORDER = {k: i for i, k in enumerate((NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.INVERTER, NodeKind.PCS, NodeKind.BATTERY,
               NodeKind.HT_PANEL, NodeKind.RMU, NodeKind.VCB, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.DG, NodeKind.PT, NodeKind.CT,
               NodeKind.LIGHTNING_ARRESTER, NodeKind.DC_FUSE_BOX, NodeKind.SCB))}  # fmt: skip
@@ -651,7 +667,7 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
     in_field = {i for i, items in per_block.items() if any(it[0] in placed for it in items)}
     plant = [it for it in plant if it[0] not in placed]
     per_block = {i: [it for it in items if it[0] not in placed] for i, items in per_block.items()}
-    yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
+    yard_items = [it for it in plant if mv_item(project, it)] if switchyard is not None and switchyard[0] is not None else []
     panel_items = [it for it in plant if it not in yard_items]
     host = next((i for i, b in enumerate(blocks) if b.station is not None), None) if lay.rooftop else None
     if host is not None and layout.switchyard is not None:

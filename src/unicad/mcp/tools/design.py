@@ -6,7 +6,7 @@ from pydantic import Field
 
 from unicad.design import Intent, autobuild, size_strings
 from unicad.design.strings import InverterStrings, check_inverter_strings
-from unicad.design.autobuild import Template
+from unicad.design.autobuild import StatedCable, Template
 from unicad.domain.catalog import InverterSpec, ModuleSpec
 from unicad.domain.network import RelayRating
 from unicad.domain.project import Project
@@ -109,6 +109,12 @@ def register(server: MCPServer, ws: Workspace) -> None:
         relay: Annotated[RelayRating | None, Field(description="utility_lt: add a bus PT and a numerical relay with these ANSI functions and protocol on the ACCB outgoing, e.g. {\"functions\": [\"50\", \"51\", \"67\", \"67N\", \"27\", \"59\", \"50N\", \"51N\"], \"protocol\": \"IEC 61850\"}")] = None,
         data_logger: Annotated[bool, Field(description="utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter")] = False,
         keep_hand_edits: Annotated[bool, Field(description="Re-apply the network edits made since the last network_autobuild (added, changed and removed nodes, connections and groups) onto the new network; edits that no longer fit are listed as skipped")] = False,
+        breaking_ka: Annotated[float | None, Field(gt=0, description="Least breaking capacity in kA for every LV breaker, as the brief or client specification states (e.g. 50 for 50 kA MCCBs); default the fault level")] = None,
+        cables: Annotated[dict[str, StatedCable] | None, Field(description="Cables the brief states, by route role, kept as given (not resized; the rules check ampacity and voltage drop): "
+                                                               "e.g. {\"string\": {\"cable\": \"polycab-h1z2z2-k-6mm2\"}, \"inv_accb\": {\"cable\": \"kei-lt-pvc-al-3.5c-240-arm\"}, "
+                                                               "\"accb_ltp\": {\"cable\": \"kei-lt-pvc-al-3.5c-300-arm\", \"runs\": 7}}")] = None,
+        accb_at: Annotated[Literal["layout", "electrical_centre"], Field(description="utility_lt: the ACCB at the layout's switchyard location, or at the electrical centre of the field "
+                                                                                     "inverters (least total inverter cable length along the array axes)")] = "layout",
     ) -> dict[str, Any]:
         """Replace the project's electrical network with a complete one built from a short intent: strings sized from the catalog and design basis,
         a topology template (residential, ci_rooftop, utility_lt, utility_string, utility_central, bess_ac, bess_dc, hybrid) with protection, metering, SPDs and
@@ -128,6 +134,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             step_up_kv=step_up_kv, connection=connection, metering=metering, block_switch=block_switch, auxiliary=auxiliary,
             export_limit_kw=export_limit_kw, export_control=export_control, bess_kw=bess_kw, bess_kwh=bess_kwh, bess_brief_kw=bess_brief_kw, bess_brief_kwh=bess_brief_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
             inverter_strings=tuple(inverter_strings) if inverter_strings else None, relay=relay, data_logger=data_logger,
+            breaking_ka=breaking_ka, cables=cables or {}, accb_at=accb_at,
         )  # fmt: skip
 
         def change(p: Project) -> Edit:

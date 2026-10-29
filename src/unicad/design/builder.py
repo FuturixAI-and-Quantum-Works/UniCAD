@@ -19,6 +19,7 @@ class NodeHint:
     poles: tuple[int, ...] = (4, 3)
     nominal_a: float | None = None
     voltage_v: float | None = None
+    min_breaking_ka: float | None = None
 
 
 @dataclass

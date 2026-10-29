@@ -115,6 +115,11 @@ class PlacementSpec(_Frozen):
     bess_area_m: tuple[float, float] | None = Field(default=None, description="BESS area length x width kept free of tables beside the switchyard (hybrid and BESS plants)")
     bess_gap_m: float = Field(default=0.0, ge=0, description="clearance the BESS area keeps from the switchyard footprint")
     bess_basis: str = Field(default="bess_area_m", description="where the BESS area size comes from, for the assumption text")
+    inverter_strings: tuple[tuple[int, ...], ...] | None = Field(
+        default=None, description="modules per string of every string of each inverter, inverters in numbering order: one block per inverter holding exactly its strings"
+    )
+    switchyard_kept: bool = Field(default=False, description="`switchyard` is where the previous layout's ACCB stood: it is kept free of tables but does not steer the fill")
+    lt_plant: bool = Field(default=False, description="an LT plant with no MV switchyard: only the LT panel pad is kept free of tables at the switchyard location")
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -130,6 +135,8 @@ class PlacementSpec(_Frozen):
             problems.append("give n_blocks or block_dc_kwp, not both")
         if self.mounting.is_tracker and self.tilt_deg:
             problems.append("a tracker's tilt is its rotation; leave tilt_deg at 0")
+        if self.inverter_strings is not None and (self.n_blocks is not None or self.block_dc_kwp is not None or self.strings_per_inverter is not None):
+            problems.append("inverter_strings sets one block per inverter: leave n_blocks, block_dc_kwp and strings_per_inverter unset")
         if problems:
             raise ValueError("invalid placement spec: " + "; ".join(problems))
         if self.mounting.on_roof and "table_gap_m" not in self.model_fields_set:

@@ -7,11 +7,14 @@ from pydantic import Field
 
 from unicad.arrays import FillOrder, PlacementResult, PlacementSpec, block_summaries, place_array, plan_length, table_centre
 from unicad.arrays.geometry import frame
+from unicad.arrays.siting import marked_switchyard
 from unicad.arrays.shortfall import shortfall
 from unicad.domain.catalog import ModuleSpec
 from unicad.domain.layout import ArrayLayout, Orientation, StringAssignment
 from unicad.domain.network import NodeKind
-from unicad.design.placement import BESS_PITCH_M, _bess_units, stations_exist
+from unicad.design.placement import BESS_PITCH_M, MV_PLANT_KINDS, _bess_units, place_equipment, stations_exist
+from unicad.design.plan import inverter_string_lengths, link_given
+from unicad.design.strings import InverterStrings
 from unicad.domain.project import Project, Segment
 from unicad.domain.site import SiteGeometry
 from unicad.mcp.errors import guarded
@@ -97,6 +100,16 @@ def _row_pitch(layout: ArrayLayout) -> float | None:
     return steps.most_common(1)[0][0] if steps else None
 
 
+LT_GRID_MAX_V = 1000.0
+
+
+def _lt_plant(p: Project, mounting: str) -> bool:
+    """A ground plant that connects at LT (grid at most 1000 V) with no MV equipment in its network: it has an ACCB, not an MV switchyard."""
+    if mounting in ("rooftop_flush", "rooftop_tilted", "carport") or p.segment in (Segment.RESIDENTIAL, Segment.CI_ROOFTOP, Segment.CARPORT):
+        return False
+    return p.design_basis.grid.voltage_v <= LT_GRID_MAX_V and not any(n.kind in MV_PLANT_KINDS for n in p.network.nodes)
+
+
 def _layout(p: Project) -> ArrayLayout:
     if p.array_layout is None or not p.array_layout.blocks:
         raise ValueError("this project has no array layout yet; run layout_place first")
@@ -104,7 +117,10 @@ def _layout(p: Project) -> ArrayLayout:
 
 
 def _full_cols(layout: ArrayLayout) -> int:
-    return max(t.cols for t in layout.table_by_id.values())
+    """The full table length: the most common table length of those longer than half the longest (half tables are shorter)."""
+    cols = Counter(t.cols for t in layout.table_by_id.values())
+    longest = max(cols)
+    return max((c for c in cols if 2 * c > longest), key=lambda c: (cols[c], -c))
 
 
 BESS_AREA_ASSUMED_M = (4 * BESS_PITCH_M, 3 * BESS_PITCH_M)
@@ -190,6 +206,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
         bess_area_m: Annotated[list[Annotated[float, Field(gt=0)]] | None, Field(min_length=2, max_length=2, description="BESS area length x width (m) kept free of tables "
                                 "beside the switchyard, where network_autobuild then places the BESS units. Default on hybrid and BESS plants: the grid of the network's "
                                 "BESS units, else an assumed area (reported)")] = None,
+    inverter_strings: Annotated[list[InverterStrings] | None, Field(description="Strings given per inverter and MPPT, as for network_autobuild: one block per inverter "
+                                    "holding exactly its strings, with tables as long as each string length (e.g. 2 x 19 tables for 19-module strings). Default: read from "
+                                    "the network when network_autobuild built it with inverter_strings")] = None,
     ) -> dict[str, Any]:
         """Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
         site an inverter station per block and assign strings to module slots. Replaces any existing array layout.
@@ -207,7 +226,20 @@ def register(server: MCPServer, ws: Workspace) -> None:
             site = _site(p)
             mod = _module(ws, module)
             network_ids, series = _network_strings(p)
-            mps = modules_per_string or (next(iter(series)) if len(series) == 1 else None)
+            per_inverter = [sorted(n for mp in c.mppts for n in mp) for c in inverter_strings for _ in range(c.count)] if inverter_strings else None
+            given_from = "inverter_strings" if per_inverter else None
+            if per_inverter is None and n_blocks is None and block_dc_kwp is None and strings_per_inverter is None:
+                per_inverter = inverter_string_lengths(p.network)
+                given_from = "the network's strings (built with inverter_strings)" if per_inverter else None
+            if per_inverter:
+                lengths = Counter(n for inv in per_inverter for n in inv)
+                main = min(lengths, key=lambda n: (-lengths[n], n))
+                if modules_per_string is not None and modules_per_string != main:
+                    raise ValueError(f"modules_per_string {modules_per_string} differs from the most common string length {main} of {given_from}; leave it unset")
+                if n_blocks is not None or block_dc_kwp is not None or strings_per_inverter is not None:
+                    raise ValueError("inverter_strings gives one block per inverter: leave n_blocks, block_dc_kwp and strings_per_inverter unset")
+                series = set(lengths)
+            mps = modules_per_string or (next(iter(series)) if len(series) == 1 else None) or (main if per_inverter else None)
             given = {
                 "pitch_m": pitch_m, "gcr": gcr, "row_gap_m": row_gap_m, "half_cols": half_cols, "table_gap_m": table_gap_m,
                 "module_gap_m": module_gap_m, "road_every_rows": road_every_rows, "road_width_m": road_width_m,
@@ -223,6 +255,13 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 raise ValueError("pass switchyard_x and switchyard_y together")
             earthing = p.design_basis.earthing
             bess_area, bess_basis = _bess_area(p, bess_area_m)
+            yard_at = None if switchyard_x is None else {"x": switchyard_x, "y": switchyard_y}
+            kept = next((e for e in p.array_layout.equipment if e.kind == NodeKind.ACDB.value), None) if p.array_layout is not None and _lt_plant(p, mounting) else None
+            if yard_at is None and kept is not None and marked_switchyard(site) is None:
+                yard_at = {"x": kept.at.x, "y": kept.at.y}
+                notes_kept = [f"the ACCB keeps its place from the previous layout at local ({kept.at.x:.1f}, {kept.at.y:.1f}) ({kept.basis}); pass switchyard_x/y to move it"]
+            else:
+                notes_kept = []
             cols = table_cols or mps or 28
             notes: list[str] = []
             if table_cols is None:
@@ -240,9 +279,10 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 azimuth_deg=azimuth_deg, axis_azimuth_deg=axis_azimuth_deg, pitch_method=pitch_method, half_tables=halves, fill=fill,
                 fill_from=None if fill_from_x is None else {"x": fill_from_x, "y": fill_from_y}, regions=regions, whole_inverters=whole_inverters,
                 station=None if station_x is None else {"x": station_x, "y": station_y},
-                switchyard=None if switchyard_x is None else {"x": switchyard_x, "y": switchyard_y},
-                switchyard_m=earthing.switchyard_m if earthing is not None else None,
+                switchyard=yard_at, switchyard_kept=bool(notes_kept),
+                switchyard_m=earthing.switchyard_m if earthing is not None else None, lt_plant=_lt_plant(p, mounting),
                 bess_area_m=bess_area, bess_gap_m=BESS_SEPARATION_M, bess_basis=bess_basis,
+                inverter_strings=tuple(tuple(x) for x in per_inverter) if per_inverter else None,
                 **{k: v for k, v in (given | {"half_cols": half}).items() if v is not None},
             )  # fmt: skip
             result = place_array(site, spec, mod)
@@ -252,7 +292,13 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 problems.insert(0, _problem("warning", "layout", short.message()))
             planned = result.layout.strings
             linked: tuple[StringAssignment, ...] = ()
-            if network_ids:
+            if per_inverter:
+                notes.append(f"one block per inverter from {given_from}: {len(per_inverter)} blocks of {', '.join(str(sum(i)) for i in per_inverter)} modules")
+            if per_inverter and network_ids:
+                linked, why = link_given(result.layout, p.network)
+                if why:
+                    problems.append(_problem("warning", "layout", f"STRINGS NOT LINKED: {why}; run network_autobuild with the same inverter_strings so the network matches the blocks"))
+            elif network_ids:
                 if series and spec.modules_per_string not in series:
                     problems.append(_problem("warning", "layout", f"network strings have {sorted(series)} modules in series but the layout uses {spec.modules_per_string}; strings not linked"))
                 else:
@@ -260,11 +306,21 @@ def register(server: MCPServer, ws: Workspace) -> None:
                     if len(network_ids) != len(planned):
                         problems.append(_problem("warning", "layout", f"network has {len(network_ids)} pv_string instances, the layout has slots for {len(planned)} strings; {min(len(network_ids), len(planned))} linked"))
             layout = result.layout.model_copy(update={"strings": linked, "target_dc_kwp": target_dc_kwp})
+            if network_ids and not linked:
+                problems.insert(0, _problem("warning", "layout", f"LAYOUT NOT LINKED TO THE NETWORK: none of the network's {len(network_ids)} strings are linked to the layout, so cable "
+                                                                 "lengths stay placeholders and no inverter is placed in the field; re-run network_autobuild (use_layout=true) after this"))
             data = p.model_dump(mode="json")
             data["array_layout"] = layout.model_dump(mode="json")
             updated = Project.model_validate(data, context={"catalog": ws.catalog})
+            if p.network.nodes:
+                placed, placing = place_equipment(updated, ws.catalog)
+                if placed is not None and placed.equipment:
+                    data["array_layout"] = placed.model_dump(mode="json")
+                    updated = Project.model_validate(data, context={"catalog": ws.catalog})
+                    notes += placing
+                    problems.append(_problem("warning", "layout", "the network's cable lengths were routed on the previous layout: re-run network_autobuild to route them on this one"))
             extra = _result_json(result)
-            extra["assumptions"] = notes + extra["assumptions"]
+            extra["assumptions"] = notes + notes_kept + extra["assumptions"]
             if short is not None:
                 extra["shortfall"] = {
                     "target_kwp": short.target_kwp, "placed_kwp": short.placed_kwp, "short_kwp": round(short.short_kwp, 3), "short_pct": round(100 * short.short_kwp / short.target_kwp, 1),

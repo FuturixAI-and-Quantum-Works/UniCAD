@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project
 from unicad.earthing import EarthingDesign, Step, design_earthing
-from unicad.earthing.design import SWITCHYARD_UNKNOWN
+from unicad.earthing.design import LT_TOUCH_STEP, SWITCHYARD_UNKNOWN
 from unicad.earthing.layout import BONDED_KINDS
 from unicad.earthing.sizing import FLAT_BY_NAME
 from unicad.rules.model import Finding, Quantity, Severity
@@ -114,6 +114,13 @@ def touch_step(project: Project, catalog: Catalog) -> Iterator[Finding]:
     d = design_for(project, catalog)
     if d is not None and d.switchyard_unsized:
         yield Finding(rule_id="earthing.touch_step", severity=Severity.WARNING, subjects=("switchyard",), message=SWITCHYARD_UNKNOWN)
+        return
+    if d is not None and d.lt_plant:
+        yield Finding(
+            rule_id="earthing.touch_step", severity=Severity.INFO, subjects=("switchyard",),
+            message="not applicable: LT plant with no MV switchyard; " + LT_TOUCH_STEP.split(": ", 1)[1],
+            assumptions=(LT_TOUCH_STEP,),
+        )  # fmt: skip
         return
     if d is None or d.grid is None:
         return

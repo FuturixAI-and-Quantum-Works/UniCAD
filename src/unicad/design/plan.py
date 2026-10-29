@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 
 from unicad.arrays.strings import assign_strings, string_id
 from unicad.domain.layout import ArrayLayout, StringAssignment
+from unicad.domain.network import ElectricalNetwork, NodeKind
 from unicad.design.patches import centre, patches, spanning
 from unicad.design.strings import DesignError, InverterStrings
 
@@ -164,3 +165,53 @@ def split_even(total: int, most: int) -> list[tuple[int, int]]:
     m = math.ceil(total / most)
     base, extra = divmod(total, m)
     return [(c, s) for c, s in ((extra, base + 1), (m - extra, base)) if c > 0]
+
+
+def inverter_string_lengths(net: ElectricalNetwork) -> list[list[int]] | None:
+    """Modules per string of each inverter's strings, inverters in tag order, when the network's strings were given per MPPT (pv_string nodes that
+    record their MPPT); None otherwise."""
+    if not any(n.kind is NodeKind.PV_STRING and n.mppt for n in net.nodes):
+        return None
+    ex = net.expand()
+    out = []
+    for inv in sorted(ex.by_kind(NodeKind.INVERTER), key=lambda n: n.tag):
+        strings = [ex.node(u) for u in ex.upstream(inv.id) if ex.node(u).kind is NodeKind.PV_STRING]
+        if strings:
+            out.append(sorted(s.modules_in_series or 0 for s in strings))
+    return out or None
+
+
+def link_given(layout: ArrayLayout, net: ElectricalNetwork) -> tuple[tuple[StringAssignment, ...], str | None]:
+    """Each inverter's pv_string instances (tag order) on the strings of the layout block of the same number, length for length; with the reason
+    when the blocks do not hold the inverters' strings."""
+    ex = net.expand()
+    invs = sorted(ex.by_kind(NodeKind.INVERTER), key=lambda n: n.tag)
+    lengths = Counter(n.modules_in_series for n in ex.by_kind(NodeKind.PV_STRING) if n.modules_in_series)
+    if not lengths:
+        return (), "the network has no pv_string with modules_in_series"
+    main = min(lengths, key=lambda n: (-lengths[n], n))
+    by_block: dict[str, list[StringAssignment]] = {}
+    for b in layout.blocks:
+        by_block[b.id] = assign_strings([b], main, None, frozenset(lengths))[0]
+    if len(invs) != len(layout.blocks):
+        return (), f"the network has {len(invs)} inverters and the layout {len(layout.blocks)} blocks"
+    out, bad = [], []
+    for inv, blk in zip(invs, layout.blocks):
+        strings = sorted((ex.node(u) for u in ex.upstream(inv.id) if ex.node(u).kind is NodeKind.PV_STRING), key=lambda n: ((n.mppt or (0,))[0], n.id))
+        slots = by_block.get(blk.id, [])
+        want = Counter(s.modules_in_series for s in strings)
+        have = Counter(len(a.slots()) for a in slots)
+        if want != have:
+            bad.append(f"{inv.tag} has {_counted(want)}, {blk.name} {_counted(have)}")
+            continue
+        free = {n: [a for a in slots if len(a.slots()) == n] for n in have}
+        for s in strings:
+            a = free[s.modules_in_series].pop(0)
+            out.append(StringAssignment(string=s.id, spans=a.spans))
+    if bad:
+        return (), "the layout blocks do not hold the inverters' strings (" + "; ".join(bad[:4]) + (f"; and {len(bad) - 4} more" if len(bad) > 4 else "") + ")"
+    return tuple(out), None
+
+
+def _counted(c: Counter) -> str:
+    return " + ".join(f"{v} x {n}" for n, v in sorted(c.items())) + " strings" if c else "no strings"

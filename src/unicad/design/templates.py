@@ -570,6 +570,19 @@ LOGGER = (
 )
 
 
+def _accuracy(cls: str) -> float:
+    try:
+        return float(cls.rstrip("sS"))
+    except ValueError:
+        return math.inf
+
+
+def _pick_logger(catalog: Catalog, inverter: InverterSpec, devices: int):
+    """A catalogued data logger whose one RS-485 port takes `devices` daisy-chained devices: of the inverter's make first."""
+    fits = [g for g in catalog.filter("logger") if (g.max_devices_per_rs485_port or g.max_devices or 0) >= devices]
+    return min(fits, key=lambda g: (g.manufacturer != inverter.manufacturer, g.id), default=None)
+
+
 def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, relay: RelayRating | None, data_logger: bool) -> Built:
     """String inverters -> ACCB (incomer MCCBs, bus, SPD, outgoing ACB, CT, optional PT and relay, meter, optional data logger) -> the client's 415 V LT panel,
     the point of interconnection. No transformer and no DISCOM net meter."""
@@ -584,8 +597,15 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     pt = relay is not None
     b.node("solar_ct", "CT-01", NodeKind.CT, voltage_v=v, title="ACCB OUTGOING CT")
     b.edge("e_brk_ct", f"{out}:out", "solar_ct:in", V.LV_AC, remarks="inside the ACCB")
-    mfm = next((m for m in c.catalog.filter("meter") if getattr(m, "function", None) == "mfm"), None)
+    mfms = [m for m in c.catalog.filter("meter") if getattr(m, "function", None) == "multifunction" and getattr(m, "connection", None) == "ct"
+            and (not data_logger or "RS-485" in (getattr(m, "communication", None) or ""))]
+    mfm = min(mfms, key=lambda m: (_accuracy(m.accuracy_class), m.id), default=None)
     meter = mfm or pick_meter(c.catalog, "generation", "ct")
+    if mfm is not None:
+        b.assume(
+            f"Multifunction meter {mfm.id}: the most accurate catalogued CT-operated multifunction meter (class {mfm.accuracy_class}"
+            f"{', ' + mfm.communication + ' for the data logger' if data_logger and mfm.communication else ''}); match its class to the CT metering core."
+        )
     b.node("solar_meter", "MFM-01" if mfm else "SM-01", NodeKind.METER, spec=meter.id, ports=["sig"], title="MULTIFUNCTION METER" if mfm else "SOLAR GENERATION METER")
     b.edge("c_ct_meter", "solar_ct:sec", "solar_meter:sig", V.CONTROL)
     if mfm is None:
@@ -600,14 +620,24 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
         b.earth("solar_pt")
         b.assume(f"The relay ({'/'.join(relay.functions)}) is fed by the ACCB outgoing CT and the bus PT and trips the outgoing ACB; its settings come from the protection study.")
     if data_logger:
-        b.node("dlog", "DL-01", NodeKind.METER, symbol="inst.datalogger", ports=["sig"], title="DATA LOGGER (RS-485)")
+        chain = len(invs) + 1
+        logger = _pick_logger(c.catalog, inverter, chain)
+        b.node("dlog", "DL-01", NodeKind.METER, spec=logger.id if logger else None, symbol="inst.datalogger", ports=["sig"], title="DATA LOGGER (RS-485)")
         for n in b.nodes:
             if n["kind"] == NodeKind.INVERTER.value:
                 n["ports"] = ["dc", "ac", "sig"]
         for _, _, inv in invs:
             b.edge(f"c_{inv}_dlog", f"{inv}:sig", "dlog:sig", V.CONTROL, remarks="RS-485 daisy chain through the inverters")
         b.edge("c_meter_dlog", "solar_meter:sig", "dlog:sig", V.CONTROL, remarks="RS-485")
-        b.assume(LOGGER)
+        if logger is None:
+            b.assume(LOGGER)
+        else:
+            b.assume(
+                f"Data logger {logger.id}: a catalogued logger whose RS-485 port takes the {chain} devices of the daisy chain (the {len(invs)} inverters and the meter; "
+                f"{logger.max_devices_per_rs485_port or logger.max_devices or 'no stated'} per port on the datasheet)"
+                + (f", of the inverter's make ({inverter.manufacturer})" if logger.manufacturer == inverter.manufacturer else "")
+                + "; it is drawn on the RS-485 daisy chain through the inverters and the meter."
+            )
     b.node("poi", "POI-01", NodeKind.POI_GRID, voltage_v=v, title="CLIENT MAIN LT PANEL 415 V (LT CONNECTION)", attributes={EXISTING: True})
     b.edge("e_ct_poi", "solar_ct:out", "poi:in", V.LV_AC, lv_hint(3), c.L("accb_ltp"), Laying.TRENCH, remarks="ACCB outgoing to the client's LT panel")
     b.earth("solar_ct")

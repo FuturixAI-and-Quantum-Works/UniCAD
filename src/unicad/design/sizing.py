@@ -132,7 +132,20 @@ def _pick_node(project: Project, catalog: Catalog, node_id: str, hint: NodeHint,
         else:
             s.assumptions.append(f"Breaking capacity at {fault.voltage_v:g} V is chosen at or above the {fault.ka:g} kA fault level from {fault.where}.")
         if role == "lv_breaker":
-            return pick_lv_breaker(catalog, need, v or 0.0, hint.poles, fault.ka if fault else None).id
+            stated = hint.min_breaking_ka
+            ka = max(fault.ka if fault else 0.0, stated or 0.0) or None
+            spec = pick_lv_breaker(catalog, need, v or 0.0, hint.poles, ka)
+            if ka is not None:
+                why = (f"the {stated:g} kA breaking capacity stated for the LV breakers (breaking_ka)" if stated and (fault is None or stated >= fault.ka)
+                       else f"the {fault.ka:g} kA fault level ({fault.where})")
+                bc = spec.breaking_capacity_ka or 0.0
+                s.assumptions.append(
+                    f"{spec.device.upper()} {spec.id}: the smallest catalogued {spec.rated_current:g} A frame for {need:.0f} A whose breaking capacity {bc:g} kA covers "
+                    f"{why}, margin {bc - ka:g} kA ({(bc - ka) / ka:.0%})"
+                    + ("" if stated else f"; a client specification of a higher breaking capacity is set with network_autobuild breaking_ka, e.g. breaking_ka={max(50.0, bc):g}")
+                    + "."
+                )
+            return spec.id
         return pick_rated(catalog, ["vcb"], need, v or 0.0, (3,), fault.ka if fault else None).id
     if role == "ac_isolator":
         return pick_rated(catalog, ["ac_isolator", "sfu"], need, v or 0.0, hint.poles).id

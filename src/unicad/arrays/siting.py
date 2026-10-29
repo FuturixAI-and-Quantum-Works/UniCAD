@@ -19,7 +19,8 @@ ROOF_CLEAR_M = 0.4
 PANEL_OFFSET_M = 6.0
 SPOT_ASSUMPTION = (
     f"Ground equipment (inverter stations, switchyard, BESS units) keeps {STATION_CLEAR_M:g} m clear of tables and roads, keeps the exclusion setback from "
-    "exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure)."
+    "exclusions, water and line corridors as the tables do, stands inside the buildable area and keeps 4 m from another block's station (assumed clearances "
+    "for access, not cited figures)."
 )
 FENCE_CLEAR_MIN_M = 3.0
 FENCE_ASSUMPTION = (
@@ -141,8 +142,15 @@ class ReservedYard:
     located: Located
 
 
+LT_PAD_M = (6.0, 4.0)
+LT_PAD = (
+    f"an LT plant has no MV switchyard: only a {LT_PAD_M[0]:g} x {LT_PAD_M[1]:g} m pad for the outdoor ACCB and its cable terminations is kept free of tables "
+    "(assumed pad size; the ACCB dimensions are not in the catalog)"
+)
+
+
 def reserve_switchyard(
-    site: SiteGeometry, target: Point, why: str, size_m: tuple[float, float] | None, given: bool = False
+    site: SiteGeometry, target: Point, why: str, size_m: tuple[float, float] | None, given: bool = False, lt: bool = False
 ) -> ReservedYard | None:  # fmt: skip
     """The switchyard footprint (`size_m`, else SWITCHYARD_ASSUMED_M) centred on the given point, or on the free ground nearest `target` that holds it
     clear of exclusions, water and line corridors by their setback; None when no free ground holds it. Tables are then placed around it, so the
@@ -155,10 +163,13 @@ def reserve_switchyard(
         if at is None:
             return None
     size = "switchyard_m" if size_m else "assumed size: set switchyard_m and re-run layout_place"
+    if lt:
+        size = "assumed pad size"
     ring = ((at.x - lx / 2, at.y - ly / 2), (at.x + lx / 2, at.y - ly / 2), (at.x + lx / 2, at.y + ly / 2), (at.x - lx / 2, at.y + ly / 2))
     feature = SiteFeature(id=RESERVED_YARD_ID, kind=FeatureKind.EXCLUSION, polygon=tuple(Point(x=x, y=y) for x, y in ring))
     where = why if given else f"derived: the free ground {why}, clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position)"
-    return ReservedYard(feature, Located(at=at, basis=f"{where}; a {lx:g} x {ly:g} m yard ({size}) is kept free of tables"))
+    kept = LT_PAD if lt else f"a {lx:g} x {ly:g} m yard ({size}) is kept free of tables"
+    return ReservedYard(feature, Located(at=at, basis=f"{where}; {kept}"))
 
 
 RESERVED_BESS_ID = "bess-area-reserve"

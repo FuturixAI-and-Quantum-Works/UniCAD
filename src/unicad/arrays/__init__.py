@@ -1,14 +1,16 @@
 """Array placement: tables on the buildable area, inverter blocks, strings. Pure functions of the site, the spec and the module."""
 
 import math
+from dataclasses import replace
 
 from shapely.geometry import LineString
 from shapely.ops import nearest_points, unary_union
 
 from unicad.arrays import siting
-from unicad.arrays.blocks import block_count, build_blocks
+from unicad.arrays.blocks import block_count, blocks_from_groups, build_blocks
+from unicad.arrays.given import GivenPlan, fit_given
 from unicad.arrays.geometry import plan_depth, plan_length, table_centre, table_corners, table_polygon
-from unicad.arrays.place import PlacementError, inside_problems, place_tables, regions_for
+from unicad.arrays.place import PlacementError, inside_problems, place_tables, regions_for, table_geometry
 from unicad.arrays.spec import (
     BlockSummary,
     FillOrder,
@@ -47,7 +49,7 @@ MAX_TOP_UPS = 8
 def fill_anchor(site: SiteGeometry, spec: PlacementSpec) -> tuple[Point, str] | None:
     """Where a `switchyard` fill grows from: the given switchyard, a site area marked for it, else the point of the site's transmission line
     nearest the buildable area (where the export line leaves). None when the site gives none of these."""
-    if spec.switchyard is not None:
+    if spec.switchyard is not None and not spec.switchyard_kept:
         return spec.switchyard, "the given switchyard"
     marked = siting.marked_switchyard(site)
     if marked is not None:
@@ -70,7 +72,10 @@ def place_array(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
         raise PlacementError(f"spec module {spec.module!r} does not match the module spec {module.id!r}")
     notes: list[str] = []
     if spec.fill is FillOrder.SWITCHYARD:
-        anchor = fill_anchor(site, spec) if spec.target_dc_kwp is not None else None
+        anchor = fill_anchor(site, spec) if spec.target_dc_kwp is not None or spec.inverter_strings else None
+        if anchor is None and spec.inverter_strings and (areas := regions_for(site, spec)):
+            c = unary_union([r.geom for r in areas]).centroid
+            anchor = Point(x=round(c.x, 3), y=round(c.y, 3)), "the centre of the buildable area"
         if anchor is not None:
             spec = spec.model_copy(update={"fill": FillOrder.NEAREST, "fill_from": anchor[0]})
             notes.append(f"the target capacity is filled nearest {anchor[1]}, at local ({anchor[0].x:.1f}, {anchor[0].y:.1f}), to keep the MV feeders short")
@@ -132,7 +137,7 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     on_roofs = spec.regions == "roofs" or (spec.regions == "auto" and spec.mounting.on_roof)
     reserved = None
     if not on_roofs and (want := _yard_target(site, spec)) is not None:
-        reserved = siting.reserve_switchyard(site, want[0], want[1], spec.switchyard_m, given=spec.switchyard is not None)
+        reserved = siting.reserve_switchyard(site, want[0], want[1], siting.LT_PAD_M if spec.lt_plant else spec.switchyard_m, given=spec.switchyard is not None, lt=spec.lt_plant)
     stored_site = site
     if reserved is not None:
         site = site.with_features((*site.features, reserved.feature))
@@ -143,29 +148,42 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
             bess = siting.reserve_bess(stored_site, yard, spec.bess_area_m, spec.bess_gap_m, spec.bess_basis)
         if bess is not None:
             site = site.with_features((*site.features, bess.feature))
-    placed = place_tables(site, spec, module)
+    given = GivenPlan(spec.inverter_strings, spec.table_rows) if spec.inverter_strings else None
+    if given is not None and (bad := given.problems()):
+        raise PlacementError("; ".join(bad))
+    grid_cols = max(given.longest, spec.table_cols) if given is not None else spec.table_cols
+    grid = spec.model_copy(update={"table_cols": grid_cols, "half_cols": spec.half_table_cols, "target_dc_kwp": None}) if given is not None else spec
+    placed = place_tables(site, grid, module)
     if not placed.tables:
         raise PlacementError("no table fits the buildable area; try a shorter table, a smaller setback or half tables")
-    stray = inside_problems(placed.tables, regions_for(site, spec), table_polygon)
+    areas = regions_for(site, spec)
+    stray = inside_problems(placed.tables, areas, table_polygon)
     if stray:
         raise PlacementError(f"internal error: {len(stray)} tables leave the buildable area, e.g. {stray[:5]}")
-    kwp = [t.slot_count * module.pmax / 1000 for t in placed.tables]
-    total = sum(kwp)
-    n = block_count(total, spec.n_blocks, spec.block_dc_kwp, len(placed.tables))
     closing = 1.0 + max(placed.pitch.pitch_m, spec.road_width_m if spec.road_every_rows else 0, spec.walkway_width_m if spec.walkway_every_tables else 0, spec.table_gap_m)
     block_notes: list[str] = []
+    given_notes: list[str] = []
     mps = spec.modules_per_string or spec.table_cols
     spi = spec.strings_per_inverter
-    blocks = tuple(build_blocks(
-        placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp, block_notes,
-        flexible=spec.n_blocks is None and spec.block_dc_kwp is not None, on_roofs=on_roofs, station=spec.station,
-        units=[t.slot_count // mps for t in placed.tables] if spi else None, quantum=spi, trim=spec.whole_inverters, mps=mps,
-    ))  # fmt: skip
+    if given is not None:
+        mps = given.main
+        fitted, groups, given_notes = fit_given(placed.tables, spec, given, grid_cols, unary_union([r.geom for r in areas]))
+        kwp = [t.slot_count * module.pmax / 1000 for t in fitted]
+        blocks = tuple(blocks_from_groups(groups, fitted, kwp, spec.table_azimuth_deg, site, placed.roads, closing, on_roofs, spec.station))
+        placed = replace(placed, tables=fitted, target_reached=True)
+    else:
+        kwp = [t.slot_count * module.pmax / 1000 for t in placed.tables]
+        n = block_count(sum(kwp), spec.n_blocks, spec.block_dc_kwp, len(placed.tables))
+        blocks = tuple(build_blocks(
+            placed.tables, kwp, n, spec.table_azimuth_deg, site, placed.roads, closing, spec.block_dc_kwp, block_notes,
+            flexible=spec.n_blocks is None and spec.block_dc_kwp is not None, on_roofs=on_roofs, station=spec.station,
+            units=[t.slot_count // mps for t in placed.tables] if spi else None, quantum=spi, trim=spec.whole_inverters, mps=mps,
+        ))  # fmt: skip
     if not blocks:
         raise PlacementError(f"the placed tables hold fewer strings than one inverter of {spi} strings; lower strings_per_inverter or pass whole_inverters=false")
-    strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter)
+    strings, unstrung = assign_strings(blocks, mps, spec.strings_per_inverter, given.lengths if given is not None else None)
     yard = reserved.located if reserved is not None else siting.switchyard(
-        stored_site, [b.station for b in blocks if b.station is not None], [t for b in blocks for t in b.tables], on_roofs, spec.switchyard, spec.switchyard_m,
+        stored_site, [b.station for b in blocks if b.station is not None], [t for b in blocks for t in b.tables], on_roofs, spec.switchyard, siting.LT_PAD_M if spec.lt_plant else spec.switchyard_m,
         [LineString([(p.x, p.y) for p in r.points]) for r in placed.roads], spec.road_width_m,
     )  # fmt: skip
     layout = ArrayLayout(blocks=blocks, strings=tuple(strings), switchyard=yard)
@@ -183,9 +201,10 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
         area_used_m2=round(used, 1), strings=len(strings), unstrung_modules=unstrung,
         block_balance=round((max(caps) - min(caps)) / mean, 5) if mean else 0.0,
     )  # fmt: skip
-    assumptions = spec.assumptions() + list(placed.assumptions)
+    assumptions = spec.assumptions() + list(placed.assumptions) + given_notes
     if yard is not None:
-        assumptions.append(f"{'MV switchyard' if not on_roofs else 'Main LT panel / switchyard'} at local ({yard.at.x:.1f}, {yard.at.y:.1f}): {yard.basis}; cable routing and earthing use this location")
+        what = "Main LT panel / switchyard" if on_roofs else "ACCB (LT plant, no MV switchyard)" if spec.lt_plant else "MV switchyard"
+        assumptions.append(f"{what} at local ({yard.at.x:.1f}, {yard.at.y:.1f}): {yard.basis}; cable routing and earthing use this location")
     if bess is not None:
         assumptions.append(f"BESS area at local ({bess.located.at.x:.1f}, {bess.located.at.y:.1f}): {bess.located.basis}; network_autobuild places the BESS units there")
     elif spec.bess_area_m is not None and not on_roofs:
@@ -202,6 +221,6 @@ def _place_once(site: SiteGeometry, spec: PlacementSpec, module: ModuleSpec) -> 
     if unstrung:
         warnings.append(f"{unstrung} modules do not make up a whole string of {mps} and are left unstrung")
     return PlacementResult(
-        layout=layout, metrics=metrics, pitch=placed.pitch, full_table=placed.full, half_table=placed.half, blocks=summaries,
+        layout=layout, metrics=metrics, pitch=placed.pitch, full_table=placed.full if given is None else table_geometry(spec, module, spec.table_cols), half_table=placed.half, blocks=summaries,
         roads=tuple(placed.roads), target_reached=placed.target_reached, assumptions=tuple(assumptions), warnings=tuple(warnings),
     )  # fmt: skip
