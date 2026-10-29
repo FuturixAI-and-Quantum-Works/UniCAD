@@ -134,6 +134,37 @@ def upright_attr(sym: SymbolDef, x: float, y: float) -> tuple[float, float]:
     return _clean(x - sym.width), _clean(y - sym.height)
 
 
+def wrap_lines(text: str, width: int) -> tuple[str, ...]:
+    """`text` broken after its commas into lines of at most `width` characters where it can be; one line when `width` is 0."""
+    if width <= 0 or len(text) <= width:
+        return (text,)
+    lines: list[str] = []
+    for part in text.split(", "):
+        if lines and len(lines[-1]) + 2 + len(part) <= width:
+            lines[-1] += f", {part}"
+        else:
+            if lines:
+                lines[-1] += ","
+            lines.append(part)
+    return tuple(lines)
+
+
+def attr_lines(sym: SymbolDef, values: Mapping[str, str], rotation: float, width: int) -> dict[str, tuple[tuple[str, ...], float]]:
+    """Per attribute: its text lines and how far it moves down for the extra lines of the attributes above it. Values wrap (see
+    `wrap_lines`) only on an unrotated symbol and only in labels beside the body, never inside it."""
+    wrap = width if round(rotation) % 360 == 0 else 0
+    out: dict[str, tuple[tuple[str, ...], float]] = {}
+    side = [a for a in sym.attrs if not a.centred]
+    for a in sym.attrs:
+        text = values.get(a.tag, a.default)
+        lines = (text,) if a.centred else wrap_lines(text, wrap)
+        out[a.tag] = (lines, 0.0)
+    for a in side:
+        extra = sum((len(out[b.tag][0]) - 1) * 2 * b.height for b in side if b.y > a.y + 1e-9 and abs(b.x - a.x) < 1e-6)
+        out[a.tag] = (out[a.tag][0], extra)
+    return out
+
+
 def pin_at(key: str, pin_name: str, at: tuple[float, float], rotation: float = 0) -> tuple[float, float]:
     """World position of a pin for a symbol inserted at `at` with `rotation` degrees CCW."""
     sym = _symbol(key)
@@ -153,6 +184,7 @@ def insert(
     *,
     visible_text: bool = True,
     upright: bool = False,
+    wrap: int = 0,
 ) -> Insert:
     """Place a symbol with one ATTRIB per ATTDEF.
 
@@ -161,7 +193,7 @@ def insert(
     value is also written as a plain TEXT on TEXT_LAYER. Pass visible_text=False to
     get classic visible ATTRIBs instead. Text stays horizontal; it is right-aligned
     when the symbol is rotated so that its local +x points west. Centred attributes
-    (text inside a circle) stay centred.
+    (text inside a circle) stay centred. With `wrap`, a long value beside an unrotated symbol is written over several lines (`attr_lines`).
 
     With `upright`, a symbol turned over (180 degrees) keeps its label stack as drawn
     unrotated: same order, same side, left-aligned, relative to the turned body.
@@ -176,6 +208,7 @@ def insert(
     turned = upright and round(rotation) % 360 == 180
     if turned:
         flow = TextEntityAlignment.MIDDLE_LEFT
+    lines_of = attr_lines(sym, values, rotation, wrap)
     for a in sym.attrs:
         align = TextEntityAlignment.MIDDLE_CENTER if a.centred else flow
         dx, dy = upright_attr(sym, a.x, a.y) if turned and not a.centred else _rotate(a.x, a.y, rotation)
@@ -189,7 +222,10 @@ def insert(
         if not a.visible or visible_text:
             attrib.dxf.flags |= _ATTRIB_INVISIBLE
         if visible_text and a.visible and value:
-            layout.add_text(
-                value, height=a.height, dxfattribs={"layer": TEXT_LAYER, "style": style}
-            ).set_placement(pos, align=align)
+            lines, down = lines_of[a.tag]
+            for i, line in enumerate(lines):
+                at_line = (pos[0], _clean(pos[1] - down - i * 2 * a.height))
+                layout.add_text(
+                    line, height=a.height, dxfattribs={"layer": TEXT_LAYER, "style": style}
+                ).set_placement(at_line, align=align)
     return ref

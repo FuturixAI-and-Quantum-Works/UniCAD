@@ -30,7 +30,7 @@ from unicad.drafting.sheets.model import (
 from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
 from unicad.drafting.sld import annotate
-from unicad.drafting.sld.layout import layout_sld, plan_pages, rows_win, stack_rows
+from unicad.drafting.sld.layout import layout_sld, plan_pages, rows_win, stack_rows, xref_tag
 from unicad.drafting.sld.model import SldLayout, SldOptions, SldPage, WireKind
 from unicad.drafting.sld.write import SldPlacement, write_sld
 from unicad.drafting.symbols import REGISTRY
@@ -118,10 +118,11 @@ def sheet_spec(
         issued_for=issued,
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
-    comms = [project.network.edge_by_id[w.edge_id] for w in layout.wires if w.kind is WireKind.COMMS and w.edge_id in project.network.edge_by_id]
+    drawn = [w.edge_id for w in layout.wires if w.kind is WireKind.COMMS] + [st.pin for st in layout.stubs if st.kind is WireKind.COMMS]
+    comms = [project.network.edge_by_id[e] for e in dict.fromkeys(drawn) if e in project.network.edge_by_id]
     if comms:
         legend += (COMMS_LEGEND,)
-    notes = NOTES + layout.notes + tuple(dict.fromkeys(comms_note(project.network, e) for e in comms if e.remarks))
+    notes = NOTES + layout.notes + comms_notes(project.network, [e for e in comms if e.remarks])
     return SheetSpec(
         paper=paper,
         title_block=tb,
@@ -137,9 +138,16 @@ def sheet_spec(
     )
 
 
-def comms_note(net, edge) -> str:
-    a, b = net.node(edge.src_node), net.node(edge.dst_node)
-    return f"COMMUNICATION LINK {annotate.node_tag(net, a)} TO {annotate.node_tag(net, b)}: {annotate.prose(edge.remarks)}."
+def comms_notes(net, edges) -> tuple[str, ...]:
+    """One note per far end and remark: 'COMMUNICATION LINKS INV-01, INV-05 TO DL-01: RS-485 DAISY CHAIN THROUGH THE INVERTERS.'"""
+    by: dict[tuple[str, str], list[str]] = {}
+    for e in edges:
+        src = xref_tag(net, net.node(e.src_node), net.node(e.dst_node))
+        by.setdefault((annotate.node_tag(net, net.node(e.dst_node)), annotate.prose(e.remarks)), []).append(src)
+    return tuple(
+        f"COMMUNICATION LINK{'S' if len(srcs) > 1 else ''} {', '.join(dict.fromkeys(srcs))} TO {dst}: {remark}."
+        for (dst, remark), srcs in by.items()
+    )
 
 
 def fit_layout(

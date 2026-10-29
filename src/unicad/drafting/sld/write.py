@@ -8,7 +8,7 @@ from ezdxf.enums import TextEntityAlignment
 from ezdxf.layouts import BaseLayout
 
 from unicad.drafting.sheets.canvas import Region
-from unicad.drafting.sld.model import Label, SldLayout, SldOptions, WireKind
+from unicad.drafting.sld.model import LABEL_CHARS, Label, SldLayout, SldOptions, WireKind
 from unicad.drafting.symbols import insert
 from unicad.drafting.symbols.install import block_for
 
@@ -85,13 +85,13 @@ def write_body(doc: Drawing, layout: SldLayout, block_name: str, text_style: str
         for lb in bus.labels:
             _text(block, lb, text_style)
     for s in layout.symbols:
-        insert(block, s.key, s.at, s.rotation, dict(s.values), upright=True)
+        insert(block, s.key, s.at, s.rotation, dict(s.values), upright=True, wrap=LABEL_CHARS)
     for c in layout.callouts:
         block.add_ellipse(c.tick, major_axis=(1.6, 0), ratio=0.5, dxfattribs={"layer": "E-SLD-TEXT"})
         for lb in c.labels:
             _text(block, lb, text_style)
     for st in layout.stubs:
-        block.add_lwpolyline(list(st.points), dxfattribs={"layer": "E-SLD-AC"})
+        block.add_lwpolyline(list(st.points), dxfattribs={"layer": _WIRE_LAYER[st.kind] if st.kind else "E-SLD-AC"})
         for lb in st.labels:
             _text(block, lb, text_style)
     for j in layout.junctions:

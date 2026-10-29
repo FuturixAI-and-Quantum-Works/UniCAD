@@ -101,3 +101,74 @@ def test_attribute_fallbacks_still_print():
     assert node_texts(net, ct, CATALOG)["RATING"] == "415 V, RATIO 2500/1 A, C1 0.2S 15 VA, C2 PS"
     bus = net.node("acdb").model_copy(update={"busbar": None, "attributes": {"rating_a": 2500, "fault_ka": 31.5, "fault_duration_s": 3, "material": "al"}})
     assert bus_texts(net, bus)[1] == "415 V, 2500 A, 31.5 kA 3 s, AL BUSBAR"
+
+
+# ---------------- data logger and meter on a stacked SLD (N6) ----------------
+
+
+def sld_sheets(project: Project):
+    """Every SLD sheet of the set with its layout and warnings."""
+    from unicad.drafting.sld.sheet import render_sld
+    from unicad.drafting.sld.xref import partition
+    from unicad.sets.render import plan_set
+    from unicad.sets.sld import _drawn, _shown
+    from unicad.tenants.store import drawing_profile
+
+    profile = drawing_profile(project.company_profile)
+    sheets = dict(plan_set(project, ["sld"], profile, CATALOG))["sld"]
+    out = []
+    for s, part in zip(sheets, partition(project.network, sheets), strict=True):
+        _, res = render_sld(_shown(project, s, CATALOG), s.id, profile, CATALOG, sheets=[s], nodes=_drawn(project.network, s, part.nodes), xrefs=part.xrefs)
+        out.append((s, res.layout, res.warnings))
+    return out
+
+
+@pytest.fixture(scope="module")
+def bench_sld():
+    return sld_sheets(bench2())
+
+
+def test_logger_and_meter_are_drawn_once_with_no_missing_host(bench_sld):
+    symbols = [x for _, lay, _ in bench_sld for x in lay.symbols]
+    assert sum(x.node_id == "dlog" for x in symbols) == 1
+    assert sum(x.node_id == "solar_meter" for x in symbols) == 1
+    from collections import Counter
+
+    twice = {n: c for n, c in Counter(x.node_id for x in symbols if x.role == "node").items() if c > 1}
+    assert not twice, twice
+    warnings = [w for _, _, ws in bench_sld for w in ws]
+    assert not [w for w in warnings if "no host" in w or "missing pin" in w], warnings
+
+
+def test_every_inverter_rs485_link_is_drawn_or_continued(bench_sld):
+    from unicad.drafting.sld.model import WireKind
+
+    links = {e.id for e in bench2().network.edges if e.dst_node == "dlog"}
+    drawn = {w.edge_id for _, lay, _ in bench_sld for w in lay.wires if w.kind is WireKind.COMMS}
+    continued = {st.pin for _, lay, _ in bench_sld for st in lay.stubs if st.kind is WireKind.COMMS}
+    assert links <= drawn | continued, links - drawn - continued
+    stubs = [lb.text for _, lay, _ in bench_sld for st in lay.stubs if st.kind is WireKind.COMMS for lb in st.labels]
+    assert all("DL-01" in t and "SEE ROW 1" in t for t in stubs), stubs
+
+
+def test_no_symbol_sits_on_a_row_marker_or_the_poi_text(bench_sld):
+    for _, lay, _ in bench_sld:
+        markers = [x for x in lay.symbols if x.role == "offsheet"]
+        poi = [x for x in lay.symbols if x.node_id == "poi"]
+        for x in lay.symbols:
+            if x.role == "offsheet" or x.node_id == "poi":
+                continue
+            boxes = [x.body, *(lb.box for lb in x.labels)]
+            for m in markers + poi:
+                others = [m.body, *(lb.box for lb in m.labels)]
+                assert not any(a.overlaps(b) for a in boxes for b in others), (x.node_id, m.id)
+
+
+def test_rs485_links_share_one_note_naming_every_inverter(bench_sld):
+    from unicad.drafting.sld.sheet import sheet_spec
+
+    p = bench2()
+    s, lay, _ = bench_sld[0]
+    notes = [n for n in sheet_spec(p, s, lay, CATALOG).notes if n.startswith("COMMUNICATION LINK")]
+    assert notes == ["COMMUNICATION LINKS INV-01..INV-04, INV-05, INV-06, INV-07, INV-08 TO DL-01: RS-485 DAISY CHAIN THROUGH THE INVERTERS.",
+                     "COMMUNICATION LINK SM-01 TO DL-01: RS-485."], notes
