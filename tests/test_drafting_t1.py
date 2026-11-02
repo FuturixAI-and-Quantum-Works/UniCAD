@@ -341,7 +341,9 @@ def test_hybrid_earthing_bess_tag_stack_leaders_do_not_cross(tmp_path):
     msp = ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace()
     stacks = defaultdict(list)
     for e in msp.query("LINE[layer=='E-PIT-TAG']"):
-        stacks[round(e.dxf.end.x, 2)].append(LineString([e.dxf.start.vec2, e.dxf.end.vec2]))
+        leg = LineString([e.dxf.start.vec2, e.dxf.end.vec2])
+        stacks["column", round(e.dxf.end.x, 2)].append(leg)
+        stacks["row", round(e.dxf.end.y, 2)].append(leg)
     stacks = {x: legs for x, legs in stacks.items() if len(legs) >= 3}
     assert stacks, "the BESS units are tagged in a stack"
     crossing = [(x, i, j) for x, legs in stacks.items() for i in range(len(legs)) for j in range(i + 1, len(legs)) if legs[i].crosses(legs[j])]

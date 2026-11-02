@@ -145,7 +145,7 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
                 inputs = sum(per_instance(net, s, n.id) for s in net.upstream(n.id) if net.node(s).kind is NodeKind.PV_STRING)
                 remarks = f"{inputs} string inputs" if inputs else ""
             if n.spec is None:
-                key = (category, None, n.title or n.kind.value.replace("_", " ").upper())
+                key = (category, None, _typed(net, n, n.title or n.kind.value.replace("_", " ").upper()))
                 remarks = "; ".join(r for r in (remarks, "no catalog item: specify before ordering") if r)
             else:
                 spec = catalog.get(n.spec)
@@ -166,6 +166,22 @@ def _node_lines(project: Project, catalog: Catalog, warnings: list[str], skip: f
         return "; ".join([*made, *notes[key]])
 
     return [BomLine(c, item, cid, float(q), "nos", remark((c, cid, item))) for (c, cid, item), q in totals.items()] + _fuse_box_lines(project)
+
+
+def _typed(net, node: Node, item: str) -> str:
+    """`item` with the ratings the node carries without a catalog part (busbar, CT and PT ratio and cores, relay functions), as the SLD prints them."""
+    if not (node.busbar or node.ct or node.pt or node.relay):
+        return item
+    from unicad.drafting.sld import annotate
+
+    if node.kind in annotate.BUS_KINDS:
+        rating = annotate.bus_rating(node)
+    else:
+        texts = annotate.node_texts(net, node, None)
+        ansi = [v for k, v in sorted(texts.items()) if k.startswith("ANSI") and v]
+        rating = ", ".join([f"ANSI {', '.join(ansi)}"] * bool(ansi) + [texts["RATING"].replace(annotate.UNSPECIFIED, "").strip(", ")]).strip(", ")
+    parts = [x for x in rating.split(", ") if x and x not in item]
+    return ", ".join([item, *parts])
 
 
 def not_supplied(node: Node) -> bool:

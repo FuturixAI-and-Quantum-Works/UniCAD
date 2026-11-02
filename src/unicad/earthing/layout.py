@@ -214,6 +214,8 @@ def equipment(project: Project) -> tuple[dict[int, list[Instance]], list[Instanc
     for iid, tag, kind, unit in insts:
         if kind not in BONDED_KINDS and not (kind in PLACED_ONLY_KINDS and iid in placed):
             continue
+        if kind in (NodeKind.CT, NodeKind.PT) and not mv_item(project, (iid, tag, kind)):
+            continue  # an LV instrument transformer is mounted in its panel and earthed with it
         if iid.split("@")[0] in away:
             plant.append((iid, tag, kind))
         elif unit is not None and n_blocks == 1:

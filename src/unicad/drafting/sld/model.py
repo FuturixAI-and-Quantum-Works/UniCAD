@@ -178,10 +178,14 @@ class SldOptions:
     min_scale: float = MIN_PRINTED_TEXT_MM / SMALLEST_TEXT_MM
     max_scale: float = 1.6
     margin: float = 5.0
+    row_gap: float = 15.0
+    """Space between the stacked rows of one sheet."""
+    sat_lines: int = 1
+    """Lines the control satellites of one host (relay, meters, logger beside a CT) are drawn in: two make the incomer narrower and taller."""
 
     def compact(self) -> "SldOptions":
         """Tighter channels and one-line cable callouts, for tall diagrams on small paper."""
-        return replace(self, channel_gap=2.5, tap_band=3.75, jog_band=3.75, callout_lines=1)
+        return replace(self, channel_gap=2.5, tap_band=3.75, jog_band=3.75, callout_lines=1, row_gap=7.5, h_gap=5.0)
 
 
 @dataclass(frozen=True)

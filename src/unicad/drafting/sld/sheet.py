@@ -4,7 +4,7 @@ import io
 import re
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
@@ -119,7 +119,7 @@ def sheet_spec(
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
     drawn = [w.edge_id for w in layout.wires if w.kind is WireKind.COMMS] + [st.pin for st in layout.stubs if st.kind is WireKind.COMMS]
-    comms = [project.network.edge_by_id[e] for e in dict.fromkeys(drawn) if e in project.network.edge_by_id]
+    comms = [e for e in project.network.edges if e.id in set(drawn)]
     if comms:
         legend += (COMMS_LEGEND,)
     notes = NOTES + layout.notes + comms_notes(project.network, [e for e in comms if e.remarks])
@@ -162,21 +162,24 @@ def fit_layout(
     better, with the scale it fits at."""
     area = metrics_for(PaperSize(paper)).drawing_area
 
-    def best(opts: SldOptions) -> tuple[SldLayout, float]:
-        layout = layout_sld(project.network, catalog, opts, scope, xrefs)
-        scale = layout.fit_scale(area.width, area.height, opts)
-        rows = stack_rows(project.network, catalog, opts, scope, xrefs, area.width, area.height) if scale < opts.max_scale else None
-        if rows is not None and rows_win(scale, rows.fit_scale(area.width, area.height, opts)):
-            return rows, rows.fit_scale(area.width, area.height, opts)
-        return layout, scale
+    def best(opts: SldOptions) -> tuple[SldLayout, SldOptions, float]:
+        out = None
+        for o in (opts, replace(opts, sat_lines=2)):
+            layout = layout_sld(project.network, catalog, o, scope, xrefs)
+            scale = layout.fit_scale(area.width, area.height, o)
+            rows = stack_rows(project.network, catalog, o, scope, xrefs, area.width, area.height) if scale < o.max_scale else None
+            if rows is not None and rows_win(scale, rows.fit_scale(area.width, area.height, o)):
+                layout, scale = rows, rows.fit_scale(area.width, area.height, o)
+            if out is None or scale > out[2] + 1e-9:
+                out = (layout, o, scale)
+        return out
 
-    layout, scale = best(options)
-    if scale < options.min_scale:
-        tight = options.compact()
-        compact, cscale = best(tight)
+    layout, opts, scale = best(options)
+    if scale < 1.0:
+        compact, tight, cscale = best(options.compact())
         if cscale > scale:
             return compact, tight, cscale
-    return layout, options, scale
+    return layout, opts, scale
 
 
 def furniture_overflow(

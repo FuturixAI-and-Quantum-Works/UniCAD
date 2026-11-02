@@ -645,11 +645,11 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
     "pits_needed_by_resistance": 0,
     "pits_needed_by_current": 0,
     "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
-    "resistance_ohm": 0.8174,
+    "resistance_ohm": 0.8286,
     "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-st...",
     "target_ohm": 2.0,
     "tables": 22,
-    "items": 8,
+    "items": 6,
     "unbonded": [],
     "quantities": [
       {
@@ -661,7 +661,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.main",
         "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-        "quantity": 452.0,
+        "quantity": 440.0,
         "unit": "m"
       },
       {
@@ -673,7 +673,7 @@ earthing_design(project_id="pune-midc-factory-roof", soil_resistivity=100, fault
       {
         "item": "flat.25x6.equipment",
         "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-        "quantity": 28.0,
+        "quantity": 24.0,
         "unit": "m"
       },
       "... 1 more"

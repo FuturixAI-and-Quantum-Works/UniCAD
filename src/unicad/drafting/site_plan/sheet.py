@@ -8,6 +8,7 @@ module blocks; each table is one INSERT scaled by 1000 / S. Fills are solid HATC
 """
 
 import math
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import Literal
@@ -108,6 +109,31 @@ def with_current_equipment(layout: ArrayLayout, network: ElectricalNetwork) -> A
         return layout
     keep = tuple(e for e in layout.equipment if e.node.split("@")[0] in network.node_by_id)
     return layout if len(keep) == len(layout.equipment) else layout.model_copy(update={"equipment": keep})
+
+
+def full_tables(layout: ArrayLayout, full_cols: int) -> dict[str, bool]:
+    """Whether each table is a full one: as long as the strings laid on it (tables built to the given strings differ in length
+    from string to string), or without strings on it, at least `full_cols` long."""
+    length = {a.string: sum(sp.n for sp in a.spans) for a in layout.strings}
+    longest: dict[str, int] = {}
+    for a in layout.strings:
+        for sp in a.spans:
+            longest[sp.table] = max(longest.get(sp.table, 0), length[a.string])
+    return {t.id: t.cols >= longest.get(t.id, full_cols) for t in layout.table_by_id.values()}
+
+
+def typical_tables(layout: ArrayLayout, full_cols: int) -> tuple[Table | None, Table | None]:
+    """The most common full table and the most common half table (the first of each shape), None where there is none."""
+    full = full_tables(layout, full_cols)
+
+    def common(want: bool) -> Table | None:
+        shapes = Counter((t.rows, t.cols, t.orientation) for t in layout.table_by_id.values() if full[t.id] is want)
+        if not shapes:
+            return None
+        shape = shapes.most_common(1)[0][0]
+        return next(t for t in layout.table_by_id.values() if (t.rows, t.cols, t.orientation) == shape)
+
+    return common(True), common(False)
 
 
 @dataclass(frozen=True)
@@ -720,8 +746,9 @@ class LayoutSheetWriter:
         shifts = [0.0] + [k * s * (ht + gap) for k in range(1, 9) for s in (1, -1)]
         squares = [Region(a[0] - clear, a[1] - clear, a[0] + clear, a[1] + clear) for _, a in items]
         drawn = [q.leader for q in self.placer.labels if q.leader is not None]
+        placed = [q.box for q in self.placer.labels]
         while d <= self.placer.max_leader + 1e-9:
-            best: tuple[float, float, dict[int, Region]] | None = None
+            best: tuple[int, int, float, dict[int, Region]] | None = None
             for side in ("E", "W", "N", "S"):
                 column = side in "EW"
                 total = (ht + gap) * len(items) - gap if column else sum(sizes) + gap * (len(items) - 1)
@@ -743,11 +770,12 @@ class LayoutSheetWriter:
                                 pos += w + gap
                         return boxes
 
-                    def crossings(boxes: dict[int, Region]) -> int:
+                    def crossings(boxes: dict[int, Region]) -> tuple[int, int]:
+                        """Crossings and hit squares and labels in all, then those among the stack's own leaders, which read worst."""
                         legs = [(items[i][1], nearest_on(boxes[i], items[i][1])) for i in range(len(items))]
-                        n = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
-                        n += sum(_segments_cross(leg, q) for leg in legs for q in drawn)
-                        return n + sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j)
+                        own = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
+                        n = own + sum(_segments_cross(leg, q) for leg in legs for q in drawn) + sum(_segment_hits(q, *leg) for leg in legs for q in placed)
+                        return n + sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j), own
 
                     def free(boxes: dict[int, Region]) -> bool:
                         return all(self.placer._free(b) and (allow is None or allow(b, items[i][1])) for i, b in boxes.items())
@@ -765,7 +793,7 @@ class LayoutSheetWriter:
                         if not free(boxes):
                             continue
                         n = crossings(boxes)
-                        improved = n > 0
+                        improved = n[0] > 0
                         while improved:
                             improved = False
                             for a_ in range(len(order)):
@@ -775,18 +803,20 @@ class LayoutSheetWriter:
                                     tb = slots(trial)
                                     if (m := crossings(tb)) < n and free(tb):
                                         order, boxes, n, improved = trial, tb, m, True
-                        key = (n, abs(shift))
-                        if best is None or key < best[:2]:
+                        key = (*n, abs(shift))
+                        if best is None or key < best[:3]:
                             best = (*key, boxes)
             if best is not None:
                 for i, (tag, at) in enumerate(items):
-                    b = best[2][i]
+                    b = best[3][i]
                     tip = nearest_on(b, at)
                     ln = math.dist(at, tip) or 1.0
                     start = (at[0] + (tip[0] - at[0]) * clear / ln, at[1] + (tip[1] - at[1]) * clear / ln)
                     self.placer.fixed(Label(f"equipment {tag}", at, b.width, b.height, clear), b, (start, tip))
                     self._mask(b)
                     self.msp.add_line(start, tip, dxfattribs={"layer": layer})
+                for i, (tag, _) in enumerate(items):
+                    b = best[3][i]
                     self._text(tag, (b.x0 + pad, b.y0 + pad), h, layer=layer, align="BL")
                 return []
             d += step
@@ -794,11 +824,18 @@ class LayoutSheetWriter:
 
     def _routes(self, P: _Plan) -> None:
         th = self.m.th
+        tables = LabelPlacer(self.placer.bounds, self.placer.max_leader, cell=self.placer.cell)
+        for t in self._table_regions(P):
+            tables.block(t)
         for r in self.d.routes:
             pts = [P(x, y) for x, y in r.points]
             self._poly(pts, L_ROUTE.name, closed=False)
             (ax, ay), (bx, by) = max(zip(pts, pts[1:]), key=lambda s: math.dist(*s))
-            self._label_text([r.label], ((ax + bx) / 2, (ay + by) / 2), 0.5 * th, 0.3 * th, f"route {r.label}", layer=L_ROUTE.name, mask=True)
+            for allow in (lambda b, at: tables._free(b), None):
+                if self._label_text([r.label], ((ax + bx) / 2, (ay + by) / 2), 0.5 * th, 0.3 * th, f"route {r.label}", layer=L_ROUTE.name, mask=True, allow=allow):
+                    break
+                if allow is not None:
+                    self.placer.overflow.pop()
 
     def _areas(self, P: _Plan) -> None:
         th = self.m.th
@@ -883,11 +920,11 @@ class LayoutSheetWriter:
         self._row(cells, y - head_h, y, heads, 0.8 * th, max_lines=2)
         y -= head_h
         self.cv.hline(TXT, y, r.x0, r.x1)
-        full_cols = self.d.full_cols
+        full = full_tables(self.d.layout, self.d.full_cols)
         tot = [0, 0, 0, 0.0]
         wp = self.d.module.pmax
         for b in blocks:
-            nf = sum(1 for t in b.tables if t.cols >= full_cols)
+            nf = sum(1 for t in b.tables if full[t.id])
             nh = len(b.tables) - nf
             kwp = sum(t.slot_count for t in b.tables) * wp / 1000
             tot = [tot[0] + nf, tot[1] + nh, tot[2] + nf + nh, tot[3] + kwp]
@@ -917,8 +954,8 @@ class LayoutSheetWriter:
         tables = list(self.d.layout.table_by_id.values())
         if not tables:
             return r.y1
-        full = next((t for t in tables if t.cols >= self.d.full_cols), tables[0])
-        half = next((t for t in tables if t.cols < self.d.full_cols), None)
+        full, half = typical_tables(self.d.layout, self.d.full_cols)
+        full = full or tables[0]
         L, D = plan_length(full), plan_depth(full)
         pitch = self.d.pitch_m
         inner_w = r.width - 16 * th

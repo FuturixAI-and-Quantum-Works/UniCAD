@@ -100,7 +100,7 @@
   "gap between modules on a table: 0.02 (default, not from a cited source)",
   "gap between tables along a row: 1.5 (default, not from a cited source)",
   "MV switchyard at local (67.4, 734.5): derived: the free ground nearest the transmission line on the site (where the export line leaves), clear of exclusions and line corridors by their setback (pass switchyard_x/y for the real position); a 60 x 45 m yard (assumed size: set switchyard_m and re-run layout_place) is kept free of tables; cable routing and earthing use this location",
-  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables and roads, keeps the exclusion setback from exclusions, water and line corridors as the tables do, and stands inside the buildable area (assumed clearance for access, not a cited figure).",
+  "Ground equipment (inverter stations, switchyard, BESS units) keeps 1.5 m clear of tables and roads, keeps the exclusion setback from exclusions, water and line corridors as the tables do, stands inside the buildable area and keeps 4 m from another block's station (assumed clearances for access, not cited figures).",
   "modules per string: 28 (one table row; set modules_per_string from the string sizing)"
  ],
  "warnings": [

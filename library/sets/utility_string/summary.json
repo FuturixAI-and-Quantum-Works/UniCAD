@@ -1,17 +1,17 @@
 {
  "project_id": "ground-6mwp",
  "revision": 6,
- "sheet_count": 13,
+ "sheet_count": 12,
  "warnings": [],
  "previews": {
   "register": "preview/01-UDEMO-DRL-G6-EE-000-full-2400.png",
   "sld": "preview/02-UDEMO-DRL-G6-EE-001-full-2400.png",
-  "layout": "preview/06-UDEMO-DRL-G6-EE-101-full-2400.png",
-  "earthing": "preview/07-UDEMO-DRL-G6-EE-301-full-2400.png",
-  "lps": "preview/08-UDEMO-DRL-G6-EE-302-full-2400.png",
-  "strings": "preview/09-UDEMO-DRL-G6-EE-401-full-2400.png",
-  "cable_schedule": "preview/10-UDEMO-DRL-G6-EE-501-full-2400.png",
-  "bom": "preview/12-UDEMO-DRL-G6-EE-601-full-2400.png"
+  "layout": "preview/05-UDEMO-DRL-G6-EE-101-full-2400.png",
+  "earthing": "preview/06-UDEMO-DRL-G6-EE-301-full-2400.png",
+  "lps": "preview/07-UDEMO-DRL-G6-EE-302-full-2400.png",
+  "strings": "preview/08-UDEMO-DRL-G6-EE-401-full-2400.png",
+  "cable_schedule": "preview/09-UDEMO-DRL-G6-EE-501-full-2400.png",
+  "bom": "preview/11-UDEMO-DRL-G6-EE-601-full-2400.png"
  },
  "sheets": [
   {
@@ -20,48 +20,38 @@
    "title": "DRAWING REGISTER",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "1 of 13",
+   "sheet_of": "1 of 12",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-001",
    "kind": "sld",
-   "title": "OVERALL SINGLE LINE DIAGRAM (PART 1 OF 2)",
+   "title": "OVERALL SINGLE LINE DIAGRAM",
    "paper": "A0",
    "drawing_scale": "NTS",
-   "sheet_of": "2 of 13",
-   "kind_sheet_of": "1 of 4",
+   "sheet_of": "2 of 12",
+   "kind_sheet_of": "1 of 3",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-002",
    "kind": "sld",
-   "title": "OVERALL SINGLE LINE DIAGRAM (PART 2 OF 2)",
-   "paper": "A1",
+   "title": "TYPICAL STRING INVERTER BLOCK (3 X 352 kVA) SLD FOR BLOCK-01, BLOCK-02, BLOCK-03, BLOCK-04 (SHOWN FOR BLOCK-01)",
+   "paper": "A2",
    "drawing_scale": "NTS",
-   "sheet_of": "3 of 13",
-   "kind_sheet_of": "2 of 4",
+   "sheet_of": "3 of 12",
+   "kind_sheet_of": "2 of 3",
    "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-003",
    "kind": "sld",
-   "title": "TYPICAL STRING INVERTER BLOCK (3 X 352 kVA) SLD FOR BLOCK-01, BLOCK-02, BLOCK-03, BLOCK-04 (SHOWN FOR BLOCK-01)",
-   "paper": "A2",
-   "drawing_scale": "NTS",
-   "sheet_of": "4 of 13",
-   "kind_sheet_of": "3 of 4",
-   "warnings": []
-  },
-  {
-   "number": "UDEMO-DRL-G6-EE-004",
-   "kind": "sld",
    "title": "TYPICAL STRING INVERTER BLOCK (4 X 352 kVA) SLD (BLOCK-05)",
    "paper": "A2",
    "drawing_scale": "NTS",
-   "sheet_of": "5 of 13",
-   "kind_sheet_of": "4 of 4",
+   "sheet_of": "4 of 12",
+   "kind_sheet_of": "3 of 3",
    "warnings": []
   },
   {
@@ -70,11 +60,9 @@
    "title": "SOLAR PV ARRAY LAYOUT",
    "paper": "A1",
    "drawing_scale": "1:2500",
-   "sheet_of": "6 of 13",
+   "sheet_of": "5 of 12",
    "kind_sheet_of": "1 of 1",
-   "warnings": [
-    "internal roads are not stored with the array layout, so the sheet shows only the roads imported with the site"
-   ]
+   "warnings": []
   },
   {
    "number": "UDEMO-DRL-G6-EE-301",
@@ -82,10 +70,11 @@
    "title": "EARTHING LAYOUT",
    "paper": "A1",
    "drawing_scale": "1:2500",
-   "sheet_of": "7 of 13",
+   "sheet_of": "6 of 12",
    "kind_sheet_of": "1 of 1",
    "warnings": [
-    "MV switchyard size unknown: set switchyard_m (earthing_design or project_design_basis) or mark the switchyard area on the site; the switchyard earth grid and its IEEE 80 touch and step check are not done, and the MV equipment is earthed at the plant equipment area"
+    "MV switchyard size unknown: set switchyard_m (earthing_design or project_design_basis) or mark the switchyard area on the site; the switchyard earth grid and its IEEE 80 touch and step check are not done, and the MV equipment is earthed at the plant equipment area",
+    "the array's main earth ring is not laid: it would leave the plot or cross a keep-out; the rows are joined by risers only"
    ]
   },
   {
@@ -94,7 +83,7 @@
    "title": "LIGHTNING ARRESTER (LA) LAYOUT",
    "paper": "A1",
    "drawing_scale": "1:3000",
-   "sheet_of": "8 of 13",
+   "sheet_of": "7 of 12",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -104,7 +93,7 @@
    "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01..INV-05-04",
    "paper": "A1",
    "drawing_scale": "NTS",
-   "sheet_of": "9 of 13",
+   "sheet_of": "8 of 12",
    "kind_sheet_of": "1 of 1",
    "warnings": []
   },
@@ -114,7 +103,7 @@
    "title": "DC CABLE SCHEDULE",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "10 of 13",
+   "sheet_of": "9 of 12",
    "kind_sheet_of": "1 of 2",
    "warnings": []
   },
@@ -124,7 +113,7 @@
    "title": "AC AND MV CABLE SCHEDULE",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "11 of 13",
+   "sheet_of": "10 of 12",
    "kind_sheet_of": "2 of 2",
    "warnings": []
   },
@@ -134,7 +123,7 @@
    "title": "BILL OF MATERIALS (PART 1 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "12 of 13",
+   "sheet_of": "11 of 12",
    "kind_sheet_of": "1 of 2",
    "warnings": []
   },
@@ -144,7 +133,7 @@
    "title": "BILL OF MATERIALS (PART 2 OF 2)",
    "paper": "A3",
    "drawing_scale": "NTS",
-   "sheet_of": "13 of 13",
+   "sheet_of": "12 of 12",
    "kind_sheet_of": "2 of 2",
    "warnings": []
   }
