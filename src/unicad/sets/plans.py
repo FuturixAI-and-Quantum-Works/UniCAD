@@ -18,7 +18,7 @@ from unicad.drafting.earthing_plan import earthing_notes, lps_notes, render_eart
 from unicad.drafting.project_fields import coordinates
 from unicad.drafting.sheets.model import CompanyProfile
 from unicad.drafting.site_plan import EquipmentArea, LayoutDrawing, render_layout_sheet
-from unicad.drafting.site_plan.sheet import CableRoute, with_current_equipment
+from unicad.drafting.site_plan.sheet import CableRoute, full_tables, typical_tables, with_current_equipment
 from unicad.drafting.sld import annotate
 from unicad.earthing import EarthingDesign, EarthingError, design_earthing
 from unicad.lps import design_lps
@@ -148,13 +148,15 @@ def panel_routes(project: Project, catalog: Catalog | None) -> tuple[CableRoute,
 def layout_notes(project: Project, pitch: float | None) -> tuple[str, ...]:
     layout = drawn_layout(project)
     tables = list(layout.table_by_id.values())
-    t = tables[0]
     modules = sum(x.rows * x.cols - len(x.unused) for x in tables)
-    full = max(x.cols for x in tables)
+    is_full = full_tables(layout, max(x.cols for x in tables))
+    t = typical_tables(layout, max(x.cols for x in tables))[0] or tables[0]
+    shapes = Counter(f"{x.rows}{x.orientation.value[0].upper()} x {x.cols}" for x in tables if is_full[x.id])
+    kinds = ", ".join(f"{k} ({n} NOS)" for k, n in shapes.most_common()) if len(shapes) > 1 else f"{t.rows}{t.orientation.value[0].upper()} x {t.cols}"
     site = project.site.geometry
     notes = [
         "ALL DIMENSIONS ARE IN METRES UNLESS OTHERWISE STATED.",
-        f"{t.mounting.value.replace('_', ' ').upper()} TABLE {t.rows}{t.orientation.value[0].upper()} x {full}, TILT {t.tilt_deg:g} DEG, FACING AZIMUTH {t.azimuth_deg:g} DEG.",
+        f"{t.mounting.value.replace('_', ' ').upper()} TABLE{'S' if len(shapes) > 1 else ''} {kinds}, TILT {t.tilt_deg:g} DEG, FACING AZIMUTH {t.azimuth_deg:g} DEG.",
         f"ROW PITCH {pitch:.2f} m (MOST COMMON ROW SPACING OF THE STORED LAYOUT)." if pitch else "ROW PITCH: ONE TABLE ROW, NO PITCH.",
         f"{modules:,} MODULES ON {len(tables)} TABLES IN {len(layout.blocks)} BLOCK{'S' if len(layout.blocks) != 1 else ''}.",
         f"SITE GRID {site.crs}, LOCAL ORIGIN {site.origin.lon:.5f} E, {site.origin.lat:.5f} N. NORTH IS GRID NORTH.",
