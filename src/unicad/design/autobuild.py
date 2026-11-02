@@ -559,7 +559,7 @@ def _autobuild(
         linked, why = link_given(given_layout, net)
         if linked:
             lay = given_layout
-            notes.append(f"Strings as given are linked to the layout: each inverter's {len(linked)} strings in total lie in the layout block of its number, length for length.")
+            notes.append(f"Strings as given are linked to the layout: the {len(linked)} strings lie each in the layout block of its inverter's number, length for length.")
         else:
             built.blockers.append(
                 f"STRINGS NOT LINKED TO THE LAYOUT: {why}. Cable lengths stay design placeholders, inverters are not placed in the field and length_mode "

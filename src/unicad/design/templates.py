@@ -620,7 +620,8 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
         b.earth("solar_pt")
         b.assume(f"The relay ({'/'.join(relay.functions)}) is fed by the ACCB outgoing CT and the bus PT and trips the outgoing ACB; its settings come from the protection study.")
     if data_logger:
-        chain = len(invs) + 1
+        n_inv = sum(ic.count for ic, _, _ in invs)
+        chain = n_inv + 1
         logger = _pick_logger(c.catalog, inverter, chain)
         b.node("dlog", "DL-01", NodeKind.METER, spec=logger.id if logger else None, symbol="inst.datalogger", ports=["sig"], title="DATA LOGGER (RS-485)")
         for n in b.nodes:
@@ -633,7 +634,7 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
             b.assume(LOGGER)
         else:
             b.assume(
-                f"Data logger {logger.id}: a catalogued logger whose RS-485 port takes the {chain} devices of the daisy chain (the {len(invs)} inverters and the meter; "
+                f"Data logger {logger.id}: a catalogued logger whose RS-485 port takes the {chain} devices of the daisy chain (the {n_inv} inverters and the meter; "
                 f"{logger.max_devices_per_rs485_port or logger.max_devices or 'no stated'} per port on the datasheet)"
                 + (f", of the inverter's make ({inverter.manufacturer})" if logger.manufacturer == inverter.manufacturer else "")
                 + "; it is drawn on the RS-485 daisy chain through the inverters and the meter."

@@ -218,9 +218,13 @@ def fit_given(tables: list[Table], spec: PlacementSpec, plan: GivenPlan, grid_co
     chosen = _select(tables, units, need, spec)
     if not chosen:
         have = sum(units)
+        odd = sum(r - n for r, n in zip(rounded, plan.strings))
         raise PlacementError(
-            f"the buildable area holds {have} string positions (tables of {spec.table_rows} x {grid_cols} and half tables), fewer than the {need} strings "
-            f"inverter_strings gives ({sum(plan.modules(k) for k in range(len(plan.strings)))} modules): enlarge the plot, reduce the setbacks or the row pitch"
+            f"the buildable area holds {have} string positions ({have // spec.table_rows} table positions of {spec.table_rows} x {grid_cols} modules, the longest table, "
+            f"{spec.table_rows} strings each), fewer than the {need} the {sum(plan.strings)} strings of inverter_strings take "
+            f"({sum(plan.modules(k) for k in range(len(plan.strings)))} modules"
+            + (f"; {odd} inverter(s) with an odd string count take a whole table position for their half table" if odd else "")
+            + "): enlarge the plot, reduce the setbacks or the row pitch"
         )
     picked = [tables[i] for i in chosen]
     groups = _partition(picked, [units[i] for i in chosen], rounded, spec.table_azimuth_deg)

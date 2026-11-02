@@ -251,6 +251,7 @@ def test_an_accb_pad_at_the_electrical_centre_holds_the_brief_cable_within_2_per
 
 
 STRINGS3 = [{"count": 4, "mppts": [[18, 18]] * 7}, {"count": 3, "mppts": [[18, 18]] * 6 + [[18]]}, {"count": 1, "mppts": [[19, 19]] * 3 + [[18, 18]] * 3 + [[18]]}]
+SMALL3 = "lon,lat\n75.7186380,26.8866068\n75.7204509,26.8866068\n75.7204509,26.8875098\n75.7186380,26.8875098\n"
 SITE3 = "lon,lat\n75.7185373,26.8865617\n75.7205516,26.8865617\n75.7205516,26.8875550\n75.7185373,26.8875550\n"
 BASIS3 = {"ambient_min_c": 2, "ambient_max_c": 48, "altitude_m": 431, "vdrop_dc_max": 0.02, "vdrop_ac_max": 0.02, "dc_ac_ratio_target": 1.17, "power_factor": 0.99,
           "fault_levels": [{"voltage_v": 415, "fault_ka": 31.5, "clearing_s": 0.1, "source": "client brief: ACCB busbar fault level"}],
@@ -272,9 +273,14 @@ def run3(tmp_path_factory) -> dict:
         async with connect(tmp / "ws") as c:
             await c.call("project_create", **CREATE)
             await c.call("project_design_basis", project_id=PID, **BASIS3)
+            small = tmp / "small.csv"
+            small.write_text(SMALL3, encoding="utf-8")
+            await c.call("site_import", project_id=PID, file_path=str(small), format="coords", coordinate_system="lonlat")
+            await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
+            out["too_small"] = await c.fail("layout_place", **PLACE3)
             site = tmp / "site.csv"
             site.write_text(SITE3, encoding="utf-8")
-            await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat")
+            await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat", replace=True)
             await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
             out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0)
             out["build"] = await c.call("network_autobuild", **BUILD3, accb_at="electrical_centre")
@@ -386,3 +392,13 @@ def test_the_acb_findings_state_the_passing_ir_window(run3):
     low = [f for f in run3["acb_window_low"]["findings"] if f["rule_id"] == "protection.rated_current" and f["subjects"][0] == "acdb_brk"]
     assert len(high) == 1 and window in high[0]["message"] and "set long_time_setting_a" in high[0]["message"]
     assert len(low) == 1 and window in low[0]["message"]
+
+
+def test_tool_messages_count_inverters_and_strings_not_templates(run3):
+    """NEW-9 / NEW-10: layout_place said 'fewer than the 112 strings' for the 108 of the brief, and the logger note said '6 devices (the 5 inverters and
+    the meter)' for 8 inverters (it counted inverter templates)."""
+    small = run3["too_small"]
+    assert "the 108 strings of inverter_strings" in small and "112 the 108 strings" in small and "odd string count take a whole table position" in small
+    logger = next(a for a in run3["build"]["assumptions"] if a.startswith("Data logger"))
+    assert "9 devices of the daisy chain (the 8 inverters and the meter" in logger
+    assert any("the 108 strings lie each in the layout block of its inverter's number" in a for a in run3["build"]["assumptions"])
