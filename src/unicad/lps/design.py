@@ -426,7 +426,6 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
             assumptions.append("no free ground outside the array holds a terminal: they stand in the array's row gaps")
         elif outer is not None:
             assumptions.append(f"perimeter masts outside the array would leave {len(outer.uncovered)} target(s) uncovered over a {radius:g} m radius: terminals stand in the array's row gaps")
-    perimeter_at = len(assumptions)
     terms: list[Terminal] = []
     shade_height = mast if mast is not None else ESE_TIP_ASSUMED_M
     if cover is not None:
@@ -441,7 +440,7 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
         shade = sum(t.shade_m2 for t in terms)
         shading = (", so no mast shades the tables" if shade == 0 else
                    f"; the least shade found outside the array still puts {shade:.1f} m2 of table under the masts' swept shadow ({', '.join(f'{t.tag} {t.shade_m2:.1f} m2' for t in terms if t.shade_m2 > 0)})")
-        assumptions.insert(perimeter_at, perimeter_note[0] + shading + perimeter_note[1])
+        assumptions.append(perimeter_note[0] + shading + perimeter_note[1])
     if basis.method == "ese":
         assumptions.append("ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius")
     if any(t.kind in ("station", "bess", "field_inverter", "lt_panel") for t in tg):
