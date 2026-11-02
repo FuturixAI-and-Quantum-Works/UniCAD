@@ -29,7 +29,7 @@ from unicad.drafting.sheets.render import RenderedSheet, render_sheet
 from unicad.drafting.sheets.text import text_width
 from unicad.drafting.site_plan.sheet import SCALES, EquipmentArea, LayoutDrawing, LayoutSheetWriter, _Plan, _view_extent, choose_scale, with_current_equipment
 from unicad.earthing import ConductorRole, EarthingDesign, PitRole, pit_text
-from unicad.earthing.design import GOVERNING_CURRENT, GOVERNING_PRACTICE, GOVERNING_RESISTANCE, ROLE_TEXT
+from unicad.earthing.design import GOVERNING_CURRENT, GOVERNING_PRACTICE, GOVERNING_RESISTANCE, LT_TOUCH_STEP, ROLE_TEXT
 from unicad.earthing.layout import StationGroup
 from unicad.earthing.sizing import FLAT_BY_NAME
 from unicad.lps import LpsDesign
@@ -743,7 +743,7 @@ def earthing_notes(design: EarthingDesign) -> tuple[str, ...]:
     """The standard earthing notes of the reference layouts, then the design's own assumptions."""
     notes = [
         "ALL DIMENSIONS ARE IN MM UNLESS OTHERWISE SPECIFIED; PLAN COORDINATES IN METRES.",
-        "EARTHING INSTALLATION SHALL CONFORM TO IS 3043. SWITCHYARD EARTH GRID CHECKED AS PER IEEE 80.",
+        f"EARTHING INSTALLATION SHALL CONFORM TO IS 3043.{_checked(design)}",
         "EARTH PIT AND CONDUCTOR LOCATIONS ARE INDICATIVE; MINOR MODIFICATION MAY BE CARRIED OUT AT SITE.",
         "WHEREVER THE EARTH CONDUCTOR CROSSES A CABLE TRENCH IT SHALL BE LAID 300 MM BELOW THE TRENCH.",
         f"MAIN EARTH CONDUCTOR SHALL BE LAID AT MINIMUM {design.basis.burial_depth_m * 1000:g} MM BELOW FGL.",
@@ -756,8 +756,23 @@ def earthing_notes(design: EarthingDesign) -> tuple[str, ...]:
     ]
     if design.rooftop:
         notes.append("ROOF ARRAY CONDUCTORS RUN ON THE ROOF; DOWN CONDUCTORS RUN ON THE BUILDING FACE TO PITS AT GROUND LEVEL.")
-    notes += [f"ASSUMPTION: {a.upper()}." for a in design.assumptions]
+    notes += [f"ASSUMPTION: {a.upper()}." for a in design.assumptions if a != LT_TOUCH_STEP]
     return tuple(notes)
+
+
+def _checked(design: EarthingDesign) -> str:
+    """What the earthing.touch_step rule checks for this plant, with its outcome; empty when it checks nothing."""
+    if design.lt_plant:
+        return (" LT PLANT WITHOUT MV SWITCHYARD: NO IEEE 80 TOUCH AND STEP CHECK; PROTECTION AGAINST INDIRECT CONTACT IS BY AUTOMATIC"
+                " DISCONNECTION OF SUPPLY (IS 732 / IEC 60364-4-41) WITH THE EQUIPMENT BONDED TO THE PROTECTIVE EARTH, VERIFIED BY THE PROTECTION STUDY.")  # fmt: skip
+    if design.switchyard_unsized:
+        return " MV SWITCHYARD SIZE NOT GIVEN: ITS EARTH GRID AND THE IEEE 80 TOUCH AND STEP CHECK ARE NOT DONE."
+    g = design.grid
+    if g is None:
+        return ""
+    ok = g.gpr <= g.e_touch or (g.e_mesh <= g.e_touch and g.e_s <= g.e_step)
+    result = "WITHIN THE TOLERABLE TOUCH AND STEP VOLTAGES" if ok else "ABOVE THE TOLERABLE TOUCH OR STEP VOLTAGE (SEE RULE earthing.touch_step)"
+    return f" MV SWITCHYARD EARTH GRID ({design.grid_spacing_m:g} M MESH) CHECKED AS PER IEEE 80: {result}."
 
 
 def lps_notes(lps: LpsDesign) -> tuple[str, ...]:
