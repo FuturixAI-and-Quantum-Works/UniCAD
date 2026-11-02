@@ -720,8 +720,9 @@ class LayoutSheetWriter:
         shifts = [0.0] + [k * s * (ht + gap) for k in range(1, 9) for s in (1, -1)]
         squares = [Region(a[0] - clear, a[1] - clear, a[0] + clear, a[1] + clear) for _, a in items]
         drawn = [q.leader for q in self.placer.labels if q.leader is not None]
+        placed = [q.box for q in self.placer.labels]
         while d <= self.placer.max_leader + 1e-9:
-            best: tuple[float, float, dict[int, Region]] | None = None
+            best: tuple[int, int, float, dict[int, Region]] | None = None
             for side in ("E", "W", "N", "S"):
                 column = side in "EW"
                 total = (ht + gap) * len(items) - gap if column else sum(sizes) + gap * (len(items) - 1)
@@ -743,11 +744,12 @@ class LayoutSheetWriter:
                                 pos += w + gap
                         return boxes
 
-                    def crossings(boxes: dict[int, Region]) -> int:
+                    def crossings(boxes: dict[int, Region]) -> tuple[int, int]:
+                        """Crossings and hit squares and labels in all, then those among the stack's own leaders, which read worst."""
                         legs = [(items[i][1], nearest_on(boxes[i], items[i][1])) for i in range(len(items))]
-                        n = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
-                        n += sum(_segments_cross(leg, q) for leg in legs for q in drawn)
-                        return n + sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j)
+                        own = sum(_segments_cross(legs[i], legs[j]) for i in range(len(legs)) for j in range(i + 1, len(legs)))
+                        n = own + sum(_segments_cross(leg, q) for leg in legs for q in drawn) + sum(_segment_hits(q, *leg) for leg in legs for q in placed)
+                        return n + sum(_segment_hits(squares[j], *legs[i]) for i in range(len(legs)) for j in range(len(legs)) if i != j), own
 
                     def free(boxes: dict[int, Region]) -> bool:
                         return all(self.placer._free(b) and (allow is None or allow(b, items[i][1])) for i, b in boxes.items())
@@ -765,7 +767,7 @@ class LayoutSheetWriter:
                         if not free(boxes):
                             continue
                         n = crossings(boxes)
-                        improved = n > 0
+                        improved = n[0] > 0
                         while improved:
                             improved = False
                             for a_ in range(len(order)):
@@ -775,18 +777,20 @@ class LayoutSheetWriter:
                                     tb = slots(trial)
                                     if (m := crossings(tb)) < n and free(tb):
                                         order, boxes, n, improved = trial, tb, m, True
-                        key = (n, abs(shift))
-                        if best is None or key < best[:2]:
+                        key = (*n, abs(shift))
+                        if best is None or key < best[:3]:
                             best = (*key, boxes)
             if best is not None:
                 for i, (tag, at) in enumerate(items):
-                    b = best[2][i]
+                    b = best[3][i]
                     tip = nearest_on(b, at)
                     ln = math.dist(at, tip) or 1.0
                     start = (at[0] + (tip[0] - at[0]) * clear / ln, at[1] + (tip[1] - at[1]) * clear / ln)
                     self.placer.fixed(Label(f"equipment {tag}", at, b.width, b.height, clear), b, (start, tip))
                     self._mask(b)
                     self.msp.add_line(start, tip, dxfattribs={"layer": layer})
+                for i, (tag, _) in enumerate(items):
+                    b = best[3][i]
                     self._text(tag, (b.x0 + pad, b.y0 + pad), h, layer=layer, align="BL")
                 return []
             d += step
