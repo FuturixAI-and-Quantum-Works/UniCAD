@@ -181,3 +181,22 @@ def test_mms_table_counts_full_and_half_by_each_tables_own_string(tmp_path):
     words = " ".join(e.dxf.text for e in texts)
     assert "FULL TABLE TYPICAL ARRANGEMENT (2P x 18)" in words and "HALF TABLE (2P x 9)" in words
     assert "TABLES 2P x 18 (49 NOS), 2P x 19 (3 NOS)" in words
+
+
+# ---------------- BOM prints the typed ratings (item 7, bench run 3 N2) ----------------
+
+
+def test_bom_items_without_catalog_part_carry_their_typed_ratings():
+    from unicad.schedules import build_schedule
+    from unicad.schedules.bom import build_bom
+
+    p = bench3()
+    items = {ln.item for ln in build_bom(p, CATALOG, build_schedule(p, CATALOG)).lines}
+    ct = next(i for i in items if i.startswith("ACCB OUTGOING CT"))
+    assert "2500/1 A" in ct and "CL 0.2S 15 VA METERING" in ct and "CL PS PROTECTION" in ct, ct
+    pt = next(i for i in items if i.startswith("ACCB BUS PT"))
+    assert "110 V" in pt and "CL 3P 15 VA PROTECTION" in pt, pt
+    relay = next(i for i in items if i.startswith("NUMERICAL PROTECTION RELAY"))
+    assert "67N" in relay and "IEC 61850" in relay, relay
+    accb = next(i for i in items if i.startswith("LT AC COMBINER BOX"))
+    assert "2500 A" in accb and "31.5 kA 3 s" in accb, accb
