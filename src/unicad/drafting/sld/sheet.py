@@ -119,7 +119,7 @@ def sheet_spec(
     )
     legend = tuple((k, REGISTRY[k].title.upper()) for k in layout.legend_keys() if k in REGISTRY)
     drawn = [w.edge_id for w in layout.wires if w.kind is WireKind.COMMS] + [st.pin for st in layout.stubs if st.kind is WireKind.COMMS]
-    comms = [project.network.edge_by_id[e] for e in dict.fromkeys(drawn) if e in project.network.edge_by_id]
+    comms = [e for e in project.network.edges if e.id in set(drawn)]
     if comms:
         legend += (COMMS_LEGEND,)
     notes = NOTES + layout.notes + comms_notes(project.network, [e for e in comms if e.remarks])

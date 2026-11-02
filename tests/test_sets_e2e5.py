@@ -238,7 +238,8 @@ def test_n18_station_earthing_detail_shows_only_equipment_at_that_station(projec
     station = next(g for g in a.stations if g.name == "BLOCK-01 STATION")
     assert "ACDB-01" in {tags[i] for i in station.items} and not {"LTP-01", "CT-02"} & {tags[i] for i in station.items}
     panel = next(g for g in a.stations if g.name == "PLANT EQUIPMENT AREA")
-    assert {"LTP-01", "CT-02"} <= {tags[i] for i in panel.items}
+    assert "LTP-01" in {tags[i] for i in panel.items}
+    assert "CT-02" not in tags.values(), "an LV CT is earthed with its panel, not as field equipment (t3-draw item 9)"
     b = design_earthing(projects[B]).layout
     tags = {it.id: it.tag for it in b.items}
     for g in b.stations:
