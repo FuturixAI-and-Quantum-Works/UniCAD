@@ -30,12 +30,20 @@ def string_id(block_id: str, inverter: int, string: int) -> str:
     return f"{block_id}-I{inverter}-S{string:02d}"
 
 
-def assign_strings(blocks: Sequence[LayoutBlock], modules_per_string: int, strings_per_inverter: int | None) -> tuple[list[StringAssignment], int]:
+def table_string_length(t: Table, modules_per_string: int, lengths: frozenset[int] | None) -> int:
+    """Modules per string on `t`: with several string lengths, a table as long as one of them holds one string of that length per row."""
+    return t.cols if lengths and t.cols in lengths else modules_per_string
+
+
+def assign_strings(
+    blocks: Sequence[LayoutBlock], modules_per_string: int, strings_per_inverter: int | None, lengths: frozenset[int] | None = None
+) -> tuple[list[StringAssignment], int]:
     """Strings of `modules_per_string` consecutive slots, never crossing tables. Each gets a layout key `B01-I1-S02` (layout block,
     inverter, string) that only links the layout to the network; drawings and schedules show the network tags instead (STR-01-01-02,
     cable ids built from the inverter and combiner tags, see `unicad.schedules.ids.SCHEME`).
 
-    Strings are numbered per inverter in table order; with `strings_per_inverter` unset each block has one inverter.
+    Strings are numbered per inverter in table order; with `strings_per_inverter` unset each block has one inverter. With `lengths` (several
+    string lengths on the plant) a table as long as one of them holds strings of that length instead of `modules_per_string`.
     Returns the assignments and the count of slots left without a string.
     """
     out: list[StringAssignment] = []
@@ -44,10 +52,11 @@ def assign_strings(blocks: Sequence[LayoutBlock], modules_per_string: int, strin
         k = 0
         for t in b.tables:
             slots = serpentine(t)
-            whole = len(slots) // modules_per_string
-            left += len(slots) - whole * modules_per_string
+            mps = table_string_length(t, modules_per_string, lengths)
+            whole = len(slots) // mps
+            left += len(slots) - whole * mps
             for s in range(whole):
-                chunk = slots[s * modules_per_string : (s + 1) * modules_per_string]
+                chunk = slots[s * mps : (s + 1) * mps]
                 inv, n = (k // strings_per_inverter + 1, k % strings_per_inverter + 1) if strings_per_inverter else (1, k + 1)
                 out.append(StringAssignment(string=string_id(b.id, inv, n), spans=_spans(t.id, chunk)))
                 k += 1

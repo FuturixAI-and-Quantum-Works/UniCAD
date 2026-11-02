@@ -18,7 +18,7 @@ from unicad.domain.project import BessRating, DesignBasis, GridConnection, Proje
 from unicad.design import templates as T
 from unicad.design.placement import place_equipment, string_runs
 from unicad.design.patches import PATCHES, SCB_PATCHES, SIDES, centre, keep_out_sides, patches
-from unicad.design.plan import PvPlan, from_layout, given, uniform
+from unicad.design.plan import PvPlan, from_layout, given, link_given, uniform
 from unicad.design.routed import PLACEHOLDER, route, routed_statement
 from unicad.design.sizing import band_cables, size_network
 from unicad.design.strings import DesignError, InverterStrings, MixedStringDesign, StringDesign, check_inverter_strings, size_strings
@@ -42,6 +42,13 @@ PV_TEMPLATES = frozenset({"residential", "ci_rooftop", "utility_lt", "utility_st
 GIVEN_STRINGS_TEMPLATES = frozenset({"residential", "ci_rooftop", "utility_lt"})
 LT_GRID_MAX_V = 1000.0
 CI_STEP_UP_KW = 1000.0
+
+
+class StatedCable(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    cable: str = Field(description="Catalog cable id from catalog_search(kind='cable')")
+    runs: int = Field(default=1, ge=1, description="Parallel runs per circuit, e.g. 7 for 7R x 3.5C x 300 sq.mm")
 
 
 class Intent(BaseModel):
@@ -79,6 +86,9 @@ class Intent(BaseModel):
     )
     relay: RelayRating | None = Field(default=None, description="utility_lt: add a bus PT and a protection relay with these ANSI functions on the ACCB outgoing")
     data_logger: bool = Field(default=False, description="utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter")
+    breaking_ka: float | None = Field(default=None, gt=0, description="Least breaking capacity in kA for every LV breaker, as the brief or client specification states (e.g. 50); default the fault level")
+    cables: dict[str, StatedCable] = Field(default_factory=dict, description="Cables the brief states, by route role (string, inv_accb, accb_ltp, ...): catalog cable id and runs; not resized, the rules check them")
+    accb_at: Literal["layout", "electrical_centre"] = Field(default="layout", description="LT plant: the ACCB at the layout's switchyard location, or at the electrical centre of the field inverters")
 
     @model_validator(mode="after")
     def _bess_xy(self) -> "Intent":
@@ -435,7 +445,7 @@ def _autobuild(
     ctx = T.Ctx(project, catalog, lengths, frozenset(intent.lengths), scb_strings)
     if lay is not None and (intent.ac_kw or intent.dc_kwp):
         notes.append("A layout is given: the PV plan follows its blocks and strings; ac_kw and dc_kwp are not used to size the PV plant.")
-    sd, mixed = None, None
+    sd, mixed, given_layout = None, None, None
     if template in ("utility_string", "utility_central", "bess_ac", "bess_dc", "hybrid") and basis.grid.voltage_v <= LT_GRID_MAX_V:
         raise DesignError(
             f"template {template} exports at MV through block transformers, but the grid is {basis.grid.voltage_v:g} V (LT): for a ground-mount plant feeding a client's "
@@ -460,9 +470,7 @@ def _autobuild(
                 f"lengths {', '.join(str(x.modules_per_string) for x in mixed.lengths)} modules each checked for Voc at the coldest cell and the MPPT window."
             )
             notes += list(mixed.assumptions)
-            if lay is not None:
-                notes.append("inverter_strings sets the strings by hand, so the network's strings are not linked to the layout's string slots.")
-                lay = None
+            given_layout, lay = lay, None
             if intent.ac_kw or intent.dc_kwp or intent.modules_per_string or intent.strings_per_inverter:
                 notes.append("inverter_strings is given: ac_kw, dc_kwp, modules_per_string and strings_per_inverter are not used to size the PV plant.")
         else:
@@ -522,6 +530,21 @@ def _autobuild(
             T.hybrid(ctx, plan, inverter, module, bp, intent.block_switch, intent.auxiliary, intent.export_limit_kw)
     built = ctx.built
     b = built.builder
+    if intent.breaking_ka is not None:
+        b.node_hints = {k: replace(h, min_breaking_ka=intent.breaking_ka) if h.role == "lv_breaker" else h for k, h in b.node_hints.items()}
+    stated: set[str] = set()
+    for role, want in intent.cables.items():
+        cable = catalog.get(want.cable)
+        if getattr(cable, "kind", None) != "cable":
+            raise DesignError(f"cables[{role!r}] {want.cable!r} is a {getattr(cable, 'kind', '?')}, not a cable; catalog_search(kind='cable') lists them")
+        fixed = [e for e in b.edges if b.edge_roles.get(e["id"]) == role]
+        if not fixed:
+            raise DesignError(f"cables[{role!r}]: template {template} has no cable of role {role!r}; its roles: {sorted(set(b.edge_roles.values()))}")
+        for e in fixed:
+            e["cable"], e["runs"] = cable.id, want.runs
+            b.edge_hints.pop(e["id"], None)
+            stated.add(e["id"])
+        notes.append(f"Cables as stated ({role}): {want.runs} run(s) of {cable.id} on {len(fixed)} cable template(s); the rules check ampacity and voltage drop, they are not resized.")
     if intent.export_control == "ppc":
         if not intent.export_limit_kw:
             raise DesignError("export_control='ppc' needs export_limit_kw (the limit the plant controller holds at the POI)")
@@ -532,11 +555,26 @@ def _autobuild(
         notes.append(PPC)
     net = b.network()
     linked = _link_strings(net, built.string_links, lay, notes) if lay is not None else ()
+    if given_layout is not None:
+        linked, why = link_given(given_layout, net)
+        if linked:
+            lay = given_layout
+            notes.append(f"Strings as given are linked to the layout: each inverter's {len(linked)} strings in total lie in the layout block of its number, length for length.")
+        else:
+            built.blockers.append(
+                f"STRINGS NOT LINKED TO THE LAYOUT: {why}. Cable lengths stay design placeholders, inverters are not placed in the field and length_mode "
+                "estimated cannot measure them; re-run layout_place with inverter_strings (the same list) so each block holds one inverter's strings, then network_autobuild."
+            )
     if lay is not None:
         array_layout = lay.model_copy(update={"strings": linked, "equipment": ()})
     elif project.array_layout is not None:
         array_layout = project.array_layout.model_copy(update={"strings": (), "equipment": ()})
         notes.append("The existing array layout is kept without string links: the new network's strings were not built from it.")
+        if project.array_layout.strings and given_layout is None:
+            built.blockers.append(
+                f"LAYOUT UNLINKED: the layout's {len(project.array_layout.strings)} string links are dropped (use_layout=false), so cable lengths are placeholders "
+                "and no inverter stands in the field; re-run network_autobuild with use_layout=true to link them."
+            )
     else:
         array_layout = None
     sheets = []
@@ -547,7 +585,7 @@ def _autobuild(
             sh = sh.model_copy(update={"scope": sh.scope.model_copy(update={"nodes": keep})})
         sheets.append(sh)
     draft = project.model_copy(update={"network": net, "array_layout": array_layout, "sheets": tuple(sheets), "design_basis": project.design_basis.model_copy(update={"bess": bess_rating})})
-    placed, placing = place_equipment(draft, catalog, Point(x=intent.bess_x, y=intent.bess_y) if intent.bess_x is not None else None)
+    placed, placing = place_equipment(draft, catalog, Point(x=intent.bess_x, y=intent.bess_y) if intent.bess_x is not None else None, intent.accb_at)
     if placed is not None and placed.equipment:
         draft = draft.model_copy(update={"array_layout": placed})
     notes.extend(placing)
@@ -563,6 +601,15 @@ def _autobuild(
     sized = Project.model_validate(_breaker_tags(sizing.project, catalog).model_dump(mode="json"), context={"catalog": catalog})
     report = run_rules(sized, catalog, thresholds=thresholds)
     findings = tuple(f for f in report.findings if f.severity is not Severity.INFO)
+    if stated:
+        failed = [f for f in findings if f.rule_id.startswith("vdrop.") and f.severity is Severity.ERROR]
+        if failed:
+            built.blockers.append(
+                "Stated cables exceed the voltage drop limit: " + "; ".join(f.message for f in failed[:6]) + (f"; and {len(failed) - 6} more" if len(failed) > 6 else "")
+                + ". The fix is the client's choice: move the ACCB nearer the far inverters (network_autobuild accb_at='electrical_centre', or layout_place "
+                "switchyard_x/y), group the far inverters on their own combiner or give their cables more runs (cables), or accept a higher limit "
+                "(project_design_basis vdrop_ac_max / vdrop_dc_max)."
+            )
     summary = summarize(sized, catalog) | {"strings_linked": len(linked), "segment_hint": TEMPLATE_SEGMENT[template].value}
     template_assumptions = list(b.assumptions)
     if routed is not None and routed.lengths:

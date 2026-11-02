@@ -24,6 +24,7 @@ SWAP_WINDOW = 40
 COMPACT_REACH = 3.0
 COMPACT_NEIGHBOURS = 12
 COMPACT_PASSES = 50
+STATION_SPACING_M = 4.0
 
 
 def block_count(total_kwp: float, n_blocks: int | None, block_dc_kwp: float | None, n_tables: int) -> int:
@@ -504,6 +505,17 @@ def build_blocks(
                 f"{', '.join(across)} stand on both sides of a transmission line corridor: equal whole inverters per block outweigh a block per side here, so each of "
                 "these blocks' feeders crosses under the line once; network_autobuild keeps every inverter's strings on one side wherever the strings divide, and says where they do not"
             )
+    return blocks_from_groups(groups, tables, kwp, azimuth_deg, site, internal, closing_m, on_roofs, station, units, quantum, shrunk)
+
+
+def blocks_from_groups(
+    groups: Sequence[Sequence[int]], tables: Sequence[Table], kwp: Sequence[float], azimuth_deg: float, site: SiteGeometry, internal: Sequence[RoadLine],
+    closing_m: float, on_roofs: bool = False, station: Point | None = None, units: Sequence[int] | None = None, quantum: int | None = None,
+    shrunk: dict[int, int] | None = None,
+) -> list[LayoutBlock]:  # fmt: skip
+    """One block per group of table indices: tables renamed in string order, the outline and the station (given, on the roof, else at the
+    road or block edge nearest the capacity centre, on free ground no other block's station takes)."""
+    shrunk = shrunk or {}
     inner = [LineString([(p.x, p.y) for p in r.points]) for r in internal]
     roads = site_roads(site) + inner
     taken = None
@@ -520,6 +532,7 @@ def build_blocks(
             if taken is None:
                 taken = occupied(site, tables, inner, max((r.width_m for r in internal), default=0.0))
             at = free_spot(site, (at.x, at.y), taken) or at
+            taken = taken.union(ShapelyPoint(at.x, at.y).buffer(STATION_SPACING_M))
         ring = tuple(Point(x=round(x, 3), y=round(y, 3)) for x, y in list(hull.exterior.coords)[:-1])
         blocks.append(LayoutBlock(id=bid, name=f"BLOCK-{bi:02d}", boundary=ring, tables=tuple(renamed), station=at))
     return blocks

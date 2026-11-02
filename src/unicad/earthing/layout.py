@@ -52,6 +52,22 @@ GROUP_PITS = 2
 BESS_LINK_M = 25.0
 FIELD_BOXES = frozenset({NodeKind.SCB, NodeKind.DC_FUSE_BOX})
 MV_KINDS = frozenset({NodeKind.VCB, NodeKind.RMU, NodeKind.HT_PANEL, NodeKind.PT, NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.LIGHTNING_ARRESTER, NodeKind.CT})
+LV_MAX_V = 1000.0
+VOLTAGE_RATED_KINDS = frozenset({NodeKind.PT, NodeKind.CT, NodeKind.LIGHTNING_ARRESTER})
+
+
+def mv_item(project: Project, item: "Instance") -> bool:
+    """Switchyard (MV) equipment: switchgear and transformers always, CTs, PTs and arresters unless they sit on an LV circuit (an LT plant's
+    ACCB CT and bus PT are LV equipment inside the ACCB, earthed with it)."""
+    iid, _, kind = item
+    if kind not in MV_KINDS:
+        return False
+    if kind not in VOLTAGE_RATED_KINDS:
+        return True
+    v = project.network.node(iid.split("@")[0]).voltage_v
+    return v is None or v > LV_MAX_V
+
+
 KIND_ORDER = {k: i for i, k in enumerate((NodeKind.TRANSFORMER, NodeKind.AUX_TRANSFORMER, NodeKind.INVERTER, NodeKind.PCS, NodeKind.BATTERY,
               NodeKind.HT_PANEL, NodeKind.RMU, NodeKind.VCB, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.DG, NodeKind.PT, NodeKind.CT,
               NodeKind.LIGHTNING_ARRESTER, NodeKind.DC_FUSE_BOX, NodeKind.SCB))}  # fmt: skip
@@ -290,7 +306,7 @@ def _station_area(lay: EarthingLayout, centre: tuple[float, float], items: list[
     for (iid, tag, kind), p in zip(items, pos):
         lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], on_roof=on_roof))
         for q in _two_connections(p, ring)[: CONNECTIONS[kind]]:
-            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, q], (iid,), buried=not on_roof)
+            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, q), (iid,), buried=not on_roof)
         roles += [(r, iid) for r in PITS.get(kind, ())]
     if not any(r is PitRole.EP for r, _ in roles):
         roles = [(PitRole.EP, label)] * GROUP_PITS + roles
@@ -408,6 +424,34 @@ def _risers(lay: EarthingLayout, segs: list[tuple[float, float, float, Run]], az
                     break
 
 
+RING_OFFSET_M = 1.0
+
+
+def _array_ring(lay: EarthingLayout, segs: list[tuple[float, float, float, Run]], azimuth: float, size: str, site: Polygon | None, avoid) -> None:
+    """A closed main ring round the array along its axes, RING_OFFSET_M beyond the outermost row ends, through the first and last row conductors,
+    with every row's end joined to the ring's side along the row. Left out where it would leave the plot or cross a keep-out."""
+    if len({round(s[0], 2) for s in segs}) < 2:
+        return
+    (ux, uy), (vx, vy) = frame(azimuth)
+    xy = lambda u, v: (u * ux + v * vx, u * uy + v * vy)  # noqa: E731
+    lo_u, hi_u = min(s[1] for s in segs) - RING_OFFSET_M, max(s[2] for s in segs) + RING_OFFSET_M
+    lo_v, hi_v = min(s[0] for s in segs), max(s[0] for s in segs)
+    ring = [xy(lo_u, lo_v), xy(hi_u, lo_v), xy(hi_u, hi_v), xy(lo_u, hi_v), xy(lo_u, lo_v)]
+    line = LineString(ring)
+    if (site is not None and not site.buffer(TOL).contains(line)) or (avoid is not None and line.intersects(avoid)):
+        lay.warnings.append("the array's main earth ring is not laid: it would leave the plot or cross a keep-out; the rows are joined by risers only")
+        return
+    lay.run(ConductorRole.MAIN, size, ring, ("array ring",), buried=True)
+    by_v: dict[float, list[tuple[float, float]]] = defaultdict(list)
+    for v, u0, u1, _ in segs:
+        by_v[round(v, 2)].append((u0, u1))
+    for v, spans in by_v.items():
+        first, last = min(a for a, _ in spans), max(b for _, b in spans)
+        for a, b in ((lo_u, first), (last, hi_u)):
+            if b - a > TOL:
+                lay.run(ConductorRole.MAIN, size, [xy(a, v), xy(b, v)], ("array ring",), buried=True)
+
+
 def _scb_positions(block: LayoutBlock, n: int) -> list[tuple[float, float]]:
     tables = sorted(block.tables, key=lambda t: (round(t.origin.y, 1), t.origin.x))
     if not tables or n <= 0:
@@ -453,7 +497,7 @@ def _switchyard(lay: EarthingLayout, rect: tuple[float, float, float, float], sp
         iy = int(np.argmin(np.abs(ys - p[1])))
         ends = [(float(xs[ix]), p[1]), (p[0], float(ys[iy]))][: CONNECTIONS[kind]]
         for q in ends:
-            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, q], (iid,))
+            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, q), (iid,))
         roles += [(r, iid) for r in PITS.get(kind, ())]
     ring = _ring(x0, y0, x1, y1)
     perimeter = [(PitRole.EP, "switchyard")] * perimeter_pits
@@ -646,12 +690,13 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
         array_runs += [s[3] for s in segs]
         if tables:
             _risers(lay, segs, tables[0].azimuth_deg, sizes.main, 1.6 * (pitch or 10), buried=True)
+            _array_ring(lay, segs, tables[0].azimuth_deg, sizes.main, site, avoid)
     placed = layout.equipment_by_node if layout is not None else {}
     field_items = [it for it in plant if it[0] in placed] + [it for items in per_block.values() for it in items if it[0] in placed]
     in_field = {i for i, items in per_block.items() if any(it[0] in placed for it in items)}
     plant = [it for it in plant if it[0] not in placed]
     per_block = {i: [it for it in items if it[0] not in placed] for i, items in per_block.items()}
-    yard_items = [it for it in plant if it[2] in MV_KINDS] if switchyard is not None and switchyard[0] is not None else []
+    yard_items = [it for it in plant if mv_item(project, it)] if switchyard is not None and switchyard[0] is not None else []
     panel_items = [it for it in plant if it not in yard_items]
     host = next((i for i, b in enumerate(blocks) if b.station is not None), None) if lay.rooftop else None
     if host is not None and layout.switchyard is not None:
@@ -683,10 +728,10 @@ def build_layout(project: Project, sizes: Sizes, array_pits: int, tables_per_pit
             near = sorted(array_runs, key=lambda r: LineString([_xy(q) for q in r.points]).distance(SPoint(p)))[: CONNECTIONS[kind]]
             for r in near:
                 q = nearest_points(LineString([_xy(x) for x in r.points]), SPoint(p))[0]
-                lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (q.x, q.y)], (iid,), buried=not lay.rooftop)
+                lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, (q.x, q.y)), (iid,), buried=not lay.rooftop)
             if not lay.rooftop:
                 lay.pit(PitRole.EP, (p[0] + 1.0, p[1] + 0.6), (iid,))
-                lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (p[0] + 1.0, p[1] + 0.6)], (iid,))
+                lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, (p[0] + 1.0, p[1] + 0.6)), (iid,))
     bess_items = [it for it in field_items if it[2] is not NodeKind.INVERTER and it[2] not in LT_PANEL_KINDS]
     for iid, tag, kind in field_items:
         if kind is NodeKind.INVERTER or kind in LT_PANEL_KINDS:
@@ -730,11 +775,11 @@ def _field_item(lay: EarthingLayout, iid: str, tag: str, kind: NodeKind, p: tupl
     for r in near:
         q = nearest_points(LineString([_xy(x) for x in r.points]), SPoint(p))[0]
         if math.dist(p, (q.x, q.y)) > TOL:
-            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, (q.x, q.y)], (iid,), buried=not on_roof)
+            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, (q.x, q.y)), (iid,), buried=not on_roof)
     if not on_roof:
         pit = (p[0] + 1.0, p[1] + 0.6)
         lay.pit(PitRole.EP, pit, (iid,))
-        lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, pit], (iid,))
+        lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, pit), (iid,))
 
 
 def _bess_groups(items: list[Instance], placed) -> list[list[Instance]]:
@@ -762,7 +807,7 @@ def _bess_area(lay: EarthingLayout, group: list[Instance], placed, sizes: Sizes,
         p = pos[iid]
         lay.items.append(Item(id=iid, kind=kind.value, tag=tag, at=Point(x=round(p[0], 3), y=round(p[1], 3)), connections=CONNECTIONS[kind], placed=True))
         for q in _two_connections(p, ring)[: CONNECTIONS[kind]]:
-            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, [p, q], (iid,))
+            lay.run(ConductorRole.EQUIPMENT, sizes.equipment, _orthogonal(p, q), (iid,))
         roles += [(r, iid) for r in PITS.get(kind, ())]
         if yard is not None and yard[0] <= p[0] <= yard[2] and yard[1] <= p[1] <= yard[3]:
             lay.warnings.append(f"{tag} stands inside the switchyard earth mat; BESS units belong outside it, bonded to it")

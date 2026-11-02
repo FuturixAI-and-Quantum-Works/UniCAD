@@ -12,7 +12,7 @@ from unicad.catalog.store import Catalog, load_catalog
 from unicad.domain.catalog import InverterSpec
 from unicad.domain.network import NodeKind
 from unicad.domain.project import EarthingBasis, Project, Segment
-from unicad.earthing.layout import MV_KINDS, EarthingLayout, Sizes, bonding, build_layout, equipment
+from unicad.earthing.layout import LV_MAX_V, EarthingLayout, Sizes, bonding, build_layout, equipment, mv_item
 from unicad.earthing.model import ConductorRole, PitRole, Quantity, Step, Value
 from unicad.earthing.sizing import (
     FLAT_BY_NAME,
@@ -45,6 +45,11 @@ PITS_AND_STRIP = "pits in parallel with each other and with the buried conductor
 INVERTER_FAULT_FACTOR = 1.5
 GRID_SPACING_DEFAULT_M = 6.0
 TOL_M = 1e-3
+LT_TOUCH_STEP = (
+    "LT plant (no MV switchyard): the IEEE 80 switchyard mesh and step check does not apply. On a low-voltage system protection against indirect contact "
+    "is by automatic disconnection of supply with the equipment bonded to the protective earth (IS 3043, code of practice for earthing; IS 732 / IEC 60364-4-41), "
+    "which the breaker settings and the earth fault loop impedance of the protection study verify, not the earth mat geometry"
+)
 SWITCHYARD_UNKNOWN = (
     "MV switchyard size unknown: set switchyard_m (earthing_design or project_design_basis) or mark the switchyard area on the site; the "
     "switchyard earth grid and its IEEE 80 touch and step check are not done, and the MV equipment is earthed at the plant equipment area"
@@ -96,6 +101,7 @@ class EarthingDesign:
     split_factor: float | None = None
     rest_ohm: float | None = None
     switchyard_unsized: bool = False
+    lt_plant: bool = False
 
     @property
     def pit_count(self) -> int:
@@ -294,7 +300,10 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
     _, plant, _ = equipment(project)
     yard = None
     unsized = False
-    if not rooftop and any(k in MV_KINDS for _, _, k in plant):
+    lt_plant = not rooftop and bool(project.network.nodes) and not any(mv_item(project, it) for it in plant) and project.design_basis.grid.voltage_v <= LV_MAX_V
+    if lt_plant:
+        assumptions.append(LT_TOUCH_STEP)
+    if not rooftop and any(mv_item(project, it) for it in plant):
         marked = designated_switchyard(project)
         if basis.switchyard_m is None and marked is None:
             unsized = True
@@ -386,7 +395,7 @@ def design_earthing(project: Project, basis: EarthingBasis | None = None, lps: L
         layout=lay, lps=lps,
         quantities=quantities(lay, basis, sizes, lps), bonded=bonded, assumptions=tuple(assumptions), warnings=tuple(warnings),
         resistance_method=gov.method, resistance_parts=gov.parts, split_factor=sf, rest_ohm=round(rest.value, 4) if yard is not None else None,
-        switchyard_unsized=unsized,
+        switchyard_unsized=unsized, lt_plant=lt_plant,
     )  # fmt: skip
 
 

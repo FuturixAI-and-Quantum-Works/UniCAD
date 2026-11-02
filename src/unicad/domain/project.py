@@ -105,6 +105,10 @@ class LpsBasis(_Frozen):
     ese_delta_t_us: float | None = Field(default=None, gt=0, le=60)
     mast_height_m: float | None = Field(default=None, gt=0)
     protected_height_m: float | None = Field(default=None, ge=0)
+    placement: Literal["auto", "array", "perimeter"] = Field(
+        default="auto", description="ground plants: 'perimeter' keeps every terminal outside the array (boundary strip, roads) so no mast shades the tables; "
+        "'array' lets terminals stand in row gaps (fewest masts); 'auto' takes the perimeter when it covers every target, else the array"
+    )
 
 
 class FaultLevel(_Frozen):

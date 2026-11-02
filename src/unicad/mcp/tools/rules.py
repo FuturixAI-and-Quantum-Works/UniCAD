@@ -62,6 +62,13 @@ def compact(f: Finding) -> dict[str, Any]:
     return out
 
 
+def _margin(f) -> dict[str, Any]:
+    """How far a passing finding's measured value is from its limit."""
+    m, lim = f.measured, f.limit
+    return {"subjects": list(f.subjects), "measured": m, "limit": lim, "unit": f.unit, "margin": round(abs(lim - m), 4),
+            "margin_pct_of_limit": round(100 * abs(lim - m) / lim, 2) if lim else None, "message": f.message}
+
+
 def register(server: MCPServer, ws: Workspace) -> None:
     @server.tool(annotations=READ_ONLY)
     @guarded
@@ -108,6 +115,14 @@ def register(server: MCPServer, ws: Workspace) -> None:
             raise KeyError(f"no rule {rule_id!r} ran for this project; rules: {[r for r in report.rules if r.startswith(family + '.')]}")
         found = [f for f in report.by_rule(rule_id) if subject in f.subjects]
         if not found:
-            subjects = sorted({s for f in report.by_rule(rule_id) for s in f.subjects})
-            raise KeyError(f"rule {rule_id!r} has no finding about {subject!r}; its subjects: {subjects or 'none (the rule passed)'}")
-        return {"project_id": project_id, "explanations": [explain(f, ws.catalog).model_dump(mode="json") for f in found]}
+            all_found = report.by_rule(rule_id)
+            subjects = sorted({s for f in all_found for s in f.subjects})
+            if any(f.severity is not Severity.INFO for f in all_found):
+                raise KeyError(f"rule {rule_id!r} has no finding about {subject!r}; its subjects: {subjects}")
+            return {"project_id": project_id, "passed": True, "explanations": [],
+                    "message": f"{rule_id} passed: it raised nothing about {subject!r}" + (f" (its info findings are about {subjects[:20]})" if subjects else "")}
+        out: dict[str, Any] = {"project_id": project_id, "explanations": [explain(f, ws.catalog).model_dump(mode="json") for f in found]}
+        if all(f.severity is Severity.INFO for f in found):
+            out["passed"] = True
+            out["margins"] = [_margin(f) for f in found if f.measured is not None and f.limit is not None]
+        return out
