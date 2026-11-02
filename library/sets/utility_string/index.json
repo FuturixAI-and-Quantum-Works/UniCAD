@@ -1,7 +1,7 @@
 {
   "project_id": "ground-6mwp",
   "set_pdf": "set.pdf",
-  "sheet_count": 14,
+  "sheet_count": 13,
   "sheets": [
     {
       "drawing_scale": "NTS",
@@ -10,9 +10,9 @@
         "dxf": "01-UDEMO-DRL-G6-EE-000.dxf",
         "pdf": "01-UDEMO-DRL-G6-EE-000.pdf"
       },
-      "id": "register_1",
+      "id": "register",
       "kind": "register",
-      "kind_sheet_of": "1 of 2",
+      "kind_sheet_of": "1 of 1",
       "number": "UDEMO-DRL-G6-EE-000",
       "paper": "A3",
       "rows": [
@@ -24,17 +24,7 @@
           "paper": "A3",
           "rev": "00",
           "scale": "NTS",
-          "title": "DRAWING REGISTER (PART 1 OF 2)"
-        },
-        {
-          "date": "02.11.26",
-          "issued_for": "Information",
-          "kind": "register",
-          "number": "UDEMO-DRL-G6-EE-000A",
-          "paper": "A3",
-          "rev": "00",
-          "scale": "NTS",
-          "title": "DRAWING REGISTER (PART 2 OF 2)"
+          "title": "DRAWING REGISTER"
         },
         {
           "date": "02.11.26",
@@ -161,28 +151,8 @@
       "scope": [],
       "sheet_kind": "register",
       "sheet_no": 1,
-      "sheet_of": "1 of 14",
-      "title": "DRAWING REGISTER (PART 1 OF 2)",
-      "warnings": []
-    },
-    {
-      "drawing_scale": "NTS",
-      "files": {
-        "dwg": null,
-        "dxf": "02-UDEMO-DRL-G6-EE-000A.dxf",
-        "pdf": "02-UDEMO-DRL-G6-EE-000A.pdf"
-      },
-      "id": "register_2",
-      "kind": "register",
-      "kind_sheet_of": "2 of 2",
-      "number": "UDEMO-DRL-G6-EE-000A",
-      "paper": "A3",
-      "scale": null,
-      "scope": [],
-      "sheet_kind": "register",
-      "sheet_no": 2,
-      "sheet_of": "2 of 14",
-      "title": "DRAWING REGISTER (PART 2 OF 2)",
+      "sheet_of": "1 of 13",
+      "title": "DRAWING REGISTER",
       "warnings": []
     },
     {
@@ -235,8 +205,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "03-UDEMO-DRL-G6-EE-001.dxf",
-        "pdf": "03-UDEMO-DRL-G6-EE-001.pdf"
+        "dxf": "02-UDEMO-DRL-G6-EE-001.dxf",
+        "pdf": "02-UDEMO-DRL-G6-EE-001.pdf"
       },
       "id": "sld",
       "kind": "sld",
@@ -306,8 +276,8 @@
       "scale": 1.084,
       "scope": [],
       "sheet_kind": "sld",
-      "sheet_no": 3,
-      "sheet_of": "3 of 14",
+      "sheet_no": 2,
+      "sheet_of": "2 of 13",
       "title": "OVERALL SINGLE LINE DIAGRAM (PART 1 OF 2)",
       "warnings": []
     },
@@ -340,8 +310,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "04-UDEMO-DRL-G6-EE-002.dxf",
-        "pdf": "04-UDEMO-DRL-G6-EE-002.pdf"
+        "dxf": "03-UDEMO-DRL-G6-EE-002.dxf",
+        "pdf": "03-UDEMO-DRL-G6-EE-002.pdf"
       },
       "id": "sld_2",
       "kind": "sld",
@@ -373,8 +343,8 @@
         "aux_vcb"
       ],
       "sheet_kind": "sld_detail",
-      "sheet_no": 4,
-      "sheet_of": "4 of 14",
+      "sheet_no": 3,
+      "sheet_of": "3 of 13",
       "title": "OVERALL SINGLE LINE DIAGRAM (PART 2 OF 2)",
       "warnings": []
     },
@@ -396,8 +366,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "05-UDEMO-DRL-G6-EE-003.dxf",
-        "pdf": "05-UDEMO-DRL-G6-EE-003.pdf"
+        "dxf": "04-UDEMO-DRL-G6-EE-003.dxf",
+        "pdf": "04-UDEMO-DRL-G6-EE-003.pdf"
       },
       "id": "sld_block_b01",
       "kind": "sld",
@@ -419,8 +389,8 @@
         "inv_sec_b04a"
       ],
       "sheet_kind": "sld_detail",
-      "sheet_no": 5,
-      "sheet_of": "5 of 14",
+      "sheet_no": 4,
+      "sheet_of": "4 of 13",
       "title": "TYPICAL STRING INVERTER BLOCK (3 X 352 kVA) SLD FOR BLOCK-01, BLOCK-02, BLOCK-03, BLOCK-04 (SHOWN FOR BLOCK-01)",
       "warnings": []
     },
@@ -439,8 +409,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "06-UDEMO-DRL-G6-EE-004.dxf",
-        "pdf": "06-UDEMO-DRL-G6-EE-004.pdf"
+        "dxf": "05-UDEMO-DRL-G6-EE-004.dxf",
+        "pdf": "05-UDEMO-DRL-G6-EE-004.pdf"
       },
       "id": "sld_block_b05",
       "kind": "sld",
@@ -459,8 +429,8 @@
         "inv_sec_b05a"
       ],
       "sheet_kind": "sld_detail",
-      "sheet_no": 6,
-      "sheet_of": "6 of 14",
+      "sheet_no": 5,
+      "sheet_of": "5 of 13",
       "title": "TYPICAL STRING INVERTER BLOCK (4 X 352 kVA) SLD (BLOCK-05)",
       "warnings": []
     },
@@ -468,8 +438,8 @@
       "drawing_scale": "1:2500",
       "files": {
         "dwg": null,
-        "dxf": "07-UDEMO-DRL-G6-EE-101.dxf",
-        "pdf": "07-UDEMO-DRL-G6-EE-101.pdf"
+        "dxf": "06-UDEMO-DRL-G6-EE-101.dxf",
+        "pdf": "06-UDEMO-DRL-G6-EE-101.pdf"
       },
       "id": "layout",
       "kind": "layout",
@@ -479,8 +449,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "layout",
-      "sheet_no": 7,
-      "sheet_of": "7 of 14",
+      "sheet_no": 6,
+      "sheet_of": "6 of 13",
       "title": "SOLAR PV ARRAY LAYOUT",
       "view": "site",
       "warnings": [
@@ -491,8 +461,8 @@
       "drawing_scale": "1:2500",
       "files": {
         "dwg": null,
-        "dxf": "08-UDEMO-DRL-G6-EE-301.dxf",
-        "pdf": "08-UDEMO-DRL-G6-EE-301.pdf"
+        "dxf": "07-UDEMO-DRL-G6-EE-301.dxf",
+        "pdf": "07-UDEMO-DRL-G6-EE-301.pdf"
       },
       "id": "earthing",
       "kind": "earthing",
@@ -504,8 +474,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "earthing",
-      "sheet_no": 8,
-      "sheet_of": "8 of 14",
+      "sheet_no": 7,
+      "sheet_of": "7 of 13",
       "target_ohm": 1.0,
       "title": "EARTHING LAYOUT",
       "unbonded": 0,
@@ -517,8 +487,8 @@
       "drawing_scale": "1:3000",
       "files": {
         "dwg": null,
-        "dxf": "09-UDEMO-DRL-G6-EE-302.dxf",
-        "pdf": "09-UDEMO-DRL-G6-EE-302.pdf"
+        "dxf": "08-UDEMO-DRL-G6-EE-302.dxf",
+        "pdf": "08-UDEMO-DRL-G6-EE-302.pdf"
       },
       "id": "lps",
       "kind": "lps",
@@ -529,8 +499,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "lps",
-      "sheet_no": 9,
-      "sheet_of": "9 of 14",
+      "sheet_no": 8,
+      "sheet_of": "8 of 13",
       "terminals": 5,
       "title": "LIGHTNING ARRESTER (LA) LAYOUT",
       "uncovered": 0,
@@ -540,8 +510,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "10-UDEMO-DRL-G6-EE-401.dxf",
-        "pdf": "10-UDEMO-DRL-G6-EE-401.pdf"
+        "dxf": "09-UDEMO-DRL-G6-EE-401.dxf",
+        "pdf": "09-UDEMO-DRL-G6-EE-401.pdf"
       },
       "id": "strings_inv_b01a",
       "instances": 16,
@@ -552,8 +522,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "string_diagram",
-      "sheet_no": 10,
-      "sheet_of": "10 of 14",
+      "sheet_no": 9,
+      "sheet_of": "9 of 13",
       "strings_covered": 384,
       "strings_drawn": 24,
       "title": "STRING WIRING DIAGRAM : INVERTER INV-01-01..INV-05-04",
@@ -564,8 +534,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "11-UDEMO-DRL-G6-EE-501.dxf",
-        "pdf": "11-UDEMO-DRL-G6-EE-501.pdf"
+        "dxf": "10-UDEMO-DRL-G6-EE-501.dxf",
+        "pdf": "10-UDEMO-DRL-G6-EE-501.pdf"
       },
       "gaps": 1,
       "id": "cables_1",
@@ -577,8 +547,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "cable_schedule",
-      "sheet_no": 11,
-      "sheet_of": "11 of 14",
+      "sheet_no": 10,
+      "sheet_of": "10 of 13",
       "title": "DC CABLE SCHEDULE",
       "warnings": []
     },
@@ -586,8 +556,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "12-UDEMO-DRL-G6-EE-502.dxf",
-        "pdf": "12-UDEMO-DRL-G6-EE-502.pdf"
+        "dxf": "11-UDEMO-DRL-G6-EE-502.dxf",
+        "pdf": "11-UDEMO-DRL-G6-EE-502.pdf"
       },
       "id": "cables_2",
       "kind": "cable_schedule",
@@ -597,8 +567,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "cable_schedule",
-      "sheet_no": 12,
-      "sheet_of": "12 of 14",
+      "sheet_no": 11,
+      "sheet_of": "11 of 13",
       "title": "AC AND MV CABLE SCHEDULE",
       "warnings": []
     },
@@ -606,8 +576,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "13-UDEMO-DRL-G6-EE-601.dxf",
-        "pdf": "13-UDEMO-DRL-G6-EE-601.pdf"
+        "dxf": "12-UDEMO-DRL-G6-EE-601.dxf",
+        "pdf": "12-UDEMO-DRL-G6-EE-601.pdf"
       },
       "id": "bom_1",
       "kind": "bom",
@@ -618,8 +588,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "bom",
-      "sheet_no": 13,
-      "sheet_of": "13 of 14",
+      "sheet_no": 12,
+      "sheet_of": "12 of 13",
       "title": "BILL OF MATERIALS (PART 1 OF 2)",
       "warnings": []
     },
@@ -627,8 +597,8 @@
       "drawing_scale": "NTS",
       "files": {
         "dwg": null,
-        "dxf": "14-UDEMO-DRL-G6-EE-602.dxf",
-        "pdf": "14-UDEMO-DRL-G6-EE-602.pdf"
+        "dxf": "13-UDEMO-DRL-G6-EE-602.dxf",
+        "pdf": "13-UDEMO-DRL-G6-EE-602.pdf"
       },
       "id": "bom_2",
       "kind": "bom",
@@ -638,8 +608,8 @@
       "scale": null,
       "scope": [],
       "sheet_kind": "bom",
-      "sheet_no": 14,
-      "sheet_of": "14 of 14",
+      "sheet_no": 13,
+      "sheet_of": "13 of 13",
       "title": "BILL OF MATERIALS (PART 2 OF 2)",
       "warnings": []
     }
