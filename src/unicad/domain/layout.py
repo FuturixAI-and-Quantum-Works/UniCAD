@@ -7,7 +7,7 @@ Slot (row, col) indices are 0-based, row 0 nearest the table origin.
 from collections import defaultdict
 from enum import StrEnum
 from functools import cached_property
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -126,6 +126,10 @@ class PlacedEquipment(_Frozen):
     basis: str
 
 
+LayoutInput = Literal["tilt_deg", "azimuth_deg", "mounting", "orientation", "rows", "cols"]
+"""Table fields a layout can mark as assumed (the layout_place inputs tilt_deg, azimuth_deg, mounting, orientation, table_rows, table_cols)."""
+
+
 class ArrayLayout(_Frozen):
     """`switchyard` is the one location of the MV switchyard (or, on an LT plant, the main LT panel) that cable routing, earthing and the
     layout drawing all read. `equipment` holds what the network places in the field; everything else stands at its block station."""
@@ -135,6 +139,7 @@ class ArrayLayout(_Frozen):
     switchyard: Located | None = None
     equipment: tuple[PlacedEquipment, ...] = ()
     target_dc_kwp: float | None = Field(default=None, gt=0, description="DC capacity layout_place was asked to reach, kWp; the rules compare the placed capacity against it")
+    assumed: tuple[LayoutInput, ...] = Field(default=(), description="layout inputs marked as assumed (not from the brief, a survey or the client), e.g. the tilt; drawings print them as assumed")
 
     @property
     def module_count(self) -> int:

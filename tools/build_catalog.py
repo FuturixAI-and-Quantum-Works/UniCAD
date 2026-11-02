@@ -476,11 +476,12 @@ def import_cables(b: Build) -> None:
         insulation, material = r["insulation"].lower(), r["material"].lower()
         reduced = r["cores"] == "3.5"
         hot_r = num(r["r_ac_ohm_km"]) if num(r["rac_temp_c"]) == 90 else None
+        warm_r = num(r["r_ac_ohm_km"]) if num(r["rac_temp_c"]) == 70 and insulation == "pvc" else None
         for armoured in variants:
             x = num(r["x_armoured_ohm_km"] if armoured else r["x_unarmoured_ohm_km"])
             if x is None and r["arrangement"] == "multicore":
                 x = num(r["x_armoured_ohm_km"]) or num(r["x_unarmoured_ohm_km"])
-            extra = "" if hot_r else f"R given at {r['rac_temp_c']} C only, so r_ohm_per_km_90c left empty"
+            extra = "" if hot_r else "R is the AC resistance at 70 C, the PVC maximum conductor temperature (r_ohm_per_km_70c)" if warm_r else f"R given at {r['rac_temp_c']} C only, so r_ohm_per_km_90c left empty"
             if two:
                 extra += ("; " if extra else "") + f"ampacity_2x1c from row {two[0]}, ampacity_air/ground/duct are the 3 single-core cable circuit"
             b.add(
@@ -493,7 +494,7 @@ def import_cables(b: Build) -> None:
                 armoured=armoured, voltage_grade="1.1 kV", ampacity_air=num(r["air_a"]), ampacity_ground=num(r["ground_a"]),
                 ampacity_duct=num(r["duct_a"]),
                 ampacity_2x1c=Ampacity(air=num(two[1]["air_a"]), ground=num(two[1]["ground_a"]), duct=num(two[1]["duct_a"])) if two else None,
-                r_ohm_per_km_90c=hot_r, x_ohm_per_km=x,
+                r_ohm_per_km_90c=hot_r, r_ohm_per_km_70c=warm_r, x_ohm_per_km=x,
             )
     for (line, r) in kei_pending.values():
         b.skip("cable", f"kei_lt_cables.csv row {line}", "2x1c row without a matching 3x1c row")

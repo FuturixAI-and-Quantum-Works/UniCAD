@@ -114,7 +114,9 @@ Read-only.
 
 Set the design-basis inputs the rules and the earthing, lightning and drawing set use: site values (ambient temperatures, altitude),
 limits (voltage drop, DC/AC target, power factor), fault levels per system voltage, earthing inputs and lightning protection inputs.
-Only the parts you pass (or clear) change, and a value you set replaces its placeholder in `assumptions`. The design is not run:
+Only the parts you pass (or clear) change, and a value you set replaces its placeholder in `assumptions`. A value you choose yourself
+(not the client's or a cited source's) is still assumed: list it in `assumed` and every drawing it drives prints it under ASSUMED INPUTS
+(layout inputs such as the tilt are marked with layout_place assumed=[...]). The design is not run:
 after changing site values, limits or fault levels on a project with a network, re-run network_autobuild so strings, breakers and
 cables are sized for them (earthing_design and lps_design store the same inputs and report the design; drawings_render draws the
 earthing and LA layouts from them). Site setbacks are set with site_set_setbacks.
@@ -136,6 +138,7 @@ lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6})
 | `vdrop_ac_max` | number | no | Max AC voltage drop as a fraction |
 | `dc_ac_ratio_target` | number | no | Target DC/AC ratio |
 | `power_factor` | number | no | Design power factor |
+| `assumed` | list of `ambient_min_c` \| `ambient_max_c` \| `altitude_m` \| `vdrop_dc_max` \| `vdrop_ac_max` \| `dc_ac_ratio_target` \| `power_factor` \| `grid.voltage_v` \| `earthing.soil_resistivity_ohm_m` \| `earthing.fault_current_ka` \| `earthing.fault_clearing_s` \| `lps.level` \| `lps.ese_delta_t_us` \| `lps.mast_height_m` | no | Replace the list of design-basis inputs marked as assumed (values you chose, not the client's or a cited source's), e.g. ["ambient_max_c", "vdrop_ac_max", "lps.mast_height_m"]; [] clears it. The drawings print them as assumed |
 
 ### `project_issue`
 
@@ -143,8 +146,11 @@ Issue the drawing set: add a revision (mark, date, purpose, drawn/checked/approv
 block, revision table and the drawing register show from the next drawings_render. The engineering rules run first (as in
 validate): approval, construction and as_built are refused while any error remains, and the refusal lists every error;
 proposal and information are allowed with errors and the response says the sheets carry them. A revision mark already
-issued is refused unless every value is the same (then nothing changes) or amend=true corrects the latest revision in place, so a
-fix to its remarks or names before any newer issue does not cost a new revision. Remarks longer than about 55 characters are
+issued is refused unless every value is the same and the model content is what was issued (then nothing changes), or amend=true
+corrects the latest revision in place, so a fix to its remarks or names before any newer issue does not cost a new revision. Each
+issue records the model revision and a fingerprint of the content it issues; amend=true re-issues the revision with the current
+content (the reply says so and from which model revision), and validate, project_get and drawings_render say when the model no
+longer is the issued content. Remarks longer than about 55 characters are
 shortened in the title block revision cell; the reply warns. Re-render with drawings_render afterwards.
 
 Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="0", drawn="A. Kumar", checked="S. Rao", approved="P. Iyer", date="2026-10-28").
@@ -298,7 +304,8 @@ blocks that stand on both sides of a transmission line corridor (network_autobui
 except where a side's strings do not make up whole inverters, and reports those). The MV switchyard and the BESS area keep 3 m (assumed) from
 the boundary fence; set switchyard_m in project_design_basis earthing before this call so the yard is kept free of
 tables at its real size.
-Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, road_every_rows=12, block_dc_kwp=15000).
+A value you chose yourself (e.g. a tilt the brief does not give) goes in `assumed`, so the drawings print it as assumed.
+Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, road_every_rows=12, block_dc_kwp=15000, assumed=["tilt_deg"]).
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -341,6 +348,7 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `switchyard_y` | number | no | Local y (m) of the MV switchyard |
 | `bess_area_m` | list of number | no | BESS area length x width (m) kept free of tables beside the switchyard, where network_autobuild then places the BESS units. Default on hybrid and BESS plants: the grid of the network's BESS units, else an assumed area (reported) |
 | `inverter_strings` | list of object | no | Strings given per inverter and MPPT, as for network_autobuild: one block per inverter holding exactly its strings, with tables as long as each string length (e.g. 2 x 19 tables for 19-module strings). Default: read from the network when network_autobuild built it with inverter_strings |
+| `assumed` | list of `tilt_deg` \| `azimuth_deg` \| `mounting` \| `orientation` \| `rows` \| `cols` | no | Inputs of this call you chose yourself (not from the brief, a survey or the client), marked as assumed so the drawings print them under ASSUMED INPUTS: the table fields tilt_deg, azimuth_deg, mounting, orientation, rows (table_rows), cols (table_cols), e.g. ["tilt_deg", "rows"] Default: `[]`. |
 
 ### `layout_summary`
 
@@ -410,7 +418,8 @@ Returns the new revision, a summary (instances per kind, DC kWp, AC kVA), rule c
 (what the catalog or the intent could not satisfy) and every assumption made. A re-run replaces the network: `hand_edits` lists the edits made
 since the previous network_autobuild that the new network does not carry, and keep_hand_edits=true re-applies them.
 utility_lt is the LT ground-mount plant: string inverters -> ACCB (MCCB incomers, bus, SPD, outgoing ACB, CT, meter; PT and relay with `relay`;
-data logger with data_logger=true) -> solar incomer in the client's 415 V LT panel, with no transformer and no DISCOM metering (the default for a
+data logger with data_logger=true; the brief's busbar, CT, PT and SPD ratings with busbar, ct, pt and spd, stored on those nodes so no
+network_update is needed; every SPD node carries its catalog part's ratings otherwise) -> solar incomer in the client's 415 V LT panel, with no transformer and no DISCOM metering (the default for a
 utility project on an LT grid). inverter_strings (residential, ci_rooftop, utility_lt) builds strings given per inverter and MPPT, e.g. 18- and
 19-module strings on one inverter and different module counts per inverter; check them first with design_strings(inverter_strings=...). Example:
 network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp", inverter="huawei-sun2000-100ktl-m2").
@@ -447,6 +456,10 @@ network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="ada
 | `inverter_strings` | list of object | no | Strings given per inverter and MPPT, inverter classes in numbering order: each {"count": inverters, "mppts": [[modules per string of each string on MPPT 1], [..MPPT 2], ...]}, e.g. [{"count": 4, "mppts": [[18, 18], [18, 18], [18, 18], [18, 18], [18, 18], [18, 18], [18, 18]]}, {"count": 1, "mppts": [[18, 19], [18, 19], [18, 19], [18, 19], [18, 19], [18, 19], [18]]}] |
 | `relay` | object | no | utility_lt: add a bus PT and a numerical relay with these ANSI functions and protocol on the ACCB outgoing, e.g. {"functions": ["50", "51", "67", "67N", "27", "59", "50N", "51N"], "protocol": "IEC 61850"} |
 | `data_logger` | boolean | no | utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter Default: `False`. |
+| `busbar` | object | no | utility_lt: the ACCB busbar as the brief states it, e.g. {"rating_a": 2500, "material": "al", "phases": "3P+N", "fault_ka": 31.5, "fault_s": 3} |
+| `ct` | object | no | utility_lt: the ACCB outgoing CT, e.g. {"primary_a": 2500, "secondary_a": 1, "cores": [{"accuracy_class": "0.2S", "burden_va": 15, "purpose": "metering"}, {"accuracy_class": "PS", "purpose": "protection"}]} |
+| `pt` | object | no | utility_lt with relay: the bus PT, e.g. {"primary_v": 415, "secondary_v": 110, "phase_to_neutral": true, "cores": [{"accuracy_class": "0.2", "burden_va": 15}]} |
+| `spd` | object | no | utility_lt: the ACCB SPD ratings as the brief states them (default: those of the catalog part picked, which every SPD node carries) |
 | `keep_hand_edits` | boolean | no | Re-apply the network edits made since the last network_autobuild (added, changed and removed nodes, connections and groups) onto the new network; edits that no longer fit are listed as skipped Default: `False`. |
 | `breaking_ka` | number | no | Least breaking capacity in kA for every LV breaker, as the brief or client specification states (e.g. 50 for 50 kA MCCBs); default the fault level |
 | `cables` | object | no | Cables the brief states, by route role, kept as given (not resized; the rules check ampacity and voltage drop): e.g. {"string": {"cable": "polycab-h1z2z2-k-6mm2"}, "inv_accb": {"cable": "kei-lt-pvc-al-3.5c-240-arm"}, "accb_ltp": {"cable": "kei-lt-pvc-al-3.5c-300-arm", "runs": 7}} |
@@ -608,7 +621,7 @@ Read-only.
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `project_id` | string | yes | Project id, e.g. 'rooftop-500kwp'. project_list shows existing ids. |
-| `rule_id` | `structure.unconnected_port` \| `structure.path_to_poi` \| `structure.inverter_ac_voltage` \| `structure.transformer_voltage` \| `structure.missing_spec` \| `structure.bess_separation` \| `pv_strings.voc_max` \| `pv_strings.hot_cell` \| `pv_strings.vmp_min` \| `pv_strings.start_voltage` \| `pv_strings.vmp_max` \| `pv_strings.inputs` \| `pv_strings.isc_per_mppt` \| `pv_strings.operating_current` \| `pv_strings.string_fuses` \| `ratio.dc_ac_inverter` \| `ratio.dc_ac_plant` \| `ratio.bess_intent` \| `ratio.export_limit` \| `protection.rated_current` \| `protection.trip_setting` \| `protection.breaking_capacity` \| `protection.fault_level` \| `protection.oversize` \| `protection.rated_voltage` \| `protection.spd_dc` \| `protection.spd_ac` \| `protection.spd_ac_uc` \| `protection.spd_ac_poles` \| `protection.earthing` \| `protection.string_fuse_rating` \| `protection.mv_cable` \| `protection.lv_both_ends` \| `protection.transformer_feed` \| `cables.missing` \| `cables.ampacity` \| `cables.protection` \| `cables.terminals` \| `cables.battery_dc` \| `cables.short_circuit` \| `vdrop.dc` \| `vdrop.ac` \| `vdrop.bands` \| `earthing.conductor_size` \| `earthing.electrode_resistance` \| `earthing.touch_step` \| `earthing.every_equipment_bonded` \| `earthing.mat_fence_clearance` \| `lps.coverage` \| `lps.mast_fence_clearance` \| `layout.shortfall` \| `drawings.readable_sld` | yes | Rule id from validate, e.g. 'cables.ampacity' |
+| `rule_id` | `structure.unconnected_port` \| `structure.path_to_poi` \| `structure.inverter_ac_voltage` \| `structure.transformer_voltage` \| `structure.missing_spec` \| `structure.bess_separation` \| `pv_strings.voc_max` \| `pv_strings.hot_cell` \| `pv_strings.vmp_min` \| `pv_strings.start_voltage` \| `pv_strings.vmp_max` \| `pv_strings.inputs` \| `pv_strings.isc_per_mppt` \| `pv_strings.operating_current` \| `pv_strings.string_fuses` \| `ratio.dc_ac_inverter` \| `ratio.dc_ac_plant` \| `ratio.bess_intent` \| `ratio.export_limit` \| `protection.rated_current` \| `protection.trip_setting` \| `protection.breaking_capacity` \| `protection.fault_level` \| `protection.oversize` \| `protection.rated_voltage` \| `protection.spd_dc` \| `protection.spd_ac` \| `protection.spd_ac_uc` \| `protection.spd_ac_poles` \| `protection.earthing` \| `protection.string_fuse_rating` \| `protection.mv_cable` \| `protection.lv_both_ends` \| `protection.transformer_feed` \| `cables.missing` \| `cables.ampacity` \| `cables.protection` \| `cables.terminals` \| `cables.battery_dc` \| `cables.short_circuit` \| `vdrop.dc` \| `vdrop.ac` \| `vdrop.bands` \| `earthing.conductor_size` \| `earthing.electrode_resistance` \| `earthing.touch_step` \| `earthing.every_equipment_bonded` \| `earthing.mat_fence_clearance` \| `lps.coverage` \| `lps.mast_fence_clearance` \| `layout.shortfall` \| `drawings.readable_sld` \| `drawings.issued_revision` | yes | Rule id from validate, e.g. 'cables.ampacity' |
 | `subject` | string | yes | One of the finding's subjects from validate: a node or edge id, e.g. 'e_inv_mccb' |
 | `revision` | integer or string | no | Revision number or snapshot label. Omit for the latest revision. |
 

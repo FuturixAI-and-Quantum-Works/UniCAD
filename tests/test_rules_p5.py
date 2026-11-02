@@ -119,13 +119,18 @@ def test_low_voltage_levels_match_by_zone_voltage():
     assert len(rest) == 1 and "33000 V" in rest[0].message and "660 V" not in rest[0].message
 
 
-def test_dc_cables_and_pvc_are_not_checked():
+def test_dc_cables_are_not_checked_pvc_is_checked_with_its_k_and_an_uncited_insulation_is_an_error():
     pvc = next(c for c in CATALOG.filter(kind="cable") if c.insulation == "pvc" and c.service == "lv_ac" and c.cores == 4 and c.size_mm2 == 95 and c.armoured)
     p = variant("rooftop_500kwp", both(with_levels(level(36, voltage_v=415.0)), set_edge("e_inv_mccb", cable=pvc.id)))
     fs = {f.subjects: f for f in findings(p, "cables.short_circuit")}
     assert not any(s and s[0] in ("e_str", "e_dcfb_iso", "e_iso_inv") for s in fs)
-    assert fs[("e_inv_mccb",)].severity is Severity.INFO and "no cited short-circuit constant k for AL PVC" in fs[("e_inv_mccb",)].message
+    assert "/ 76 =" in fs[("e_inv_mccb",)].message and any(q.name == "k" and q.value == 76 for q in fs[("e_inv_mccb",)].inputs)
     assert fs[("e_acb_ct",)].severity is Severity.INFO and "withstands" in fs[("e_acb_ct",)].message
+    epr = pvc.model_copy(update={"insulation": "epr"})
+    net = p.network
+    q = p.model_copy(update={"network": net.model_copy(update={"edges": tuple(e.model_copy(update={"cable": epr}) if e.id == "e_inv_mccb" else e for e in net.edges)})})
+    f = {f.subjects: f for f in findings(q, "cables.short_circuit")}[("e_inv_mccb",)]
+    assert f.severity is Severity.ERROR and "cannot be checked" in f.message and "no cited short-circuit constant k for AL EPR" in f.message
 
 
 def test_explain_resolves_the_rule_and_its_k_source():

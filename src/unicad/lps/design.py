@@ -16,10 +16,10 @@ from shapely.prepared import prep
 
 from unicad.arrays.geometry import frame, table_centre, table_corners
 from unicad.arrays.sun import sun_path
-from unicad.arrays.siting import FENCE_CLEAR_MIN_M, equipment_ground
+from unicad.arrays.siting import FENCE_CLEAR_MIN_M, ROAD_WIDTH_ASSUMED_M, equipment_ground
 from unicad.domain.layout import Point
 from unicad.domain.project import LpsBasis, Project
-from unicad.domain.site import FeatureKind
+from unicad.domain.site import FeatureKind, shape_of
 from unicad.earthing.model import Step
 from unicad.lps.site import blocked, boundary, is_rooftop, roofs, switchyard_footprint
 from unicad.lps.zones import CoverageError, covered, ese_radius, greedy_cover, rod_radius, sphere_radius
@@ -271,6 +271,26 @@ def array_area(project: Project) -> BaseGeometry:
     return unary_union([Polygon(table_corners(t)) for t in tables]).buffer(close, join_style="mitre").buffer(-close, join_style="mitre")
 
 
+def _filled(g: BaseGeometry) -> BaseGeometry:
+    parts = getattr(g, "geoms", [g])
+    return unary_union([Polygon(p.exterior) for p in parts if isinstance(p, Polygon) and not p.is_empty])
+
+
+def array_footprint(project: Project, clear: float = 0.0) -> BaseGeometry:
+    """The ground a perimeter terminal keeps out of: the array area with the open ground it encloses (holes between blocks), `clear` m round it,
+    less the site roads through it (a mast may stand beside a road)."""
+    area = array_area(project)
+    if area.is_empty:
+        return area
+    inside = _filled(area.buffer(clear) if clear else area)
+    geo = project.site.geometry
+    roads = []
+    for f in geo.of_kind(FeatureKind.ROAD) if geo is not None else ():
+        if f.polyline:
+            roads.append(shape_of(f).buffer((f.width_m or ROAD_WIDTH_ASSUMED_M) / 2 + clear + MAST_CLEAR_M, cap_style="flat", join_style="mitre"))
+    return inside.difference(unary_union(roads)) if roads else inside
+
+
 def reposition(project: Project, terminals: list[tuple[float, float, str | None]], pts: np.ndarray, radius: float, height_m: float, clear: float,
                keep_out: BaseGeometry | None = None) -> list[tuple[float, float, str | None, float]]:  # fmt: skip
     """Move each terminal, one at a time, to the free spot that keeps every point it alone covers inside its radius and puts the least table
@@ -388,16 +408,17 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
     if not len(cand) and len(pts):
         raise CoverageError("no free position for a lightning terminal inside the site")
     keep_out = None
+    perimeter_note: tuple[str, str] | None = None
     if not rooftop and basis.placement != "array" and len(pts):
-        inside = array_area(project).buffer(clear)
+        inside = array_footprint(project, clear)
         out_mask = ~shapely.contains_xy(inside, cand[:, 0], cand[:, 1]) if not inside.is_empty else np.ones(len(cand), dtype=bool)
         outer = greedy_cover(pts, cand[out_mask], radius) if out_mask.any() else None
         inner_n = len(cover.terminals) if cover is not None else 0
         if outer is not None and (not outer.uncovered or basis.placement == "perimeter"):
-            assumptions.append(
+            perimeter_note = (
                 f"terminals on the perimeter, outside the array (lps placement {basis.placement}): {len(outer.terminals)} mast(s) on the boundary strip and roads "
-                f"against {inner_n} standing in the array's row gaps, so no mast shades the tables"
-                + (f"; {len(outer.uncovered)} target(s) stay uncovered from the perimeter" if outer.uncovered else "")
+                f"against {inner_n} standing in the array's row gaps",
+                f"; {len(outer.uncovered)} target(s) stay uncovered from the perimeter" if outer.uncovered else "",
             )
             cand, where = cand[out_mask], [w for w, m in zip(where, out_mask) if m]
             cover, keep_out = outer, inside
@@ -415,6 +436,11 @@ def design_lps(project: Project, basis: LpsBasis | None = None) -> LpsDesign:
         for i, (x, y, roof, area) in enumerate(sorted(moved, key=lambda m: (-round(m[1], 1), m[0]))):
             terms.append(Terminal(f"{prefix}-{i + 1:02d}", Point(x=round(x, 3), y=round(y, 3)), roof is not None, roof, area))
     uncovered = tuple(tg[i] for i in cover.uncovered) if cover is not None else ()
+    if perimeter_note is not None:
+        shade = sum(t.shade_m2 for t in terms)
+        shading = (", so no mast shades the tables" if shade == 0 else
+                   f"; the least shade found outside the array still puts {shade:.1f} m2 of table under the masts' swept shadow ({', '.join(f'{t.tag} {t.shade_m2:.1f} m2' for t in terms if t.shade_m2 > 0)})")
+        assumptions.append(perimeter_note[0] + shading + perimeter_note[1])
     if basis.method == "ese":
         assumptions.append("ESE design to NF C 17-102, a French standard used in Indian EPC practice; IS/IEC 62305 does not recognise an enlarged ESE radius")
     if any(t.kind in ("station", "bess", "field_inverter", "lt_panel") for t in tg):

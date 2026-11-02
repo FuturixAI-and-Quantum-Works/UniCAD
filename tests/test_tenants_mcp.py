@@ -70,7 +70,7 @@ def test_onboard_assign_validate_and_update_thresholds(tmp_path):
         got = await c.call("company_get", profile_id="acme")
         by = {t["name"]: t for t in got["thresholds"]}
         assert by["dc_ac_band"]["origin"] == "company" and by["dc_ac_band"]["value"] == 0.15 and "DS-04" in by["dc_ac_band"]["source"]
-        assert by["k_xlpe_cu"]["origin"] == "default" and len(got["thresholds"]) == 12
+        assert by["k_xlpe_cu"]["origin"] == "default" and len(got["thresholds"]) == 14
         assert got["origin"] == "workspace" and got["problems"] == [] and set(got["title_block"]["papers"]) == {"A1", "A3"}
 
         assert (await c.call("validate", project_id="roof-low-ratio", families=["ratio"]))["counts"]["warning"] == 2

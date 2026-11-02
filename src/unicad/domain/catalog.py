@@ -249,6 +249,7 @@ class CableSpec(Spec):
     ampacity_duct: Amps | None = None
     ampacity_2x1c: Ampacity | None = Field(default=None, description="single-core only: circuit of two cables (1-phase or DC pair)")
     r_ohm_per_km_90c: float | None = Field(default=None, gt=0)
+    r_ohm_per_km_70c: float | None = Field(default=None, gt=0, description="AC conductor resistance at 70 degC, the maximum operating temperature of PVC insulation; PVC cables only")
     x_ohm_per_km: float | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
@@ -260,6 +261,13 @@ class CableSpec(Spec):
         if self.ampacity_2x1c is not None and self.cores != 1:
             raise ValueError("ampacity_2x1c applies to single-core cables")
         return self
+
+    @property
+    def operating_resistance(self) -> tuple[float, int, str] | None:
+        """(ohm/km, degC, field) at the maximum operating conductor temperature of the insulation: 70 degC for PVC, else 90 degC; None when the
+        catalog holds no resistance at that temperature."""
+        r, t, name = (self.r_ohm_per_km_70c, 70, "r_ohm_per_km_70c") if self.insulation == "pvc" else (self.r_ohm_per_km_90c, 90, "r_ohm_per_km_90c")
+        return None if r is None else (r, t, name)
 
     @property
     def core_label(self) -> str:

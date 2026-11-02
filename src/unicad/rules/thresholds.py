@@ -126,7 +126,25 @@ LAYOUT_SHORTFALL = Threshold(
     0.5,
 )
 
-ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, FAULT_CLEARING_DEFAULT, STRING_FUSE_MIN, STRING_FUSE_MAX, LAYOUT_SHORTFALL)
+K_PVC_CU = Threshold(
+    "k_pvc_cu",
+    115.0,
+    "A s^0.5/mm2",
+    "Adiabatic constant k of a copper conductor with PVC-A insulation (70 degC to 160 degC), 0.115 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit "
+    "current ratings for XLPE/PVC cables (pdf p.49). Manufacturer value, standard name IS 1554-1.",
+    50.0,
+    250.0,
+)
+K_PVC_AL = Threshold(
+    "k_pvc_al",
+    76.0,
+    "A s^0.5/mm2",
+    "Adiabatic constant k of an aluminium conductor with PVC-A insulation (70 degC to 160 degC), 0.076 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit "
+    "current ratings for XLPE/PVC cables (pdf p.49). Manufacturer value, standard name IS 1554-1.",
+    30.0,
+    200.0,
+)
+ALL = (ISC_FACTOR, CONTINUOUS_FACTOR, DC_AC_BAND, VOLTAGE_TOLERANCE, STC_IRRADIANCE, STC_TEMP, K_XLPE_CU, K_XLPE_AL, K_PVC_CU, K_PVC_AL, FAULT_CLEARING_DEFAULT, STRING_FUSE_MIN, STRING_FUSE_MAX, LAYOUT_SHORTFALL)
 
 BY_NAME = {t.name: t for t in ALL}
 

@@ -208,7 +208,7 @@ class CableOption:
 
     @property
     def r_eff(self) -> float:
-        return (self.cable.r_ohm_per_km_90c or math.inf) / self.runs
+        return (r[0] if (r := self.cable.operating_resistance) else math.inf) / self.runs
 
 
 def cable_options(catalog: Catalog, family: CableFamily, laying: Laying, phases: int, runs: int | None = None, ambient_max_c: float | None = None) -> list[CableOption]:
@@ -217,7 +217,7 @@ def cable_options(catalog: Catalog, family: CableFamily, laying: Laying, phases:
     out = []
     for c in family.cables(catalog):
         base, _, _ = table_ampacity(c, laying, phases)
-        if base is None or c.r_ohm_per_km_90c is None:
+        if base is None or c.operating_resistance is None:
             continue
         if family.service == "dc_solar" or phases == 1:
             conductors_ok = c.cores in (1, 2)

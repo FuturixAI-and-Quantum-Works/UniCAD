@@ -149,8 +149,24 @@ class BessRating(_Frozen):
         return f"{built} against the brief's {brief} ({dev})"
 
 
+DesignInput = Literal[
+    "ambient_min_c", "ambient_max_c", "altitude_m", "vdrop_dc_max", "vdrop_ac_max", "dc_ac_ratio_target", "power_factor", "grid.voltage_v",
+    "earthing.soil_resistivity_ohm_m", "earthing.fault_current_ka", "earthing.fault_clearing_s", "lps.level", "lps.ese_delta_t_us", "lps.mast_height_m",
+]  # fmt: skip
+"""Design-basis inputs that can be marked as assumed."""
+
+
+class AssumedInput(_Frozen):
+    """One input marked as assumed, as a drawing prints it: `field` is the model path (design_basis.ambient_max_c, array_layout.tilt_deg)."""
+
+    field: str
+    label: str
+    value: str
+
+
 class DesignBasis(_Frozen):
-    """Site and grid inputs to the rules engine. `assumptions` names every value not taken from a cited source."""
+    """Site and grid inputs to the rules engine. `assumptions` names every value not taken from a cited source; `assumed` lists the inputs the user or
+    agent set themselves and marks as assumed (e.g. an ambient read off a map rather than the client's data)."""
 
     ambient_min_c: float
     ambient_max_c: float
@@ -166,11 +182,19 @@ class DesignBasis(_Frozen):
     fault_levels: tuple[FaultLevel, ...] = ()
     bess: BessRating | None = Field(default=None, description="storage built and asked for; set by network_autobuild")
     assumptions: tuple[str, ...] = ()
+    assumed: tuple[DesignInput, ...] = Field(default=(), description="inputs marked as assumed (project_design_basis assumed=[...]); drawings print them as assumed")
 
     @model_validator(mode="after")
     def _ambient_order(self) -> Self:
         if self.ambient_min_c >= self.ambient_max_c:
             raise ValueError(f"ambient_min_c {self.ambient_min_c} must be below ambient_max_c {self.ambient_max_c}")
+        return self
+
+    @model_validator(mode="after")
+    def _assumed_set(self) -> Self:
+        missing = [k for k in self.assumed if k.split(".")[0] in ("earthing", "lps") and not getattr(self, k.split(".")[0])]
+        if missing:
+            raise ValueError(f"assumed lists {missing}, which the design basis does not hold yet: set them first")
         return self
 
     @model_validator(mode="after")
@@ -197,6 +221,8 @@ class IssueRevision(_Frozen):
     drawn: str | None = None
     checked: str | None = None
     approved: str | None = None
+    model_revision: int | None = Field(default=None, description="project revision whose content this issue is; set by project_issue")
+    content_sha: str | None = Field(default=None, description="fingerprint of the issued content (unicad.store.issue.content_sha); set by project_issue")
 
 
 class SheetKind(StrEnum):
@@ -281,6 +307,18 @@ class Project(_Frozen):
             raise ValueError("invalid project: " + "; ".join(problems))
         return self
 
+    def assumed_inputs(self) -> tuple[AssumedInput, ...]:
+        """Every input marked as assumed (design_basis.assumed, array_layout.assumed) with its current value, for the drawings' ASSUMED blocks."""
+        db, out = self.design_basis, []
+        for k in db.assumed:
+            out.append(AssumedInput(field=f"design_basis.{k}", label=DESIGN_INPUT_LABELS[k], value=_basis_value(db, k)))
+        lay = self.array_layout
+        if lay is not None and lay.assumed:
+            t = next(iter(lay.table_by_id.values()), None)
+            for k in lay.assumed:
+                out.append(AssumedInput(field=f"array_layout.{k}", label=LAYOUT_INPUT_LABELS[k], value=_layout_value(lay, t, k)))
+        return tuple(out)
+
     def _layout_problems(self, layout: ArrayLayout) -> list[str]:
         problems = []
         net = self.network
@@ -309,3 +347,37 @@ class Project(_Frozen):
     def check_catalog(self, catalog: "Catalog") -> None:
         if problems := self.catalog_problems(catalog):
             raise NetworkError("catalog references: " + "; ".join(problems))
+
+
+DESIGN_INPUT_LABELS = {
+    "ambient_min_c": "minimum ambient temperature", "ambient_max_c": "maximum ambient temperature", "altitude_m": "site altitude",
+    "vdrop_dc_max": "DC voltage drop limit", "vdrop_ac_max": "AC voltage drop limit", "dc_ac_ratio_target": "DC/AC ratio target", "power_factor": "design power factor",
+    "grid.voltage_v": "grid connection voltage", "earthing.soil_resistivity_ohm_m": "soil resistivity",
+    "earthing.fault_current_ka": "earth fault current", "earthing.fault_clearing_s": "earth fault clearing time", "lps.level": "lightning protection level",
+    "lps.ese_delta_t_us": "ESE early streamer advance", "lps.mast_height_m": "lightning mast height",
+}  # fmt: skip
+LAYOUT_INPUT_LABELS = {
+    "tilt_deg": "module tilt", "azimuth_deg": "module azimuth", "mounting": "mounting", "orientation": "module orientation", "rows": "modules across a table",
+    "cols": "modules along a table",
+}  # fmt: skip
+
+
+def _basis_value(db: DesignBasis, k: str) -> str:
+    head, _, tail = k.partition(".")
+    v = getattr(getattr(db, head), tail) if tail else getattr(db, head)
+    if v is None:
+        return "not set"
+    unit = {"ambient_min_c": " degC", "ambient_max_c": " degC", "altitude_m": " m", "grid.voltage_v": " V", "earthing.soil_resistivity_ohm_m": " ohm-m",
+            "earthing.fault_current_ka": " kA", "earthing.fault_clearing_s": " s", "lps.ese_delta_t_us": " us", "lps.mast_height_m": " m"}.get(k, "")  # fmt: skip
+    if k in ("vdrop_dc_max", "vdrop_ac_max"):
+        return f"{100 * v:g} %"
+    return f"{v:g}{unit}" if isinstance(v, int | float) else str(v)
+
+
+def _layout_value(lay: ArrayLayout, t, k: str) -> str:
+    if t is None:
+        return "not set"
+    if k == "cols":
+        return f"{max(x.cols for x in lay.table_by_id.values())}"
+    v = getattr(t, k)
+    return f"{v:g} deg" if k in ("tilt_deg", "azimuth_deg") else str(getattr(v, "value", v))

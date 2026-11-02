@@ -248,3 +248,222 @@ def test_far_inverters_over_the_drop_limit_are_named_with_the_clients_choices(st
 def test_an_accb_pad_at_the_electrical_centre_holds_the_brief_cable_within_2_percent(stated):
     assert [f["message"] for f in stated["pad"]["findings"] if f["rule_id"] == "vdrop.ac" and f["severity"] == "error"] == []
     assert not [b for b in stated["pad"]["blockers"] if "voltage drop" in b]
+
+
+STRINGS3 = [{"count": 4, "mppts": [[18, 18]] * 7}, {"count": 3, "mppts": [[18, 18]] * 6 + [[18]]}, {"count": 1, "mppts": [[19, 19]] * 3 + [[18, 18]] * 3 + [[18]]}]
+SMALL3 = "lon,lat\n75.7186380,26.8866068\n75.7204509,26.8866068\n75.7204509,26.8875098\n75.7186380,26.8875098\n"
+SITE3 = "lon,lat\n75.7185373,26.8865617\n75.7205516,26.8865617\n75.7205516,26.8875550\n75.7185373,26.8875550\n"
+BASIS3 = {"ambient_min_c": 2, "ambient_max_c": 48, "altitude_m": 431, "vdrop_dc_max": 0.02, "vdrop_ac_max": 0.02, "dc_ac_ratio_target": 1.17, "power_factor": 0.99,
+          "fault_levels": [{"voltage_v": 415, "fault_ka": 31.5, "clearing_s": 0.1, "source": "client brief: ACCB busbar fault level"}],
+          "earthing": {"soil_resistivity_ohm_m": 100, "fault_current_ka": 31.5, "fault_clearing_s": 1.0}}  # fmt: skip
+PLACE3 = {"project_id": PID, "module": MODULE, "tilt_deg": 25, "table_rows": 2, "orientation": "portrait", "inverter_strings": STRINGS3}
+CABLES3 = {"string": {"cable": "polycab-h1z2z2-k-6mm2"}, "inv_accb": {"cable": "kei-lt-xlpe-al-3.5c-240-arm", "runs": 1},
+           "accb_ltp": {"cable": "kei-lt-xlpe-al-3.5c-300-arm", "runs": 7}}  # fmt: skip
+RATINGS3 = {"busbar": {"rating_a": 2500, "material": "al", "phases": "3P+N", "fault_ka": 31.5, "fault_s": 3},
+            "ct": {"primary_a": 2500, "secondary_a": 1, "cores": [{"accuracy_class": "0.2S", "burden_va": 15, "purpose": "metering"}, {"accuracy_class": "PS", "purpose": "protection"},
+                                                                  {"accuracy_class": "0.2S", "burden_va": 15, "purpose": "metering"}]},
+            "pt": {"primary_v": 415, "secondary_v": 110, "phase_to_neutral": True, "cores": [{"accuracy_class": "0.2", "burden_va": 15, "purpose": "metering"},
+                                                                                            {"accuracy_class": "3P", "burden_va": 15, "purpose": "protection"}]}}  # fmt: skip
+BUILD3 = {"project_id": PID, "template": "utility_lt", "module": MODULE, "inverter": INVERTER, "inverter_strings": STRINGS3, "relay": RELAY, "data_logger": True,
+          "breaking_ka": 50, "cables": CABLES3, **RATINGS3}  # fmt: skip
+
+
+@pytest.fixture(scope="module")
+def run3(tmp_path_factory) -> dict:
+    """Bench run 3: the 200 x 110 m assumed plot, 5 m setback, the brief's XLPE cables and 50 kA breakers, the ACCB pad at local (95, 44)."""
+    tmp = tmp_path_factory.mktemp("rvunl-run3")
+    out: dict = {}
+
+    async def go():
+        async with connect(tmp / "ws") as c:
+            await c.call("project_create", **CREATE)
+            await c.call("project_design_basis", project_id=PID, **BASIS3)
+            out["assumed_basis"] = await c.call("project_design_basis", project_id=PID, assumed=["ambient_min_c", "ambient_max_c", "altitude_m", "vdrop_dc_max", "vdrop_ac_max", "power_factor"])
+            small = tmp / "small.csv"
+            small.write_text(SMALL3, encoding="utf-8")
+            await c.call("site_import", project_id=PID, file_path=str(small), format="coords", coordinate_system="lonlat")
+            await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
+            out["too_small"] = await c.fail("layout_place", **PLACE3)
+            site = tmp / "site.csv"
+            site.write_text(SITE3, encoding="utf-8")
+            await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat", replace=True)
+            await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
+            out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0, assumed=["tilt_deg", "rows"])
+            out["build"] = await c.call("network_autobuild", **BUILD3, accb_at="electrical_centre")
+            for placement in ("perimeter", "auto"):
+                out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
+            out["get"] = await c.call("project_get", project_id=PID, full=True)
+            out["project"] = out["get"]["project"]
+            out["acb_window"] = await c.call("validate", project_id=PID)
+            await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2000})
+            out["acb_window_low"] = await c.call("validate", project_id=PID)
+            await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2300})
+            issue = {"project_id": PID, "issued_for": "approval", "rev": "0", "drawn": "A. Sharma", "checked": "R. Meena", "approved": "V. Singh", "date": "2026-11-02"}
+            out["issue"] = await c.call("project_issue", **issue)
+            out["issue_again"] = await c.call("project_issue", **issue)
+            await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2310})
+            out["issue_changed"] = await c.fail("project_issue", **issue)
+            out["stale_validate"] = await c.call("validate", project_id=PID)
+            out["stale_get"] = await c.call("project_get", project_id=PID)
+            out["stale_render"] = await c.call("drawings_render", project_id=PID, kinds=["register"], formats=["dxf"])
+            out["amend"] = await c.call("project_issue", **issue, amend=True)
+            out["amended_validate"] = await c.call("validate", project_id=PID)
+            out["amended_get"] = await c.call("project_get", project_id=PID)
+            pvc = {**CABLES3, "inv_accb": {"cable": "kei-lt-pvc-al-3.5c-240-arm", "runs": 1}, "accb_ltp": {"cable": "kei-lt-pvc-al-3.5c-300-arm", "runs": 7}}
+            out["pvc_build"] = await c.call("network_autobuild", **{**BUILD3, "cables": pvc}, accb_at="electrical_centre")
+            out["pvc_validate"] = await c.call("validate", project_id=PID, include_info=True)
+            out["pvc_explain"] = await c.call("explain_finding", project_id=PID, rule_id="cables.ampacity", subject="e_ct_poi")
+            out["pvc_explain_drop"] = await c.call("explain_finding", project_id=PID, rule_id="vdrop.ac", subject="e_ct_poi")
+
+    asyncio.run(asyncio.wait_for(go(), 600))
+    return out
+
+
+@pytest.fixture(scope="module")
+def project3(run3):
+    return parse_project(json.dumps(run3["project"]), load_catalog(ROOT / "catalog"))
+
+
+def test_perimeter_masts_stand_outside_the_array_and_the_note_matches_them(run3, project3):
+    """NEW-2 / M7: on the 200 x 110 m plot placement='perimeter' stood the one ESE in a hole of the array (90.0, 41.5) shading 4.7 m2 of tables
+    while the note said no mast shades them; 'auto' must take the perimeter there too."""
+    from shapely.geometry import Point as SPoint
+    from shapely.geometry import Polygon
+
+    from unicad.lps.design import array_area
+
+    area = array_area(project3)
+    filled = Polygon(area.exterior) if area.geom_type == "Polygon" else area
+    for placement in ("perimeter", "auto"):
+        lps = run3[f"lps_{placement}"]["lps"]
+        assert lps["uncovered_count"] == 0
+        assert all(not filled.contains(SPoint(t["x"], t["y"])) for t in lps["terminals"]), (placement, lps["terminals"])
+        notes = " ".join(lps["assumptions"])
+        assert "terminals on the perimeter" in notes, placement
+        shaded = sum(t["shade_m2"] for t in lps["terminals"])
+        assert ("no mast shades the tables" in notes) == (shaded == 0), (placement, shaded, notes)
+
+
+def test_a_pvc_plant_has_its_ac_drop_and_withstand_checked_at_pvc_ratings(run3):
+    """NEW-3: with the KEI PVC cables vdrop.ac was 'not evaluated' (info, no resistance), cables.short_circuit had 'no cited k' (info) and the
+    ampacity used the XLPE 90 degC temperature column, so validate passed a plant whose AC drop was never checked."""
+    findings = run3["pvc_validate"]["findings"]
+    paths = [f for f in findings if f["rule_id"] == "vdrop.ac" and f["subjects"][0].startswith("inv")]
+    assert paths and all("not evaluated" not in f["message"] and "cannot be checked" not in f["message"] for f in paths)
+    assert all(f["measured"] is not None for f in paths)
+    assert "Conductor resistance taken at 70 degC (catalog r_ohm_per_km_70c)" in json.dumps(run3["pvc_explain_drop"])
+    sc = [f for f in findings if f["rule_id"] == "cables.short_circuit" and f["subjects"] and f["subjects"][0].startswith("e_")]
+    assert sc and not [f for f in sc if "cannot be checked" in f["message"] or "no cited" in f["message"]]
+    assert any("/ 76 =" in f["message"] for f in sc)
+    amp = run3["pvc_explain"]
+    text = json.dumps(amp)
+    assert "PVC 70 degC" in text and "XLPE 90 degC" not in text
+    assert run3["pvc_validate"]["counts"]["error"] > 0
+
+
+def test_a_cable_without_a_catalogued_resistance_is_a_validate_error(project3):
+    from unicad.rules import run_rules
+
+    catalog = load_catalog(ROOT / "catalog")
+    bare = catalog.get("kei-lt-pvc-al-3.5c-240-arm").model_copy(update={"id": "bare-pvc-240", "r_ohm_per_km_70c": None})
+    net = project3.network
+    edges = tuple(e.model_copy(update={"cable": bare}) if e.id.startswith("e_inv_brk") else e for e in net.edges)
+    p = project3.model_copy(update={"network": net.model_copy(update={"edges": edges})})
+    errors = [f for f in run_rules(p, catalog).findings if f.rule_id == "vdrop.ac" and f.severity.value == "error"]
+    assert errors and all("cannot be checked" in f.message and "no r_ohm_per_km_70c in the catalog" in f.message for f in errors)
+
+
+def test_a_changed_model_is_not_the_issued_revision_until_amend_reissues_it(run3):
+    """NEW-4: after the Rev 0 issue the plot, layout and network changed; project_issue(amend=true) with the same values returned changed:false and
+    the new content rendered as the same Rev 0 without a word."""
+    first = run3["issue"]
+    assert first["changed"] and first["issue"]["content_sha"] and first["issue"]["model_revision"] is not None
+    assert run3["issue_again"]["changed"] is False
+    assert "has changed since" in run3["issue_changed"] and "amend=true" in run3["issue_changed"] and "new revision mark" in run3["issue_changed"]
+    stale = [f for f in run3["stale_validate"]["findings"] if f["rule_id"] == "drawings.issued_revision"]
+    assert len(stale) == 1 and stale[0]["severity"] == "warning" and "not the issued Rev 0" in stale[0]["message"]
+    assert run3["stale_get"]["issue"]["model_is_issued_content"] is False
+    assert run3["stale_render"]["warnings"][0].startswith("NOT THE ISSUED REVISION")
+    amend = run3["amend"]
+    assert amend["changed"] is True and amend["issue"]["content_sha"] != first["issue"]["content_sha"]
+    assert amend["issue"]["model_revision"] > first["issue"]["model_revision"] and "re-issued with the current content" in amend["content"]
+    assert any("now stands for model revision" in p["message"] for p in amend["problems"])
+    assert not [f for f in run3["amended_validate"]["findings"] if f["rule_id"] == "drawings.issued_revision"]
+    assert run3["amended_get"]["issue"]["model_is_issued_content"] is True
+
+
+def test_the_acb_findings_state_the_passing_ir_window(run3):
+    """S6: with the brief's 7R x 300 sq.mm Al XLPE the outgoing ACB passes only for 2295.5 A <= Ir <= 2338.8 A; bench run 3 found it by sweeping Ir."""
+    window = "2295.5 A <= Ir <= 2338.8 A"
+    high = [f for f in run3["acb_window"]["findings"] if f["rule_id"] == "cables.protection" and f["subjects"][0] == "acdb_brk"]
+    low = [f for f in run3["acb_window_low"]["findings"] if f["rule_id"] == "protection.rated_current" and f["subjects"][0] == "acdb_brk"]
+    assert len(high) == 1 and window in high[0]["message"] and "set long_time_setting_a" in high[0]["message"]
+    assert len(low) == 1 and window in low[0]["message"]
+
+
+def test_tool_messages_count_inverters_and_strings_not_templates(run3):
+    """NEW-9 / NEW-10: layout_place said 'fewer than the 112 strings' for the 108 of the brief, and the logger note said '6 devices (the 5 inverters and
+    the meter)' for 8 inverters (it counted inverter templates)."""
+    small = run3["too_small"]
+    assert "the 108 strings of inverter_strings" in small and "112 the 108 strings" in small and "odd string count take a whole table position" in small
+    logger = next(a for a in run3["build"]["assumptions"] if a.startswith("Data logger"))
+    assert "9 devices of the daisy chain (the 8 inverters and the meter" in logger
+    assert any("the 108 strings lie each in the layout block of its inverter's number" in a for a in run3["build"]["assumptions"])
+
+
+def test_autobuild_types_the_brief_busbar_ct_pt_and_the_catalog_spd(run3, project3):
+    """Bench run 3 needed four network_update hand edits for the busbar, CT, PT and SPD ratings that network_autobuild left untyped."""
+    nodes = project3.network.node_by_id
+    assert nodes["acdb"].busbar.model_dump(mode="json", exclude_none=True) == RATINGS3["busbar"]
+    assert nodes["solar_ct"].ct.ratio == "2500/1 A" and [c.accuracy_class for c in nodes["solar_ct"].ct.cores] == ["0.2S", "PS", "0.2S"]
+    assert nodes["solar_pt"].pt.phase_to_neutral and nodes["solar_pt"].pt.primary_v == 415 and len(nodes["solar_pt"].pt.cores) == 2
+    spd = nodes["acdb_spd"]
+    assert spd.spec == "finder-7p.25.8.275.x020" and (spd.spd.spd_type, spd.spd.in_ka, spd.spd.imax_ka, spd.spd.uc_v) == ("2", 20.0, 40.0, 275.0)
+    assert all(n.spd is not None for n in project3.network.nodes if n.kind.value in ("ac_spd", "dc_spd") and n.spec)
+
+
+def test_inputs_the_agent_chose_are_marked_assumed_and_reported(run3, project3):
+    """N12 / M1: tilt 25 deg, the 2 % drop limits, the ambient, altitude and power factor were printed as facts: no tool could mark a value the agent set
+    as assumed (bench run 3 found only an undocumented 'ASSUMED' attribute text)."""
+    basis = {a["field"]: a["value"] for a in run3["assumed_basis"]["design_basis"]["assumed"]}
+    assert basis == {"design_basis.ambient_min_c": "2 degC", "design_basis.ambient_max_c": "48 degC", "design_basis.altitude_m": "431 m",
+                     "design_basis.vdrop_dc_max": "2 %", "design_basis.vdrop_ac_max": "2 %", "design_basis.power_factor": "0.99"}  # fmt: skip
+    layout = {a["field"]: a["value"] for a in run3["place"]["assumed_inputs"]}
+    assert layout == {"array_layout.tilt_deg": "25 deg", "array_layout.rows": "2"}
+    got = {a["field"]: (a["label"], a["value"]) for a in run3["get"]["assumed_inputs"]}
+    assert got["array_layout.tilt_deg"] == ("module tilt", "25 deg") and got["design_basis.vdrop_ac_max"] == ("AC voltage drop limit", "2 %")
+    assert project3.design_basis.assumed[0] == "ambient_min_c" and project3.array_layout.assumed == ("tilt_deg", "rows")
+    assert len(project3.assumed_inputs()) == 8
+
+
+def test_the_accb_at_the_electrical_centre_states_its_offset_as_settled(run3):
+    """NEW-12: after the suggested pad the ACCB stood 7.4 m off the stated centre with no word whether another layout pass was needed."""
+    note = next(a for a in run3["build"]["assumptions"] if a.startswith("ACCB at local"))
+    assert "layout_place switchyard_x=" not in note
+    assert "on the same least total cable run" in note and "so it is at the electrical centre" in note
+
+
+def test_assumed_flags_are_field_paths_the_drawings_resolve(project3):
+    """Coordinator (a): design_basis.assumed and array_layout.assumed are lists of field paths of their object (the layout's resolve on a table), the
+    shape drafting/assumptions.py reads with getattr(obj, 'assumed')."""
+
+    def resolve(obj, path):
+        for part in path.split("."):
+            obj = getattr(obj, part, None)
+        return obj
+
+    db, lay = project3.design_basis, project3.array_layout
+    table = next(iter(lay.table_by_id.values()))
+    assert all(isinstance(p, str) and resolve(db, p) is not None for p in db.assumed)
+    assert all(isinstance(p, str) and (resolve(lay, p) if resolve(lay, p) is not None else resolve(table, p)) is not None for p in lay.assumed)
+    assert resolve(table, "tilt_deg") == 25 and resolve(db, "vdrop_ac_max") == 0.02
+
+
+def test_the_pt_taps_the_accb_bus_and_the_relay_trips_the_outgoing_acb(project3):
+    """Coordinator (b) / NEW-5: PT-01 'ACCB BUS PT' tapped the outgoing conductor beyond the CT and no relay trip link to ACB-01 was drawn."""
+    net = project3.network
+    pt_feed = [e for e in net.edges if e.dst_node == "solar_pt" and e.is_power]
+    assert [(e.src_node, e.src_port) for e in pt_feed] == [("acdb", "out")]
+    trip = [e for e in net.edges if e.src_node == "relay" and e.dst_node == "acdb_brk"]
+    assert len(trip) == 1 and trip[0].service.value == "control" and "TRIP" in trip[0].remarks
+    assert {e.src_node for e in net.edges if e.dst_node == "relay"} == {"solar_ct", "solar_pt"}

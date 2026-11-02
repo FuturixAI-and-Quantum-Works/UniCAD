@@ -4,7 +4,7 @@ from unicad.mcp.workspace import Workspace
 
 ROOFTOP = """Build a rooftop PV drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: grid voltage, DC or AC capacity, inverter make/size, module make/Wp, roof survey file (KML, KMZ, GeoJSON, DXF), roof setbacks from the design basis, site ambient temperatures, fault level at the grid connection, soil resistivity, lightning protection level. Mark anything you assume.
+1. Ask the user for anything missing: grid voltage, DC or AC capacity, inverter make/size, module make/Wp, roof survey file (KML, KMZ, GeoJSON, DXF), roof setbacks from the design basis, site ambient temperatures, fault level at the grid connection, soil resistivity, lightning protection level. Mark anything you assume (the assumed lists of the design basis and the layout; see the server instructions).
 2. project_create(name, client, segment="ci_rooftop", site, grid_voltage_v). Read back `assumptions`: they are placeholders.
 3. project_design_basis(project_id, ...) before any design: ambient_min_c, ambient_max_c, altitude_m, fault_levels (one per system voltage, with its source), earthing (soil resistivity from the Wenner test, earth fault current and clearing time) and lps (level from the risk assessment, method). Each value you set replaces its placeholder.
 4. site_import(project_id, file_path). Check `problems` and `imported_by_kind`; add missed obstacles with site_set_feature (kind="obstacle", height_m). site_set_setbacks with distances from the design basis, then site_summary for the buildable roof area.
@@ -19,7 +19,7 @@ ROOFTOP = """Build a rooftop PV drawing set for "{name}" with UniCAD tools. Stat
 
 UTILITY = """Build a utility-scale PV drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: AC and DC capacity, inverter or PCS make/size, module make/Wp, MV voltage level, grid voltage at the point of interconnection, site boundary file, setbacks from the design basis, site ambient temperatures, fault levels at each system voltage, soil resistivity, earth fault level and clearing time, lightning protection level. Mark anything you assume.
+1. Ask the user for anything missing: AC and DC capacity, inverter or PCS make/size, module make/Wp, MV voltage level, grid voltage at the point of interconnection, site boundary file, setbacks from the design basis, site ambient temperatures, fault levels at each system voltage, soil resistivity, earth fault level and clearing time, lightning protection level. Mark anything you assume (the assumed lists of the design basis and the layout; see the server instructions).
 2. project_create(name, client, segment="utility", site, grid_voltage_v). Read back `assumptions`: they are placeholders.
 3. project_design_basis(project_id, ...) before any design: ambient_min_c, ambient_max_c, altitude_m, fault_levels (one per system voltage, with its source), earthing (soil resistivity from the Wenner test, earth fault current and clearing time, and switchyard_m: the MV switchyard earth grid length x width from the substation layout, set now because the layout and the BESS placement size the yard clearance from it) and lps (level from the risk assessment, method). Each value you set replaces its placeholder.
 4. site_import(project_id, file_path) for boundary, exclusions, water, roads and transmission lines; fix classification with kind_mapping or site_set_feature. site_set_setbacks (boundary_m, exclusion_m) from the design basis; site_summary for the buildable acres.
@@ -34,7 +34,7 @@ UTILITY = """Build a utility-scale PV drawing set for "{name}" with UniCAD tools
 
 BESS = """Build a battery energy storage drawing set for "{name}" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: storage power (kW) and energy (kWh), AC- or DC-coupled, PCS and battery make, grid voltage at the point of interconnection, PV capacity when hybrid, export limit, site file. Mark anything you assume.
+1. Ask the user for anything missing: storage power (kW) and energy (kWh), AC- or DC-coupled, PCS and battery make, grid voltage at the point of interconnection, PV capacity when hybrid, export limit, site file. Mark anything you assume (the assumed lists of the design basis and the layout; see the server instructions).
 2. project_create(name, client, segment="bess" or "hybrid", site, grid_voltage_v). Read back `assumptions`.
 3. project_design_basis(project_id, earthing with switchyard_m=[length, width], ...) before the network is built when there is a ground site: a hybrid's BESS units are placed clear of the switchyard earth mat, so its size is needed first. site_import(project_id, file_path) when a site file exists; site_set_setbacks from the design basis.
 4. catalog_search(kind="pcs") and catalog_search(kind="battery"), then catalog_get to confirm ratings.
