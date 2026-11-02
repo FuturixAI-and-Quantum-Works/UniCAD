@@ -6,6 +6,7 @@ linked to the layout, routed cable lengths, no block station details, no MV swit
 import asyncio
 import json
 import math
+import re
 from pathlib import Path
 
 import pytest
@@ -212,6 +213,10 @@ def stated(tmp_path_factory) -> dict:
             for at in ("layout", "electrical_centre"):
                 out[at] = await c.call("network_autobuild", **BUILD, cables=CABLES, breaking_ka=50, accb_at=at)
                 out[at + "_project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
+            note = next(a for a in out["electrical_centre"]["assumptions"] if "layout_place switchyard_x=" in a)
+            x, y = re.search(r"switchyard_x=(\d+), switchyard_y=(\d+)", note).groups()
+            await c.call("layout_place", **PLACE, switchyard_x=float(x), switchyard_y=float(y))
+            out["pad"] = await c.call("network_autobuild", **BUILD, cables=CABLES, breaking_ka=50)
 
     asyncio.run(asyncio.wait_for(go(), 600))
     return out
@@ -238,3 +243,8 @@ def test_far_inverters_over_the_drop_limit_are_named_with_the_clients_choices(st
     failing = {at: [f["subjects"][0] for f in stated[at]["findings"] if f["rule_id"] == "vdrop.ac" and f["severity"] == "error"] for at in ("layout", "electrical_centre")}
     assert len(failing["electrical_centre"]) < len(failing["layout"])
     assert any("electrical centre of the 8 field inverters" in a for a in stated["electrical_centre"]["assumptions"])
+
+
+def test_an_accb_pad_at_the_electrical_centre_holds_the_brief_cable_within_2_percent(stated):
+    assert [f["message"] for f in stated["pad"]["findings"] if f["rule_id"] == "vdrop.ac" and f["severity"] == "error"] == []
+    assert not [b for b in stated["pad"]["blockers"] if "voltage drop" in b]

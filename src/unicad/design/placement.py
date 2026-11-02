@@ -153,6 +153,7 @@ def _roof_room(site, taken) -> list[tuple[Polygon, BaseGeometry]]:
 MV_PLANT_KINDS = frozenset({NodeKind.TRANSFORMER, NodeKind.VCB, NodeKind.RMU, NodeKind.HT_PANEL, NodeKind.AUX_TRANSFORMER})
 LT_PANEL_SPACING_M = 10.0
 LT_PANEL_CLEAR_M = 2.0
+CENTRE_OFFSET_M = 10.0
 LT_PANELS = (
     f"On a ground LT plant (no MV equipment) the ACCB stands at the layout's switchyard location, which layout_place keeps free of tables, and the client panel (the point "
     f"of connection, else the LT panel) at the free spot nearest it at least {LT_PANEL_SPACING_M:g} m away, {LT_PANEL_CLEAR_M:g} m clear of tables, roads and exclusions and inside the boundary "
@@ -295,8 +296,11 @@ def electrical_centre(project: Project, inverters: list[PlacedEquipment]) -> Loc
     spot = siting.nearest_in(siting.room(site, taken, LT_PANEL_CLEAR_M), target)
     if spot is None:
         return None
+    off = math.dist((spot.x, spot.y), target)
+    away = (f"; the array leaves no free ground there, so the ACCB stands {off:.0f} m off it: layout_place switchyard_x={target[0]:.0f}, switchyard_y={target[1]:.0f} "
+            "clears an ACCB pad at the centre" if off > CENTRE_OFFSET_M else "")  # fmt: skip
     return Located(at=spot, basis=(f"electrical centre of the {len(inverters)} field inverters: the free spot nearest the point of least total inverter cable length "
-                                   f"along the array axes, ({target[0]:.1f}, {target[1]:.1f}), {LT_PANEL_CLEAR_M:g} m clear of tables (network_autobuild accb_at)"))  # fmt: skip
+                                   f"along the array axes, ({target[0]:.1f}, {target[1]:.1f}), {LT_PANEL_CLEAR_M:g} m clear of tables (network_autobuild accb_at){away}"))  # fmt: skip
 
 
 def place_equipment(project: Project, catalog: Catalog, bess_at: Point | None = None, accb_at: str = "layout") -> tuple[ArrayLayout | None, list[str]]:
