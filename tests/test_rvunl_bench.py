@@ -248,3 +248,64 @@ def test_far_inverters_over_the_drop_limit_are_named_with_the_clients_choices(st
 def test_an_accb_pad_at_the_electrical_centre_holds_the_brief_cable_within_2_percent(stated):
     assert [f["message"] for f in stated["pad"]["findings"] if f["rule_id"] == "vdrop.ac" and f["severity"] == "error"] == []
     assert not [b for b in stated["pad"]["blockers"] if "voltage drop" in b]
+
+
+STRINGS3 = [{"count": 4, "mppts": [[18, 18]] * 7}, {"count": 3, "mppts": [[18, 18]] * 6 + [[18]]}, {"count": 1, "mppts": [[19, 19]] * 3 + [[18, 18]] * 3 + [[18]]}]
+SITE3 = "lon,lat\n75.7185373,26.8865617\n75.7205516,26.8865617\n75.7205516,26.8875550\n75.7185373,26.8875550\n"
+BASIS3 = {"ambient_min_c": 2, "ambient_max_c": 48, "altitude_m": 431, "vdrop_dc_max": 0.02, "vdrop_ac_max": 0.02, "dc_ac_ratio_target": 1.17, "power_factor": 0.99,
+          "fault_levels": [{"voltage_v": 415, "fault_ka": 31.5, "clearing_s": 0.1, "source": "client brief: ACCB busbar fault level"}],
+          "earthing": {"soil_resistivity_ohm_m": 100, "fault_current_ka": 31.5, "fault_clearing_s": 1.0}}  # fmt: skip
+PLACE3 = {"project_id": PID, "module": MODULE, "tilt_deg": 25, "table_rows": 2, "orientation": "portrait", "inverter_strings": STRINGS3}
+CABLES3 = {"string": {"cable": "polycab-h1z2z2-k-6mm2"}, "inv_accb": {"cable": "kei-lt-xlpe-al-3.5c-240-arm", "runs": 1},
+           "accb_ltp": {"cable": "kei-lt-xlpe-al-3.5c-300-arm", "runs": 7}}  # fmt: skip
+BUILD3 = {"project_id": PID, "template": "utility_lt", "module": MODULE, "inverter": INVERTER, "inverter_strings": STRINGS3, "relay": RELAY, "data_logger": True,
+          "breaking_ka": 50, "cables": CABLES3}  # fmt: skip
+
+
+@pytest.fixture(scope="module")
+def run3(tmp_path_factory) -> dict:
+    """Bench run 3: the 200 x 110 m assumed plot, 5 m setback, the brief's XLPE cables and 50 kA breakers, the ACCB pad at local (95, 44)."""
+    tmp = tmp_path_factory.mktemp("rvunl-run3")
+    out: dict = {}
+
+    async def go():
+        async with connect(tmp / "ws") as c:
+            await c.call("project_create", **CREATE)
+            await c.call("project_design_basis", project_id=PID, **BASIS3)
+            site = tmp / "site.csv"
+            site.write_text(SITE3, encoding="utf-8")
+            await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat")
+            await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
+            out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0)
+            out["build"] = await c.call("network_autobuild", **BUILD3, accb_at="electrical_centre")
+            for placement in ("perimeter", "auto"):
+                out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
+            out["project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
+
+    asyncio.run(asyncio.wait_for(go(), 600))
+    return out
+
+
+@pytest.fixture(scope="module")
+def project3(run3):
+    return parse_project(json.dumps(run3["project"]), load_catalog(ROOT / "catalog"))
+
+
+def test_perimeter_masts_stand_outside_the_array_and_the_note_matches_them(run3, project3):
+    """NEW-2 / M7: on the 200 x 110 m plot placement='perimeter' stood the one ESE in a hole of the array (90.0, 41.5) shading 4.7 m2 of tables
+    while the note said no mast shades them; 'auto' must take the perimeter there too."""
+    from shapely.geometry import Point as SPoint
+    from shapely.geometry import Polygon
+
+    from unicad.lps.design import array_area
+
+    area = array_area(project3)
+    filled = Polygon(area.exterior) if area.geom_type == "Polygon" else area
+    for placement in ("perimeter", "auto"):
+        lps = run3[f"lps_{placement}"]["lps"]
+        assert lps["uncovered_count"] == 0
+        assert all(not filled.contains(SPoint(t["x"], t["y"])) for t in lps["terminals"]), (placement, lps["terminals"])
+        notes = " ".join(lps["assumptions"])
+        assert "terminals on the perimeter" in notes, placement
+        shaded = sum(t["shade_m2"] for t in lps["terminals"])
+        assert ("no mast shades the tables" in notes) == (shaded == 0), (placement, shaded, notes)
