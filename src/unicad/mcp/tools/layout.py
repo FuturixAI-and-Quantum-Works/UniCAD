@@ -210,7 +210,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                                     "holding exactly its strings, with tables as long as each string length (e.g. 2 x 19 tables for 19-module strings). Default: read from "
                                     "the network when network_autobuild built it with inverter_strings")] = None,
         assumed: Annotated[list[LayoutInput], Field(description="Inputs of this call you chose yourself (not from the brief, a survey or the client), marked as assumed so the "
-                                                    "drawings print them under ASSUMED INPUTS, e.g. [\"tilt_deg\", \"table_rows\"]")] = [],  # noqa: B006
+                                                    "drawings print them under ASSUMED INPUTS: the table fields tilt_deg, azimuth_deg, mounting, orientation, rows (table_rows), cols (table_cols), e.g. [\"tilt_deg\", \"rows\"]")] = [],  # noqa: B006
     ) -> dict[str, Any]:
         """Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
         site an inverter station per block and assign strings to module slots. Replaces any existing array layout.

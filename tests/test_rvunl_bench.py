@@ -288,7 +288,7 @@ def run3(tmp_path_factory) -> dict:
             site.write_text(SITE3, encoding="utf-8")
             await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat", replace=True)
             await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
-            out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0, assumed=["tilt_deg", "table_rows"])
+            out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0, assumed=["tilt_deg", "rows"])
             out["build"] = await c.call("network_autobuild", **BUILD3, accb_at="electrical_centre")
             for placement in ("perimeter", "auto"):
                 out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
@@ -429,10 +429,10 @@ def test_inputs_the_agent_chose_are_marked_assumed_and_reported(run3, project3):
     assert basis == {"design_basis.ambient_min_c": "2 degC", "design_basis.ambient_max_c": "48 degC", "design_basis.altitude_m": "431 m",
                      "design_basis.vdrop_dc_max": "2 %", "design_basis.vdrop_ac_max": "2 %", "design_basis.power_factor": "0.99"}  # fmt: skip
     layout = {a["field"]: a["value"] for a in run3["place"]["assumed_inputs"]}
-    assert layout == {"array_layout.tilt_deg": "25 deg", "array_layout.table_rows": "2"}
+    assert layout == {"array_layout.tilt_deg": "25 deg", "array_layout.rows": "2"}
     got = {a["field"]: (a["label"], a["value"]) for a in run3["get"]["assumed_inputs"]}
     assert got["array_layout.tilt_deg"] == ("module tilt", "25 deg") and got["design_basis.vdrop_ac_max"] == ("AC voltage drop limit", "2 %")
-    assert project3.design_basis.assumed[0] == "ambient_min_c" and project3.array_layout.assumed == ("tilt_deg", "table_rows")
+    assert project3.design_basis.assumed[0] == "ambient_min_c" and project3.array_layout.assumed == ("tilt_deg", "rows")
     assert len(project3.assumed_inputs()) == 8
 
 
@@ -441,3 +441,29 @@ def test_the_accb_at_the_electrical_centre_states_its_offset_as_settled(run3):
     note = next(a for a in run3["build"]["assumptions"] if a.startswith("ACCB at local"))
     assert "layout_place switchyard_x=" not in note
     assert "on the same least total cable run" in note and "so it is at the electrical centre" in note
+
+
+def test_assumed_flags_are_field_paths_the_drawings_resolve(project3):
+    """Coordinator (a): design_basis.assumed and array_layout.assumed are lists of field paths of their object (the layout's resolve on a table), the
+    shape drafting/assumptions.py reads with getattr(obj, 'assumed')."""
+
+    def resolve(obj, path):
+        for part in path.split("."):
+            obj = getattr(obj, part, None)
+        return obj
+
+    db, lay = project3.design_basis, project3.array_layout
+    table = next(iter(lay.table_by_id.values()))
+    assert all(isinstance(p, str) and resolve(db, p) is not None for p in db.assumed)
+    assert all(isinstance(p, str) and (resolve(lay, p) if resolve(lay, p) is not None else resolve(table, p)) is not None for p in lay.assumed)
+    assert resolve(table, "tilt_deg") == 25 and resolve(db, "vdrop_ac_max") == 0.02
+
+
+def test_the_pt_taps_the_accb_bus_and_the_relay_trips_the_outgoing_acb(project3):
+    """Coordinator (b) / NEW-5: PT-01 'ACCB BUS PT' tapped the outgoing conductor beyond the CT and no relay trip link to ACB-01 was drawn."""
+    net = project3.network
+    pt_feed = [e for e in net.edges if e.dst_node == "solar_pt" and e.is_power]
+    assert [(e.src_node, e.src_port) for e in pt_feed] == [("acdb", "out")]
+    trip = [e for e in net.edges if e.src_node == "relay" and e.dst_node == "acdb_brk"]
+    assert len(trip) == 1 and trip[0].service.value == "control" and "TRIP" in trip[0].remarks
+    assert {e.src_node for e in net.edges if e.dst_node == "relay"} == {"solar_ct", "solar_pt"}

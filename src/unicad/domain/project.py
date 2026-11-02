@@ -150,7 +150,7 @@ class BessRating(_Frozen):
 
 
 DesignInput = Literal[
-    "ambient_min_c", "ambient_max_c", "altitude_m", "vdrop_dc_max", "vdrop_ac_max", "dc_ac_ratio_target", "power_factor", "grid.voltage_v", "fault_levels",
+    "ambient_min_c", "ambient_max_c", "altitude_m", "vdrop_dc_max", "vdrop_ac_max", "dc_ac_ratio_target", "power_factor", "grid.voltage_v",
     "earthing.soil_resistivity_ohm_m", "earthing.fault_current_ka", "earthing.fault_clearing_s", "lps.level", "lps.ese_delta_t_us", "lps.mast_height_m",
 ]  # fmt: skip
 """Design-basis inputs that can be marked as assumed."""
@@ -192,7 +192,7 @@ class DesignBasis(_Frozen):
 
     @model_validator(mode="after")
     def _assumed_set(self) -> Self:
-        missing = [k for k in self.assumed if k.split(".")[0] in ("earthing", "lps", "fault_levels") and not getattr(self, k.split(".")[0])]
+        missing = [k for k in self.assumed if k.split(".")[0] in ("earthing", "lps") and not getattr(self, k.split(".")[0])]
         if missing:
             raise ValueError(f"assumed lists {missing}, which the design basis does not hold yet: set them first")
         return self
@@ -352,19 +352,17 @@ class Project(_Frozen):
 DESIGN_INPUT_LABELS = {
     "ambient_min_c": "minimum ambient temperature", "ambient_max_c": "maximum ambient temperature", "altitude_m": "site altitude",
     "vdrop_dc_max": "DC voltage drop limit", "vdrop_ac_max": "AC voltage drop limit", "dc_ac_ratio_target": "DC/AC ratio target", "power_factor": "design power factor",
-    "grid.voltage_v": "grid connection voltage", "fault_levels": "fault level", "earthing.soil_resistivity_ohm_m": "soil resistivity",
+    "grid.voltage_v": "grid connection voltage", "earthing.soil_resistivity_ohm_m": "soil resistivity",
     "earthing.fault_current_ka": "earth fault current", "earthing.fault_clearing_s": "earth fault clearing time", "lps.level": "lightning protection level",
     "lps.ese_delta_t_us": "ESE early streamer advance", "lps.mast_height_m": "lightning mast height",
 }  # fmt: skip
 LAYOUT_INPUT_LABELS = {
-    "tilt_deg": "module tilt", "azimuth_deg": "module azimuth", "mounting": "mounting", "orientation": "module orientation", "table_rows": "modules across a table",
-    "table_cols": "modules along a table", "switchyard": "switchyard / ACCB position",
+    "tilt_deg": "module tilt", "azimuth_deg": "module azimuth", "mounting": "mounting", "orientation": "module orientation", "rows": "modules across a table",
+    "cols": "modules along a table",
 }  # fmt: skip
 
 
 def _basis_value(db: DesignBasis, k: str) -> str:
-    if k == "fault_levels":
-        return "; ".join(f"{f.fault_ka:g} kA at {f.voltage_v:g} V" + (f" for {f.clearing_s:g} s" if f.clearing_s else "") for f in db.fault_levels)
     head, _, tail = k.partition(".")
     v = getattr(getattr(db, head), tail) if tail else getattr(db, head)
     if v is None:
@@ -377,11 +375,9 @@ def _basis_value(db: DesignBasis, k: str) -> str:
 
 
 def _layout_value(lay: ArrayLayout, t, k: str) -> str:
-    if k == "switchyard":
-        return f"local ({lay.switchyard.at.x:.1f}, {lay.switchyard.at.y:.1f})" if lay.switchyard else "not set"
     if t is None:
         return "not set"
-    if k == "table_cols":
+    if k == "cols":
         return f"{max(x.cols for x in lay.table_by_id.values())}"
-    v = getattr(t, "rows" if k == "table_rows" else k)
+    v = getattr(t, k)
     return f"{v:g} deg" if k in ("tilt_deg", "azimuth_deg") else str(getattr(v, "value", v))

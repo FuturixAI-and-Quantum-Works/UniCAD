@@ -126,8 +126,8 @@ class PlacedEquipment(_Frozen):
     basis: str
 
 
-LayoutInput = Literal["tilt_deg", "azimuth_deg", "mounting", "orientation", "table_rows", "table_cols", "switchyard"]
-"""layout_place inputs a layout can mark as assumed."""
+LayoutInput = Literal["tilt_deg", "azimuth_deg", "mounting", "orientation", "rows", "cols"]
+"""Table fields a layout can mark as assumed (the layout_place inputs tilt_deg, azimuth_deg, mounting, orientation, table_rows, table_cols)."""
 
 
 class ArrayLayout(_Frozen):

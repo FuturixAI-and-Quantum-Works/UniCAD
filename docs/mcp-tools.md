@@ -138,7 +138,7 @@ lps={"level": "III", "method": "ese", "ese_delta_t_us": 60, "mast_height_m": 6})
 | `vdrop_ac_max` | number | no | Max AC voltage drop as a fraction |
 | `dc_ac_ratio_target` | number | no | Target DC/AC ratio |
 | `power_factor` | number | no | Design power factor |
-| `assumed` | list of `ambient_min_c` \| `ambient_max_c` \| `altitude_m` \| `vdrop_dc_max` \| `vdrop_ac_max` \| `dc_ac_ratio_target` \| `power_factor` \| `grid.voltage_v` \| `fault_levels` \| `earthing.soil_resistivity_ohm_m` \| `earthing.fault_current_ka` \| `earthing.fault_clearing_s` \| `lps.level` \| `lps.ese_delta_t_us` \| `lps.mast_height_m` | no | Replace the list of design-basis inputs marked as assumed (values you chose, not the client's or a cited source's), e.g. ["ambient_max_c", "vdrop_ac_max", "lps.mast_height_m"]; [] clears it. The drawings print them as assumed |
+| `assumed` | list of `ambient_min_c` \| `ambient_max_c` \| `altitude_m` \| `vdrop_dc_max` \| `vdrop_ac_max` \| `dc_ac_ratio_target` \| `power_factor` \| `grid.voltage_v` \| `earthing.soil_resistivity_ohm_m` \| `earthing.fault_current_ka` \| `earthing.fault_clearing_s` \| `lps.level` \| `lps.ese_delta_t_us` \| `lps.mast_height_m` | no | Replace the list of design-basis inputs marked as assumed (values you chose, not the client's or a cited source's), e.g. ["ambient_max_c", "vdrop_ac_max", "lps.mast_height_m"]; [] clears it. The drawings print them as assumed |
 
 ### `project_issue`
 
@@ -348,7 +348,7 @@ Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, r
 | `switchyard_y` | number | no | Local y (m) of the MV switchyard |
 | `bess_area_m` | list of number | no | BESS area length x width (m) kept free of tables beside the switchyard, where network_autobuild then places the BESS units. Default on hybrid and BESS plants: the grid of the network's BESS units, else an assumed area (reported) |
 | `inverter_strings` | list of object | no | Strings given per inverter and MPPT, as for network_autobuild: one block per inverter holding exactly its strings, with tables as long as each string length (e.g. 2 x 19 tables for 19-module strings). Default: read from the network when network_autobuild built it with inverter_strings |
-| `assumed` | list of `tilt_deg` \| `azimuth_deg` \| `mounting` \| `orientation` \| `table_rows` \| `table_cols` \| `switchyard` | no | Inputs of this call you chose yourself (not from the brief, a survey or the client), marked as assumed so the drawings print them under ASSUMED INPUTS, e.g. ["tilt_deg", "table_rows"] Default: `[]`. |
+| `assumed` | list of `tilt_deg` \| `azimuth_deg` \| `mounting` \| `orientation` \| `rows` \| `cols` | no | Inputs of this call you chose yourself (not from the brief, a survey or the client), marked as assumed so the drawings print them under ASSUMED INPUTS: the table fields tilt_deg, azimuth_deg, mounting, orientation, rows (table_rows), cols (table_cols), e.g. ["tilt_deg", "rows"] Default: `[]`. |
 
 ### `layout_summary`
 

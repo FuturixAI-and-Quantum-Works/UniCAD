@@ -633,11 +633,13 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     if pt:
         b.node("solar_pt", "PT-01", NodeKind.PT, voltage_v=v, title="ACCB BUS PT")
         _rated(b, "solar_pt", "pt", stated.pt)
-        b.edge("e_ct_pt", "solar_ct:out", "solar_pt:in", V.LV_AC, remarks="inside the ACCB")
+        b.edge("e_bus_pt", "acdb:out", "solar_pt:in", V.LV_AC, remarks="ACCB bus PT, inside the ACCB")
         b.node("relay", "REL-01", NodeKind.RELAY, relay=relay.model_dump(mode="json"), title="NUMERICAL PROTECTION RELAY")
         b.edge("c_ct_relay", "solar_ct:sec", "relay:sig", V.CONTROL)
         b.edge("c_pt_relay", "solar_pt:sec", "relay:sig", V.CONTROL)
         b.edge("c_pt_meter", "solar_pt:sec", "solar_meter:sig", V.CONTROL)
+        next(n for n in b.nodes if n["id"] == out)["ports"] = ["in", "out", "sig"]
+        b.edge("c_relay_trip", "relay:sig", f"{out}:sig", V.CONTROL, remarks="TRIP: relay trips the outgoing ACB")
         b.earth("solar_pt")
         b.assume(f"The relay ({'/'.join(relay.functions)}) is fed by the ACCB outgoing CT and the bus PT and trips the outgoing ACB; its settings come from the protection study.")
     if data_logger:
