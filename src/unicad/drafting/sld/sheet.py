@@ -4,7 +4,7 @@ import io
 import re
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
@@ -162,21 +162,24 @@ def fit_layout(
     better, with the scale it fits at."""
     area = metrics_for(PaperSize(paper)).drawing_area
 
-    def best(opts: SldOptions) -> tuple[SldLayout, float]:
-        layout = layout_sld(project.network, catalog, opts, scope, xrefs)
-        scale = layout.fit_scale(area.width, area.height, opts)
-        rows = stack_rows(project.network, catalog, opts, scope, xrefs, area.width, area.height) if scale < opts.max_scale else None
-        if rows is not None and rows_win(scale, rows.fit_scale(area.width, area.height, opts)):
-            return rows, rows.fit_scale(area.width, area.height, opts)
-        return layout, scale
+    def best(opts: SldOptions) -> tuple[SldLayout, SldOptions, float]:
+        out = None
+        for o in (opts, replace(opts, sat_lines=2)):
+            layout = layout_sld(project.network, catalog, o, scope, xrefs)
+            scale = layout.fit_scale(area.width, area.height, o)
+            rows = stack_rows(project.network, catalog, o, scope, xrefs, area.width, area.height) if scale < o.max_scale else None
+            if rows is not None and rows_win(scale, rows.fit_scale(area.width, area.height, o)):
+                layout, scale = rows, rows.fit_scale(area.width, area.height, o)
+            if out is None or scale > out[2] + 1e-9:
+                out = (layout, o, scale)
+        return out
 
-    layout, scale = best(options)
-    if scale < options.min_scale:
-        tight = options.compact()
-        compact, cscale = best(tight)
+    layout, opts, scale = best(options)
+    if scale < 1.0:
+        compact, tight, cscale = best(options.compact())
         if cscale > scale:
             return compact, tight, cscale
-    return layout, options, scale
+    return layout, opts, scale
 
 
 def furniture_overflow(

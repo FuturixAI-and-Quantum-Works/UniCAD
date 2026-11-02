@@ -114,3 +114,70 @@ def test_a_logger_left_without_spec_names_the_catalogued_logger(tmp_path):
     index = render_set(bench2(), tmp_path, kinds=["sld"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
     warns = [w for s in index["sheets"] for w in s["warnings"] if "'dlog'" in w]
     assert len(warns) == 1 and "the catalog has solis-s3-logger for this symbol" in warns[0], warns
+
+
+# ---------------- RVUNL LT SLD fills its paper (item 4) ----------------
+
+
+@pytest.fixture(scope="module")
+def bench_sld_sheet():
+    from unicad.drafting.sld.sheet import fit_layout
+    from unicad.sets.render import plan_set
+    from unicad.tenants.store import drawing_profile
+
+    p = bench2()
+    sheets = dict(plan_set(p, ["sld"], drawing_profile(p.company_profile), CATALOG))["sld"]
+    assert len(sheets) == 1
+    s = sheets[0]
+    layout, opts, scale = fit_layout(p, CATALOG, s.paper, None)
+    return s, layout, opts, scale
+
+
+def test_rvunl_lt_sld_fits_a1_at_full_size_and_fills_it(bench_sld_sheet):
+    from unicad.drafting.sheets.model import PaperSize
+    from unicad.drafting.sheets.render import metrics_for
+
+    s, layout, opts, scale = bench_sld_sheet
+    assert s.paper == "A1", s.paper
+    assert scale >= 1.0 >= opts.min_scale
+    area = metrics_for(PaperSize(s.paper)).drawing_area
+    fill = (scale * (layout.extent.width + 2 * opts.margin) / area.width, scale * (layout.extent.height + 2 * opts.margin) / area.height)
+    assert min(fill) >= 0.95, fill
+    rows = [h.text for h in layout.headings]
+    assert len(rows) == 3, rows
+    bottom = [f for f in layout.frames if f.box.y1 < layout.extent.y0 + 0.4 * layout.extent.height]
+    assert sum(f.box.width for f in bottom) >= 0.75 * layout.extent.width, "the last row is no strip at the left of an empty sheet"
+
+
+def test_rvunl_logger_sits_with_the_metering_not_in_a_repeated_inverter_frame(bench_sld_sheet):
+    _, layout, _, _ = bench_sld_sheet
+    dl = next(x for x in layout.symbols if x.node_id == "dlog")
+    meter = next(x for x in layout.symbols if x.node_id == "solar_meter")
+    repeated = [f for f in layout.frames if f.multiplicity > 1]
+    assert repeated
+    assert not [f for f in repeated if f.box.overlaps(dl.body)], "DL-01 drawn inside an (x N) frame reads as N loggers"
+    assert abs(dl.body.y1 - meter.body.y1) < 1 and 0 < dl.body.x0 - meter.body.x1 < 60, "drawn on the line of the meter, next to it"
+
+
+# ---------------- MMS table details with given strings (item 6, bench run 3 NEW-1) ----------------
+
+
+def bench3() -> Project:
+    """The RVUNL plant as bench run 3 issued it (rev 42): one block per inverter, tables as long as each string (2P x 18, 2P x 19, 2P x 9)."""
+    return Project.model_validate_json((DATA / "rvunl_heerapura_bench3.json").read_text(encoding="utf-8"))
+
+
+def test_mms_table_counts_full_and_half_by_each_tables_own_string(tmp_path):
+    import ezdxf
+
+    from unicad.sets import render_set
+
+    index = render_set(bench3(), tmp_path, kinds=["layout"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    msp = ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace()
+    texts = [e for e in msp.query("TEXT")]
+    total = next(e for e in texts if e.dxf.text == "TOTAL" and abs(e.dxf.insert.y - min(x.dxf.insert.y for x in texts if x.dxf.text == "TOTAL")) < 1e-6)
+    row = sorted((e for e in texts if abs(e.dxf.insert.y - total.dxf.insert.y) < 0.5), key=lambda e: e.dxf.insert.x)
+    assert [e.dxf.text for e in row][:4] == ["TOTAL", "52", "4", "56"], [e.dxf.text for e in row]
+    words = " ".join(e.dxf.text for e in texts)
+    assert "FULL TABLE TYPICAL ARRANGEMENT (2P x 18)" in words and "HALF TABLE (2P x 9)" in words
+    assert "TABLES 2P x 18 (49 NOS), 2P x 19 (3 NOS)" in words

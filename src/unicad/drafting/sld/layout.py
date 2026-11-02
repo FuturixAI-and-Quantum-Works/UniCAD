@@ -205,6 +205,7 @@ class _Sat:
     kind: str  # "tap" | "control"
     geom: _Geom | None = None
     pin: str = ""
+    line: int = 0
 
 
 @dataclass
@@ -350,24 +351,39 @@ class _Builder:
             roots += comp_roots
             self._rank_component(comp_roots, placed)
         self.roots = roots
-        for n in self.control_only:
-            host = next(
-                (
-                    e.src_node if e.dst_node == n.id else e.dst_node
-                    for e in self.edges
-                    if e.service is Service.CONTROL and n.id in (e.src_node, e.dst_node)
-                    and (e.src_node if e.dst_node == n.id else e.dst_node) in self.recs
-                    and (e.src_node if e.dst_node == n.id else e.dst_node) not in {c.id for c in self.control_only}
-                ),
-                None,
-            )
-            if host is None:
-                self.warnings.append(f"{n.id}: control-only node with no host on this sheet; not drawn")
-                continue
-            e = next(e for e in self.edges if e.service is Service.CONTROL and {e.src_node, e.dst_node} == {n.id, host})
-            host_port = e.src_port if e.src_node == host else e.dst_port
-            self.sat_of[n.id] = host
-            self.recs[host].sats.append(_Sat(n.id, e, host_port, "control"))
+        control_only = {c.id for c in self.control_only}
+        group = {nid: rec.node.group for nid, rec in self.recs.items()}
+
+        def hosts(n: Node, via: bool) -> list[tuple[str, Edge]]:
+            """Hosts for `n` with the link that ties it there, best first: one in the node's own group (a plant-level logger is not drawn
+            inside one inverter's frame), then any. With `via`, a control-only neighbour already drawn lends its host."""
+            out = []
+            for e in self.edges:
+                if e.service is not Service.CONTROL or n.id not in (e.src_node, e.dst_node):
+                    continue
+                o = e.src_node if e.dst_node == n.id else e.dst_node
+                if o in self.recs and o not in control_only:
+                    out.append((o, e))
+                elif via and o in self.sat_of:
+                    out.append((self.sat_of[o], e))
+            return sorted(out, key=lambda h: group[h[0]] != n.group)
+
+        def lent(n: Node) -> bool:
+            return any(e.service is Service.CONTROL and {e.src_node, e.dst_node} - {n.id} <= control_only for e in self.edges if n.id in (e.src_node, e.dst_node))
+
+        pending = list(self.control_only)
+        for via in (False, True):
+            for n in list(pending):
+                found = hosts(n, via)
+                if not found or (not via and group[found[0][0]] != n.group and lent(n)):
+                    continue
+                host, e = found[0]
+                host_port = e.src_port if e.src_node == host else e.dst_port
+                self.sat_of[n.id] = host
+                self.recs[host].sats.append(_Sat(n.id, e, host_port, "control"))
+                pending.remove(n)
+        for n in pending:
+            self.warnings.append(f"{n.id}: control-only node with no host on this sheet; not drawn")
         for e in self.edges:
             if e.service is Service.EARTH:
                 for a, b in ((e.src_node, e.dst_node), (e.dst_node, e.src_node)):
@@ -496,7 +512,7 @@ class _Builder:
             if rec.earth:
                 ext = self._earth(rec, ext)
             rec.ctrl_x = _ceil_grid(ext.x1 + STUB)
-            cursor = rec.ctrl_x + STUB
+            local: list[tuple[_Sat, _Geom, Side]] = []
             for s in rec.sats:
                 srec = self.recs[s.node_id]
                 ssym = _symbol(srec.key)
@@ -512,13 +528,39 @@ class _Builder:
                     hy = g.pins[host_pin][0][1] if host_pin in g.pins else g.body.y0
                     dy = hy if side is Side.W else 0.0
                 left = min([sg.body.x0] + [lb.box.x0 for lb in sg.labels])
-                sg = sg.shifted(cursor - left + (STUB if side is Side.W else 0), dy)
-                s.geom = sg
-                srec.geom = sg
-                sext = union_all([sg.body] + [lb.box for lb in sg.labels])
-                ext = ext.union(sext)
-                cursor = sext.x1 + STUB * 2
-            west = [s.geom.body.y1 for s in rec.sats if s.kind == "control" and s.geom.pins[s.pin][1] is Side.W]
+                local.append((s, sg.shifted(-left + (STUB if side is Side.W else 0), dy), side))
+            for s, sg, _ in local:
+                s.line = 0
+            controls = [i for i, (s, _, _) in enumerate(local) if s.kind == "control"]
+            if self.o.sat_lines > 1 and len(controls) > 1:
+                widths = [union_all([sg.body] + [lb.box for lb in sg.labels]).x1 + STUB * 2 for _, sg, _ in local]
+                rest = [i for i in range(len(local)) if i not in controls]
+                k = min(range(1, len(controls)), key=lambda k: max(sum(widths[i] for i in controls[:k] + rest), sum(widths[i] for i in controls[k:])))
+                for i in controls[k:]:
+                    local[i][0].line = 1
+            drop = 0.0
+            for line in (0, 1):
+                cursor = rec.ctrl_x + STUB
+                placed_line = []
+                for s, sg, _ in local:
+                    if s.line != line:
+                        continue
+                    sg = sg.shifted(cursor, 0.0)
+                    placed_line.append((s, sg))
+                    cursor = union_all([sg.body] + [lb.box for lb in sg.labels]).x1 + STUB * 2
+                if line and placed_line:
+                    top = max(union_all([sg.body] + [lb.box for lb in sg.labels]).y1 for _, sg in placed_line)
+                    # Room for the run and its 'TO ... (SEE ROW n)' lines where a link from this line continues in another row.
+                    far = {s.node_id: {x.dst_node if x.src_node == s.node_id else x.src_node for x in self.remote_links if s.node_id in (x.src_node, x.dst_node)}
+                           for s, _ in placed_line}
+                    rows = max((len({self.remote[f] for f in fs}) for fs in far.values()), default=0)
+                    drop = ext.y0 - 2 * STUB - top - (4 * STUB + rows * LINE_PITCH * self.o.callout_height if rows else 0.0)
+                for s, sg in placed_line:
+                    sg = sg.shifted(0.0, drop)
+                    s.geom = sg
+                    self.recs[s.node_id].geom = sg
+                    ext = ext.union(union_all([sg.body] + [lb.box for lb in sg.labels]))
+            west = [s.geom.body.y1 for s in rec.sats if s.kind == "control" and not s.line and s.geom.pins[s.pin][1] is Side.W]
             rec.ctrl_y = _ceil_grid(max([0.0] + west) + STUB)
             if any(s.kind == "control" for s in rec.sats):
                 ext = ext.union(Box(ext.x0, ext.y0, ext.x1, rec.ctrl_y + STUB / 2))
@@ -956,6 +998,8 @@ class _Builder:
                     ty = _snap(self.band_top[rec.rank] + self.tap_h[rec.rank] / 2)
                     pts = [hpin.at, (hpin.at[0], ty), (spin.at[0], ty), spin.at]
                     junction_taps.append((hpin.at[0], ty))
+                elif s.line:
+                    pts = list(self._route(hpin, self._side_of(nid, s.host_port), spin, self._side_of(s.node_id, s.pin), bodies))
                 elif s.kind == "control" and abs(spin.at[1] - hpin.at[1]) < 1e-6:
                     pts = [hpin.at, spin.at]
                 elif s.kind == "control":
@@ -1045,6 +1089,11 @@ class _Builder:
         x, y = pin.at
         end = (x + dx * 4 * STUB, y + dy * 4 * STUB)
         h = self.o.callout_height
+        host = self.recs.get(self.sat_of.get(near, ""))
+        if dy > 0 and host is not None and self.tap_h.get(host.rank) and any(s.kind == "tap" for s in host.sats) \
+                and any(s.node_id == near and not s.line for s in host.sats):
+            # Up from a satellite: the run crosses the tap line above the satellites and its names sit clear above it.
+            end = (x, max(end[1], _snap(self.band_top[host.rank] + self.tap_h[host.rank] / 2) + h + STUB / 2))
         by_row: dict[str, list[str]] = defaultdict(list)
         for _, far in links:
             by_row[self.remote[far]].append(xref_tag(self.net, self.net.node(far), self.net.node(near)))
@@ -1784,8 +1833,10 @@ def _feeders(b: "_Builder", network: ElectricalNetwork) -> tuple[str | None, fro
         return None
     subtrees = [frozenset(b._subtree_nodes(c)) - b.markers for c in b.recs[split].children if c not in b.markers]
     main = nodes - frozenset().union(*subtrees)
-    # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn.
-    wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
+    # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn; a data
+    # link (RS-485) continues in a stub instead.
+    wired = [s for s in subtrees if any(e.service is Service.CONTROL and not is_comms(e) and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main
+                                        for e in network.edges)]
     # A bus SPD is drawn beside the bus wherever the bus is (`_expand_scope`): it is no feeder of its own.
     beside = _expand_scope(network, main)
     wired += [s for s in subtrees if s <= beside and s not in wired]
@@ -1872,7 +1923,6 @@ def rows_win(plain: float, rows: float) -> bool:
 
 
 MAX_ROWS = 5
-ROW_GAP = 15.0
 ROW_HEADING_H = 3.5
 
 
@@ -1989,7 +2039,7 @@ def stack_rows(
                         refs[e.id] = f"{ROW_REF}{row_of[other] + 1}"
             remote = {n: f"{ROW_REF}{r + 1}" for n, r in (row_of | owner).items() if r != i}
             parts.append(_build(network, catalog, options, ids, refs, lay.notes, remote)[1])
-        stacked = replace(_stack(parts, bus), notes=lay.notes)
+        stacked = replace(_stack(parts, bus, options.row_gap), notes=lay.notes)
         scale = stacked.fit_scale(width, height, options)
         if best is None or scale > best[0] + 1e-9:
             best = (scale, stacked)
@@ -1998,7 +2048,7 @@ def stack_rows(
     return best[1]
 
 
-def _stack(parts: list[SldLayout], bus: str | None) -> SldLayout:
+def _stack(parts: list[SldLayout], bus: str | None, gap: float) -> SldLayout:
     """Rows one under another, left edges aligned, each under its heading; marker symbol ids are made unique per row."""
     n = len(parts)
     x0 = min(p.extent.x0 for p in parts)
@@ -2017,7 +2067,7 @@ def _stack(parts: list[SldLayout], bus: str | None) -> SldLayout:
                 offsheets=tuple(replace(o, symbol_id=f"{o.symbol_id}@row{i}") if o.symbol_id in ids else o for o in moved.offsheets),
             )
         out.append(moved)
-        top = moved.extent.y0 - ROW_GAP
+        top = moved.extent.y0 - gap
     return SldLayout(
         symbols=tuple(s for p in out for s in p.symbols),
         busbars=tuple(b for p in out for b in p.busbars),
