@@ -434,3 +434,10 @@ def test_inputs_the_agent_chose_are_marked_assumed_and_reported(run3, project3):
     assert got["array_layout.tilt_deg"] == ("module tilt", "25 deg") and got["design_basis.vdrop_ac_max"] == ("AC voltage drop limit", "2 %")
     assert project3.design_basis.assumed[0] == "ambient_min_c" and project3.array_layout.assumed == ("tilt_deg", "table_rows")
     assert len(project3.assumed_inputs()) == 8
+
+
+def test_the_accb_at_the_electrical_centre_states_its_offset_as_settled(run3):
+    """NEW-12: after the suggested pad the ACCB stood 7.4 m off the stated centre with no word whether another layout pass was needed."""
+    note = next(a for a in run3["build"]["assumptions"] if a.startswith("ACCB at local"))
+    assert "layout_place switchyard_x=" not in note
+    assert "on the same least total cable run" in note and "so it is at the electrical centre" in note

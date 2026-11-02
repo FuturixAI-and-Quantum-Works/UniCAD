@@ -154,6 +154,7 @@ MV_PLANT_KINDS = frozenset({NodeKind.TRANSFORMER, NodeKind.VCB, NodeKind.RMU, No
 LT_PANEL_SPACING_M = 10.0
 LT_PANEL_CLEAR_M = 2.0
 CENTRE_OFFSET_M = 10.0
+CENTRE_SETTLED_M = 1.0
 LT_PANELS = (
     f"On a ground LT plant (no MV equipment) the ACCB stands at the layout's switchyard location, which layout_place keeps free of tables, and the client panel (the point "
     f"of connection, else the LT panel) at the free spot nearest it at least {LT_PANEL_SPACING_M:g} m away, {LT_PANEL_CLEAR_M:g} m clear of tables, roads and exclusions and inside the boundary "
@@ -293,13 +294,35 @@ def electrical_centre(project: Project, inverters: list[PlacedEquipment]) -> Loc
     target = (mu * ux + mv * vx, mu * uy + mv * vy)
     tables = unary_union([Polygon(table_corners(t)) for t in layout.table_by_id.values()])
     taken = unary_union([tables, *(ShapelyPoint(e.at.x, e.at.y).buffer(INVERTER_SPACING_M) for e in inverters)])
-    spot = siting.nearest_in(siting.room(site, taken, LT_PANEL_CLEAR_M), target)
+    room = siting.room(site, taken, LT_PANEL_CLEAR_M)
+    spot = siting.nearest_in(room, target)
     if spot is None:
         return None
+
+    def run(p: Point) -> float:
+        pu, pv = p.x * ux + p.y * uy, p.x * vx + p.y * vy
+        return sum(abs(u - pu) for u in us) + sum(abs(v - pv) for v in vs)
+
+    pad = layout.switchyard if layout.switchyard is not None and layout.switchyard.basis.startswith("given") else None
+    where = "the free spot nearest"
+    if pad is not None and run(pad.at) < run(spot) and room.buffer(1e-6).contains(ShapelyPoint(pad.at.x, pad.at.y)):
+        spot, where = pad.at, "the ACCB pad layout_place keeps (switchyard_x/y), which is nearer in cable than any free spot by"
     off = math.dist((spot.x, spot.y), target)
-    away = (f"; the array leaves no free ground there, so the ACCB stands {off:.0f} m off it: layout_place switchyard_x={target[0]:.0f}, switchyard_y={target[1]:.0f} "
-            "clears an ACCB pad at the centre" if off > CENTRE_OFFSET_M else "")  # fmt: skip
-    return Located(at=spot, basis=(f"electrical centre of the {len(inverters)} field inverters: the free spot nearest the point of least total inverter cable length "
+    best = run(Point(x=round(target[0], 3), y=round(target[1], 3)))
+    extra = run(spot) - best
+    if off <= CENTRE_SETTLED_M:
+        away = ""
+    elif extra <= CENTRE_SETTLED_M:
+        away = (f"; it stands {off:.1f} m from that point on the same least total cable run (along each axis any point between the middle inverters "
+                "gives it), so it is at the electrical centre")
+    elif off > CENTRE_OFFSET_M and (pad is None or math.dist((pad.at.x, pad.at.y), target) > CENTRE_OFFSET_M):
+        away = (f"; the array leaves no free ground there, so the ACCB stands {off:.0f} m off it: layout_place switchyard_x={target[0]:.0f}, switchyard_y={target[1]:.0f} "
+                "clears an ACCB pad at the centre")  # fmt: skip
+    else:
+        away = (f"; it stands {off:.1f} m off the centre, which adds {extra:.0f} m ({extra / best:.1%}) to the total inverter cable run along the array axes; this offset is final: "
+                + ("the layout already keeps an ACCB pad (switchyard_x/y) and moving it again moves the blocks and their inverters, and the centre with them" if pad is not None
+                   else "the nearest free ground is this close"))  # fmt: skip
+    return Located(at=spot, basis=(f"electrical centre of the {len(inverters)} field inverters: {where} the point of least total inverter cable length "
                                    f"along the array axes, ({target[0]:.1f}, {target[1]:.1f}), {LT_PANEL_CLEAR_M:g} m clear of tables (network_autobuild accb_at){away}"))  # fmt: skip
 
 
