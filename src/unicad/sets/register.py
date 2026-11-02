@@ -11,8 +11,10 @@ from unicad.drafting.project_fields import developer
 from unicad.drafting.assumptions import set_assumptions
 from unicad.drafting.register import ASSUMED_POINTER, NOTES, RegisterRow, register_table, set_totals
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
+from unicad.drafting.sheets.render import render_sheet
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.tables import render_tables
+from unicad.drafting.tables.draw import new_document
 from unicad.schedules.dxf import SheetContext
 from unicad.sets.common import dated, finish, issued_for, latest, location
 from unicad.sets.numbering import Numberer
@@ -82,7 +84,8 @@ class RegisterBuilder:
     @staticmethod
     def _pages(project: Project, profile: CompanyProfile, mine: Sequence[Sheet], listed: Sequence[tuple[str, Sheet]], drawn_on: date | None) -> int:
         rows = rows_for(project, profile, [("register", s) for s in mine] + list(listed), drawn_on)
-        return table_pages(register_table(rows, preamble(project), set_assumptions(project)), PaperSize(mine[0].paper))
+        assumed = set_assumptions(project) if not _panel_holds(project, profile, mine[0], rows, drawn_on) else ()
+        return table_pages(register_table(rows, preamble(project), assumed), PaperSize(mine[0].paper))
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
               catalog: Catalog | None, kinds: dict[str, str] | None = None, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
@@ -99,7 +102,8 @@ class RegisterBuilder:
                 elif s.id not in planned:
                     listed.append((_kind_of(s, kinds or {}), s))
             rows = rows_for(project, profile, listed, drawn_on)
-            spec = register_table(rows, preamble(project), set_assumptions(project))
+            in_table = not _panel_holds(project, profile, mine[0], rows, drawn_on)
+            spec = register_table(rows, preamble(project), set_assumptions(project) if in_table else ())
             pages = table_pages(spec, paper)
             if pages == k:
                 break
@@ -111,11 +115,20 @@ class RegisterBuilder:
         def page_spec(page: int, pages: int, part: int):
             s = mine[page - 1]
             spec = finish(dated(SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0), drawn_on), project, "register")
-            return spec.model_copy(update={"assumptions": (ASSUMED_POINTER,)}) if spec.assumptions else spec
+            return spec.model_copy(update={"assumptions": (ASSUMED_POINTER,)}) if in_table and spec.assumptions else spec
 
         render = render_tables([(spec, paper)], profile, page_spec)
         meta = {"rows": [r.__dict__ for r in rows]}
         return [BuiltSheet(s, doc, None, render.warnings if i == 0 else (), meta if i == 0 else {}) for i, (s, doc) in enumerate(zip(mine, render.docs))]
+
+
+def _panel_holds(project: Project, profile: CompanyProfile, sheet: Sheet, rows: Sequence[RegisterRow], drawn_on: date | None) -> bool:
+    """Whether the register's side panel prints every assumed input of the set; when it does not, the register table lists them instead."""
+    paper = PaperSize(sheet.paper)
+    spec = finish(dated(SheetContext(project, profile, sheet, paper, NOTES, set_totals(rows)).spec(sheet.title, 1, 1, 0), drawn_on), project, "register")
+    if not spec.assumptions:
+        return True
+    return not any("assumptions rows did not fit" in w for w in render_sheet(new_document(), spec, profile).warnings)
 
 
 register("register", RegisterBuilder())

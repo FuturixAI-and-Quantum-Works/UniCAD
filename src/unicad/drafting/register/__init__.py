@@ -21,7 +21,7 @@ KIND_TITLES: dict[str, str] = {
 COLUMNS = (
     Column("SL.NO"),
     Column("DRAWING NO.", "left"),
-    Column("DRAWING TITLE", "left", wrap=True),
+    Column("DRAWING TITLE", "left", wrap=True, max_lines=8),
     Column("SIZE"),
     Column("SCALE"),
     Column("REV."),

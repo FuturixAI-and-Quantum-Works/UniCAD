@@ -269,6 +269,22 @@ def test_register_lists_every_assumption_in_its_table_and_drops_none(tmp_path):
     assert len(set_assumptions(p)) >= 40 and "DRIVES: SLD" in text
 
 
+def test_register_keeps_a_short_assumption_list_in_its_side_panel_on_one_page(tmp_path):
+    import ezdxf
+
+    from unicad.drafting.register import ASSUMED_POINTER, ASSUMED_TITLE
+    from unicad.sets import render_set
+    from test_design import fixture
+
+    p = fixture("rooftop_500kwp")
+    index = render_set(p, tmp_path, kinds=["register", "sld"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    registers = [s for s in index["sheets"] if s["kind"] == "register"]
+    assert len(registers) == 1 and not [w for w in registers[0]["warnings"] if "did not fit" in w]
+    text = " ".join(e.dxf.text for e in ezdxf.readfile(registers[0]["files"]["dxf"]).modelspace().query("TEXT"))
+    assert "(DRIVES:" not in text and ASSUMED_POINTER[:30] not in text
+    assert text.count(ASSUMED_TITLE) == 1 and "SITE ALTITUDE 900 M" in text, "listed once, in the side panel"
+
+
 def test_derived_equipment_positions_are_assumptions_on_the_plan_sheets():
     from unicad.drafting.assumptions import sheet_assumptions
 
