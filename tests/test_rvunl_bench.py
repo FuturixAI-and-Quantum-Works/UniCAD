@@ -282,6 +282,8 @@ def run3(tmp_path_factory) -> dict:
                 out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
             out["project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
             out["acb_window"] = await c.call("validate", project_id=PID)
+            await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2000})
+            out["acb_window_low"] = await c.call("validate", project_id=PID)
             await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2300})
             issue = {"project_id": PID, "issued_for": "approval", "rev": "0", "drawn": "A. Sharma", "checked": "R. Meena", "approved": "V. Singh", "date": "2026-11-02"}
             out["issue"] = await c.call("project_issue", **issue)
@@ -375,3 +377,12 @@ def test_a_changed_model_is_not_the_issued_revision_until_amend_reissues_it(run3
     assert any("now stands for model revision" in p["message"] for p in amend["problems"])
     assert not [f for f in run3["amended_validate"]["findings"] if f["rule_id"] == "drawings.issued_revision"]
     assert run3["amended_get"]["issue"]["model_is_issued_content"] is True
+
+
+def test_the_acb_findings_state_the_passing_ir_window(run3):
+    """S6: with the brief's 7R x 300 sq.mm Al XLPE the outgoing ACB passes only for 2295.5 A <= Ir <= 2338.8 A; bench run 3 found it by sweeping Ir."""
+    window = "2295.5 A <= Ir <= 2338.8 A"
+    high = [f for f in run3["acb_window"]["findings"] if f["rule_id"] == "cables.protection" and f["subjects"][0] == "acdb_brk"]
+    low = [f for f in run3["acb_window_low"]["findings"] if f["rule_id"] == "protection.rated_current" and f["subjects"][0] == "acdb_brk"]
+    assert len(high) == 1 and window in high[0]["message"] and "set long_time_setting_a" in high[0]["message"]
+    assert len(low) == 1 and window in low[0]["message"]

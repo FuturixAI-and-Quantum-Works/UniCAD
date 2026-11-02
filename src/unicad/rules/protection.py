@@ -46,6 +46,8 @@ def _protection(catalog: Catalog, node: Node) -> ProtectionSpec | None:
 @rule("protection.rated_current", "Device rated current covers the design current", clause="IS 732")
 def rated_current(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """A breaker, fuse or switch on an export path must be rated for the current it carries: on the AC side In >= 1.25 x the maximum current of the inverters behind it, on the DC side In >= 1.25 x Isc of the strings behind it. A DC isolator node standing for several separate string circuits (isolator_ways) is checked per device: each switches poles / 2 circuits and carries their share. String fuses (gPV) are checked by protection.string_fuse_rating. The upper bound In <= cable ampacity belongs to cable sizing, which reuses the same design current."""
+    from unicad.rules.cables import overload_window
+
     net = project.network
     for n in net.nodes:
         spec = _protection(catalog, n)
@@ -70,7 +72,8 @@ def rated_current(project: Project, catalog: Catalog) -> Iterator[Finding]:
             rule_id="protection.rated_current",
             severity=Severity.ERROR,
             subjects=(n.id,),
-            message=f"{label(net, n.id)} {spec.model}: {what} is below the {side} design requirement {need:.1f} A ({factor:g} x Ib {ib.value:.1f} A)",
+            message=f"{label(net, n.id)} {spec.model}: {what} is below the {side} design requirement {need:.1f} A ({factor:g} x Ib {ib.value:.1f} A)"
+                    + (f"; {w}" if (w := overload_window(project, catalog, n.id)) else ""),
             measured=rated,
             limit=round(need, 2),
             unit="A",

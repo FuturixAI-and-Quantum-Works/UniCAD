@@ -12,9 +12,9 @@ from unicad.rules.faults import LV_BREAKER_CLEARING, LV_BREAKER_CLEARING_S, defa
 from unicad.rules.derating import Derating, derating
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
-from unicad.rules.settings import trip_current
-from unicad.rules.thresholds import K_PVC_AL, K_PVC_CU, K_XLPE_AL, K_XLPE_CU
-from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, per_instance, zone_at
+from unicad.rules.settings import ir_range, trip_current
+from unicad.rules.thresholds import CONTINUOUS_FACTOR, K_PVC_AL, K_PVC_CU, K_XLPE_AL, K_XLPE_CU
+from unicad.rules.topology import AC_SERVICES, GENERATORS, design_current, edge_current, edge_zone, exports, is_dc, label, per_instance, zone_at
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
 PANELS = frozenset({NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL, NodeKind.BUSBAR, NodeKind.SCB, NodeKind.DC_FUSE_BOX})
@@ -369,6 +369,34 @@ def _protected_cables(project: Project, catalog: Catalog, node_id: str) -> Itera
             yield e, iz
 
 
+def overload_window(project: Project, catalog: Catalog, node_id: str) -> str | None:
+    """The range of In (or of the long-time setting Ir of an MCCB or ACB, inside its trip unit's range) that passes both protection.rated_current
+    (k x Ib <= In) and cables.protection (In <= Iz of every cable the device protects), or why none does."""
+    net = project.network
+    n = net.node(node_id)
+    spec = overload_device(catalog, n)
+    ib = design_current(project, catalog, node_id) if spec is not None else None
+    guarded = [(e, iz.calc().value) for e, iz in _protected_cables(project, catalog, node_id)] if ib is not None else []
+    if not guarded:
+        return None
+    dc = is_dc(net, node_id)
+    k = 1.0 if dc else CONTINUOUS_FACTOR.value
+    need = k * ib.value
+    edge, iz = min(guarded, key=lambda g: g[1])
+    rng = ir_range(spec) if spec.device in ("mccb", "acb") else None
+    lo, hi, sym = need, iz, "In"
+    span = ""
+    if rng is not None:
+        lo, hi, sym = max(need, rng.lo * spec.rated_current), min(iz, rng.hi * spec.rated_current), "Ir"
+        span = f", trip unit {rng.lo * spec.rated_current:g} A .. {rng.hi * spec.rated_current:g} A"
+    lo, hi = math.ceil(lo * 10 - 1e-6) / 10, math.floor(hi * 10 + 1e-6) / 10
+    why = f"{k:g} x Ib {ib.value:.1f} A = {need:.1f} A; Iz {iz:.1f} A of {edge.id}{span}"
+    if lo > hi:
+        return f"no {sym} passes both protection.rated_current and cables.protection ({why}): the cable must carry at least {need:.1f} A (more runs or a larger size)"
+    act = "set long_time_setting_a" if sym == "Ir" else "choose a device rated"
+    return f"{sym} passes protection.rated_current and cables.protection for {lo:.1f} A <= {sym} <= {hi:.1f} A ({why}): {act} in that window"
+
+
 @rule("cables.protection", "Overcurrent device rating does not exceed the cable ampacity", clause=OVERLOAD)
 def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
     """Overload coordination Ib <= In <= Iz: the rated current In of a breaker or fuse (or the long-time setting Ir of an MCCB or ACB set below its frame, node field long_time_setting_a) must not exceed the derated ampacity Iz of each cable it protects, so the device trips before the cable overheats.
@@ -392,7 +420,8 @@ def protection(project: Project, catalog: Catalog) -> Iterator[Finding]:
                 rule_id="cables.protection",
                 severity=Severity.ERROR,
                 subjects=(n.id, e.id),
-                message=f"{label(net, n.id)} {spec.model}: {sym} {rated:g} A{f' (frame {spec.rated_current:g} A)' if setting else ''} exceeds the ampacity of {edge_label(net, e)} {iz.cable.callout()}: Iz = {iz.base:g} A x {iz.derating:g} x {iz.runs} = {z.value:.1f} A",
+                message=f"{label(net, n.id)} {spec.model}: {sym} {rated:g} A{f' (frame {spec.rated_current:g} A)' if setting else ''} exceeds the ampacity of {edge_label(net, e)} {iz.cable.callout()}: Iz = {iz.base:g} A x {iz.derating:g} x {iz.runs} = {z.value:.1f} A"
+                        + (f"; {w}" if (w := overload_window(project, catalog, n.id)) else ""),
                 measured=rated,
                 limit=round(z.value, 2),
                 unit="A",
