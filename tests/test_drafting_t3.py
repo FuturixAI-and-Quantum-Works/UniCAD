@@ -75,3 +75,42 @@ def test_layout_with_road_gaps_says_it_once_as_a_note(kutch, tmp_path):
     warnings, text = _layout_sheet(kutch, tmp_path)
     assert not [w for w in warnings if "roads are not stored" in w], warnings
     assert text.count("INTERNAL ROADS PLANNED") == 1
+
+
+# ---------------- catalogued data logger on the SLD and BOM (item 5) ----------------
+
+
+def test_autobuilt_logger_prints_its_catalog_spec_on_the_sld_and_bom(tmp_path):
+    import ezdxf
+    from test_design_rvunl import BRIEF, RELAY, heerapura
+    from test_drafting_t1 import INVERTER, MODULE
+
+    from unicad.design import autobuild
+    from unicad.sets import render_set
+
+    p = autobuild(heerapura(), CATALOG, {"module": MODULE, "inverter": INVERTER, "inverter_strings": BRIEF, "relay": RELAY, "data_logger": True}).project
+    assert p.network.node("dlog").spec == "solis-s3-logger"
+    index = render_set(p, tmp_path, kinds=["sld", "bom"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+
+    def texts(kind: str) -> list[str]:
+        out = []
+        for s in index["sheets"]:
+            if s["kind"] == kind:
+                msp = ezdxf.readfile(s["files"]["dxf"]).modelspace()
+                out += [v.dxf.text for e in msp for v in (e.virtual_entities() if e.dxftype() == "INSERT" else [e]) if v.dxftype() == "TEXT"]
+        return out
+
+    sld = texts("sld")
+    at = sld.index("DL-01")
+    assert "4 x RS-485, 1 x ETHERNET, 60 DEVICES" in sld[at : at + 4], sld[at : at + 4]
+    assert "RATING TO BE SPECIFIED" not in sld[at : at + 4]
+    assert not [w for s in index["sheets"] for w in s["warnings"] if "'dlog'" in w]
+    assert "Solis S3-Logger, data logger, 4 x RS-485" in texts("bom")
+
+
+def test_a_logger_left_without_spec_names_the_catalogued_logger(tmp_path):
+    from unicad.sets import render_set
+
+    index = render_set(bench2(), tmp_path, kinds=["sld"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    warns = [w for s in index["sheets"] for w in s["warnings"] if "'dlog'" in w]
+    assert len(warns) == 1 and "the catalog has solis-s3-logger for this symbol" in warns[0], warns

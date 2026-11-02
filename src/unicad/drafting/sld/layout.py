@@ -296,7 +296,9 @@ class _Builder:
             if key is None and n.kind not in BUS_KINDS:
                 key = _fallback_key(n)
             if n.id not in self.markers and annotate.unspecified(n):
-                self.warnings.append(f"node {n.id!r} ({n.kind}) has no catalog spec: drawn as {_symbol(key).title} marked {annotate.UNSPECIFIED}")
+                parts = sorted(x.id for x in catalog.entries if x.kind in annotate.SPEC_KINDS[n.kind] and getattr(x, "symbol", None) == key) if catalog is not None and key else []
+                hint = f"; the catalog has {', '.join(parts)} for this symbol (set it with network_update)" if 0 < len(parts) <= 3 else ""
+                self.warnings.append(f"node {n.id!r} ({n.kind}) has no catalog spec: drawn as {_symbol(key).title} marked {annotate.UNSPECIFIED}{hint}")
             self.recs[n.id] = _Rec(n, key)
         self.power_edges = [e for e in edges if e.is_power and e.src_node in self.recs and e.dst_node in self.recs]
         self.frames: list[_FrameRec] = []
