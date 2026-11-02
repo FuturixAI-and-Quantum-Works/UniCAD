@@ -26,6 +26,7 @@ from unicad.sets.common import default_paper, sheet_spec
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, register
 
+ROAD_GAP = 1.25
 ROADS_NOT_STORED = "INTERNAL ROADS PLANNED WITH THE ARRAY ARE NOT STORED IN THE PROJECT AND ARE NOT DRAWN; ROADS IMPORTED WITH THE SITE ARE."
 
 
@@ -55,15 +56,26 @@ def plant_areas(project: Project) -> tuple[EquipmentArea, ...]:
     return (EquipmentArea(name, ((sy.x0, sy.y0), (sy.x1, sy.y0), (sy.x1, sy.y1), (sy.x0, sy.y1))),)
 
 
-def row_pitch(layout: ArrayLayout) -> float | None:
-    """The most common spacing between table rows, along the direction the tables face."""
+def _row_steps(layout: ArrayLayout) -> Counter:
     tables = list(layout.table_by_id.values())
     if not tables:
-        return None
+        return Counter()
     _, (vx, vy) = frame(tables[0].azimuth_deg)
     rows = sorted({round(t.origin.x * vx + t.origin.y * vy, 3) for t in tables})
-    steps = Counter(round(b - a, 2) for a, b in zip(rows, rows[1:]) if b - a > 0.01)
+    return Counter(round(b - a, 2) for a, b in zip(rows, rows[1:]) if b - a > 0.01)
+
+
+def row_pitch(layout: ArrayLayout) -> float | None:
+    """The most common spacing between table rows, along the direction the tables face."""
+    steps = _row_steps(layout)
     return steps.most_common(1)[0][0] if steps else None
+
+
+def _may_have_roads(project: Project, layout: ArrayLayout, pitch: float | None) -> bool:
+    """The site has roads, or some rows stand further apart than the row pitch (a gap layout_place may have left for a road)."""
+    if any(f.kind is FeatureKind.ROAD for f in project.site.geometry.features):
+        return True
+    return pitch is not None and any(step > ROAD_GAP * pitch for step in _row_steps(layout))
 
 
 def _no_layout(project: Project) -> str | None:
@@ -153,7 +165,7 @@ def layout_notes(project: Project, pitch: float | None) -> tuple[str, ...]:
         notes.insert(-1, f"SITE LOCATION AS GIVEN: {coordinates(given)}, AT LOCAL X {x:.1f} m, Y {y:.1f} m.")
     if any(b.station for b in layout.blocks):
         notes.append("INVERTER STATION LOCATIONS ARE INDICATIVE AND SUBJECT TO DETAILED ENGINEERING.")
-    if project.segment not in (Segment.CI_ROOFTOP, Segment.RESIDENTIAL):
+    if project.segment not in (Segment.CI_ROOFTOP, Segment.RESIDENTIAL) and _may_have_roads(project, layout, pitch):
         notes.append(ROADS_NOT_STORED)
     return tuple(notes)
 
@@ -184,10 +196,7 @@ class LayoutBuilder:
                                     notes=layout_notes(project, pitch), areas=plant_areas(project), routes=panel_routes(project, catalog))  # fmt: skip
             doc = ezdxf.new("R2018", setup=True)
             res = render_layout_sheet(doc, drawing, sheet_spec(project, s, i, len(sheets), drawn_on=drawn_on, kind="layout"), profile, view=view)  # type: ignore[arg-type]
-            warnings = list(res.warnings)
-            if view == "site":
-                warnings.append("internal roads are not stored with the array layout, so the sheet shows only the roads imported with the site")
-            out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(warnings), {"view": view}))
+            out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(res.warnings), {"view": view}))
         return out
 
 

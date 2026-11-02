@@ -49,3 +49,29 @@ def test_mv_switchyard_earthing_note_states_the_ieee80_result(kutch):
     assert f"{d.grid_spacing_m:g} M MESH" in note and "IEEE 80" in note, note
     ok = d.grid.gpr <= d.grid.e_touch or (d.grid.e_mesh <= d.grid.e_touch and d.grid.e_s <= d.grid.e_step)
     assert ("WITHIN THE TOLERABLE TOUCH AND STEP VOLTAGES" in note) == ok, note
+
+
+# ---------------- layout roads note (item 3) ----------------
+
+
+def _layout_sheet(project: Project, tmp_path: Path) -> tuple[list[str], str]:
+    import ezdxf
+
+    from unicad.sets import render_set
+
+    index = render_set(project, tmp_path, kinds=["layout"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    sheet = index["sheets"][0]
+    text = " ".join(e.dxf.text for e in ezdxf.readfile(sheet["files"]["dxf"]).modelspace().query("TEXT"))
+    return sheet["warnings"], text
+
+
+def test_layout_without_roads_says_nothing_about_internal_roads(tmp_path):
+    warnings, text = _layout_sheet(bench2(), tmp_path)
+    assert not [w for w in warnings if "road" in w], warnings
+    assert "INTERNAL ROADS" not in text
+
+
+def test_layout_with_road_gaps_says_it_once_as_a_note(kutch, tmp_path):
+    warnings, text = _layout_sheet(kutch, tmp_path)
+    assert not [w for w in warnings if "roads are not stored" in w], warnings
+    assert text.count("INTERNAL ROADS PLANNED") == 1
