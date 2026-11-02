@@ -7,7 +7,7 @@
   "down": "25x3"
  },
  "array_fault_current_a": 400.0,
- "conductor_mass_t": 1.7,
+ "conductor_mass_t": 1.6,
  "pits": 11,
  "pits_by_role": {
   "EP": 8,
@@ -15,18 +15,18 @@
  },
  "pits_by_practice": 11,
  "pits_needed_by_resistance": 0,
- "pits_needed_by_current": 7,
+ "pits_needed_by_current": 10,
  "pits_governing_criterion": "equipment and table-row practice (resistance and current density need no more)",
  "electrode_resistance_ohm": 15.13,
- "resistance_ohm": 1.2336,
+ "resistance_ohm": 1.4067,
  "resistance_method": "Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs",
  "resistance_parts_ohm": {
-  "pits_and_strip": 0.7358,
-  "network_area_limit": 1.2336
+  "pits_and_strip": 0.8085,
+  "network_area_limit": 1.4067
  },
  "target_ohm": 2.0,
  "tables": 81,
- "items": 16,
+ "items": 14,
  "unbonded": [],
  "quantities": [
   {
@@ -44,7 +44,7 @@
   {
    "item": "flat.25x6.main",
    "description": "25x6 MM GS FLAT - MAIN EARTH CONDUCTOR, RINGS AND INTERCONNECTIONS",
-   "quantity": 254.0,
+   "quantity": 243.0,
    "unit": "m"
   },
   {
@@ -56,7 +56,7 @@
   {
    "item": "flat.25x6.equipment",
    "description": "25x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 33.0,
+   "quantity": 29.0,
    "unit": "m"
   },
   {
@@ -275,7 +275,7 @@
   },
   {
    "name": "strip_current",
-   "value": 6265.8,
+   "value": 4857.8,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
@@ -345,7 +345,7 @@
   },
   {
    "name": "strip_resistance",
-   "value": 1.582,
+   "value": 1.9614,
    "unit": "ohm",
    "formula": "R = 100 rho / (2 pi L) ln(2 L^2 / (w t)), L, w, t in cm",
    "inputs": [
@@ -357,7 +357,7 @@
     },
     {
      "name": "L",
-     "value": 6689.600000000001,
+     "value": 5189.6,
      "unit": "cm",
      "source": null
     },

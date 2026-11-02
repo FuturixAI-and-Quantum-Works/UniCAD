@@ -7,7 +7,7 @@
   "down": "25x3"
  },
  "array_fault_current_a": 8400.0,
- "conductor_mass_t": 125.6,
+ "conductor_mass_t": 125.8,
  "pits": 420,
  "pits_by_role": {
   "EP": 335,
@@ -80,7 +80,7 @@
   {
    "item": "flat.50x6.equipment",
    "description": "50x6 MM GS FLAT - EQUIPMENT AND STRUCTURE EARTHING",
-   "quantity": 1932.0,
+   "quantity": 2010.0,
    "unit": "m"
   },
   {
@@ -311,7 +311,7 @@
   },
   {
    "name": "strip_current",
-   "value": 6956117.5,
+   "value": 6965480.2,
    "unit": "A",
    "formula": "I = 7.57 x 1000 / sqrt(rho t) x 2 (w + t) L, summed over the conductor sizes",
    "inputs": [
@@ -393,13 +393,13 @@
     },
     {
      "name": "L",
-     "value": 9622684.972567845,
+     "value": 9630493.545746401,
      "unit": "cm",
      "source": null
     },
     {
      "name": "w",
-     "value": 2.735824713984589,
+     "value": 2.7376605470419446,
      "unit": "cm",
      "source": null
     },
@@ -431,7 +431,9 @@
   "tolerable voltages for a 50 kg body",
   "earth resistance: switchyard grid Rg (Sverak, IEEE 80) in parallel with the rest of the plant earth bonded to it (Sverak (IEEE 80) resistance of the buried network over its convex hull area, which is above the pits-and-strip value and governs)"
  ],
- "warnings": [],
+ "warnings": [
+  "the array's main earth ring is not laid: it would leave the plot or cross a keep-out; the rows are joined by risers only"
+ ],
  "switchyard_grid": {
   "size_m": [
    56.0,

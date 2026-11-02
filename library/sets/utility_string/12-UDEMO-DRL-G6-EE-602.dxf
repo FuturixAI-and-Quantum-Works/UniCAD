@@ -8637,7 +8637,7 @@ G-TEXT
 100
 AcDbText
  10
-189.38348549616876
+188.21466674616877
  20
 268.275
  30
@@ -8645,7 +8645,7 @@ AcDbText
  40
 2.25
   1
-980
+1,026
   7
 standard
 100
@@ -9023,7 +9023,7 @@ AcDbText
  40
 2.25
   1
-380
+390
   7
 standard
 100
@@ -9779,7 +9779,7 @@ AcDbText
  40
 2.25
   1
-8
+9
   7
 standard
 100
@@ -10245,7 +10245,7 @@ AcDbText
  40
 2.25
   1
-5
+6
   7
 standard
 100
@@ -10297,7 +10297,7 @@ AcDbText
  40
 2.25
   1
-ON GROUND 5; NO CATALOG ITEM: SPECIFY
+ON GROUND 6; NO CATALOG ITEM: SPECIFY
   7
 standard
 100
@@ -10597,7 +10597,7 @@ AcDbText
  40
 2.25
   1
-5
+6
   7
 standard
 100
