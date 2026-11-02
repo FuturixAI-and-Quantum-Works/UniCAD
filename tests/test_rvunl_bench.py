@@ -6,6 +6,7 @@ linked to the layout, routed cable lengths, no block station details, no MV swit
 import asyncio
 import json
 import math
+import re
 from pathlib import Path
 
 import pytest
@@ -180,3 +181,70 @@ def test_earthing_inputs_say_where_they_come_from(run):
     kept = run["earthing_kept"]
     assert kept["inputs"]["surface_resistivity_ohm_m"] == {"value": 3000.0, "from": "kept from the design basis (an earlier call or project_design_basis)"}
     assert "surface_layer_m" in kept["inputs_kept"] and run["earthing_again"]["inputs"]["surface_layer_m"]["from"] == "this call"
+
+
+def test_block_boundaries_are_orthogonal(project):
+    for b in project.array_layout.blocks:
+        pts = list(b.boundary)
+        diagonal = [(a, c) for a, c in zip(pts, pts[1:] + pts[:1]) if min(abs(a.x - c.x), abs(a.y - c.y)) > 0.05]
+        assert diagonal == [], f"{b.name} boundary has diagonal edges {diagonal}"
+
+
+CABLES = {"string": {"cable": "polycab-h1z2z2-k-6mm2"}, "inv_accb": {"cable": "polycab-lt-xlpe-al-3.5c-240-arm"},
+          "accb_ltp": {"cable": "polycab-lt-xlpe-al-3.5c-300-arm", "runs": 7}}  # fmt: skip
+
+
+@pytest.fixture(scope="module")
+def stated(tmp_path_factory) -> dict:
+    """The brief's cables and 50 kA breakers stated to network_autobuild, the ACCB on the west edge as on bench run 2 (switchyard_x/y 10, 60), then at
+    the electrical centre."""
+    tmp = tmp_path_factory.mktemp("rvunl-stated")
+    out: dict = {}
+
+    async def go():
+        async with connect(tmp / "ws") as c:
+            await c.call("project_create", **CREATE)
+            site = tmp / "site.csv"
+            site.write_text(SITE, encoding="utf-8")
+            await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat")
+            await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
+            await c.call("project_design_basis", project_id=PID, fault_levels=[{"voltage_v": 415, "fault_ka": 31.5, "clearing_s": 3, "source": "brief: ACCB busbar fault level"}])
+            await c.call("layout_place", **PLACE, switchyard_x=10, switchyard_y=60)
+            for at in ("layout", "electrical_centre"):
+                out[at] = await c.call("network_autobuild", **BUILD, cables=CABLES, breaking_ka=50, accb_at=at)
+                out[at + "_project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
+            note = next(a for a in out["electrical_centre"]["assumptions"] if "layout_place switchyard_x=" in a)
+            x, y = re.search(r"switchyard_x=(\d+), switchyard_y=(\d+)", note).groups()
+            await c.call("layout_place", **PLACE, switchyard_x=float(x), switchyard_y=float(y))
+            out["pad"] = await c.call("network_autobuild", **BUILD, cables=CABLES, breaking_ka=50)
+
+    asyncio.run(asyncio.wait_for(go(), 600))
+    return out
+
+
+def test_stated_cables_are_kept_and_the_breakers_break_50_ka(stated):
+    catalog = load_catalog(ROOT / "catalog")
+    edges = {e["id"]: e for e in stated["layout_project"]["network"]["edges"]}
+    assert {edges[i]["cable"] for i in edges if i.startswith("e_str") and edges[i].get("cable")} == {"polycab-h1z2z2-k-6mm2"}
+    assert {(edges[i]["cable"], edges[i].get("runs", 1)) for i in edges if i.startswith("e_inv_brk")} == {("polycab-lt-xlpe-al-3.5c-240-arm", 1)}
+    assert (edges["e_ct_poi"]["cable"], edges["e_ct_poi"]["runs"]) == ("polycab-lt-xlpe-al-3.5c-300-arm", 7)
+    for n in stated["layout_project"]["network"]["nodes"]:
+        if n["kind"] == "breaker":
+            assert catalog.get(n["spec"]).breaking_capacity_ka >= 50, n
+    assert any(a.startswith("Cables as stated (inv_accb)") for a in stated["layout"]["assumptions"])
+
+
+def test_far_inverters_over_the_drop_limit_are_named_with_the_clients_choices(stated):
+    far = next(b for b in stated["layout"]["blockers"] if b.startswith("Stated cables exceed the voltage drop limit"))
+    assert "INV-08" in far and "exceeds vdrop_ac_max 2 %" in far
+    assert "accb_at='electrical_centre'" in far and "vdrop_ac_max" in far and "group the far inverters" in far
+    lengths = {at: sum(e["length_m"] * e.get("count", 1) for e in stated[at + "_project"]["network"]["edges"] if e["id"].startswith("e_inv_brk")) for at in ("layout", "electrical_centre")}
+    assert lengths["electrical_centre"] < lengths["layout"]
+    failing = {at: [f["subjects"][0] for f in stated[at]["findings"] if f["rule_id"] == "vdrop.ac" and f["severity"] == "error"] for at in ("layout", "electrical_centre")}
+    assert len(failing["electrical_centre"]) < len(failing["layout"])
+    assert any("electrical centre of the 8 field inverters" in a for a in stated["electrical_centre"]["assumptions"])
+
+
+def test_an_accb_pad_at_the_electrical_centre_holds_the_brief_cable_within_2_percent(stated):
+    assert [f["message"] for f in stated["pad"]["findings"] if f["rule_id"] == "vdrop.ac" and f["severity"] == "error"] == []
+    assert not [b for b in stated["pad"]["blockers"] if "voltage drop" in b]
