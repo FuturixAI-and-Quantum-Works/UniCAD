@@ -11,13 +11,16 @@ from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.topology import GENERATORS, module_of, edge_current, label, per_instance
 
-R_90C = "Conductor resistance taken at 90 degC (catalog r_ohm_per_km_90c), the maximum operating temperature of XLPE insulation; conservative at lower loading."
+R_AT = {
+    90: "Conductor resistance taken at 90 degC (catalog r_ohm_per_km_90c), the maximum operating temperature of XLPE insulation; conservative at lower loading.",
+    70: "Conductor resistance taken at 70 degC (catalog r_ohm_per_km_70c), the maximum operating temperature of PVC insulation; conservative at lower loading.",
+}
 DC_OPERATING = "DC drop evaluated at STC operating point: current n x Imp and voltage N x Vmp of the shortest string carried."
 AC_LOADING = "AC drop evaluated at the maximum inverter current (design current Ib) and the design-basis power factor."
 NO_X = "Catalog has no reactance for this cable; X taken as 0."
 
 
-def _dc_drop(project: Project, catalog: Catalog, e: Edge, length: float, r: float) -> Calc | None:
+def _dc_drop(project: Project, catalog: Catalog, e: Edge, length: float, r: float, r_note: str) -> Calc | None:
     net = project.network
     ids = [e.src_node, *net.upstream(e.src_node)]
     mods = [(s, 1 if s == e.src_node else per_instance(net, s, e.src_node), m, net.node(s).modules_in_series) for s in ids if net.node(s).kind is NodeKind.PV_STRING and (m := module_of(net, catalog, net.node(s)))]
@@ -36,11 +39,11 @@ def _dc_drop(project: Project, catalog: Catalog, e: Edge, length: float, r: floa
         unit="%",
         formula="dV% = 100 x 2 x L x (I / runs) x R / 1000 / V, I = sum(n x Imp), V = N x Vmp",
         inputs=tuple(inputs),
-        assumptions=(R_90C, DC_OPERATING),
+        assumptions=(r_note, DC_OPERATING),
     )
 
 
-def _ac_drop(project: Project, catalog: Catalog, e: Edge, length: float, r: float, x: float | None) -> Calc | None:
+def _ac_drop(project: Project, catalog: Catalog, e: Edge, length: float, r: float, r_note: str, x: float | None) -> Calc | None:
     ib = edge_current(project, catalog, e)
     if ib is None:
         return None
@@ -62,7 +65,7 @@ def _ac_drop(project: Project, catalog: Catalog, e: Edge, length: float, r: floa
             Quantity(name="cos_phi", value=pf, source="design_basis.power_factor"),
             *ib.inputs,
         ),
-        assumptions=(R_90C, AC_LOADING, *ib.assumptions, *(() if x is not None else (NO_X,))),
+        assumptions=(r_note, AC_LOADING, *ib.assumptions, *(() if x is not None else (NO_X,))),
     )
 
 
@@ -73,11 +76,21 @@ def _cable_id(e: Edge) -> str:
 def segment_drop(project: Project, catalog: Catalog, e: Edge) -> Calc | None:
     """Voltage drop over one edge in percent of the circuit voltage, or None when the edge has no cable, length, resistance or carried generation."""
     cable = cable_of(catalog, e)
-    if cable is None or e.length_m is None or cable.r_ohm_per_km_90c is None:
+    r = cable.operating_resistance if cable is not None else None
+    if r is None or e.length_m is None:
         return None
     if e.service is Service.DC:
-        return _dc_drop(project, catalog, e, e.length_m, cable.r_ohm_per_km_90c)
-    return _ac_drop(project, catalog, e, e.length_m, cable.r_ohm_per_km_90c, cable.x_ohm_per_km)
+        return _dc_drop(project, catalog, e, e.length_m, r[0], R_AT[r[1]])
+    return _ac_drop(project, catalog, e, e.length_m, r[0], R_AT[r[1]], cable.x_ohm_per_km)
+
+
+def missing_resistance(catalog: Catalog, e: Edge) -> str | None:
+    """What the catalog lacks for the drop over a cabled edge with a length: the resistance field at the insulation's operating temperature."""
+    cable = cable_of(catalog, e)
+    if cable is None or e.length_m is None or cable.operating_resistance is not None:
+        return None
+    field = "r_ohm_per_km_70c" if cable.insulation == "pvc" else "r_ohm_per_km_90c"
+    return f"{e.id} ({cable.id}, {cable.callout()}) has no {field} in the catalog"
 
 
 def _path_edges(net: ElectricalNetwork, nodes: tuple[str, ...]) -> list[Edge]:
@@ -122,6 +135,16 @@ def _cumulative(project: Project, catalog: Catalog, rule_id: str, start: str, ed
         parts.append((e, d))
         assumptions += [a for a in d.assumptions if a not in assumptions]
     end = edges[-1].dst_node if edges else start
+    missing = [m for e in edges if (m := missing_resistance(catalog, e))]
+    if missing:
+        return Finding(
+            rule_id=rule_id,
+            severity=Severity.ERROR,
+            subjects=(start, end, *dict.fromkeys(e.id for e in edges if missing_resistance(catalog, e))),
+            message=f"{what} from {label(net, start)} to {label(net, end)} cannot be checked against {limit_field} {100 * limit:g} %: {'; '.join(dict.fromkeys(missing))}; "
+                    "use a catalogued cable that has it, or add the value from the cable's cited datasheet to the catalog",
+            assumptions=tuple(assumptions),
+        )  # fmt: skip
     if not parts:
         return Finding(
             rule_id=rule_id,
@@ -160,7 +183,7 @@ def _path(net: ElectricalNetwork, start: str) -> tuple[str, ...] | None:
 
 @rule("vdrop.dc", "DC voltage drop from string to inverter within the design basis")
 def dc(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of the strings carried and V = N x Vmp of the string, R at 90 degC (info per segment). Along the path from each string template to its inverter the segment drops are summed and compared with design_basis.vdrop_dc_max: error when over."""
+    """Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of the strings carried and V = N x Vmp of the string, R at the insulation's maximum operating temperature (90 degC XLPE, 70 degC PVC) (info per segment). Along the path from each string template to its inverter the segment drops are summed and compared with design_basis.vdrop_dc_max: error when over, and error when a cable on the path has no catalogued resistance (the drop cannot be checked)."""
     net, limit = project.network, project.design_basis.vdrop_dc_max
     yield from _segments(project, catalog, True, limit, "vdrop.dc")
     for s in net.by_kind(NodeKind.PV_STRING):
@@ -177,7 +200,7 @@ def dc(project: Project, catalog: Catalog) -> Iterator[Finding]:
 
 @rule("vdrop.ac", "AC voltage drop from inverter to the point of interconnection within the design basis")
 def ac(project: Project, catalog: Catalog) -> Iterator[Finding]:
-    """Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at 90 degC and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over."""
+    """Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at the insulation's maximum operating temperature (90 degC XLPE, 70 degC PVC) and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over, and error when a cable on the path has no catalogued resistance (the drop cannot be checked)."""
     net, limit = project.network, project.design_basis.vdrop_ac_max
     yield from _segments(project, catalog, False, limit, "vdrop.ac")
     for g in net.by_kind(*GENERATORS):

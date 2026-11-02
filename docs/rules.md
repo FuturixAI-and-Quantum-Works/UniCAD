@@ -19,6 +19,8 @@ Clause references name the standard only; clause numbers are added once verified
 | `stc_temp` | 25 degC | Module datasheet values are at STC cell temperature 25 degC. |
 | `k_xlpe_cu` | 143 A s^0.5/mm2 | Adiabatic constant k of a copper conductor with XLPE insulation (90 degC to 250 degC), 0.143 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table; the Polycab XLPE catalogue gives the same 1 s ratings (143.1 kA for 1000 mm2). Manufacturer value, standard name IS 7098. |
 | `k_xlpe_al` | 94 A s^0.5/mm2 | Adiabatic constant k of an aluminium conductor with XLPE insulation (90 degC to 250 degC), 0.094 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit rating table (Polycab's 1 s table gives 94.5 kA for 1000 mm2; the lower value is used). Manufacturer value, standard name IS 7098. |
+| `k_pvc_cu` | 115 A s^0.5/mm2 | Adiabatic constant k of a copper conductor with PVC-A insulation (70 degC to 160 degC), 0.115 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit current ratings for XLPE/PVC cables (pdf p.49). Manufacturer value, standard name IS 1554-1. |
+| `k_pvc_al` | 76 A s^0.5/mm2 | Adiabatic constant k of an aluminium conductor with PVC-A insulation (70 degC to 160 degC), 0.076 kA s^0.5/mm2 in the KEI Technical Handbook, short circuit current ratings for XLPE/PVC cables (pdf p.49). Manufacturer value, standard name IS 1554-1. |
 | `fault_clearing_default` | 1 s | Fault clearing time taken as 1 s, the duration cable and switchgear short-circuit ratings are tabulated for, when neither the fault level nor the earthing basis gives a clearing time. |
 | `string_fuse_min` | 1.5 | String fuse rating In > 1.5 x Isc(STC) of the module (IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR for a fuse protecting one string; the standards' own text was not available.). |
 | `string_fuse_max` | 2.4 | String fuse rating In < 2.4 x Isc(STC) of the module (IEC 62548:2016 6.5.5.1 a) as quoted in ieccalc.com 'What current a PV DC circuit must be rated for' (2026-09-18), and IEC 60364-7-712:2017 as quoted in M. Mitolo, 'Protection Against Fault Currents in Photovoltaic Arrays', Distributed Generation & Alternative Energy Journal (2025): 1.5 x ISC_MOD < In < 2.4 x ISC_MOD and In <= IMOD_MAX_OCPR for a fuse protecting one string; the standards' own text was not available.). |
@@ -336,9 +338,9 @@ isolators as for cables.protection) is cleared by the breaker's instantaneous tr
 adiabatic formula to); an LT cable a transformer feeds with no LT breaker on it is cleared by the VCB on that transformer's HV side, in the feeder relay's instantaneous
 stage plus the VCB's catalogued total breaking time (0.023 + 0.020 + 0.060 = 0.103 s for an ABB VD4 behind an ABB REF615, labelled as an assumption on the relay settings);
 every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
-k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). The fault is taken at the
-cable's source end, which is conservative (cable impedance only lowers it), and only the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not
-checked. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees), 115 for PVC
+copper and 76 for PVC aluminium (PVC-A, 70 degC to 160 degC, the same KEI table). The fault is taken at the cable's source end, which is conservative (cable impedance only lowers it),
+and only the conductor is checked, not the armour or screen. Another insulation has no cited k: its withstand cannot be checked, an error that names the missing constant. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
 
 Worked examples: a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE: I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
 (it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA). A 415 V cable behind an ACB with a 25 kA level: 25000 x sqrt(0.1) / 94 = 84.1 mm2, so one run of 95 sq.mm passes.
@@ -350,13 +352,13 @@ Worked examples: a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLP
 
 Standard: none (design practice). Segments: all.
 
-Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of the strings carried and V = N x Vmp of the string, R at 90 degC (info per segment). Along the path from each string template to its inverter the segment drops are summed and compared with design_basis.vdrop_dc_max: error when over.
+Per DC cable: dV% = 100 x 2 x L x (I / runs) x R / 1000 / V with I = n x Imp of the strings carried and V = N x Vmp of the string, R at the insulation's maximum operating temperature (90 degC XLPE, 70 degC PVC) (info per segment). Along the path from each string template to its inverter the segment drops are summed and compared with design_basis.vdrop_dc_max: error when over, and error when a cable on the path has no catalogued resistance (the drop cannot be checked).
 
 ### `vdrop.ac`: AC voltage drop from inverter to the point of interconnection within the design basis
 
 Standard: none (design practice). Segments: all.
 
-Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at 90 degC and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over.
+Per AC cable: dV% = 100 x k x L x (Ib / runs) x (R cos phi + X sin phi) / 1000 / V with k = sqrt(3) for three-phase and 2 for single-phase, Ib the maximum inverter current, V the zone voltage, R at the insulation's maximum operating temperature (90 degC XLPE, 70 degC PVC) and cos phi the design-basis power factor (info per segment). Along the path from each inverter or PCS template to the POI the segment drops of every AC voltage level are summed and compared with design_basis.vdrop_ac_max: error when over, and error when a cable on the path has no catalogued resistance (the drop cannot be checked).
 
 ### `vdrop.bands`: Length-band cables keep within the worst-case cable's drop and carry the current
 

@@ -281,6 +281,11 @@ def run3(tmp_path_factory) -> dict:
             for placement in ("perimeter", "auto"):
                 out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
             out["project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
+            pvc = {**CABLES3, "inv_accb": {"cable": "kei-lt-pvc-al-3.5c-240-arm", "runs": 1}, "accb_ltp": {"cable": "kei-lt-pvc-al-3.5c-300-arm", "runs": 7}}
+            out["pvc_build"] = await c.call("network_autobuild", **{**BUILD3, "cables": pvc}, accb_at="electrical_centre")
+            out["pvc_validate"] = await c.call("validate", project_id=PID, include_info=True)
+            out["pvc_explain"] = await c.call("explain_finding", project_id=PID, rule_id="cables.ampacity", subject="e_ct_poi")
+            out["pvc_explain_drop"] = await c.call("explain_finding", project_id=PID, rule_id="vdrop.ac", subject="e_ct_poi")
 
     asyncio.run(asyncio.wait_for(go(), 600))
     return out
@@ -309,3 +314,32 @@ def test_perimeter_masts_stand_outside_the_array_and_the_note_matches_them(run3,
         assert "terminals on the perimeter" in notes, placement
         shaded = sum(t["shade_m2"] for t in lps["terminals"])
         assert ("no mast shades the tables" in notes) == (shaded == 0), (placement, shaded, notes)
+
+
+def test_a_pvc_plant_has_its_ac_drop_and_withstand_checked_at_pvc_ratings(run3):
+    """NEW-3: with the KEI PVC cables vdrop.ac was 'not evaluated' (info, no resistance), cables.short_circuit had 'no cited k' (info) and the
+    ampacity used the XLPE 90 degC temperature column, so validate passed a plant whose AC drop was never checked."""
+    findings = run3["pvc_validate"]["findings"]
+    paths = [f for f in findings if f["rule_id"] == "vdrop.ac" and f["subjects"][0].startswith("inv")]
+    assert paths and all("not evaluated" not in f["message"] and "cannot be checked" not in f["message"] for f in paths)
+    assert all(f["measured"] is not None for f in paths)
+    assert "Conductor resistance taken at 70 degC (catalog r_ohm_per_km_70c)" in json.dumps(run3["pvc_explain_drop"])
+    sc = [f for f in findings if f["rule_id"] == "cables.short_circuit" and f["subjects"] and f["subjects"][0].startswith("e_")]
+    assert sc and not [f for f in sc if "cannot be checked" in f["message"] or "no cited" in f["message"]]
+    assert any("/ 76 =" in f["message"] for f in sc)
+    amp = run3["pvc_explain"]
+    text = json.dumps(amp)
+    assert "PVC 70 degC" in text and "XLPE 90 degC" not in text
+    assert run3["pvc_validate"]["counts"]["error"] > 0
+
+
+def test_a_cable_without_a_catalogued_resistance_is_a_validate_error(project3):
+    from unicad.rules import run_rules
+
+    catalog = load_catalog(ROOT / "catalog")
+    bare = catalog.get("kei-lt-pvc-al-3.5c-240-arm").model_copy(update={"id": "bare-pvc-240", "r_ohm_per_km_70c": None})
+    net = project3.network
+    edges = tuple(e.model_copy(update={"cable": bare}) if e.id.startswith("e_inv_brk") else e for e in net.edges)
+    p = project3.model_copy(update={"network": net.model_copy(update={"edges": edges})})
+    errors = [f for f in run_rules(p, catalog).findings if f.rule_id == "vdrop.ac" and f.severity.value == "error"]
+    assert errors and all("cannot be checked" in f.message and "no r_ohm_per_km_70c in the catalog" in f.message for f in errors)

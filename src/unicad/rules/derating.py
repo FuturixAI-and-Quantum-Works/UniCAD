@@ -36,6 +36,10 @@ KEI_AIR = TempTable("ambient air temperature, XLPE 90 degC", f"KEI Technical Han
                     {25: 1.16, 30: 1.11, 35: 1.06, 40: 1.00, 45: 0.94, 50: 0.88, 55: 0.81, 60: 0.74})  # fmt: skip
 KEI_GROUND = TempTable("ground temperature, cables laid direct, XLPE 90 degC", f"KEI Technical Handbook {KEI} p.19 (printed 35) rating factors 1b)", 30.0,
                        {15: 1.12, 20: 1.08, 25: 1.04, 30: 1.00, 35: 0.96, 40: 0.91, 45: 0.87, 50: 0.82})  # fmt: skip
+KEI_PVC_AIR = TempTable("ambient air temperature, PVC 70 degC", f"KEI Technical Handbook {KEI} p.28 (printed 53) rating factors (PVC) table 2", 40.0,
+                        {25: 1.25, 30: 1.16, 35: 1.09, 40: 1.00, 45: 0.90, 50: 0.80, 55: 0.69})  # fmt: skip
+KEI_PVC_GROUND = TempTable("ground temperature, cables laid direct or in duct, PVC 70 degC", f"KEI Technical Handbook {KEI} p.28 (printed 53) rating factors (PVC) table 1", 30.0,
+                           {15: 1.17, 20: 1.12, 25: 1.06, 30: 1.00, 35: 0.94, 40: 0.87, 45: 0.79, 50: 0.70, 55: 0.60})  # fmt: skip
 SOLAR_AIR = TempTable("ambient temperature, EN 50618 solar cable in free air (120 degC conductor)", POLYCAB_DC, 60.0, {60: 1.00, 70: 0.92, 80: 0.84, 90: 0.75})
 
 GROUND_ASSUMED = (
@@ -50,6 +54,8 @@ def temperature_table(cable: CableSpec, laying: Laying) -> TempTable:
     buried = laying in BURIED
     if cable.service == "dc_solar":
         return SOLAR_AIR
+    if cable.insulation == "pvc":
+        return KEI_PVC_GROUND if buried else KEI_PVC_AIR
     if cable.manufacturer == "Polycab":
         return POLYCAB_GROUND if buried else POLYCAB_AIR
     if cable.manufacturer == "Havells":

@@ -13,7 +13,7 @@ from unicad.rules.derating import Derating, derating
 from unicad.rules.model import Calc, Finding, Quantity, Severity
 from unicad.rules.registry import rule
 from unicad.rules.settings import trip_current
-from unicad.rules.thresholds import K_XLPE_AL, K_XLPE_CU
+from unicad.rules.thresholds import K_PVC_AL, K_PVC_CU, K_XLPE_AL, K_XLPE_CU
 from unicad.rules.topology import AC_SERVICES, GENERATORS, edge_current, edge_zone, exports, label, per_instance, zone_at
 
 TAPS = frozenset({NodeKind.DC_SPD, NodeKind.AC_SPD, NodeKind.LIGHTNING_ARRESTER, NodeKind.PT})
@@ -38,7 +38,7 @@ NO_DERATING = "No derating factor is given on the edge; 1.0 is used, so the ampa
 PAIR_FALLBACK = "Single-core cable without a two-cable rating in the catalog: its catalog column value is used for the DC or single-phase pair."
 IS_732 = "IS 732"
 OVERLOAD = "IS 732 / IEC 60364-4-43"
-K_BY_CABLE = {(Conductor.CU, "xlpe"): K_XLPE_CU, (Conductor.AL, "xlpe"): K_XLPE_AL}
+K_BY_CABLE = {(Conductor.CU, "xlpe"): K_XLPE_CU, (Conductor.AL, "xlpe"): K_XLPE_AL, (Conductor.CU, "pvc"): K_PVC_CU, (Conductor.AL, "pvc"): K_PVC_AL}
 
 
 def edge_label(net: ElectricalNetwork, e: Edge) -> str:
@@ -549,9 +549,9 @@ def short_circuit(project: Project, catalog: Catalog) -> Iterator[Finding]:
     adiabatic formula to); an LT cable a transformer feeds with no LT breaker on it is cleared by the VCB on that transformer's HV side, in the feeder relay's instantaneous
     stage plus the VCB's catalogued total breaking time (0.023 + 0.020 + 0.060 = 0.103 s for an ABB VD4 behind an ABB REF615, labelled as an assumption on the relay settings);
     every other cable uses the clearing time of its level, else design_basis.earthing.fault_clearing_s, else 1 s, and the finding says which.
-    k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees). The fault is taken at the
-    cable's source end, which is conservative (cable impedance only lowers it), and only the conductor is checked, not the armour or screen. Other insulations have no cited k and are reported as not
-    checked. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
+    k is 143 A s^0.5/mm2 for XLPE copper and 94 for XLPE aluminium (90 degC to 250 degC, from the KEI Technical Handbook short circuit table; the Polycab catalogue agrees), 115 for PVC
+    copper and 76 for PVC aluminium (PVC-A, 70 degC to 160 degC, the same KEI table). The fault is taken at the cable's source end, which is conservative (cable impedance only lowers it),
+    and only the conductor is checked, not the armour or screen. Another insulation has no cited k: its withstand cannot be checked, an error that names the missing constant. Where no fault current is known for a cable's system voltage a single info finding lists the voltages; DC string cables are not checked because a string cannot deliver more than about 1.25 Isc.
 
     Worked examples: a 33 kV feeder, fault level 25 kA cleared in 1 s, aluminium XLPE: I sqrt(t) / k = 25000 x 1 / 94 = 266 mm2, so one run of 240 sq.mm is an error
     (it withstands 22.6 kA) and one run of 300 sq.mm passes (28.2 kA). A 415 V cable behind an ACB with a 25 kA level: 25000 x sqrt(0.1) / 94 = 84.1 mm2, so one run of 95 sq.mm passes."""
@@ -572,8 +572,9 @@ def short_circuit(project: Project, catalog: Catalog) -> Iterator[Finding]:
         where = f"{edge_label(net, e)} {cable.callout()}"
         if k is None:
             yield Finding(
-                rule_id="cables.short_circuit", severity=Severity.INFO, subjects=(e.id,),
-                message=f"{where}: no cited short-circuit constant k for {cable.conductor.value.upper()} {cable.insulation.upper()} conductors; withstand not checked",
+                rule_id="cables.short_circuit", severity=Severity.ERROR, subjects=(e.id,),
+                message=f"{where}: withstand of the {fault.ka:g} kA fault cannot be checked: the rules hold no cited short-circuit constant k for {cable.conductor.value.upper()} "
+                        f"{cable.insulation.upper()} conductors (cited: {', '.join(f'{c.value.upper()} {i.upper()}' for c, i in K_BY_CABLE)}); use one of those or add the cable maker's k",
             )  # fmt: skip
             continue
         have = cable.size_mm2 * e.runs
