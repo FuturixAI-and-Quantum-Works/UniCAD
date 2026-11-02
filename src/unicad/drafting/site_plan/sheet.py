@@ -824,11 +824,18 @@ class LayoutSheetWriter:
 
     def _routes(self, P: _Plan) -> None:
         th = self.m.th
+        tables = LabelPlacer(self.placer.bounds, self.placer.max_leader, cell=self.placer.cell)
+        for t in self._table_regions(P):
+            tables.block(t)
         for r in self.d.routes:
             pts = [P(x, y) for x, y in r.points]
             self._poly(pts, L_ROUTE.name, closed=False)
             (ax, ay), (bx, by) = max(zip(pts, pts[1:]), key=lambda s: math.dist(*s))
-            self._label_text([r.label], ((ax + bx) / 2, (ay + by) / 2), 0.5 * th, 0.3 * th, f"route {r.label}", layer=L_ROUTE.name, mask=True)
+            for allow in (lambda b, at: tables._free(b), None):
+                if self._label_text([r.label], ((ax + bx) / 2, (ay + by) / 2), 0.5 * th, 0.3 * th, f"route {r.label}", layer=L_ROUTE.name, mask=True, allow=allow):
+                    break
+                if allow is not None:
+                    self.placer.overflow.pop()
 
     def _areas(self, P: _Plan) -> None:
         th = self.m.th

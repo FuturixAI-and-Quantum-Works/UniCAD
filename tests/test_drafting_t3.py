@@ -254,3 +254,41 @@ def test_lt_accb_ct_and_pt_are_not_earthed_as_field_equipment(tmp_path):
     index = render_set(p, tmp_path, kinds=["earthing"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
     words = " ".join(e.dxf.text for e in ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace().query("TEXT"))
     assert "CT-01" not in words and "PT-01" not in words
+
+
+# ---------------- layout route label clear of the tables (item 11, bench run 3 NEW-8) ----------------
+
+
+def test_cable_route_label_does_not_run_over_tables():
+    """A route laid along a row of tables: its label goes beside the run in a row gap, not over the modules."""
+    import ezdxf
+    from shapely.geometry import box
+
+    from unicad.arrays.geometry import table_corners
+    from unicad.drafting.site_plan import LayoutDrawing, render_layout_sheet
+    from unicad.drafting.site_plan.sheet import CableRoute
+    from unicad.sets.plans import drawn_layout, row_pitch
+    from unicad.sets.render import plan_set
+    from unicad.sets.common import sheet_spec
+    from unicad.tenants.store import drawing_profile
+
+    p = bench3()
+    lay = drawn_layout(p)
+    t = next(iter(lay.table_by_id.values()))
+    xs, ys = zip(*table_corners(t))
+    y = (min(ys) + max(ys)) / 2
+    route = CableRoute("ACCB-01 TO POI-01: 7R x 3.5C x 300 sq.mm Al XLPE ARM, ~99 m", ((min(xs) - 5, y), (max(xs) + 60, y)))
+    module = CATALOG.get(t.module)
+    drawing = LayoutDrawing(p.site.geometry, lay, module, max(x.cols for x in lay.table_by_id.values()), row_pitch(lay), routes=(route,))
+    profile = drawing_profile(p.company_profile)
+    s = dict(plan_set(p, ["layout"], profile, CATALOG))["layout"][0]
+    doc = ezdxf.new("R2018", setup=True)
+    render_layout_sheet(doc, drawing, sheet_spec(p, s, 1, 1, kind="layout"), profile)
+    label = next(e for e in doc.modelspace().query("TEXT") if e.dxf.text.startswith("ACCB-01 TO POI-01"))
+    from ezdxf import bbox
+
+    b = bbox.extents([label], fast=True)
+    text = box(b.extmin.x, b.extmin.y, b.extmax.x, b.extmax.y)
+    over = [r for r in doc.modelspace().query("INSERT[layer=='L-ARRAY']")
+            if text.intersection(box(*(lambda e: (e.extmin.x, e.extmin.y, e.extmax.x, e.extmax.y))(bbox.extents(r.virtual_entities(), fast=True)))).area > 0]
+    assert not over, f"route label over {len(over)} tables"
