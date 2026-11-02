@@ -127,7 +127,7 @@ company_onboard(
   "defaulted": [
     "text_style: UniCAD default",
     "text_font: UniCAD default",
-    "thresholds: UniCAD defaults for continuous_factor, fault_clearing_default, k_xlpe_al, k_xlpe_cu, layout_sho..."
+    "thresholds: UniCAD defaults for continuous_factor, fault_clearing_default, k_pvc_al, k_pvc_cu, k_xlpe_al, k..."
   ],
   "failed": [],
   "warnings": []
@@ -851,7 +851,9 @@ project_issue(
     "issued_for": "approval",
     "drawn": "R. Deshmukh",
     "checked": "S. Kulkarni",
-    "approved": "P. Joshi"
+    "approved": "P. Joshi",
+    "model_revision": 11,
+    "content_sha": "75b5b360cd3f74d4"
   },
   "revisions": ["0"],
   "gate": {"allowed": true, "watermark": false, "errors": 0},
@@ -996,7 +998,9 @@ project_diff(project_id="pune-midc-factory-roof", from_revision="agreed-r0")
           "issued_for": "approval",
           "drawn": "R. Deshmukh",
           "checked": "S. Kulkarni",
-          "approved": "P. Joshi"
+          "approved": "P. Joshi",
+          "model_revision": 11,
+          "content_sha": "75b5b360cd3f74d4"
         }
       ]
     }
@@ -1031,7 +1035,9 @@ project_issue(
     "issued_for": "approval",
     "drawn": "R. Deshmukh",
     "checked": "S. Kulkarni",
-    "approved": "P. Joshi"
+    "approved": "P. Joshi",
+    "model_revision": 14,
+    "content_sha": "53a5f4c5a75dd001"
   },
   "revisions": ["0", "1"],
   "gate": {"allowed": true, "watermark": false, "errors": 0},

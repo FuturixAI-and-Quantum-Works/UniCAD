@@ -463,3 +463,11 @@ Standard: none (design practice). Segments: all.
 drawings_render fits each SLD page to its paper and marks it `readable: false` (with a red banner) when the drawing had to shrink below the
 smallest scale at which text stays legible. Such a sheet cannot be issued: split the SLD (sheet scopes), give it larger paper, or shorten long titles,
 then render again. The rule reads the index of the last render; it is stale when the project changed after that render, so render again before issue.
+
+### `drawings.issued_revision`: The model is the content of the latest issued revision
+
+Standard: none (design practice). Segments: all.
+
+project_issue records the model revision and a fingerprint of the content it issues. When the model changes after that, drawings rendered
+from it still print the issued revision mark but are not that revision: a warning names the revision and the way out (a new revision mark, or
+project_issue amend=true to re-issue the mark with the current content).

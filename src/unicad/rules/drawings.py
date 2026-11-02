@@ -10,6 +10,7 @@ from unicad.catalog.store import Catalog
 from unicad.domain.project import Project
 from unicad.rules.model import Finding, Quantity, Severity
 from unicad.rules.registry import rule
+from unicad.store.issue import not_issued_content
 
 
 @dataclass(frozen=True)
@@ -57,3 +58,13 @@ def readable_sld(project: Project, catalog: Catalog) -> Iterator[Finding]:
             unit="x",
             inputs=(Quantity(name="render_revision", value=r.revision, source="drawings index.json"),),
         )
+
+
+@rule("drawings.issued_revision", "The model is the content of the latest issued revision")
+def issued_revision(project: Project, catalog: Catalog) -> Iterator[Finding]:
+    """project_issue records the model revision and a fingerprint of the content it issues. When the model changes after that, drawings rendered
+    from it still print the issued revision mark but are not that revision: a warning names the revision and the way out (a new revision mark, or
+    project_issue amend=true to re-issue the mark with the current content)."""
+    why = not_issued_content(project)
+    if why is not None:
+        yield Finding(rule_id="drawings.issued_revision", severity=Severity.WARNING, subjects=(project.revisions[-1].rev,), message=why)

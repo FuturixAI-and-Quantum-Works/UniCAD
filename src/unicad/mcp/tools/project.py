@@ -11,10 +11,10 @@ from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridCo
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import SegmentArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
-from unicad.mcp.workspace import Edit, Workspace, counts
+from unicad.mcp.workspace import Edit, Problem, Workspace, counts
 from unicad.mcp.tools.rules import project_rules
 from unicad.rules import issue_gate
-from unicad.store import canonical_json
+from unicad.store import canonical_json, content_sha, not_issued_content
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 IssuedForArg = Annotated[IssuedFor, Field(description=f"Purpose of the issue: {', '.join(e.value for e in IssuedFor)}")]
@@ -66,7 +66,21 @@ def project_summary(project: Project, revision: int) -> dict[str, Any]:
         "counts": counts(project),
         "sheets": len(project.sheets),
         "assumptions": list(project.design_basis.assumptions),
+        "issue": _issue_status(project),
     }
+
+
+def _issue_status(project: Project) -> dict[str, Any] | None:
+    if not project.revisions:
+        return None
+    last = project.revisions[-1]
+    stale = not_issued_content(project)
+    return {"rev": last.rev, "issued_for": last.issued_for.value if last.issued_for else None, "model_revision": last.model_revision,
+            "model_is_issued_content": None if last.content_sha is None else stale is None, **({"message": stale} if stale else {})}  # fmt: skip
+
+
+def _issue_fields(r: IssueRevision) -> dict[str, Any]:
+    return r.model_dump(exclude={"content_sha", "model_revision"})
 
 
 def register(server: MCPServer, ws: Workspace) -> None:
@@ -342,8 +356,11 @@ def register(server: MCPServer, ws: Workspace) -> None:
         block, revision table and the drawing register show from the next drawings_render. The engineering rules run first (as in
         validate): approval, construction and as_built are refused while any error remains, and the refusal lists every error;
         proposal and information are allowed with errors and the response says the sheets carry them. A revision mark already
-        issued is refused unless every value is the same (then nothing changes) or amend=true corrects the latest revision in place, so a
-        fix to its remarks or names before any newer issue does not cost a new revision. Remarks longer than about 55 characters are
+        issued is refused unless every value is the same and the model content is what was issued (then nothing changes), or amend=true
+        corrects the latest revision in place, so a fix to its remarks or names before any newer issue does not cost a new revision. Each
+        issue records the model revision and a fingerprint of the content it issues; amend=true re-issues the revision with the current
+        content (the reply says so and from which model revision), and validate, project_get and drawings_render say when the model no
+        longer is the issued content. Remarks longer than about 55 characters are
         shortened in the title block revision cell; the reply warns. Re-render with drawings_render afterwards.
 
         Example: project_issue(project_id="rooftop-500kwp", issued_for="approval", rev="0", drawn="A. Kumar", checked="S. Rao", approved="P. Iyer", date="2026-10-28")."""
@@ -356,27 +373,41 @@ def register(server: MCPServer, ws: Workspace) -> None:
             if not gate.allowed:
                 raise ToolError(f"cannot issue {project_id!r} for {purpose.value}: {len(gate.reasons)} error(s) remain; fix them (validate, explain_finding) or issue for information: "
                                 + "; ".join(gate.reasons))  # fmt: skip
+            sha, head = content_sha(p), ws.store.head(project_id)
+            issued = entry.model_copy(update={"content_sha": sha, "model_revision": head})
             same = next((r for r in p.revisions if r.rev == rev), None)
+            problems: tuple[Problem, ...] = ()
+            note: dict[str, Any] = {}
             if amend:
                 if not p.revisions or p.revisions[-1].rev != rev:
                     latest = p.revisions[-1].rev if p.revisions else None
                     raise ToolError(f"amend corrects only the latest issued revision ({latest!r}), not {rev!r}" if latest else "nothing to amend: the set has not been issued yet")
+                was = p.revisions[-1]
+                if was.content_sha != sha:
+                    issued_from = f"model revision {was.model_revision}" if was.model_revision is not None else "content not fingerprinted"
+                    note = {"content": f"Rev {rev} re-issued with the current content (model revision {head}; it was issued from {issued_from})"}
+                    problems += ({"severity": "warning", "subject": "issue", "message": f"Rev {rev} now stands for model revision {head}, whose content differs from the Rev {rev} issued "
+                                  f"before ({issued_from}): if sheets of the earlier Rev {rev} left the office, issue a new revision mark instead"},)  # fmt: skip
                 updated = p.model_copy(update={
-                    "revisions": (*p.revisions[:-1], entry),
-                    "sheets": tuple(s.model_copy(update={"revisions": tuple(entry if r.rev == rev else r for r in s.revisions)}) for s in p.sheets),
+                    "revisions": (*p.revisions[:-1], issued),
+                    "sheets": tuple(s.model_copy(update={"revisions": tuple(issued if r.rev == rev else r for r in s.revisions)}) for s in p.sheets),
                 })  # fmt: skip
-            elif same is not None and same != entry:
+            elif same is not None and _issue_fields(same) != _issue_fields(entry):
                 raise ToolError(f"revision {rev!r} was already issued on {same.date} for {same.issued_for.value if same.issued_for else 'an unstated purpose'}; "
                                 "give a new revision mark, or pass amend=true to correct it while it is the latest revision")  # fmt: skip
+            elif same is not None and same.content_sha is not None and same.content_sha != sha:
+                raise ToolError(f"revision {rev!r} was issued from model revision {same.model_revision} and the model has changed since: give a new revision mark for the "
+                                f"changed content, or pass amend=true to re-issue {rev!r} with it while it is the latest revision")  # fmt: skip
             else:
-                sheets = p.sheets if same is not None else tuple(s.model_copy(update={"revisions": (*s.revisions, entry)}) if s.revisions else s for s in p.sheets)
-                updated = p if same is not None else p.model_copy(update={"revisions": (*p.revisions, entry), "sheets": sheets})
-            problems = tuple({"severity": "warning", "subject": "issue", "message": f"issued for {purpose.value} with an open error: {r}"} for r in gate.reasons)
+                sheets = p.sheets if same is not None else tuple(s.model_copy(update={"revisions": (*s.revisions, issued)}) if s.revisions else s for s in p.sheets)
+                updated = p if same is not None else p.model_copy(update={"revisions": (*p.revisions, issued), "sheets": sheets})
+            problems += tuple({"severity": "warning", "subject": "issue", "message": f"issued for {purpose.value} with an open error: {r}"} for r in gate.reasons)
             if len(entry.remarks) > REMARKS_FIT:
                 problems += ({"severity": "warning", "subject": "issue", "message": f"remarks are {len(entry.remarks)} characters; the title block revision cell shows about {REMARKS_FIT} "
                               "(longer text is cut with an ellipsis): shorten them with project_issue(..., amend=true)"},)  # fmt: skip
-            extra = {"issue": entry.model_dump(mode="json"), "revisions": [r.rev for r in updated.revisions],
-                     "gate": {"allowed": gate.allowed, "watermark": gate.watermark, "errors": len(gate.reasons)}}  # fmt: skip
+            shown = next(r for r in updated.revisions if r.rev == rev)
+            extra = {"issue": shown.model_dump(mode="json"), "revisions": [r.rev for r in updated.revisions],
+                     "gate": {"allowed": gate.allowed, "watermark": gate.watermark, "errors": len(gate.reasons)}} | note  # fmt: skip
             return Edit(updated, ("revisions",), extra, problems)
 
         return ws.mutate(project_id, change)

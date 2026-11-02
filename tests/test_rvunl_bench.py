@@ -281,6 +281,19 @@ def run3(tmp_path_factory) -> dict:
             for placement in ("perimeter", "auto"):
                 out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
             out["project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
+            out["acb_window"] = await c.call("validate", project_id=PID)
+            await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2300})
+            issue = {"project_id": PID, "issued_for": "approval", "rev": "0", "drawn": "A. Sharma", "checked": "R. Meena", "approved": "V. Singh", "date": "2026-11-02"}
+            out["issue"] = await c.call("project_issue", **issue)
+            out["issue_again"] = await c.call("project_issue", **issue)
+            await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2310})
+            out["issue_changed"] = await c.fail("project_issue", **issue)
+            out["stale_validate"] = await c.call("validate", project_id=PID)
+            out["stale_get"] = await c.call("project_get", project_id=PID)
+            out["stale_render"] = await c.call("drawings_render", project_id=PID, kinds=["register"], formats=["dxf"])
+            out["amend"] = await c.call("project_issue", **issue, amend=True)
+            out["amended_validate"] = await c.call("validate", project_id=PID)
+            out["amended_get"] = await c.call("project_get", project_id=PID)
             pvc = {**CABLES3, "inv_accb": {"cable": "kei-lt-pvc-al-3.5c-240-arm", "runs": 1}, "accb_ltp": {"cable": "kei-lt-pvc-al-3.5c-300-arm", "runs": 7}}
             out["pvc_build"] = await c.call("network_autobuild", **{**BUILD3, "cables": pvc}, accb_at="electrical_centre")
             out["pvc_validate"] = await c.call("validate", project_id=PID, include_info=True)
@@ -343,3 +356,22 @@ def test_a_cable_without_a_catalogued_resistance_is_a_validate_error(project3):
     p = project3.model_copy(update={"network": net.model_copy(update={"edges": edges})})
     errors = [f for f in run_rules(p, catalog).findings if f.rule_id == "vdrop.ac" and f.severity.value == "error"]
     assert errors and all("cannot be checked" in f.message and "no r_ohm_per_km_70c in the catalog" in f.message for f in errors)
+
+
+def test_a_changed_model_is_not_the_issued_revision_until_amend_reissues_it(run3):
+    """NEW-4: after the Rev 0 issue the plot, layout and network changed; project_issue(amend=true) with the same values returned changed:false and
+    the new content rendered as the same Rev 0 without a word."""
+    first = run3["issue"]
+    assert first["changed"] and first["issue"]["content_sha"] and first["issue"]["model_revision"] is not None
+    assert run3["issue_again"]["changed"] is False
+    assert "has changed since" in run3["issue_changed"] and "amend=true" in run3["issue_changed"] and "new revision mark" in run3["issue_changed"]
+    stale = [f for f in run3["stale_validate"]["findings"] if f["rule_id"] == "drawings.issued_revision"]
+    assert len(stale) == 1 and stale[0]["severity"] == "warning" and "not the issued Rev 0" in stale[0]["message"]
+    assert run3["stale_get"]["issue"]["model_is_issued_content"] is False
+    assert run3["stale_render"]["warnings"][0].startswith("NOT THE ISSUED REVISION")
+    amend = run3["amend"]
+    assert amend["changed"] is True and amend["issue"]["content_sha"] != first["issue"]["content_sha"]
+    assert amend["issue"]["model_revision"] > first["issue"]["model_revision"] and "re-issued with the current content" in amend["content"]
+    assert any("now stands for model revision" in p["message"] for p in amend["problems"])
+    assert not [f for f in run3["amended_validate"]["findings"] if f["rule_id"] == "drawings.issued_revision"]
+    assert run3["amended_get"]["issue"]["model_is_issued_content"] is True

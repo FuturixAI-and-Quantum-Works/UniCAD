@@ -197,6 +197,8 @@ class IssueRevision(_Frozen):
     drawn: str | None = None
     checked: str | None = None
     approved: str | None = None
+    model_revision: int | None = Field(default=None, description="project revision whose content this issue is; set by project_issue")
+    content_sha: str | None = Field(default=None, description="fingerprint of the issued content (unicad.store.issue.content_sha); set by project_issue")
 
 
 class SheetKind(StrEnum):

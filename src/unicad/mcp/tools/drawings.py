@@ -16,6 +16,7 @@ from unicad.render import RenderError, preview
 from unicad.rules.thresholds import using
 from unicad.sets import ALL_KINDS, BUILDERS, render_set
 from unicad.sets.render import INDEX
+from unicad.store import not_issued_content
 from unicad.tenants.store import drawing_profile, thresholds_of
 
 WRITES_FILES = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True)
@@ -44,7 +45,10 @@ def _render(ws: Workspace, project_id: str, revision, kinds: list[str], formats:
             index = render_set(p, out, kinds=_kinds(kinds), formats=tuple(dict.fromkeys(formats)), profile=drawing_profile(p.company_profile, ws.config.workspace), catalog=ws.catalog)
         except RenderError as exc:
             raise ToolError(f"rendering failed: {exc}; formats=['dxf'] writes the DXF without LibreCAD") from None
-    return {"project_id": project_id, "revision": rev, "out_dir": str(out)} | index.as_dict(absolute=True)
+    result = {"project_id": project_id, "revision": rev, "out_dir": str(out)} | index.as_dict(absolute=True)
+    if (stale := not_issued_content(p)) is not None:
+        result["warnings"] = [f"NOT THE ISSUED REVISION: {stale}", *result["warnings"]]
+    return result
 
 
 def register(server: MCPServer, ws: Workspace) -> None:
