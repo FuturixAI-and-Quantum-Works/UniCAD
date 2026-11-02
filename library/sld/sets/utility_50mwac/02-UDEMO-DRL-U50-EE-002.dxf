@@ -7659,11 +7659,11 @@ AcDbPolyline
  20
 -157.35
  10
-113.15602
+141.6953
  20
 -157.35
  10
-113.15602
+141.6953
  20
 -30.75
  10
@@ -7725,11 +7725,11 @@ AcDbPolyline
  20
 -169.6
  10
-116.90602
+145.4453
  20
 -169.6
  10
-116.90602
+145.4453
  20
 -27.0
  10
@@ -9455,7 +9455,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1.5 kV DC
+3P, TYPE 2, 1.5 kV DC, In/Imax 15/40 kA
   7
 standard
  11
@@ -9595,7 +9595,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1.5 kV DC
+3P, TYPE 2, 1.5 kV DC, In/Imax 15/40 kA
   7
 standard
  11
@@ -9733,7 +9733,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1 kV
+3P, TYPE 2, 1 kV, In/Imax 20/40 kA
   7
 standard
  11
@@ -9873,7 +9873,7 @@ AcDbText
  40
 2.0
   1
-3P, TYPE 2, 1 kV
+3P, TYPE 2, 1 kV, In/Imax 20/40 kA
   7
 standard
  11
@@ -18239,7 +18239,7 @@ AcDbBlockReference
   2
 UC_SLD_SLD_BLOCK
  10
-302.973568
+280.142144
  20
 439.58
  30

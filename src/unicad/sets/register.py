@@ -8,7 +8,8 @@ from datetime import date
 from unicad.catalog.store import Catalog
 from unicad.domain.project import Project, Sheet, SheetKind
 from unicad.drafting.project_fields import developer
-from unicad.drafting.register import NOTES, RegisterRow, register_table, set_totals
+from unicad.drafting.assumptions import set_assumptions
+from unicad.drafting.register import ASSUMED_POINTER, NOTES, RegisterRow, register_table, set_totals
 from unicad.drafting.sheets.model import CompanyProfile, PaperSize
 from unicad.drafting.sld.annotate import prose
 from unicad.drafting.tables import render_tables
@@ -81,7 +82,7 @@ class RegisterBuilder:
     @staticmethod
     def _pages(project: Project, profile: CompanyProfile, mine: Sequence[Sheet], listed: Sequence[tuple[str, Sheet]], drawn_on: date | None) -> int:
         rows = rows_for(project, profile, [("register", s) for s in mine] + list(listed), drawn_on)
-        return table_pages(register_table(rows, preamble(project)), PaperSize(mine[0].paper))
+        return table_pages(register_table(rows, preamble(project), set_assumptions(project)), PaperSize(mine[0].paper))
 
     def build(self, project: Project, sheets: Sequence[Sheet], drawing_set: Sequence[Sheet], profile: CompanyProfile,
               catalog: Catalog | None, kinds: dict[str, str] | None = None, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
@@ -98,7 +99,7 @@ class RegisterBuilder:
                 elif s.id not in planned:
                     listed.append((_kind_of(s, kinds or {}), s))
             rows = rows_for(project, profile, listed, drawn_on)
-            spec = register_table(rows, preamble(project))
+            spec = register_table(rows, preamble(project), set_assumptions(project))
             pages = table_pages(spec, paper)
             if pages == k:
                 break
@@ -109,7 +110,8 @@ class RegisterBuilder:
 
         def page_spec(page: int, pages: int, part: int):
             s = mine[page - 1]
-            return finish(dated(SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0), drawn_on), project, "register")
+            spec = finish(dated(SheetContext(project, profile, s, paper, NOTES, params).spec(s.title, page, pages, 0), drawn_on), project, "register")
+            return spec.model_copy(update={"assumptions": (ASSUMED_POINTER,)}) if spec.assumptions else spec
 
         render = render_tables([(spec, paper)], profile, page_spec)
         meta = {"rows": [r.__dict__ for r in rows]}

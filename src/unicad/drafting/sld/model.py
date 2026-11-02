@@ -140,6 +140,8 @@ class Stub:
     pin: str
     points: tuple[Point, ...]
     labels: tuple[Label, ...]
+    kind: WireKind | None = None
+    """None: a spare power terminal; COMMS or CONTROL: a link continued at a node drawn elsewhere on the sheet, `pin` naming the edge."""
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,10 @@ MIN_PRINTED_TEXT_MM = 1.8
 """Smallest lettering height on the printed sheet: the smallest nominal height of the ISO 3098 lettering series."""
 SMALLEST_TEXT_MM = 2.0
 """Smallest text the diagram is drawn with at full size (cable callouts, symbol ratings and descriptions)."""
+
+
+LABEL_CHARS = 48
+"""A symbol label longer than this is written over several lines, broken after its commas."""
 
 
 @dataclass(frozen=True)

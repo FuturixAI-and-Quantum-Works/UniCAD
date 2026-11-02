@@ -133,12 +133,14 @@ def notes_for(t: DiagramType) -> tuple[str, ...]:
 
 def parameters_for(t: DiagramType) -> tuple[tuple[str, str], ...]:
     m, inv = t.module, t.inverter
+    voc = dict(sorted({ln.modules: ln.voc_cold_v for ln in t.lines}.items()))
+    voc_text = " / ".join(f"{v:.1f} V" + (f" ({n})" if len(voc) > 1 else "") for n, v in voc.items())
     rows = [
         ("TYPICAL FOR", t.typical),
         ("MODULE", f"{m.pmax:g} WP {m.model}".upper()),
-        ("MODULES IN SERIES", str(t.lines[0].modules)),
+        ("MODULES IN SERIES", " / ".join(str(n) for n in voc)),
         ("STRINGS SHOWN", f"{len(t.lines)} PER {t.representative.tag}"),
-        (f"VOC AT {t.tmin_c:g} DEG C", f"{t.lines[0].voc_cold_v:.1f} V (LIMIT {t.voc_limit_v:g} V)"),
+        (f"VOC AT {t.tmin_c:g} DEG C", f"{voc_text} (LIMIT {t.voc_limit_v:g} V)"),
         ("STRING ISC", f"{m.isc:g} A"),
         ("STRING CABLE", t.string_callout.upper()),
         ("STRING FUSE", (t.fuse.label.upper() + (", + AND - POLES" if t.fuse.poles == 2 else "") + ("" if t.fuse.modelled else " (PROPOSED)")) if t.fuse else f"NONE (AT MOST {t.mppt.inputs_per_mppt} PER MPPT)" if t.mppt else "NONE"),

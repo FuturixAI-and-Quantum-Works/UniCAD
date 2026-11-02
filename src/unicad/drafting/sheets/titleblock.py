@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -18,14 +19,14 @@ LOCATION_LINES = 6
 
 
 def compose_location(*parts: str | None) -> str:
-    """Comma-separated place parts with each place named once, in first-seen order and ignoring case."""
-    seen: set[str] = set()
+    """Comma-separated place parts with each place named once, in first-seen order and ignoring case: a piece already named inside an
+    earlier one ('Rajasthan' after 'Jaipur, Rajasthan 302026') is left out."""
     out: list[str] = []
     for part in parts:
         for piece in (part or "").split(","):
             piece = piece.strip()
-            if piece and piece.casefold() not in seen:
-                seen.add(piece.casefold())
+            words = re.escape(piece.casefold())
+            if piece and not any(re.search(rf"(?<!\w){words}(?!\w)", earlier.casefold()) for earlier in out):
                 out.append(piece)
     return ", ".join(out)
 

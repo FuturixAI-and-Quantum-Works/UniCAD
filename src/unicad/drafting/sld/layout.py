@@ -42,6 +42,7 @@ from unicad.drafting.sld.model import (
     Busbar,
     Callout,
     Frame,
+    LABEL_CHARS,
     Label,
     OffSheet,
     PinRef,
@@ -56,7 +57,7 @@ from unicad.drafting.sld.model import (
     union_all,
 )
 from unicad.drafting.sld.outline import inside, union_outline
-from unicad.drafting.symbols import GRID, REGISTRY, PinKind, Side, SymbolDef, pin_at, upright_attr
+from unicad.drafting.symbols import GRID, REGISTRY, PinKind, Side, SymbolDef, attr_lines, pin_at, upright_attr
 
 BUS_KINDS = frozenset({NodeKind.BUSBAR, NodeKind.ACDB, NodeKind.LT_PANEL, NodeKind.HT_PANEL})
 _TERMINAL_KINDS = SOURCE_KINDS | {NodeKind.LOAD}
@@ -131,12 +132,14 @@ def _geom(key: str, rotation: float, values: tuple[tuple[str, str], ...]) -> _Ge
     turned = round(rotation) % 360 == 180
     align: Align = "left" if turned or math.cos(math.radians(rotation)) > -1e-9 else "right"
     given = dict(values)
+    lines_of = attr_lines(sym, given, rotation, LABEL_CHARS)
     labels = []
     for a in sym.attrs:
         text = given.get(a.tag, a.default)
         if a.visible and text:
             at = upright_attr(sym, a.x, a.y) if turned and not a.centred else _rot(a.x, a.y, rotation)
-            labels.append(label(text, at, a.height, "center" if a.centred else align))
+            lines, down = lines_of[a.tag]
+            labels += [label(t, (at[0], at[1] - down - i * 2 * a.height), a.height, "center" if a.centred else align) for i, t in enumerate(lines)]
     pins = {p.name: (pin_at(key, p.name, (0, 0), rotation), _side(p.side, rotation)) for p in sym.pins}
     return _Geom(key, rotation, values, body, labels, pins)
 
@@ -258,15 +261,18 @@ class _FrameRec:
 
 class _Builder:
     def __init__(self, net: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
-                 xrefs: Mapping[str, str] | None = None, notes: tuple[str, ...] = ()):
+                 xrefs: Mapping[str, str] | None = None, notes: tuple[str, ...] = (), remote: Mapping[str, str] | None = None):
         self.net, self.catalog, self.o = net, catalog, options
         self.preset_notes = notes
         self.xrefs = dict(xrefs or {})
+        self.remote = dict(remote or {})
+        """Nodes drawn in another row of the sheet, with that row: control links to them end in a stub naming it, and a data logger or meter drawn there is not drawn here."""
         self.warnings: list[str] = []
-        keep = _expand_scope(net, scope) if scope is not None else frozenset(net.node_by_id)
+        keep = _expand_scope(net, scope, frozenset(self.remote)) if scope is not None else frozenset(net.node_by_id)
         self.cut_edges = [e for e in net.edges if e.is_power and (e.src_node in keep) != (e.dst_node in keep)]
         markers, edges = _markers(net, keep, self.cut_edges)
         self.edges = edges
+        self.remote_links = [e for e in net.edges if e.service is Service.CONTROL and {e.src_node, e.dst_node} & keep and {e.src_node, e.dst_node} & (self.remote.keys() - keep)]
         self.edge_of = {e.id: e for e in edges}
         self.order = {e.id: i for i, e in enumerate(edges)}
         self.recs: dict[str, _Rec] = {}
@@ -832,9 +838,10 @@ class _Builder:
         pin = rec.edge_pins.get(edge.id, rec.mapping.get(port)) if edge is not None else rec.mapping.get(port)
         base = host if nid in self.sat_of else rec
         if (pin is None or pin not in g.pins) and port == COMMS_PORT:
-            # A data port the symbol has no pin for (an inverter's RS-485 terminals): the link leaves the right side of the body.
+            # A data port the symbol has no pin for (an inverter's RS-485 terminals): the link leaves the bottom of the body on the right,
+            # clear of the labels beside it and of the conductor below its centre.
             b = g.body
-            return PinRef(nid, port, self._abs(base, (b.x1, b.y0 + 0.25 * (b.y1 - b.y0))))
+            return PinRef(nid, port, self._abs(base, (b.x0 + 0.8 * (b.x1 - b.x0), b.y0)))
         if pin is None or pin not in g.pins:
             return None
         return PinRef(nid, pin, self._abs(base, g.pins[pin][0]))
@@ -842,7 +849,9 @@ class _Builder:
     def _side_of(self, nid: str, port: str, edge: Edge | None = None) -> Side | None:
         rec = self.recs[nid]
         pin = rec.edge_pins.get(edge.id, rec.mapping.get(port)) if edge is not None else rec.mapping.get(port)
-        return rec.geom.pins[pin][1] if rec.geom and pin in rec.geom.pins else None
+        if rec.geom and pin in rec.geom.pins:
+            return rec.geom.pins[pin][1]
+        return Side.S if rec.geom and port == COMMS_PORT else None
 
     def emit(self) -> SldLayout:
         o = self.o
@@ -962,6 +971,15 @@ class _Builder:
         bodies = [s.body for s in symbols] + [lb.box for s in symbols for lb in s.labels]
         bodies += [lb.box for x in (*busbars, *callouts, *frames) for lb in x.labels]
         late: list[tuple[int, PinRef, Side | None, PinRef, Side | None]] = []
+        continued: list[Stub] = []
+        ends: dict[tuple[str, str], list[tuple[Edge, str]]] = defaultdict(list)
+        for e in self.remote_links:
+            far = e.src_node if e.src_node in self.remote and e.src_node not in self.recs else e.dst_node
+            near = e.dst_node if far == e.src_node else e.src_node
+            if near in self.recs:
+                ends[near, nid_port(e, near)].append((e, far))
+        for (near, _), links in ends.items():
+            continued += self._continued(links, near)
         for e in self.edges:
             if e.id in drawn_edges or e.service is Service.EARTH:
                 continue
@@ -979,6 +997,7 @@ class _Builder:
             pts = self._route(a, sa, b, sb, bodies)
             late.append((len(wires), a, sa, b, sb))
             wires.append(Wire(e.id, _kind(e), _clean(list(pts)), a, b))
+        stubs += tuple(continued)
         frames += self._loose_frames(symbols, busbars, wires, callouts, frames)
         outlines = [edge for f in frames for edge in _edges_of(f)]
         for i, a, sa, b, sb in late:
@@ -1011,6 +1030,27 @@ class _Builder:
             warnings=tuple(self.warnings),
             notes=self.notes,
         )
+
+    def _continued(self, links: list[tuple[Edge, str]], near: str) -> list[Stub]:
+        """Links from one terminal of `near` to nodes drawn in other rows: one short run off the pin, named for each far end and its row
+        (one stub per link, so each edge is accounted for; they share the run and the label lines)."""
+        e0 = links[0][0]
+        pin = self._pin(near, nid_port(e0, near), e0)
+        if pin is None:
+            return []
+        side = self._side_of(near, nid_port(e0, near), e0) or Side.E
+        dx, dy = {Side.E: (1, 0), Side.W: (-1, 0), Side.N: (0, 1), Side.S: (0, -1)}[side]
+        x, y = pin.at
+        end = (x + dx * 4 * STUB, y + dy * 4 * STUB)
+        h = self.o.callout_height
+        by_row: dict[str, list[str]] = defaultdict(list)
+        for _, far in links:
+            by_row[self.remote[far]].append(xref_tag(self.net, self.net.node(far), self.net.node(near)))
+        texts = [f"TO {', '.join(dict.fromkeys(tags))} ({row})" for row, tags in by_row.items()]
+        align: Align = "right" if dx < 0 else "left"
+        labels = tuple(label(t, (end[0] + (1.0 if dx >= 0 else -1.0), end[1] - dy * h / 2 - k * LINE_PITCH * h * (1 if dy <= 0 else -1)), h, align)
+                       for k, t in enumerate(texts))
+        return [Stub(near, e.id, (pin.at, end), labels if i == 0 else (), _kind(e)) for i, (e, _) in enumerate(links)]
 
     def _winding_pins(self, nid: str, rec: _Rec, sym: SymbolDef) -> dict[str, str]:
         """Spread the LV feeders that share one port of an inverter-duty transformer over its LV windings, in drawing order."""
@@ -1289,8 +1329,8 @@ def _fallback_key(node: Node) -> str:
     raise LayoutError(f"node {node.id!r} ({node.kind}) has no symbol; set one with network_update fields={{'symbol': ...}}")
 
 
-def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[str]:
-    """Add what is drawn beside an in-scope node anyway: its SPDs/LAs, CT-operated meters and relays, earth."""
+def _expand_scope(net: ElectricalNetwork, scope: frozenset[str], remote: frozenset[str] = frozenset()) -> frozenset[str]:
+    """Add what is drawn beside an in-scope node anyway: its SPDs/LAs, CT-operated meters and relays (unless `remote`: drawn elsewhere), earth."""
     keep = set(scope)
     power_degree: dict[str, int] = defaultdict(int)
     for e in net.edges:
@@ -1307,7 +1347,7 @@ def _expand_scope(net: ElectricalNetwork, scope: frozenset[str]) -> frozenset[st
     for e in net.edges:
         if e.service is Service.CONTROL and (e.src_node in keep) != (e.dst_node in keep):
             other = net.node(e.dst_node if e.src_node in keep else e.src_node)
-            if all(p in SIGNAL_PORTS for p in other.port_names):
+            if other.id not in remote and all(p in SIGNAL_PORTS for p in other.port_names):
                 keep.add(other.id)
     keep |= {n.id for n in net.nodes if n.kind is NodeKind.EARTH_ELECTRODE}
     return frozenset(keep)
@@ -1711,8 +1751,8 @@ def layout_sld(
 
 
 def _build(network: ElectricalNetwork, catalog: Catalog | None, options: SldOptions, scope: frozenset[str] | None,
-           xrefs: Mapping[str, str] | None = None, notes: tuple[str, ...] = ()) -> tuple[_Builder, SldLayout]:
-    b = _Builder(network, catalog, options, scope, xrefs, notes)
+           xrefs: Mapping[str, str] | None = None, notes: tuple[str, ...] = (), remote: Mapping[str, str] | None = None) -> tuple[_Builder, SldLayout]:
+    b = _Builder(network, catalog, options, scope, xrefs, notes, remote)
     b.topology()
     b.geometry()
     b.place_x()
@@ -1744,6 +1784,9 @@ def _feeders(b: "_Builder", network: ElectricalNetwork) -> tuple[str | None, fro
     main = nodes - frozenset().union(*subtrees)
     # A feeder wired by control cables to the main page (a metering PT to its ABT meters) stays there, so the wiring is drawn.
     wired = [s for s in subtrees if any(e.service is Service.CONTROL and {e.src_node, e.dst_node} & s and {e.src_node, e.dst_node} & main for e in network.edges)]
+    # A bus SPD is drawn beside the bus wherever the bus is (`_expand_scope`): it is no feeder of its own.
+    beside = _expand_scope(network, main)
+    wired += [s for s in subtrees if s <= beside and s not in wired]
     return split, main.union(*wired), [s for s in subtrees if s not in wired]
 
 
@@ -1842,14 +1885,17 @@ def _row_widths(lay: SldLayout, groups: list[frozenset[str]]) -> list[float]:
     return out
 
 
-def _split_rows(widths: list[float], first: float, k: int, gap: float) -> list[list[int]]:
+def _split_rows(widths: list[float], first: float, k: int, gap: float, beside: bool = False) -> list[list[int]]:
     """The feeders (indices into `widths`, in drawing order) in `k` rows with the widest row narrowest: contiguous rows first, then single
-    feeders moved to another row (keeping drawing order within it) while that narrows the widest row. The first row also holds `first`."""
+    feeders moved to another row (keeping drawing order within it) while that narrows the widest row. The first row also holds `first`:
+    above the feeders it holds (they fit under it), or with `beside` next to them (it hangs below the bus too)."""
     n = len(widths)
 
     def width(row: list[int], r: int) -> float:
         w = sum(widths[i] for i in row) + gap * max(0, len(row) - 1)
-        return max(w, first) if r == 0 else w
+        if r:
+            return w
+        return first + gap + w if beside and row else max(w, first)
 
     best: dict[int, tuple[float, list[list[int]]]] = {0: (0.0, [])}
     for r in range(k):
@@ -1916,11 +1962,21 @@ def stack_rows(
     first = layout_sld(network, catalog, options, main, xrefs).extent.width if main else 0.0
     bus = annotate.prose(xref_tag(network, network.node(split), network.node(split))) if split in network.node_by_id else None
     best: tuple[float, SldLayout] | None = None
-    for k in range(2, min(MAX_ROWS, len(subs)) + 1):
-        split_rows = _split_rows(widths, first, k, options.h_gap)
+    tried: list[list[list[int]]] = []
+    for k, beside in ((k, beside) for k in range(2, min(MAX_ROWS, len(subs)) + 1) for beside in (False, True)):
+        split_rows = _split_rows(widths, first, k, options.h_gap, beside)
+        if split_rows in tried:
+            continue
+        tried.append(split_rows)
         rows = [frozenset().union(*(subs[i] for i in row)) for row in split_rows]
         rows[0] = rows[0] | main
         row_of = {n: i for i, r in enumerate(rows) for n in r}
+        owner: dict[str, int] = {}
+        for i, ids in enumerate(rows):
+            for n in sorted(_expand_scope(network, ids)):
+                node = network.node(n)
+                if node.kind is not NodeKind.EARTH_ELECTRODE and all(p in SIGNAL_PORTS for p in node.port_names):
+                    owner.setdefault(n, i)
         parts = []
         for i, ids in enumerate(rows):
             refs = dict(xrefs or {})
@@ -1929,7 +1985,8 @@ def stack_rows(
                     other = e.dst_node if e.src_node in ids else e.src_node
                     if other in row_of and row_of[other] != i:
                         refs[e.id] = f"{ROW_REF}{row_of[other] + 1}"
-            parts.append(_build(network, catalog, options, ids, refs, lay.notes)[1])
+            remote = {n: f"{ROW_REF}{r + 1}" for n, r in (row_of | owner).items() if r != i}
+            parts.append(_build(network, catalog, options, ids, refs, lay.notes, remote)[1])
         stacked = replace(_stack(parts, bus), notes=lay.notes)
         scale = stacked.fit_scale(width, height, options)
         if best is None or scale > best[0] + 1e-9:

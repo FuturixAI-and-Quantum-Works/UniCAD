@@ -19,7 +19,7 @@ from unicad.domain.catalog import (
     ProtectionSpec,
     TransformerSpec,
 )
-from unicad.domain.network import SPEC_KINDS, Edge, ElectricalNetwork, Group, Node, NodeKind
+from unicad.domain.network import SPEC_KINDS, BusbarRating, Edge, ElectricalNetwork, Group, InstrumentCore, Node, NodeKind, SpdRating
 from unicad.domain.project import DesignBasis, Project
 from unicad.rules.protection import isolator_devices
 from unicad.rules.ratio import BESS_KW_ASKED, BESS_KWH_ASKED, EXPORT_CONTROL_ATTR, EXPORT_LIMIT_ATTR, plant_capacity
@@ -125,13 +125,20 @@ def _switching_rating(spec: ProtectionSpec) -> str:
     return _join(*parts)
 
 
-def _spd_rating(spec: ProtectionSpec) -> str:
-    i_n, i_max = spec.nominal_discharge_current_ka, spec.max_discharge_current_ka
+def _discharge(i_n: float | None, i_max: float | None) -> str | None:
     if i_n and i_max:
-        discharge = f"In/Imax {i_n:g}/{i_max:g} kA"
-    else:
-        discharge = f"In {i_n:g} kA" if i_n else f"Imax {i_max:g} kA" if i_max else None
-    return _join(_switching_rating(spec), discharge)
+        return f"In/Imax {i_n:g}/{i_max:g} kA"
+    return f"In {i_n:g} kA" if i_n else f"Imax {i_max:g} kA" if i_max else None
+
+
+def _spd_rating(spec: ProtectionSpec, typed: SpdRating | None = None) -> str:
+    """The catalog SPD's ratings, with the node's typed values (as the brief states them) in place of the catalog's where given."""
+    if typed is not None:
+        spec = spec.model_copy(update={"spd_type": typed.spd_type or spec.spd_type})
+    i_n = (typed.in_ka if typed else None) or spec.nominal_discharge_current_ka
+    i_max = (typed.imax_ka if typed else None) or spec.max_discharge_current_ka
+    uc = f"Uc {typed.uc_v:g} V" if typed and typed.uc_v and typed.uc_v != spec.rated_voltage else None
+    return _join(_switching_rating(spec), uc, _discharge(i_n, i_max))
 
 
 def _rmu_rating(spec: ProtectionSpec) -> str:
@@ -239,7 +246,7 @@ _ANSI_IN_TITLE = re.compile(r"\b\d{2}[A-Z]{0,2}(?:/\d{2}[A-Z]{0,2})+\b")
 def ansi_functions(node: Node) -> tuple[str, ...]:
     """ANSI device numbers of a relay, one per circle: '50/51, 50N/51N' -> 50 51 50N 51N. From the node's ANSI field or attribute, else
     the slash-joined run of device numbers its title names ('NUMERICAL RELAY 50/51/67/67N')."""
-    raw = attr_value(node, _ANSI_KEYS)
+    raw = node.relay.functions if node.relay is not None else attr_value(node, _ANSI_KEYS)
     if raw is None and node.kind is NodeKind.RELAY and node.title and (m := _ANSI_IN_TITLE.search(node.title.upper())):
         raw = m.group()
     items = raw if isinstance(raw, list | tuple) else _ANSI_SPLIT.split(str(raw)) if raw else []
@@ -289,6 +296,25 @@ def _cores(node: Node) -> str:
     return _text(listed) if listed else ""
 
 
+def _core_text(core: InstrumentCore) -> str:
+    return " ".join(x for x in (f"CL {core.accuracy_class}", f"{core.burden_va:g} VA" if core.burden_va else "", core.purpose.upper() if core.purpose else "") if x)
+
+
+def _typed_cores(cores: tuple[InstrumentCore, ...]) -> str:
+    return ", ".join(f"C{i} {_core_text(c)}" for i, c in enumerate(cores, start=1))
+
+
+def _typed_pt_ratio(node: Node) -> str:
+    pt = node.pt
+    r3 = f"/{SQRT}3" if pt.phase_to_neutral else ""
+    return f"{pt.primary_v / 1000:g} kV{r3} / {pt.secondary_v:g} V{r3}"
+
+
+def _typed_busbar(bus: BusbarRating) -> list[str]:
+    fault = f"{bus.fault_ka:g} kA{f' {bus.fault_s:g} s' if bus.fault_s else ''}" if bus.fault_ka else None
+    return [p for p in (f"{bus.rating_a:g} A", fault, f"{bus.material.upper()} BUSBAR" if bus.material else "BUSBAR", bus.phases) if p]
+
+
 def _ka_with_time(node: Node, ka_keys: tuple[str, ...], s_keys: tuple[str, ...]) -> str:
     ka = attr_value(node, ka_keys)
     if ka is None:
@@ -305,7 +331,11 @@ def standard_attributes(node: Node) -> tuple[str, ...]:
     level of a panel or bus, ratio and cores of a CT or PT, protocol of a relay or meter, In and Imax of an SPD."""
     k = node.kind
     out: list[str] = []
-    if k in BUS_KINDS:
+    if node.busbar is not None and k not in BUS_KINDS:
+        out.append(_join(*_typed_busbar(node.busbar)))
+    if k in BUS_KINDS and node.busbar is not None:
+        pass
+    elif k in BUS_KINDS:
         bus = attr_value(node, ("busbar_rating", "busbar"))
         if isinstance(bus, int | float) and not isinstance(bus, bool):
             out.append(f"BUSBAR {bus:g} A")
@@ -313,14 +343,21 @@ def standard_attributes(node: Node) -> tuple[str, ...]:
             out.append(f"BUSBAR {_text(bus)}")
         fault = attr_value(node, ("fault_level",))
         out.append(f"FAULT LEVEL {_text(fault, ' kA')}" if fault is not None else _ka_with_time(node, ("fault_level_ka", "busbar_fault_ka"), ("fault_duration_s", "busbar_fault_s")))
+    elif k is NodeKind.CT and node.ct is not None:
+        out += [node.ct.ratio, _typed_cores(node.ct.cores)]
+    elif k is NodeKind.PT and node.pt is not None:
+        out += [_typed_pt_ratio(node), _typed_cores(node.pt.cores)]
     elif k in (NodeKind.CT, NodeKind.PT):
         ratio = attr_value(node, ("ratio", f"{k.value}_ratio"))
         out += [f"RATIO {_text(ratio)}" if ratio is not None else "", _cores(node)]
+    elif k in (NodeKind.AC_SPD, NodeKind.DC_SPD) and node.spd is not None:
+        t = node.spd
+        out += [f"TYPE {t.spd_type}" if t.spd_type else "", f"Uc {t.uc_v:g} V" if t.uc_v else "", _discharge(t.in_ka, t.imax_ka) or ""]
     elif k in (NodeKind.AC_SPD, NodeKind.DC_SPD):
         i_n = attr_value(node, ("in_ka", "nominal_discharge_ka", "nominal_discharge_current_ka"))
         i_max = attr_value(node, ("imax_ka", "max_discharge_ka", "max_discharge_current_ka"))
         out += [f"In {_text(i_n, ' kA')}" if i_n is not None else "", f"Imax {_text(i_max, ' kA')}" if i_max is not None else ""]
-    if k in (NodeKind.RELAY, NodeKind.METER) and (proto := attr_value(node, ("protocol", "communication"))):
+    if k in (NodeKind.RELAY, NodeKind.METER) and (proto := (node.relay.protocol if node.relay else None) or attr_value(node, ("protocol", "communication"))):
         out.append(_text(proto))
     return tuple(x for x in out if x)
 
@@ -351,7 +388,9 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
             desc = node.title or _join(spec.cooling if "cooling" in spec.model_fields_set else None, _impedance_text(spec), _tap_text(spec))
         case ProtectionSpec():
             label, rating_of = PROTECTION_TEXT[spec.device]
-            rating = rating_of(spec)
+            rating = _spd_rating(spec, node.spd) if rating_of is _spd_rating else rating_of(spec)
+            if node.long_time_setting_a is not None and spec.rated_current:
+                rating = rating.replace(f"{spec.rated_current:g} A", f"{spec.rated_current:g} A, Ir = {node.long_time_setting_a:g} A", 1)
             poles = node.attributes.get("fused_poles") if spec.device in ("fuse_gpv", "fuse_hrc") else None
             if isinstance(poles, int) and poles != spec.poles:
                 rating = rating.replace(f"{spec.poles}P", f"{poles} x {spec.poles}P ({'+ AND - POLES' if poles == 2 else f'{poles} POLES'})", 1)
@@ -376,11 +415,12 @@ def node_texts(net: ElectricalNetwork, node: Node, catalog: Catalog | None) -> d
             if unspecified(node):
                 rating = _join(rating or None, UNSPECIFIED)
     if node.kind not in BUS_KINDS:
-        rating = _join(rating, *(a for a in standard_attributes(node) if a not in rating.upper() and a not in desc.upper()))
+        extra = () if isinstance(spec, ProtectionSpec) and node.spd is not None else standard_attributes(node)
+        rating = _join(rating, *(a for a in extra if a not in rating.upper() and a not in desc.upper()))
     out = {"TAG": node_tag(net, node), "RATING": rating, "DESC": desc, "VECTOR": vector}
     if node.kind is NodeKind.RELAY:
         ansi = _ansi_texts(node)
-        out |= ansi | {"RATING": _join(rating, ansi["RATING"])}
+        out |= ansi | {"RATING": _join(ansi["RATING"], rating)}
     if node.count > 1:
         out["COUNT"] = f"x {node.count} NOS"
     return out
@@ -405,7 +445,9 @@ def _attr(node: Node, keys: tuple[str, ...]):
 
 
 def bus_rating(node: Node) -> str:
-    """'33 kV, 1250 A, 25 kA 1 s, AL BUSBAR' from the node's voltage and rating attributes; '' when it has none."""
+    """'33 kV, 1250 A, 25 kA 1 s, AL BUSBAR' from the node's typed busbar field or else its voltage and rating attributes; '' when it has none."""
+    if node.busbar is not None:
+        return _join(volts(node.voltage_v) if node.voltage_v else None, *_typed_busbar(node.busbar))
     amps, ka, secs, mat = (_attr(node, k) for k in (_BUS_CURRENT, _BUS_FAULT_KA, _BUS_FAULT_S, _BUS_MATERIAL))
     if amps is None and ka is None and mat is None:
         return ""

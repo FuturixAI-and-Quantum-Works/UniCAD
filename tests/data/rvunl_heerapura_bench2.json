@@ -1,0 +1,1909 @@
+{
+  "id": "rvunl-heerapura",
+  "name": "1.4 MWp / 1.2 MWac Heerapura Ground-Mounted Solar PV Plant",
+  "client": {
+    "name": "RVUNL, Rajasthan"
+  },
+  "site": {
+    "name": "Heerapura, Jaipur, Rajasthan",
+    "state": "Rajasthan",
+    "latitude": 26.887058,
+    "longitude": 75.719544,
+    "crs": "EPSG:32643",
+    "geometry": {
+      "crs": "EPSG:32643",
+      "origin": {
+        "lon": 75.7183782,
+        "lat": 26.8864295
+      },
+      "features": [
+        {
+          "id": "heerapura_plot_assumed",
+          "kind": "boundary",
+          "polygon": [
+            {
+              "x": 0.795,
+              "y": 0.005
+            },
+            {
+              "x": 230.868,
+              "y": 1.311
+            },
+            {
+              "x": 230.075,
+              "y": 140.617
+            },
+            {
+              "x": 0.005,
+              "y": 139.311
+            }
+          ],
+          "name": "heerapura_plot_ASSUMED",
+          "attributes": {
+            "source": "site.txt"
+          }
+        }
+      ],
+      "setbacks": {
+        "boundary_m": 5.0
+      }
+    }
+  },
+  "design_basis": {
+    "ambient_min_c": 2.0,
+    "ambient_max_c": 47.0,
+    "cell_temp": {
+      "model": "noct"
+    },
+    "altitude_m": 0.0,
+    "grid": {
+      "voltage_v": 415.0,
+      "frequency_hz": 50.0
+    },
+    "vdrop_dc_max": 0.02,
+    "vdrop_ac_max": 0.02,
+    "dc_ac_ratio_target": 1.17,
+    "power_factor": 0.99,
+    "earthing": {
+      "soil_resistivity_ohm_m": 100.0,
+      "fault_current_ka": 31.5,
+      "fault_clearing_s": 1.0
+    },
+    "lps": {
+      "level": "III",
+      "ese_delta_t_us": 60.0,
+      "mast_height_m": 6.0
+    },
+    "fault_levels": [
+      {
+        "voltage_v": 415.0,
+        "fault_ka": 31.5,
+        "clearing_s": 3.0,
+        "source": "brief ACCB busbar rating"
+      }
+    ],
+    "assumptions": [
+      "altitude_m = 0 is a placeholder, not site or standard data; replace it before issue.",
+      "vdrop_dc_max = 0.02 is a placeholder, not site or standard data; replace it before issue.",
+      "vdrop_ac_max = 0.02 is a placeholder, not site or standard data; replace it before issue.",
+      "power_factor = 0.99 is a placeholder, not site or standard data; replace it before issue.",
+      "Grid frequency 50 Hz and 3 phase(s) taken from the grid voltage 415 V.",
+      "Cell temperature uses the module NOCT from the catalog."
+    ]
+  },
+  "company_profile": "default",
+  "segment": "utility",
+  "developer": {
+    "name": "Truere Knight Pvt. Ltd."
+  },
+  "network": {
+    "groups": [
+      {
+        "id": "inv_seca",
+        "tag": "INVERTER SECTION-{0:02d}",
+        "count": 4,
+        "title": "150 kVA S6-GC3P150K07-NV-ND SECTION"
+      },
+      {
+        "id": "inv_secx05",
+        "tag": "INVERTER SECTION-05",
+        "title": "150 kVA S6-GC3P150K07-NV-ND SECTION"
+      },
+      {
+        "id": "inv_secx06",
+        "tag": "INVERTER SECTION-06",
+        "title": "150 kVA S6-GC3P150K07-NV-ND SECTION"
+      },
+      {
+        "id": "inv_secx07",
+        "tag": "INVERTER SECTION-07",
+        "title": "150 kVA S6-GC3P150K07-NV-ND SECTION"
+      },
+      {
+        "id": "inv_secx08",
+        "tag": "INVERTER SECTION-08",
+        "title": "150 kVA S6-GC3P150K07-NV-ND SECTION"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "inva",
+        "tag": "INV-{0:02d}",
+        "kind": "inverter",
+        "spec": "solis-s6-gc3p150k07-nv-nd",
+        "group": "inv_seca",
+        "ports": [
+          "dc",
+          "ac",
+          "sig"
+        ]
+      },
+      {
+        "id": "stra_18",
+        "tag": "STR18-{0:02d}-{1:02d}",
+        "kind": "pv_string",
+        "spec": "avaada-electro-avn66g12g-720",
+        "count": 14,
+        "group": "inv_seca",
+        "modules_in_series": 18,
+        "mppt": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          4,
+          4,
+          5,
+          5,
+          6,
+          6,
+          7,
+          7
+        ]
+      },
+      {
+        "id": "dcspda",
+        "tag": "DC-SPD-{0:02d}",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.000.x015",
+        "group": "inv_seca"
+      },
+      {
+        "id": "ep",
+        "tag": "EP-MAIN-01",
+        "kind": "earth_electrode",
+        "title": "MAIN EARTH GRID"
+      },
+      {
+        "id": "invx05",
+        "tag": "INV-05",
+        "kind": "inverter",
+        "spec": "solis-s6-gc3p150k07-nv-nd",
+        "group": "inv_secx05",
+        "ports": [
+          "dc",
+          "ac",
+          "sig"
+        ]
+      },
+      {
+        "id": "strx05_18",
+        "tag": "STR18-05-{0:02d}",
+        "kind": "pv_string",
+        "spec": "avaada-electro-avn66g12g-720",
+        "count": 13,
+        "group": "inv_secx05",
+        "modules_in_series": 18,
+        "mppt": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          4,
+          4,
+          5,
+          5,
+          6,
+          6,
+          7
+        ]
+      },
+      {
+        "id": "dcspdx05",
+        "tag": "DC-SPD-05",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.000.x015",
+        "group": "inv_secx05"
+      },
+      {
+        "id": "invx06",
+        "tag": "INV-06",
+        "kind": "inverter",
+        "spec": "solis-s6-gc3p150k07-nv-nd",
+        "group": "inv_secx06",
+        "ports": [
+          "dc",
+          "ac",
+          "sig"
+        ]
+      },
+      {
+        "id": "strx06_18",
+        "tag": "STR18-06-{0:02d}",
+        "kind": "pv_string",
+        "spec": "avaada-electro-avn66g12g-720",
+        "count": 13,
+        "group": "inv_secx06",
+        "modules_in_series": 18,
+        "mppt": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          4,
+          4,
+          5,
+          5,
+          6,
+          6,
+          7
+        ]
+      },
+      {
+        "id": "dcspdx06",
+        "tag": "DC-SPD-06",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.000.x015",
+        "group": "inv_secx06"
+      },
+      {
+        "id": "invx07",
+        "tag": "INV-07",
+        "kind": "inverter",
+        "spec": "solis-s6-gc3p150k07-nv-nd",
+        "group": "inv_secx07",
+        "ports": [
+          "dc",
+          "ac",
+          "sig"
+        ]
+      },
+      {
+        "id": "strx07_18",
+        "tag": "STR18-07-{0:02d}",
+        "kind": "pv_string",
+        "spec": "avaada-electro-avn66g12g-720",
+        "count": 13,
+        "group": "inv_secx07",
+        "modules_in_series": 18,
+        "mppt": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          4,
+          4,
+          5,
+          5,
+          6,
+          6,
+          7
+        ]
+      },
+      {
+        "id": "dcspdx07",
+        "tag": "DC-SPD-07",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.000.x015",
+        "group": "inv_secx07"
+      },
+      {
+        "id": "invx08",
+        "tag": "INV-08",
+        "kind": "inverter",
+        "spec": "solis-s6-gc3p150k07-nv-nd",
+        "group": "inv_secx08",
+        "ports": [
+          "dc",
+          "ac",
+          "sig"
+        ]
+      },
+      {
+        "id": "strx08_18",
+        "tag": "STR18-08-{0:02d}",
+        "kind": "pv_string",
+        "spec": "avaada-electro-avn66g12g-720",
+        "count": 7,
+        "group": "inv_secx08",
+        "modules_in_series": 18,
+        "mppt": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "id": "strx08_19",
+        "tag": "STR19-08-{0:02d}",
+        "kind": "pv_string",
+        "spec": "avaada-electro-avn66g12g-720",
+        "count": 6,
+        "group": "inv_secx08",
+        "modules_in_series": 19,
+        "mppt": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      {
+        "id": "dcspdx08",
+        "tag": "DC-SPD-08",
+        "kind": "dc_spd",
+        "spec": "finder-7p.23.9.000.x015",
+        "group": "inv_secx08"
+      },
+      {
+        "id": "acdb",
+        "tag": "ACCB-01",
+        "kind": "acdb",
+        "voltage_v": 415.0,
+        "title": "LT AC COMBINER BOX (ACCB)",
+        "busbar": {
+          "rating_a": 2500.0,
+          "material": "al",
+          "phases": "3P+N",
+          "fault_ka": 31.5,
+          "fault_s": 3.0
+        }
+      },
+      {
+        "id": "inv_brka",
+        "tag": "MCCB-{0:02d}",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn3-400-d-320a-4p",
+        "group": "inv_seca",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "inv_brkx05",
+        "tag": "MCCB-05",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn3-400-d-320a-4p",
+        "group": "inv_secx05",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "inv_brkx06",
+        "tag": "MCCB-06",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn3-400-d-320a-4p",
+        "group": "inv_secx06",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "inv_brkx07",
+        "tag": "MCCB-07",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn3-400-d-320a-4p",
+        "group": "inv_secx07",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "inv_brkx08",
+        "tag": "MCCB-08",
+        "kind": "breaker",
+        "spec": "lk-dsine-dn3-400-d-320a-4p",
+        "group": "inv_secx08",
+        "voltage_v": 415.0
+      },
+      {
+        "id": "acdb_spd",
+        "tag": "ACCB-SPD-01",
+        "kind": "ac_spd",
+        "spec": "finder-7p.25.8.275.x020",
+        "voltage_v": 415.0,
+        "spd": {
+          "spd_type": "2",
+          "imax_ka": 40.0
+        }
+      },
+      {
+        "id": "acdb_brk",
+        "tag": "ACB-01",
+        "kind": "breaker",
+        "spec": "schneider-mtz2-h1-2500a-4p",
+        "voltage_v": 415.0,
+        "long_time_setting_a": 2400.0
+      },
+      {
+        "id": "solar_ct",
+        "tag": "CT-01",
+        "kind": "ct",
+        "voltage_v": 415.0,
+        "title": "ACCB OUTGOING CT",
+        "ct": {
+          "primary_a": 2500.0,
+          "secondary_a": 1.0,
+          "cores": [
+            {
+              "accuracy_class": "0.2S",
+              "burden_va": 15.0,
+              "purpose": "metering"
+            },
+            {
+              "accuracy_class": "PS",
+              "purpose": "protection"
+            },
+            {
+              "accuracy_class": "0.2S",
+              "burden_va": 15.0,
+              "purpose": "metering"
+            }
+          ]
+        }
+      },
+      {
+        "id": "solar_meter",
+        "tag": "SM-01",
+        "kind": "meter",
+        "spec": "generic-meter-generation-ct-0.5s",
+        "ports": [
+          "sig"
+        ],
+        "title": "SOLAR GENERATION METER"
+      },
+      {
+        "id": "solar_pt",
+        "tag": "PT-01",
+        "kind": "pt",
+        "voltage_v": 415.0,
+        "title": "ACCB BUS PT",
+        "pt": {
+          "primary_v": 415.0,
+          "secondary_v": 110.0,
+          "phase_to_neutral": true,
+          "cores": [
+            {
+              "accuracy_class": "0.2",
+              "burden_va": 15.0,
+              "purpose": "metering"
+            },
+            {
+              "accuracy_class": "3P",
+              "burden_va": 15.0,
+              "purpose": "protection"
+            }
+          ]
+        }
+      },
+      {
+        "id": "relay",
+        "tag": "REL-01",
+        "kind": "relay",
+        "title": "NUMERICAL PROTECTION RELAY",
+        "relay": {
+          "functions": [
+            "50",
+            "51",
+            "67",
+            "67N",
+            "27",
+            "59",
+            "50N",
+            "51N"
+          ],
+          "protocol": "IEC 61850"
+        }
+      },
+      {
+        "id": "dlog",
+        "tag": "DL-01",
+        "kind": "meter",
+        "symbol": "inst.datalogger",
+        "ports": [
+          "sig"
+        ],
+        "title": "DATA LOGGER (RS-485)"
+      },
+      {
+        "id": "poi",
+        "tag": "POI-01",
+        "kind": "poi_grid",
+        "voltage_v": 415.0,
+        "attributes": {
+          "existing": true
+        },
+        "title": "CLIENT MAIN LT PANEL 415 V (LT CONNECTION)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_stra_18",
+        "src": "stra_18:out",
+        "dst": "inva:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
+        "laying": "air"
+      },
+      {
+        "id": "e_str_spda_18",
+        "src": "stra_18:out",
+        "dst": "dcspda:line",
+        "service": "dc"
+      },
+      {
+        "id": "pe_inva",
+        "src": "inva:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_strx05_18",
+        "src": "strx05_18:out",
+        "dst": "invx05:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
+        "laying": "air"
+      },
+      {
+        "id": "e_str_spdx05_18",
+        "src": "strx05_18:out",
+        "dst": "dcspdx05:line",
+        "service": "dc"
+      },
+      {
+        "id": "pe_invx05",
+        "src": "invx05:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_strx06_18",
+        "src": "strx06_18:out",
+        "dst": "invx06:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
+        "laying": "air"
+      },
+      {
+        "id": "e_str_spdx06_18",
+        "src": "strx06_18:out",
+        "dst": "dcspdx06:line",
+        "service": "dc"
+      },
+      {
+        "id": "pe_invx06",
+        "src": "invx06:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_strx07_18",
+        "src": "strx07_18:out",
+        "dst": "invx07:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
+        "laying": "air"
+      },
+      {
+        "id": "e_str_spdx07_18",
+        "src": "strx07_18:out",
+        "dst": "dcspdx07:line",
+        "service": "dc"
+      },
+      {
+        "id": "pe_invx07",
+        "src": "invx07:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_strx08_18",
+        "src": "strx08_18:out",
+        "dst": "invx08:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
+        "laying": "air"
+      },
+      {
+        "id": "e_str_spdx08_18",
+        "src": "strx08_18:out",
+        "dst": "dcspdx08:line",
+        "service": "dc"
+      },
+      {
+        "id": "e_strx08_19",
+        "src": "strx08_19:out",
+        "dst": "invx08:dc",
+        "service": "dc",
+        "cable": "polycab-h1z2z2-k-4mm2",
+        "length_m": 30.0,
+        "laying": "air"
+      },
+      {
+        "id": "e_str_spdx08_19",
+        "src": "strx08_19:out",
+        "dst": "dcspdx08:line",
+        "service": "dc"
+      },
+      {
+        "id": "pe_invx08",
+        "src": "invx08:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_inv_brka",
+        "src": "inva:ac",
+        "dst": "inv_brka:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-240-arm",
+        "length_m": 60.0,
+        "laying": "trench"
+      },
+      {
+        "id": "e_brk_acdba",
+        "src": "inv_brka:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_inv_brkx05",
+        "src": "invx05:ac",
+        "dst": "inv_brkx05:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-240-arm",
+        "length_m": 60.0,
+        "laying": "trench"
+      },
+      {
+        "id": "e_brk_acdbx05",
+        "src": "inv_brkx05:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_inv_brkx06",
+        "src": "invx06:ac",
+        "dst": "inv_brkx06:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-240-arm",
+        "length_m": 60.0,
+        "laying": "trench"
+      },
+      {
+        "id": "e_brk_acdbx06",
+        "src": "inv_brkx06:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_inv_brkx07",
+        "src": "invx07:ac",
+        "dst": "inv_brkx07:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-240-arm",
+        "length_m": 60.0,
+        "laying": "trench"
+      },
+      {
+        "id": "e_brk_acdbx07",
+        "src": "inv_brkx07:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_inv_brkx08",
+        "src": "invx08:ac",
+        "dst": "inv_brkx08:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-4c-240-arm",
+        "length_m": 60.0,
+        "laying": "trench"
+      },
+      {
+        "id": "e_brk_acdbx08",
+        "src": "inv_brkx08:out",
+        "dst": "acdb:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_acdb_spd",
+        "src": "acdb:out",
+        "dst": "acdb_spd:line",
+        "service": "lv_ac"
+      },
+      {
+        "id": "e_acdb_brk",
+        "src": "acdb:out",
+        "dst": "acdb_brk:in",
+        "service": "lv_ac"
+      },
+      {
+        "id": "pe_acdb",
+        "src": "acdb:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "e_brk_ct",
+        "src": "acdb_brk:out",
+        "dst": "solar_ct:in",
+        "service": "lv_ac",
+        "remarks": "inside the ACCB"
+      },
+      {
+        "id": "c_ct_meter",
+        "src": "solar_ct:sec",
+        "dst": "solar_meter:sig",
+        "service": "control"
+      },
+      {
+        "id": "e_ct_pt",
+        "src": "solar_ct:out",
+        "dst": "solar_pt:in",
+        "service": "lv_ac",
+        "remarks": "inside the ACCB"
+      },
+      {
+        "id": "c_ct_relay",
+        "src": "solar_ct:sec",
+        "dst": "relay:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_pt_relay",
+        "src": "solar_pt:sec",
+        "dst": "relay:sig",
+        "service": "control"
+      },
+      {
+        "id": "c_pt_meter",
+        "src": "solar_pt:sec",
+        "dst": "solar_meter:sig",
+        "service": "control"
+      },
+      {
+        "id": "pe_solar_pt",
+        "src": "solar_pt:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      },
+      {
+        "id": "c_inva_dlog",
+        "src": "inva:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 daisy chain through the inverters"
+      },
+      {
+        "id": "c_invx05_dlog",
+        "src": "invx05:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 daisy chain through the inverters"
+      },
+      {
+        "id": "c_invx06_dlog",
+        "src": "invx06:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 daisy chain through the inverters"
+      },
+      {
+        "id": "c_invx07_dlog",
+        "src": "invx07:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 daisy chain through the inverters"
+      },
+      {
+        "id": "c_invx08_dlog",
+        "src": "invx08:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485 daisy chain through the inverters"
+      },
+      {
+        "id": "c_meter_dlog",
+        "src": "solar_meter:sig",
+        "dst": "dlog:sig",
+        "service": "control",
+        "remarks": "RS-485"
+      },
+      {
+        "id": "e_ct_poi",
+        "src": "solar_ct:out",
+        "dst": "poi:in",
+        "service": "lv_ac",
+        "cable": "polycab-lt-xlpe-al-1c-400-arm",
+        "runs": 6,
+        "length_m": 50.0,
+        "laying": "trench",
+        "remarks": "ACCB outgoing to the client's LT panel"
+      },
+      {
+        "id": "pe_solar_ct",
+        "src": "solar_ct:pe",
+        "dst": "ep:pe",
+        "service": "earth"
+      }
+    ]
+  },
+  "array_layout": {
+    "blocks": [
+      {
+        "id": "B01",
+        "name": "BLOCK-01",
+        "boundary": [
+          {
+            "x": 16.94,
+            "y": 63.588
+          },
+          {
+            "x": 155.417,
+            "y": 63.588
+          },
+          {
+            "x": 155.417,
+            "y": 55.84
+          },
+          {
+            "x": 207.545,
+            "y": 55.84
+          },
+          {
+            "x": 207.545,
+            "y": 63.588
+          },
+          {
+            "x": 219.452,
+            "y": 63.588
+          },
+          {
+            "x": 219.452,
+            "y": 12.781
+          },
+          {
+            "x": 16.94,
+            "y": 12.781
+          }
+        ],
+        "tables": [
+          {
+            "id": "B01-T001",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T002",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T003",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T004",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T005",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T006",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T007",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 156.9173,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T008",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 182.2313,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T009",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 12.7809
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T010",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T011",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T012",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T013",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T014",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T015",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T016",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 156.9173,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T017",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 182.2313,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T018",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 20.5285
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T019",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T020",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T021",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T022",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T023",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T024",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T025",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 156.9173,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T026",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 182.2313,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T027",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 28.2761
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T028",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T029",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T030",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T031",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T032",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T033",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T034",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 156.9173,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T035",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 182.2313,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T036",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 36.0237
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T037",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T038",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T039",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T040",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T041",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T042",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T043",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 156.9173,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T044",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 182.2313,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T045",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 43.7713
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T046",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T047",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T048",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T049",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T050",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T051",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T052",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 156.9173,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T053",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 182.2313,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T054",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 51.5189
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T055",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 16.9403,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T056",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 30.3473,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T057",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 55.6613,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T058",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 80.9753,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T059",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 106.2893,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T060",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 131.6033,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 18,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          },
+          {
+            "id": "B01-T061",
+            "mounting": "fixed_tilt",
+            "origin": {
+              "x": 207.5453,
+              "y": 59.2665
+            },
+            "azimuth_deg": 180.0,
+            "tilt_deg": 26.0,
+            "rows": 2,
+            "cols": 9,
+            "orientation": "portrait",
+            "module": "avaada-electro-avn66g12g-720",
+            "slot_width_m": 1.323,
+            "slot_height_m": 2.404
+          }
+        ],
+        "station": {
+          "x": 115.852,
+          "y": 11.281
+        }
+      }
+    ],
+    "switchyard": {
+      "at": {
+        "x": 115.852,
+        "y": 11.281
+      },
+      "basis": "derived: the free spot nearest the centroid of the 1 block station(s), clear of tables, roads and exclusions by 1.5 m (pass switchyard_x/y for the real position)"
+    },
+    "equipment": [
+      {
+        "node": "acdb",
+        "tag": "ACCB-01",
+        "kind": "acdb",
+        "at": {
+          "x": 115.852,
+          "y": 11.281
+        },
+        "basis": "the layout's switchyard location (derived: the free spot nearest the centroid of the 1 block station(s), clear of tables, roads and exclusions by 1.5 m (pass switchyard_x/y for the real position))"
+      },
+      {
+        "node": "poi",
+        "tag": "POI-01",
+        "kind": "poi_grid",
+        "at": {
+          "x": 127.71,
+          "y": 9.522
+        },
+        "basis": "free ground nearest the ACCB, 10 m or more from it and outside the tables"
+      }
+    ],
+    "target_dc_kwp": 1404.0
+  }
+}

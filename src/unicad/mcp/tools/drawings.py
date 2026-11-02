@@ -13,9 +13,10 @@ from unicad.mcp.schema import DrawingKind
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
 from unicad.mcp.workspace import Workspace
 from unicad.render import RenderError, preview
+from unicad.rules.thresholds import using
 from unicad.sets import ALL_KINDS, BUILDERS, render_set
 from unicad.sets.render import INDEX
-from unicad.tenants.store import drawing_profile
+from unicad.tenants.store import drawing_profile, thresholds_of
 
 WRITES_FILES = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True)
 Format = Literal["dxf", "pdf", "dwg"]
@@ -38,7 +39,7 @@ def _kinds(kinds: list[str]) -> list[str]:
 def _render(ws: Workspace, project_id: str, revision, kinds: list[str], formats: list[str]) -> dict[str, Any]:
     p, rev = ws.load(project_id, revision)
     out = _out_dir(ws, project_id, rev)
-    with _render_lock:
+    with _render_lock, using(thresholds_of(p.company_profile, ws.config.workspace)):
         try:
             index = render_set(p, out, kinds=_kinds(kinds), formats=tuple(dict.fromkeys(formats)), profile=drawing_profile(p.company_profile, ws.config.workspace), catalog=ws.catalog)
         except RenderError as exc:

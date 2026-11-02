@@ -49,8 +49,17 @@ class RegisterRow:
     date: str
 
 
-def register_table(rows: Sequence[RegisterRow], preamble: Sequence[tuple[str, str]] = ()) -> TableSpec:
-    """Rows grouped by drawing kind in set order, numbered continuously."""
+ASSUMED_TITLE = "ASSUMED INPUTS (TO BE CONFIRMED)"
+ASSUMED_POINTER = "EVERY ASSUMED INPUT OF THE SET IS LISTED IN THE REGISTER UNDER ASSUMED INPUTS, WITH THE DRAWINGS IT DRIVES."
+"""What the register's side panel says in place of the list, which the table holds (it continues over as many pages as it needs)."""
+KIND_SHORT: dict[str, str] = {"sld": "SLD", "layout": "LAYOUT", "earthing": "EARTHING", "lps": "LPS", "strings": "STRING DIAGRAMS",
+                              "cable_schedule": "CABLE SCHEDULE", "bom": "BOM"}  # fmt: skip
+
+
+def register_table(rows: Sequence[RegisterRow], preamble: Sequence[tuple[str, str]] = (),
+                   assumed: Sequence[tuple[frozenset[str], str]] = ()) -> TableSpec:  # fmt: skip
+    """Rows grouped by drawing kind in set order, numbered continuously, then the set's assumed inputs (A1, A2...), each naming the
+    drawings of the set it drives."""
     sections: list[TableSection] = []
     sl = 0
     for kind in dict.fromkeys(r.kind for r in rows):
@@ -59,6 +68,13 @@ def register_table(rows: Sequence[RegisterRow], preamble: Sequence[tuple[str, st
             sl += 1
             body.append((str(sl), r.number, r.title, r.paper, r.scale, r.rev, r.issued_for.upper(), r.date))
         sections.append(TableSection(KIND_TITLES.get(kind, kind.replace("_", " ").upper()), tuple(body)))
+    listed = list(dict.fromkeys(r.kind for r in rows))
+    body = []
+    for i, (kinds, text) in enumerate(assumed, start=1):
+        on = [KIND_SHORT.get(k, k.upper()) for k in listed if k in kinds]
+        body.append((f"A{i}", "", f"{text}" + (f" (DRIVES: {', '.join(on)})" if on else ""), "", "", "", "", ""))
+    if body:
+        sections.append(TableSection(ASSUMED_TITLE, tuple(body)))
     return TableSpec(COLUMNS, tuple(sections), tuple(preamble))
 
 
@@ -72,4 +88,4 @@ def set_totals(rows: Sequence[RegisterRow]) -> tuple[tuple[str, str], ...]:
     return tuple(out)
 
 
-__all__ = ["COLUMNS", "KIND_TITLES", "NOTES", "RegisterRow", "register_table", "set_totals"]
+__all__ = ["ASSUMED_POINTER", "ASSUMED_TITLE", "COLUMNS", "KIND_TITLES", "NOTES", "RegisterRow", "register_table", "set_totals"]
