@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import BatterySpec, InverterSpec, ModuleSpec, PCSSpec, TransformerSpec
 from unicad.domain.layout import StringAssignment
-from unicad.domain.network import HOUSED_IN, Laying, NodeKind, RelayRating, Service
+from unicad.domain.network import HOUSED_IN, BusbarRating, CtRating, Laying, NodeKind, PtRating, RelayRating, Service, SpdRating
 from unicad.domain.project import Project
 from unicad.design.builder import EdgeHint, NetBuilder, NodeHint
 from unicad.design.plan import BlockClass, InvClass, PvPlan, merged, sections, split_even
@@ -583,7 +583,22 @@ def _pick_logger(catalog: Catalog, inverter: InverterSpec, devices: int):
     return min(fits, key=lambda g: (g.manufacturer != inverter.manufacturer, g.id), default=None)
 
 
-def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, relay: RelayRating | None, data_logger: bool) -> Built:
+@dataclass(frozen=True)
+class StatedRatings:
+    """Typed ratings the brief states for the LT plant's ACCB nodes: the busbar, the outgoing CT, the bus PT and the SPD."""
+
+    busbar: BusbarRating | None = None
+    ct: CtRating | None = None
+    pt: PtRating | None = None
+    spd: SpdRating | None = None
+
+
+def _rated(b, node_id: str, key: str, value) -> None:
+    if value is not None:
+        next(n for n in b.nodes if n["id"] == node_id)[key] = value.model_dump(mode="json")
+
+
+def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec, relay: RelayRating | None, data_logger: bool, stated: StatedRatings = StatedRatings()) -> Built:
     """String inverters -> ACCB (incomer MCCBs, bus, SPD, outgoing ACB, CT, optional PT and relay, meter, optional data logger) -> the client's 415 V LT panel,
     the point of interconnection. No transformer and no DISCOM net meter."""
     b, v = c.b, 415.0
@@ -595,7 +610,12 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
     invs = inverter_groups(c, None, blk, inverter, module, plan.modules_per_string, False, Laying.AIR, True)
     out = lv_board(c, None, "", invs, v, 3, "LT AC COMBINER BOX (ACCB)", "inv_accb", Laying.TRENCH, prefix="ACCB")
     pt = relay is not None
+    if stated.pt is not None and not pt:
+        raise DesignError("pt is the bus PT the relay is fed from: pass relay with it")
+    _rated(b, "acdb", "busbar", stated.busbar)
+    _rated(b, "acdb_spd", "spd", stated.spd)
     b.node("solar_ct", "CT-01", NodeKind.CT, voltage_v=v, title="ACCB OUTGOING CT")
+    _rated(b, "solar_ct", "ct", stated.ct)
     b.edge("e_brk_ct", f"{out}:out", "solar_ct:in", V.LV_AC, remarks="inside the ACCB")
     mfms = [m for m in c.catalog.filter("meter") if getattr(m, "function", None) == "multifunction" and getattr(m, "connection", None) == "ct"
             and (not data_logger or "RS-485" in (getattr(m, "communication", None) or ""))]
@@ -612,6 +632,7 @@ def utility_lt(c: Ctx, plan: PvPlan, inverter: InverterSpec, module: ModuleSpec,
         b.assume(NO_MFM)
     if pt:
         b.node("solar_pt", "PT-01", NodeKind.PT, voltage_v=v, title="ACCB BUS PT")
+        _rated(b, "solar_pt", "pt", stated.pt)
         b.edge("e_ct_pt", "solar_ct:out", "solar_pt:in", V.LV_AC, remarks="inside the ACCB")
         b.node("relay", "REL-01", NodeKind.RELAY, relay=relay.model_dump(mode="json"), title="NUMERICAL PROTECTION RELAY")
         b.edge("c_ct_relay", "solar_ct:sec", "relay:sig", V.CONTROL)

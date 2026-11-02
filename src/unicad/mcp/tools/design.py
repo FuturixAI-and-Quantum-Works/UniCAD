@@ -8,7 +8,7 @@ from unicad.design import Intent, autobuild, size_strings
 from unicad.design.strings import InverterStrings, check_inverter_strings
 from unicad.design.autobuild import StatedCable, Template
 from unicad.domain.catalog import InverterSpec, ModuleSpec
-from unicad.domain.network import RelayRating
+from unicad.domain.network import BusbarRating, CtRating, PtRating, RelayRating, SpdRating
 from unicad.domain.project import Project
 from unicad.mcp.errors import guarded
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
@@ -108,6 +108,10 @@ def register(server: MCPServer, ws: Workspace) -> None:
         inverter_strings: InverterStringsArg = None,
         relay: Annotated[RelayRating | None, Field(description="utility_lt: add a bus PT and a numerical relay with these ANSI functions and protocol on the ACCB outgoing, e.g. {\"functions\": [\"50\", \"51\", \"67\", \"67N\", \"27\", \"59\", \"50N\", \"51N\"], \"protocol\": \"IEC 61850\"}")] = None,
         data_logger: Annotated[bool, Field(description="utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter")] = False,
+        busbar: Annotated[BusbarRating | None, Field(description="utility_lt: the ACCB busbar as the brief states it, e.g. {\"rating_a\": 2500, \"material\": \"al\", \"phases\": \"3P+N\", \"fault_ka\": 31.5, \"fault_s\": 3}")] = None,
+        ct: Annotated[CtRating | None, Field(description="utility_lt: the ACCB outgoing CT, e.g. {\"primary_a\": 2500, \"secondary_a\": 1, \"cores\": [{\"accuracy_class\": \"0.2S\", \"burden_va\": 15, \"purpose\": \"metering\"}, {\"accuracy_class\": \"PS\", \"purpose\": \"protection\"}]}")] = None,
+        pt: Annotated[PtRating | None, Field(description="utility_lt with relay: the bus PT, e.g. {\"primary_v\": 415, \"secondary_v\": 110, \"phase_to_neutral\": true, \"cores\": [{\"accuracy_class\": \"0.2\", \"burden_va\": 15}]}")] = None,
+        spd: Annotated[SpdRating | None, Field(description="utility_lt: the ACCB SPD ratings as the brief states them (default: those of the catalog part picked, which every SPD node carries)")] = None,
         keep_hand_edits: Annotated[bool, Field(description="Re-apply the network edits made since the last network_autobuild (added, changed and removed nodes, connections and groups) onto the new network; edits that no longer fit are listed as skipped")] = False,
         breaking_ka: Annotated[float | None, Field(gt=0, description="Least breaking capacity in kA for every LV breaker, as the brief or client specification states (e.g. 50 for 50 kA MCCBs); default the fault level")] = None,
         cables: Annotated[dict[str, StatedCable] | None, Field(description="Cables the brief states, by route role, kept as given (not resized; the rules check ampacity and voltage drop): "
@@ -124,7 +128,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         (what the catalog or the intent could not satisfy) and every assumption made. A re-run replaces the network: `hand_edits` lists the edits made
         since the previous network_autobuild that the new network does not carry, and keep_hand_edits=true re-applies them.
         utility_lt is the LT ground-mount plant: string inverters -> ACCB (MCCB incomers, bus, SPD, outgoing ACB, CT, meter; PT and relay with `relay`;
-        data logger with data_logger=true) -> solar incomer in the client's 415 V LT panel, with no transformer and no DISCOM metering (the default for a
+        data logger with data_logger=true; the brief's busbar, CT, PT and SPD ratings with busbar, ct, pt and spd, stored on those nodes so no
+        network_update is needed; every SPD node carries its catalog part's ratings otherwise) -> solar incomer in the client's 415 V LT panel, with no transformer and no DISCOM metering (the default for a
         utility project on an LT grid). inverter_strings (residential, ci_rooftop, utility_lt) builds strings given per inverter and MPPT, e.g. 18- and
         19-module strings on one inverter and different module counts per inverter; check them first with design_strings(inverter_strings=...). Example:
         network_autobuild(project_id="p1", template="ci_rooftop", ac_kw=500, module="adani-solar-elan-shine-topcon-g2g-gen-ii-555-wp", inverter="huawei-sun2000-100ktl-m2")."""
@@ -133,7 +138,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             modules_per_string=modules_per_string, strings_per_inverter=strings_per_inverter, inverters_per_block=inverters_per_block,
             step_up_kv=step_up_kv, connection=connection, metering=metering, block_switch=block_switch, auxiliary=auxiliary,
             export_limit_kw=export_limit_kw, export_control=export_control, bess_kw=bess_kw, bess_kwh=bess_kwh, bess_brief_kw=bess_brief_kw, bess_brief_kwh=bess_brief_kwh, pcs=pcs, battery=battery, lengths=lengths or {}, bess_x=bess_x, bess_y=bess_y,
-            inverter_strings=tuple(inverter_strings) if inverter_strings else None, relay=relay, data_logger=data_logger,
+            inverter_strings=tuple(inverter_strings) if inverter_strings else None, relay=relay, data_logger=data_logger, busbar=busbar, ct=ct, pt=pt, spd=spd,
             breaking_ka=breaking_ka, cables=cables or {}, accb_at=accb_at,
         )  # fmt: skip
 

@@ -259,8 +259,13 @@ BASIS3 = {"ambient_min_c": 2, "ambient_max_c": 48, "altitude_m": 431, "vdrop_dc_
 PLACE3 = {"project_id": PID, "module": MODULE, "tilt_deg": 25, "table_rows": 2, "orientation": "portrait", "inverter_strings": STRINGS3}
 CABLES3 = {"string": {"cable": "polycab-h1z2z2-k-6mm2"}, "inv_accb": {"cable": "kei-lt-xlpe-al-3.5c-240-arm", "runs": 1},
            "accb_ltp": {"cable": "kei-lt-xlpe-al-3.5c-300-arm", "runs": 7}}  # fmt: skip
+RATINGS3 = {"busbar": {"rating_a": 2500, "material": "al", "phases": "3P+N", "fault_ka": 31.5, "fault_s": 3},
+            "ct": {"primary_a": 2500, "secondary_a": 1, "cores": [{"accuracy_class": "0.2S", "burden_va": 15, "purpose": "metering"}, {"accuracy_class": "PS", "purpose": "protection"},
+                                                                  {"accuracy_class": "0.2S", "burden_va": 15, "purpose": "metering"}]},
+            "pt": {"primary_v": 415, "secondary_v": 110, "phase_to_neutral": True, "cores": [{"accuracy_class": "0.2", "burden_va": 15, "purpose": "metering"},
+                                                                                            {"accuracy_class": "3P", "burden_va": 15, "purpose": "protection"}]}}  # fmt: skip
 BUILD3 = {"project_id": PID, "template": "utility_lt", "module": MODULE, "inverter": INVERTER, "inverter_strings": STRINGS3, "relay": RELAY, "data_logger": True,
-          "breaking_ka": 50, "cables": CABLES3}  # fmt: skip
+          "breaking_ka": 50, "cables": CABLES3, **RATINGS3}  # fmt: skip
 
 
 @pytest.fixture(scope="module")
@@ -402,3 +407,14 @@ def test_tool_messages_count_inverters_and_strings_not_templates(run3):
     logger = next(a for a in run3["build"]["assumptions"] if a.startswith("Data logger"))
     assert "9 devices of the daisy chain (the 8 inverters and the meter" in logger
     assert any("the 108 strings lie each in the layout block of its inverter's number" in a for a in run3["build"]["assumptions"])
+
+
+def test_autobuild_types_the_brief_busbar_ct_pt_and_the_catalog_spd(run3, project3):
+    """Bench run 3 needed four network_update hand edits for the busbar, CT, PT and SPD ratings that network_autobuild left untyped."""
+    nodes = project3.network.node_by_id
+    assert nodes["acdb"].busbar.model_dump(mode="json", exclude_none=True) == RATINGS3["busbar"]
+    assert nodes["solar_ct"].ct.ratio == "2500/1 A" and [c.accuracy_class for c in nodes["solar_ct"].ct.cores] == ["0.2S", "PS", "0.2S"]
+    assert nodes["solar_pt"].pt.phase_to_neutral and nodes["solar_pt"].pt.primary_v == 415 and len(nodes["solar_pt"].pt.cores) == 2
+    spd = nodes["acdb_spd"]
+    assert spd.spec == "finder-7p.25.8.275.x020" and (spd.spd.spd_type, spd.spd.in_ka, spd.spd.imax_ka, spd.spd.uc_v) == ("2", 20.0, 40.0, 275.0)
+    assert all(n.spd is not None for n in project3.network.nodes if n.kind.value in ("ac_spd", "dc_spd") and n.spec)

@@ -853,7 +853,7 @@ project_issue(
     "checked": "S. Kulkarni",
     "approved": "P. Joshi",
     "model_revision": 11,
-    "content_sha": "75b5b360cd3f74d4"
+    "content_sha": "6d684dbf324ced00"
   },
   "revisions": ["0"],
   "gate": {"allowed": true, "watermark": false, "errors": 0},
@@ -1000,7 +1000,7 @@ project_diff(project_id="pune-midc-factory-roof", from_revision="agreed-r0")
           "checked": "S. Kulkarni",
           "approved": "P. Joshi",
           "model_revision": 11,
-          "content_sha": "75b5b360cd3f74d4"
+          "content_sha": "6d684dbf324ced00"
         }
       ]
     }
@@ -1037,7 +1037,7 @@ project_issue(
     "checked": "S. Kulkarni",
     "approved": "P. Joshi",
     "model_revision": 14,
-    "content_sha": "53a5f4c5a75dd001"
+    "content_sha": "2dfc667e4992299b"
   },
   "revisions": ["0", "1"],
   "gate": {"allowed": true, "watermark": false, "errors": 0},

@@ -13,7 +13,7 @@ from unicad.arrays import PlacementResult
 from unicad.catalog.store import Catalog
 from unicad.domain.catalog import InverterSpec, ModuleSpec
 from unicad.domain.layout import ArrayLayout, Point, StringAssignment
-from unicad.domain.network import ElectricalNetwork, NodeKind, RelayRating
+from unicad.domain.network import BusbarRating, CtRating, ElectricalNetwork, NodeKind, PtRating, RelayRating, SpdRating
 from unicad.domain.project import BessRating, DesignBasis, GridConnection, Project, Segment
 from unicad.design import templates as T
 from unicad.design.placement import place_equipment, string_runs
@@ -86,6 +86,10 @@ class Intent(BaseModel):
     )
     relay: RelayRating | None = Field(default=None, description="utility_lt: add a bus PT and a protection relay with these ANSI functions on the ACCB outgoing")
     data_logger: bool = Field(default=False, description="utility_lt: add a data logger on an RS-485 daisy chain through the inverters and the meter")
+    busbar: BusbarRating | None = Field(default=None, description="utility_lt: the ACCB busbar as the brief states it (rating, material, phases, short-time withstand)")
+    ct: CtRating | None = Field(default=None, description="utility_lt: the ACCB outgoing CT ratio and cores as the brief states them")
+    pt: PtRating | None = Field(default=None, description="utility_lt with relay: the bus PT ratio and windings as the brief states them")
+    spd: SpdRating | None = Field(default=None, description="utility_lt: the ACCB SPD ratings as the brief states them; default those of the catalog part picked")
     breaking_ka: float | None = Field(default=None, gt=0, description="Least breaking capacity in kA for every LV breaker, as the brief or client specification states (e.g. 50); default the fault level")
     cables: dict[str, StatedCable] = Field(default_factory=dict, description="Cables the brief states, by route role (string, inv_accb, accb_ltp, ...): catalog cable id and runs; not resized, the rules check them")
     accb_at: Literal["layout", "electrical_centre"] = Field(default="layout", description="LT plant: the ACCB at the layout's switchyard location, or at the electrical centre of the field inverters")
@@ -322,6 +326,26 @@ def _link_strings(net: ElectricalNetwork, links, layout: ArrayLayout, notes: lis
 BREAKER_PREFIX = {"acb": "ACB", "mccb": "MCCB", "mcb": "MCB"}
 
 
+def _catalog_ratings(project: Project, catalog: Catalog, notes: list[str]) -> Project:
+    """Fill the typed SPD rating of every SPD node from its catalog part where the build did not state one, and say where a stated rating differs from
+    the part picked, so the drawings and the BOM read one set of values."""
+    net = project.network
+    nodes = []
+    for n in net.nodes:
+        if n.kind in (NodeKind.AC_SPD, NodeKind.DC_SPD) and isinstance(n.spec, str):
+            part = catalog.get(n.spec)
+            fromcat = SpdRating(spd_type=part.spd_type, imax_ka=part.max_discharge_current_ka, in_ka=part.nominal_discharge_current_ka, uc_v=part.rated_voltage)
+            if n.spd is None:
+                n = n.model_copy(update={"spd": fromcat})
+            else:
+                differ = [f"{k} {getattr(n.spd, k)} (part {getattr(fromcat, k)})" for k in ("spd_type", "imax_ka", "in_ka", "uc_v")
+                          if getattr(n.spd, k) is not None and getattr(fromcat, k) is not None and getattr(n.spd, k) != getattr(fromcat, k)]  # fmt: skip
+                if differ:
+                    notes.append(f"{n.tag}: the stated SPD ratings differ from the catalog part {part.id}: {', '.join(differ)}; the drawings print the stated ones, confirm the part")
+        nodes.append(n)
+    return project.model_copy(update={"network": net.model_copy(update={"nodes": tuple(nodes)})})
+
+
 def _breaker_tags(project: Project, catalog: Catalog) -> Project:
     """Breaker tags name the device the sizer picked: an inverter breaker that had to be an ACB (no MCCB breaks the bus fault) is tagged ACB."""
 
@@ -489,6 +513,8 @@ def _autobuild(
             )
         if plan.unstrung_modules:
             notes.append(f"{plan.unstrung_modules} layout modules do not make up a whole string of {plan.modules_per_string} and are left unstrung.")
+    if template != "utility_lt" and (stated := [k for k in ("busbar", "ct", "pt", "spd") if getattr(intent, k) is not None]):
+        raise DesignError(f"{', '.join(stated)} apply to the utility_lt ACCB; template {template} builds no node for them: set them with network_update after the build")
     if template == "residential":
         if inverter.ac_rated_kva > 2 * (intent.ac_kw or intent.dc_kwp or 0.0):
             ctx.built.blockers.append(f"catalog gap: no inverter near {intent.ac_kw or intent.dc_kwp:g} kW; {inverter.id} ({inverter.ac_rated_kva:g} kVA) is the smallest {basis.grid.phases}-phase string inverter catalogued")
@@ -501,7 +527,7 @@ def _autobuild(
             notes.append(f"Above {CI_STEP_UP_KW:g} kW an HT connection (step_up_kv) is usual; this build stays at LT because the grid is {basis.grid.voltage_v:g} V.")
         T.ci_rooftop(ctx, plan, inverter, module, step, intent.connection, intent.metering)
     elif template == "utility_lt":
-        T.utility_lt(ctx, plan, inverter, module, intent.relay, intent.data_logger)
+        T.utility_lt(ctx, plan, inverter, module, intent.relay, intent.data_logger, T.StatedRatings(intent.busbar, intent.ct, intent.pt, intent.spd))
     elif template == "utility_string":
         T.utility_string(ctx, plan, inverter, module, intent.block_switch, intent.auxiliary, intent.export_limit_kw)
     elif template == "utility_central":
@@ -598,7 +624,7 @@ def _autobuild(
             draft = draft.model_copy(update={"network": draft.network.model_copy(update={"edges": edges})})
             sizing = size_network(draft, catalog, b.node_hints, b.edge_hints)
             sizing = band_cables(sizing, catalog, b.edge_hints, routed.instances)
-    sized = Project.model_validate(_breaker_tags(sizing.project, catalog).model_dump(mode="json"), context={"catalog": catalog})
+    sized = Project.model_validate(_catalog_ratings(_breaker_tags(sizing.project, catalog), catalog, notes).model_dump(mode="json"), context={"catalog": catalog})
     report = run_rules(sized, catalog, thresholds=thresholds)
     findings = tuple(f for f in report.findings if f.severity is not Severity.INFO)
     if stated:
