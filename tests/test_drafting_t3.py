@@ -200,3 +200,39 @@ def test_bom_items_without_catalog_part_carry_their_typed_ratings():
     assert "67N" in relay and "IEC 61850" in relay, relay
     accb = next(i for i in items if i.startswith("LT AC COMBINER BOX"))
     assert "2500 A" in accb and "31.5 kA 3 s" in accb, accb
+
+
+# ---------------- values the model marks assumed print as assumed (item 8, bench run 3 N12 / M1) ----------------
+
+
+def _mark_assumed(model, fields):
+    """t4-design adds the `assumed` field to the design basis and the layout; until it lands, set it on the instance as the model will hold it."""
+    object.__setattr__(model, "assumed", tuple(fields))
+    return model
+
+
+def test_assumed_design_basis_and_layout_values_print_in_the_assumed_block(tmp_path):
+    import ezdxf
+
+    from unicad.drafting.assumptions import sheet_assumptions
+    from unicad.sets import render_set
+
+    p = bench3()
+    _mark_assumed(p.design_basis, ["vdrop_dc_max", "vdrop_ac_max", "ambient_max_c", "altitude_m", "power_factor"])
+    _mark_assumed(p.array_layout, ["tilt_deg"])
+    sld = sheet_assumptions(p, "sld")
+    db = p.design_basis
+    assert f"DC VOLTAGE DROP LIMIT {db.vdrop_dc_max * 100:g} % IS ASSUMED" in sld, sld
+    assert f"POWER FACTOR {db.power_factor:g} IS ASSUMED" in sld and f"SITE ALTITUDE {db.altitude_m:g} M IS ASSUMED" in sld
+    assert f"MAXIMUM AMBIENT {db.ambient_max_c:g} DEG C IS ASSUMED" in sheet_assumptions(p, "strings")
+    tilt = next(iter(p.array_layout.table_by_id.values())).tilt_deg
+    assert f"TABLE TILT {tilt:g} DEG IS ASSUMED" in sheet_assumptions(p, "layout")
+    index = render_set(p, tmp_path, kinds=["layout"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    words = " ".join(e.dxf.text for e in ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace().query("TEXT"))
+    assert f"TILT {tilt:g} DEG (ASSUMED)" in words and "TABLE TILT" in words
+
+
+def test_nothing_marked_assumed_adds_nothing():
+    from unicad.drafting.assumptions import flagged
+
+    assert flagged(bench3()) == []

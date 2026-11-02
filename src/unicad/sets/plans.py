@@ -14,6 +14,7 @@ from unicad.domain.layout import ArrayLayout, PlacedEquipment
 from unicad.domain.network import NodeKind
 from unicad.domain.project import Project, Segment, Sheet, SheetKind
 from unicad.domain.site import FeatureKind
+from unicad.drafting.assumptions import layout_assumed
 from unicad.drafting.earthing_plan import earthing_notes, lps_notes, render_earthing_sheet, render_lps_sheet
 from unicad.drafting.project_fields import coordinates
 from unicad.drafting.sheets.model import CompanyProfile
@@ -156,7 +157,7 @@ def layout_notes(project: Project, pitch: float | None) -> tuple[str, ...]:
     site = project.site.geometry
     notes = [
         "ALL DIMENSIONS ARE IN METRES UNLESS OTHERWISE STATED.",
-        f"{t.mounting.value.replace('_', ' ').upper()} TABLE{'S' if len(shapes) > 1 else ''} {kinds}, TILT {t.tilt_deg:g} DEG, FACING AZIMUTH {t.azimuth_deg:g} DEG.",
+        f"{t.mounting.value.replace('_', ' ').upper()} TABLE{'S' if len(shapes) > 1 else ''} {kinds}, TILT {t.tilt_deg:g} DEG{' (ASSUMED)' if layout_assumed(project, 'tilt_deg') else ''}, FACING AZIMUTH {t.azimuth_deg:g} DEG.",
         f"ROW PITCH {pitch:.2f} m (MOST COMMON ROW SPACING OF THE STORED LAYOUT)." if pitch else "ROW PITCH: ONE TABLE ROW, NO PITCH.",
         f"{modules:,} MODULES ON {len(tables)} TABLES IN {len(layout.blocks)} BLOCK{'S' if len(layout.blocks) != 1 else ''}.",
         f"SITE GRID {site.crs}, LOCAL ORIGIN {site.origin.lon:.5f} E, {site.origin.lat:.5f} N. NORTH IS GRID NORTH.",

@@ -17,6 +17,9 @@ BASIS_TOPICS: tuple[tuple[re.Pattern[str], frozenset[str]], ...] = (
     (re.compile(r"soil|earth|electrode", re.I), frozenset({"earthing"})),
     (re.compile(r"lightning|\blps\b|\bese\b", re.I), frozenset({"lps"})),
     (re.compile(r"fault|clearing", re.I), frozenset({"sld", "earthing", "cable_schedule"})),
+    (re.compile(r"tilt|pitch|azimuth", re.I), frozenset({"layout", "strings"})),
+    (re.compile(r"power.?factor", re.I), frozenset({"sld"})),
+    (re.compile(r"insulation|cable", re.I), frozenset({"sld", "cable_schedule"})),
 )
 """Which sheets a design-basis assumption drives, by what it is about; one about nothing listed here goes on the SLD."""
 
@@ -43,6 +46,7 @@ def entries(project: Project) -> list[tuple[frozenset[str], str]]:
     """(drawing kinds it drives, text) for every assumed input of the project, in model order."""
     db = project.design_basis
     out: list[tuple[frozenset[str], str]] = [(_sheets_of_basis(a), prose(a, db)) for a in db.assumptions]
+    out += [(_sheets_of_basis(path), text) for path, text in flagged(project)]
     for f in db.fault_levels:
         level = f"FAULT LEVEL {_ka(f.fault_ka)}" + (f" / {f.clearing_s:g} s" if f.clearing_s else "") + f" AT {f.voltage_v:g} V"
         if f.source is None:
@@ -78,6 +82,81 @@ def entries(project: Project) -> list[tuple[frozenset[str], str]]:
             a, b = net.node(e.src_node), net.node(e.dst_node)
             out.append((EDGE_SHEETS, f"{_tag(a.tag)} TO {_tag(b.tag)}: {prose(e.remarks)}"))
     return out
+
+
+def _flags(obj: object) -> list[tuple[str, str]]:
+    """(field path, note) for every input `obj` marks as assumed: its `assumed` field, a list of field paths or a path -> note map, or
+    items carrying `field`/`path` and `note`/`reason`."""
+    raw = getattr(obj, "assumed", None)
+    if not raw:
+        return []
+    if isinstance(raw, dict):
+        return [(str(k), str(v or "")) for k, v in raw.items()]
+    out = []
+    for item in raw:
+        if isinstance(item, str):
+            out.append((item, ""))
+        else:
+            path = getattr(item, "field", None) or getattr(item, "path", None)
+            if path:
+                out.append((str(path), str(getattr(item, "note", None) or getattr(item, "reason", None) or "")))
+    return out
+
+
+def _value(obj: object, path: str) -> object:
+    for part in path.split("."):
+        obj = getattr(obj, part, None)
+        if obj is None:
+            return None
+    return obj
+
+
+def _shown(v: object) -> str:
+    if isinstance(v, float):
+        return f"{v:g}"
+    return str(getattr(v, "value", v))
+
+
+FIELD_TEXT = {
+    "ambient_min_c": ("MINIMUM AMBIENT", " DEG C", 1),
+    "ambient_max_c": ("MAXIMUM AMBIENT", " DEG C", 1),
+    "altitude_m": ("SITE ALTITUDE", " M", 1),
+    "vdrop_dc_max": ("DC VOLTAGE DROP LIMIT", " %", 100),
+    "vdrop_ac_max": ("AC VOLTAGE DROP LIMIT", " %", 100),
+    "power_factor": ("POWER FACTOR", "", 1),
+    "dc_ac_ratio_target": ("DC/AC RATIO TARGET", "", 1),
+    "tilt_deg": ("TABLE TILT", " DEG", 1),
+    "azimuth_deg": ("TABLE AZIMUTH", " DEG", 1),
+}
+"""How an assumed field reads on a sheet: name, unit and the factor its stored value is shown with (fractions as percent)."""
+
+
+def _text(path: str, v: object, note: str) -> str:
+    field = path.split(".")[-1]
+    name, unit, k = FIELD_TEXT.get(field, (field.replace("_", " ").upper(), "", 1))
+    value = f" {float(v) * k:g}{unit}" if isinstance(v, int | float) else (f" {prose(_shown(v))}" if v is not None else "")
+    return f"{name}{value} IS ASSUMED" + (f": {prose(note)}" if note else "")
+
+
+def flagged(project: Project) -> list[tuple[str, str]]:
+    """(field path, sheet text) for every design-basis or layout input the model marks as assumed although a value was set."""
+    db = project.design_basis
+    out = [(path, _text(path, _value(db, path), note)) for path, note in _flags(db)]
+    lay = project.array_layout
+    if lay is not None:
+        tables = list(lay.table_by_id.values())
+        for path, note in _flags(lay):
+            v = _value(lay, path)
+            if v is None and tables:
+                v = _value(tables[0], path)
+            out.append((path, _text(path, v, note)))
+    return out
+
+
+def layout_assumed(project: Project, field: str) -> bool:
+    """Whether the layout (or its design basis) marks `field` as assumed."""
+    lay = project.array_layout
+    return any(p.split(".")[-1] == field for p, _ in (_flags(lay) if lay is not None else [])) or any(p.split(".")[-1] == field for p, _ in _flags(project.design_basis))
 
 
 DERIVED = re.compile(r"\bderived\b|free ground|assum", re.IGNORECASE)
