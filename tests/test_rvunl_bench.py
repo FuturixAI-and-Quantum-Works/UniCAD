@@ -278,6 +278,7 @@ def run3(tmp_path_factory) -> dict:
         async with connect(tmp / "ws") as c:
             await c.call("project_create", **CREATE)
             await c.call("project_design_basis", project_id=PID, **BASIS3)
+            out["assumed_basis"] = await c.call("project_design_basis", project_id=PID, assumed=["ambient_min_c", "ambient_max_c", "altitude_m", "vdrop_dc_max", "vdrop_ac_max", "power_factor"])
             small = tmp / "small.csv"
             small.write_text(SMALL3, encoding="utf-8")
             await c.call("site_import", project_id=PID, file_path=str(small), format="coords", coordinate_system="lonlat")
@@ -287,11 +288,12 @@ def run3(tmp_path_factory) -> dict:
             site.write_text(SITE3, encoding="utf-8")
             await c.call("site_import", project_id=PID, file_path=str(site), format="coords", coordinate_system="lonlat", replace=True)
             await c.call("site_set_setbacks", project_id=PID, boundary_m=5)
-            out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0)
+            out["place"] = await c.call("layout_place", **PLACE3, switchyard_x=95.0, switchyard_y=44.0, assumed=["tilt_deg", "table_rows"])
             out["build"] = await c.call("network_autobuild", **BUILD3, accb_at="electrical_centre")
             for placement in ("perimeter", "auto"):
                 out[f"lps_{placement}"] = await c.call("lps_design", project_id=PID, method="ese", level="III", ese_delta_t_us=60, mast_height_m=6, placement=placement)
-            out["project"] = (await c.call("project_get", project_id=PID, full=True))["project"]
+            out["get"] = await c.call("project_get", project_id=PID, full=True)
+            out["project"] = out["get"]["project"]
             out["acb_window"] = await c.call("validate", project_id=PID)
             await c.call("network_update", project_id=PID, id="acdb_brk", fields={"long_time_setting_a": 2000})
             out["acb_window_low"] = await c.call("validate", project_id=PID)
@@ -418,3 +420,17 @@ def test_autobuild_types_the_brief_busbar_ct_pt_and_the_catalog_spd(run3, projec
     spd = nodes["acdb_spd"]
     assert spd.spec == "finder-7p.25.8.275.x020" and (spd.spd.spd_type, spd.spd.in_ka, spd.spd.imax_ka, spd.spd.uc_v) == ("2", 20.0, 40.0, 275.0)
     assert all(n.spd is not None for n in project3.network.nodes if n.kind.value in ("ac_spd", "dc_spd") and n.spec)
+
+
+def test_inputs_the_agent_chose_are_marked_assumed_and_reported(run3, project3):
+    """N12 / M1: tilt 25 deg, the 2 % drop limits, the ambient, altitude and power factor were printed as facts: no tool could mark a value the agent set
+    as assumed (bench run 3 found only an undocumented 'ASSUMED' attribute text)."""
+    basis = {a["field"]: a["value"] for a in run3["assumed_basis"]["design_basis"]["assumed"]}
+    assert basis == {"design_basis.ambient_min_c": "2 degC", "design_basis.ambient_max_c": "48 degC", "design_basis.altitude_m": "431 m",
+                     "design_basis.vdrop_dc_max": "2 %", "design_basis.vdrop_ac_max": "2 %", "design_basis.power_factor": "0.99"}  # fmt: skip
+    layout = {a["field"]: a["value"] for a in run3["place"]["assumed_inputs"]}
+    assert layout == {"array_layout.tilt_deg": "25 deg", "array_layout.table_rows": "2"}
+    got = {a["field"]: (a["label"], a["value"]) for a in run3["get"]["assumed_inputs"]}
+    assert got["array_layout.tilt_deg"] == ("module tilt", "25 deg") and got["design_basis.vdrop_ac_max"] == ("AC voltage drop limit", "2 %")
+    assert project3.design_basis.assumed[0] == "ambient_min_c" and project3.array_layout.assumed == ("tilt_deg", "table_rows")
+    assert len(project3.assumed_inputs()) == 8

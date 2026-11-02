@@ -21,7 +21,7 @@ Workflow, in order. Every edit returns the new revision and a `problems` list; r
 8. project_snapshot(project_id, label) names the agreed revision; project_diff compares revisions (per-feature site changes, per-block layout changes, sheet changes). Use revision= on read tools to inspect an older state.
 9. Issue, last: project_issue(project_id, issued_for, rev, drawn, checked, approved, date) once the rules allow the purpose (approval, construction and as_built are refused while an error remains, including an SLD sheet the last render marked unreadable; amend=true corrects the latest revision instead of adding one), then drawings_render(project_id, kinds=["all"]) renders the complete set (drawing register, SLD, layout, earthing, LPS, string diagrams, cable schedule, BOM) as DXF, PDF or DWG with the company's numbers and layers, every sheet carrying the revision, names and date. A set rendered before the issue has no revision, names or date.
 
-Rules: mark every assumption you make and tell the user; take equipment values only from the catalog; if a tool reports a blocker or an error finding, fix the model rather than working around it. Prompts new_rooftop_project, new_utility_project, new_bess_project and revise_after_comments give step plans for the common jobs.
+Recording an assumption: a design-basis value you chose yourself goes in project_design_basis(assumed=[...]) (e.g. "ambient_max_c", "vdrop_ac_max", "lps.mast_height_m"); a layout input in layout_place(assumed=[...]) (e.g. "tilt_deg"); a site feature you drew without a survey carries 'ASSUMED' in its name; a node or cable choice (e.g. XLPE where the brief names no insulation) carries 'ASSUMED: <what and why>' in the node title or attributes or the edge remarks; a fault level without a study names its source with 'ASSUMED'. project_get lists the marked inputs under assumed_inputs and every drawing they drive prints them under ASSUMED INPUTS. Rules: mark every assumption you make and tell the user; take equipment values only from the catalog; if a tool reports a blocker or an error finding, fix the model rather than working around it. Prompts new_rooftop_project, new_utility_project, new_bess_project and revise_after_comments give step plans for the common jobs.
 ```
 
 ## Prompts
@@ -31,7 +31,7 @@ Rules: mark every assumption you make and tell the user; take equipment values o
 ```text
 Build a rooftop PV drawing set for "<name>" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: grid voltage, DC or AC capacity, inverter make/size, module make/Wp, roof survey file (KML, KMZ, GeoJSON, DXF), roof setbacks from the design basis, site ambient temperatures, fault level at the grid connection, soil resistivity, lightning protection level. Mark anything you assume.
+1. Ask the user for anything missing: grid voltage, DC or AC capacity, inverter make/size, module make/Wp, roof survey file (KML, KMZ, GeoJSON, DXF), roof setbacks from the design basis, site ambient temperatures, fault level at the grid connection, soil resistivity, lightning protection level. Mark anything you assume (project_design_basis assumed=[...], layout_place assumed=[...]; see the server instructions).
 2. project_create(name, client, segment="ci_rooftop", site, grid_voltage_v). Read back `assumptions`: they are placeholders.
 3. project_design_basis(project_id, ...) before any design: ambient_min_c, ambient_max_c, altitude_m, fault_levels (one per system voltage, with its source), earthing (soil resistivity from the Wenner test, earth fault current and clearing time) and lps (level from the risk assessment, method). Each value you set replaces its placeholder.
 4. site_import(project_id, file_path). Check `problems` and `imported_by_kind`; add missed obstacles with site_set_feature (kind="obstacle", height_m). site_set_setbacks with distances from the design basis, then site_summary for the buildable roof area.
@@ -50,7 +50,7 @@ Build a rooftop PV drawing set for "<name>" with UniCAD tools. State intent only
 ```text
 Build a utility-scale PV drawing set for "<name>" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: AC and DC capacity, inverter or PCS make/size, module make/Wp, MV voltage level, grid voltage at the point of interconnection, site boundary file, setbacks from the design basis, site ambient temperatures, fault levels at each system voltage, soil resistivity, earth fault level and clearing time, lightning protection level. Mark anything you assume.
+1. Ask the user for anything missing: AC and DC capacity, inverter or PCS make/size, module make/Wp, MV voltage level, grid voltage at the point of interconnection, site boundary file, setbacks from the design basis, site ambient temperatures, fault levels at each system voltage, soil resistivity, earth fault level and clearing time, lightning protection level. Mark anything you assume (project_design_basis assumed=[...], layout_place assumed=[...]; see the server instructions).
 2. project_create(name, client, segment="utility", site, grid_voltage_v). Read back `assumptions`: they are placeholders.
 3. project_design_basis(project_id, ...) before any design: ambient_min_c, ambient_max_c, altitude_m, fault_levels (one per system voltage, with its source), earthing (soil resistivity from the Wenner test, earth fault current and clearing time, and switchyard_m: the MV switchyard earth grid length x width from the substation layout, set now because the layout and the BESS placement size the yard clearance from it) and lps (level from the risk assessment, method). Each value you set replaces its placeholder.
 4. site_import(project_id, file_path) for boundary, exclusions, water, roads and transmission lines; fix classification with kind_mapping or site_set_feature. site_set_setbacks (boundary_m, exclusion_m) from the design basis; site_summary for the buildable acres.
@@ -69,7 +69,7 @@ Build a utility-scale PV drawing set for "<name>" with UniCAD tools. State inten
 ```text
 Build a battery energy storage drawing set for "<name>" with UniCAD tools. State intent only; never invent ratings or coordinates.
 
-1. Ask the user for anything missing: storage power (kW) and energy (kWh), AC- or DC-coupled, PCS and battery make, grid voltage at the point of interconnection, PV capacity when hybrid, export limit, site file. Mark anything you assume.
+1. Ask the user for anything missing: storage power (kW) and energy (kWh), AC- or DC-coupled, PCS and battery make, grid voltage at the point of interconnection, PV capacity when hybrid, export limit, site file. Mark anything you assume (project_design_basis assumed=[...], layout_place assumed=[...]; see the server instructions).
 2. project_create(name, client, segment="bess" or "hybrid", site, grid_voltage_v). Read back `assumptions`.
 3. project_design_basis(project_id, earthing with switchyard_m=[length, width], ...) before the network is built when there is a ground site: a hybrid's BESS units are placed clear of the switchyard earth mat, so its size is needed first. site_import(project_id, file_path) when a site file exists; site_set_setbacks from the design basis.
 4. catalog_search(kind="pcs") and catalog_search(kind="battery"), then catalog_get to confirm ratings.
@@ -282,7 +282,8 @@ project_design_basis(
       "altitude_m = 0 is a placeholder, not site or standard data; replace it before issue.",
       "vdrop_dc_max = 0.02 is a placeholder, not site or standard data; replace it before issue.",
       "... 5 more"
-    ]
+    ],
+    "assumed": []
   },
   "problems": []
 }

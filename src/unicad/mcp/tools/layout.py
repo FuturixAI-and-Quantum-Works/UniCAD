@@ -10,7 +10,7 @@ from unicad.arrays.geometry import frame
 from unicad.arrays.siting import marked_switchyard
 from unicad.arrays.shortfall import shortfall
 from unicad.domain.catalog import ModuleSpec
-from unicad.domain.layout import ArrayLayout, Orientation, StringAssignment
+from unicad.domain.layout import ArrayLayout, LayoutInput, Orientation, StringAssignment
 from unicad.domain.network import NodeKind
 from unicad.design.placement import BESS_PITCH_M, MV_PLANT_KINDS, _bess_units, place_equipment, stations_exist
 from unicad.design.plan import inverter_string_lengths, link_given
@@ -209,6 +209,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
     inverter_strings: Annotated[list[InverterStrings] | None, Field(description="Strings given per inverter and MPPT, as for network_autobuild: one block per inverter "
                                     "holding exactly its strings, with tables as long as each string length (e.g. 2 x 19 tables for 19-module strings). Default: read from "
                                     "the network when network_autobuild built it with inverter_strings")] = None,
+        assumed: Annotated[list[LayoutInput], Field(description="Inputs of this call you chose yourself (not from the brief, a survey or the client), marked as assumed so the "
+                                                    "drawings print them under ASSUMED INPUTS, e.g. [\"tilt_deg\", \"table_rows\"]")] = [],  # noqa: B006
     ) -> dict[str, Any]:
         """Place PV tables or trackers on the project's buildable site area, split them into inverter blocks of near-equal DC capacity,
         site an inverter station per block and assign strings to module slots. Replaces any existing array layout.
@@ -220,7 +222,8 @@ def register(server: MCPServer, ws: Workspace) -> None:
         except where a side's strings do not make up whole inverters, and reports those). The MV switchyard and the BESS area keep 3 m (assumed) from
         the boundary fence; set switchyard_m in project_design_basis earthing before this call so the yard is kept free of
         tables at its real size.
-        Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, road_every_rows=12, block_dc_kwp=15000)."""
+        A value you chose yourself (e.g. a tilt the brief does not give) goes in `assumed`, so the drawings print it as assumed.
+        Example: layout_place(project_id="p1", module="waaree-bi-55-540", tilt_deg=25, road_every_rows=12, block_dc_kwp=15000, assumed=["tilt_deg"])."""
 
         def change(p: Project) -> Edit:
             site = _site(p)
@@ -305,7 +308,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                     linked = _link(planned, network_ids)
                     if len(network_ids) != len(planned):
                         problems.append(_problem("warning", "layout", f"network has {len(network_ids)} pv_string instances, the layout has slots for {len(planned)} strings; {min(len(network_ids), len(planned))} linked"))
-            layout = result.layout.model_copy(update={"strings": linked, "target_dc_kwp": target_dc_kwp})
+            layout = result.layout.model_copy(update={"strings": linked, "target_dc_kwp": target_dc_kwp, "assumed": tuple(dict.fromkeys(assumed))})
             if network_ids and not linked:
                 problems.insert(0, _problem("warning", "layout", f"LAYOUT NOT LINKED TO THE NETWORK: none of the network's {len(network_ids)} strings are linked to the layout, so cable "
                                                                  "lengths stay placeholders and no inverter is placed in the field; re-run network_autobuild (use_layout=true) after this"))
@@ -329,6 +332,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                     "plot_now_m": None if short.plot_now_m is None else [round(short.plot_now_m[0], 1), round(short.plot_now_m[1], 1)],
                 }
             extra |= {
+                "assumed_inputs": [a.model_dump() for a in updated.assumed_inputs() if a.field.startswith("array_layout.")],
                 "strings_planned": len(planned),
                 "strings_linked": len(linked),
                 "string_id_example": planned[0].string if planned else None,
@@ -381,6 +385,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
             "lt_panels": [{"tag": e.tag, "kind": e.kind, "x": e.at.x, "y": e.at.y, "basis": e.basis} for e in live_panels(p)],
             "lt_route": [{"edge": r.edge, "from": r.from_tag, "to": r.to_tag, "length_m": r.length_m, "points": [list(q) for q in r.points]} for r in panel_routes(p)],
             "block_stations_are_equipment": stations_exist(p),
+            "assumed_inputs": [a.model_dump() for a in p.assumed_inputs() if a.field.startswith("array_layout.")],
         }
 
     @server.tool(annotations=READ_ONLY)

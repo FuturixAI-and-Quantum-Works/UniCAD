@@ -7,7 +7,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
 
-from unicad.domain.project import DesignBasis, EarthingBasis, FaultLevel, GridConnection, IssuedFor, IssueRevision, LpsBasis, NoctThermal, Party, Project, Site
+from unicad.domain.project import DesignBasis, DesignInput, EarthingBasis, FaultLevel, GridConnection, IssuedFor, IssueRevision, LpsBasis, NoctThermal, Party, Project, Site
 from unicad.mcp.errors import guarded
 from unicad.mcp.schema import SegmentArg
 from unicad.mcp.tools.params import ProjectIdArg, RevisionArg
@@ -66,6 +66,7 @@ def project_summary(project: Project, revision: int) -> dict[str, Any]:
         "counts": counts(project),
         "sheets": len(project.sheets),
         "assumptions": list(project.design_basis.assumptions),
+        "assumed_inputs": [a.model_dump() for a in project.assumed_inputs()],
         "issue": _issue_status(project),
     }
 
@@ -286,10 +287,14 @@ def register(server: MCPServer, ws: Workspace) -> None:
         vdrop_ac_max: Annotated[float | None, Field(gt=0, lt=1, description="Max AC voltage drop as a fraction")] = None,
         dc_ac_ratio_target: Annotated[float | None, Field(gt=0, description="Target DC/AC ratio")] = None,
         power_factor: Annotated[float | None, Field(gt=0, le=1, description="Design power factor")] = None,
+        assumed: Annotated[list[DesignInput] | None, Field(description="Replace the list of design-basis inputs marked as assumed (values you chose, not the client's or a "
+                                                              "cited source's), e.g. [\"ambient_max_c\", \"vdrop_ac_max\", \"lps.mast_height_m\"]; [] clears it. The drawings print them as assumed")] = None,
     ) -> dict[str, Any]:
         """Set the design-basis inputs the rules and the earthing, lightning and drawing set use: site values (ambient temperatures, altitude),
         limits (voltage drop, DC/AC target, power factor), fault levels per system voltage, earthing inputs and lightning protection inputs.
-        Only the parts you pass (or clear) change, and a value you set replaces its placeholder in `assumptions`. The design is not run:
+        Only the parts you pass (or clear) change, and a value you set replaces its placeholder in `assumptions`. A value you choose yourself
+        (not the client's or a cited source's) is still assumed: list it in `assumed` and every drawing it drives prints it under ASSUMED INPUTS
+        (layout inputs such as the tilt are marked with layout_place assumed=[...]). The design is not run:
         after changing site values, limits or fault levels on a project with a network, re-run network_autobuild so strings, breakers and
         cables are sized for them (earthing_design and lps_design store the same inputs and report the design; drawings_render draws the
         earthing and LA layouts from them). Site setbacks are set with site_set_setbacks.
@@ -319,6 +324,9 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 basis[key] = value
                 basis["assumptions"] = [a for a in basis["assumptions"] if not a.startswith(f"{key} = ")]
                 touched.append(f"design_basis.{key}")
+            if assumed is not None:
+                basis["assumed"] = list(dict.fromkeys(assumed))
+                touched.append("design_basis.assumed")
             try:
                 updated = Project.model_validate(data, context={"catalog": ws.catalog})
             except ValidationError as e:
@@ -330,6 +338,7 @@ def register(server: MCPServer, ws: Workspace) -> None:
                 "earthing": db.earthing.model_dump(mode="json", exclude_none=True) if db.earthing else None,
                 "lps": db.lps.model_dump(mode="json", exclude_none=True) if db.lps else None,
                 "assumptions": list(db.assumptions),
+                "assumed": [a.model_dump() for a in updated.assumed_inputs() if a.field.startswith("design_basis.")],
             }}  # fmt: skip
             problems = []
             sizing = [t for t in touched if t.split(".")[1] not in ("earthing", "lps")]
