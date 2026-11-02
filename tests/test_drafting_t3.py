@@ -236,3 +236,21 @@ def test_nothing_marked_assumed_adds_nothing():
     from unicad.drafting.assumptions import flagged
 
     assert flagged(bench3()) == []
+
+
+# ---------------- LV instrument transformers are panel instruments, not field equipment (item 9) ----------------
+
+
+def test_lt_accb_ct_and_pt_are_not_earthed_as_field_equipment(tmp_path):
+    import ezdxf
+
+    from unicad.sets import render_set
+
+    p = bench3()
+    d = design_earthing(p)
+    tags = {it.tag for it in d.layout.items}
+    assert "CT-01" not in tags and "PT-01" not in tags and "ACCB-01" in tags, sorted(tags)
+    assert not [x for x in d.layout.pits if set(x.serves) & {"solar_ct", "solar_pt"}]
+    index = render_set(p, tmp_path, kinds=["earthing"], formats=("dxf",), catalog=CATALOG).as_dict(absolute=True)
+    words = " ".join(e.dxf.text for e in ezdxf.readfile(index["sheets"][0]["files"]["dxf"]).modelspace().query("TEXT"))
+    assert "CT-01" not in words and "PT-01" not in words
