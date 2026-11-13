@@ -1,5 +1,6 @@
 """Packaging: bundled data, the console script, and the static shape of the Docker files."""
 
+import json
 import shutil
 import subprocess
 import sys
@@ -67,3 +68,14 @@ def test_docker_scripts_parse(script):
 def test_dockerignore_keeps_build_inputs():
     ignored = {line.strip() for line in (ROOT / ".dockerignore").read_text().splitlines()}
     assert not ignored & {"src", "catalog", "profiles", "docker", "pyproject.toml", "README.md"}
+
+
+def test_opencad_manifest_matches_the_package():
+    # OpenCAD installs UniCAD from this manifest (the release workflow publishes it next to the wheel)
+    manifest = json.loads((ROOT / "opencad-mcp.json").read_text())
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    assert manifest["id"] == "unicad"
+    assert manifest["version"] == project["version"]
+    assert manifest["run"]["command"] in project["scripts"]
+    assert manifest["install"]["uv_tool"]["package"] == project["name"]
+    assert "{version}" in manifest["install"]["uv_tool"]["wheel"]

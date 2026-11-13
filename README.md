@@ -2,6 +2,19 @@
 
 An MCP server that produces Indian (IS/CEA) solar EPC drawing sets (single-line diagrams, array layouts, cable schedules, earthing and lightning protection) as DXF, PDF and DWG. An agent states engineering intent through tools; a typed project model holds the design and the drawings are rendered from it with LibreCAD.
 
+## Install
+
+OpenCAD installs UniCAD for you: it asks once, the first time a feature needs it, and runs it as a verified MCP server. It reads [opencad-mcp.json](opencad-mcp.json), installs the released wheel with `uv tool install`, and starts `unicad-mcp` with OpenCAD's projects folder as the workspace, with OpenCAD itself as the renderer (`LIBRECAD` and `QT_QPA_PLATFORM=offscreen`, so no X display is needed).
+
+By hand, with [uv](https://docs.astral.sh/uv/) (it fetches Python itself):
+
+```sh
+uv tool install --python 3.13 https://github.com/FuturixAI-and-Quantum-Works/UniCAD/releases/download/v0.1.0/unicad-0.1.0-py3-none-any.whl
+unicad-mcp --help
+```
+
+A release is a tag `vX.Y.Z` whose version matches `pyproject.toml` and `opencad-mcp.json`; the release workflow builds the wheel and publishes it with the manifest.
+
 ## Run it
 
 ```sh

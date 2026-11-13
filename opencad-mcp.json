@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "unicad",
+  "name": "UniCAD",
+  "description": "Indian (IS/CEA) solar EPC drawing sets from a typed project model: single-line diagrams, array layouts, string wiring, cable schedules, BOM, earthing and lightning protection, as DXF, PDF and DWG.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/FuturixAI-and-Quantum-Works/UniCAD",
+  "install": {
+    "uv_tool": {
+      "package": "unicad",
+      "python": "3.13",
+      "wheel": "https://github.com/FuturixAI-and-Quantum-Works/UniCAD/releases/download/v{version}/unicad-{version}-py3-none-any.whl",
+      "git": "git+https://github.com/FuturixAI-and-Quantum-Works/UniCAD@v{version}"
+    }
+  },
+  "run": {
+    "command": "unicad-mcp",
+    "args": ["--workspace", "{projects_dir}"],
+    "env": {
+      "LIBRECAD": "{opencad_executable}",
+      "QT_QPA_PLATFORM": "offscreen"
+    },
+    "unset_env": ["QT_QPA_PLATFORMTHEME", "DISPLAY", "WAYLAND_DISPLAY"]
+  },
+  "features": ["drawing_sets"]
+}

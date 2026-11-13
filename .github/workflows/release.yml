@@ -1,0 +1,34 @@
+# A tag vX.Y.Z builds the wheel and publishes a GitHub release with it and opencad-mcp.json, which OpenCAD reads to
+# install UniCAD (uv tool install <wheel>). The tag, pyproject.toml and opencad-mcp.json must name the same version.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Check the versions agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          project=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          manifest=$(python3 -c 'import json; print(json.load(open("opencad-mcp.json"))["version"])')
+          echo "tag $tag, pyproject $project, opencad-mcp.json $manifest"
+          test "$tag" = "$project" && test "$tag" = "$manifest"
+      - name: Build the wheel
+        run: uv build --wheel -o dist
+      - name: Smoke-test the wheel
+        run: |
+          uv tool install --python 3.13 dist/*.whl
+          unicad-mcp --help
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.whl opencad-mcp.json --title "UniCAD $GITHUB_REF_NAME" --generate-notes

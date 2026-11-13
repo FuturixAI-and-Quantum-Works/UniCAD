@@ -7,6 +7,7 @@ is all a new tool group needs. `MODULES` lists the modules outside that package 
 import importlib
 import pkgutil
 from collections.abc import Callable
+from importlib import metadata
 from typing import cast
 
 from mcp.server.mcpserver import MCPServer
@@ -33,9 +34,16 @@ def module_names() -> tuple[str, ...]:
     return tuple(dict.fromkeys(tool_modules() + MODULES))
 
 
+def _version() -> str:
+    try:
+        return metadata.version("unicad")
+    except metadata.PackageNotFoundError:
+        return ""
+
+
 def build_server(config: Config | None = None) -> MCPServer:
     ws = Workspace(config or Config.from_env())
-    server = MCPServer("unicad", instructions=INSTRUCTIONS)
+    server = MCPServer("unicad", instructions=INSTRUCTIONS, version=_version())
     for name in module_names():
         cast(Register, importlib.import_module(name).register)(server, ws)
     return server

@@ -11,6 +11,7 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
@@ -97,6 +98,9 @@ class LibreCadRenderer:
     def _command_prefix(self) -> tuple[list[str], dict[str, str]]:
         binary = locate_librecad(self._binary)
         env = dict(os.environ)
+        # Qt's offscreen platform needs no display (OpenCAD launches UniCAD this way), and only X11 desktops have DISPLAY
+        if env.get("QT_QPA_PLATFORM", "").strip() == "offscreen" or sys.platform in ("win32", "darwin"):
+            return [str(binary)], env
         if env.get("DISPLAY"):
             return [str(binary)], env
         xvfb = shutil.which("xvfb-run")

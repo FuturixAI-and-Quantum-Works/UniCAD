@@ -40,8 +40,9 @@ def _librecad_ready() -> str | None:
         locate_librecad()
     except BackendUnavailable as exc:
         return str(exc)
-    if not os.environ.get("DISPLAY") and not shutil.which("xvfb-run"):
-        return "no DISPLAY and no xvfb-run"
+    offscreen = os.environ.get("QT_QPA_PLATFORM", "").strip() == "offscreen"
+    if not offscreen and not os.environ.get("DISPLAY") and not shutil.which("xvfb-run"):
+        return "no DISPLAY, no xvfb-run and QT_QPA_PLATFORM is not offscreen"
     return None
 
 
@@ -257,6 +258,8 @@ def test_missing_display_without_xvfb_is_a_clear_error(tmp_path, monkeypatch):
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
     binary = fake_binary(tmp_path, "exit 0")
     monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("QT_QPA_PLATFORM", raising=False)
+    monkeypatch.setattr(librecad_module.sys, "platform", "linux")
     monkeypatch.setattr(librecad_module.shutil, "which", lambda name: None)
     with pytest.raises(BackendUnavailable, match="DISPLAY is unset and xvfb-run is not installed"):
         LibreCadRenderer(binary).to_pdf(dxf, tmp_path / "o.pdf", "A4")
@@ -267,6 +270,8 @@ def test_missing_display_wraps_in_xvfb_run_when_available(tmp_path, monkeypatch)
     xvfb = fake_binary(tmp_path, f'echo "$@" > {log}; exit 1', "fake-xvfb-run")
     binary = fake_binary(tmp_path, "exit 0")
     monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("QT_QPA_PLATFORM", raising=False)
+    monkeypatch.setattr(librecad_module.sys, "platform", "linux")
     monkeypatch.setattr(librecad_module.shutil, "which", lambda name: str(xvfb) if name == "xvfb-run" else None)
     dxf = write_sheet(tmp_path / "s.dxf", "A4")
     with pytest.raises(RenderFailed):
@@ -414,3 +419,15 @@ def test_strict_dwg_conversion_raises_when_readback_differs(tmp_path, monkeypatc
         converter.to_dwg(dxf, tmp_path / "s.dwg")
     lenient = converter.to_dwg(dxf, tmp_path / "s2.dwg", strict=False)
     assert lenient.mismatches == {"CIRCLE": (1, 0)}
+
+
+
+def test_offscreen_qt_runs_librecad_without_a_display(tmp_path, monkeypatch):
+    # OpenCAD launches UniCAD with QT_QPA_PLATFORM=offscreen and LIBRECAD set to itself: no X display is needed
+    binary = fake_binary(tmp_path, "exit 0")
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    monkeypatch.setattr(librecad_module.shutil, "which", lambda name: None)
+    prefix, env = LibreCadRenderer(binary)._command_prefix()
+    assert prefix == [str(binary)]
+    assert env["QT_QPA_PLATFORM"] == "offscreen"
