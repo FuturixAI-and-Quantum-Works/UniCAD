@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -63,7 +64,9 @@ def install_python(version: str, into: Path) -> Path:
     managed = into.parent / "_uv-python"
     shutil.rmtree(managed, ignore_errors=True)
     run("uv", "python", "install", version, "--install-dir", managed, "--no-bin")
-    found = [p for p in managed.iterdir() if p.is_dir() and not p.is_symlink() and p.name.startswith("cpython-")]
+    # the interpreter itself, cpython-X.Y.Z-...: uv also adds a cpython-X.Y-... alias to it (a symlink on Linux and
+    # macOS, a directory junction on Windows, which is_symlink() does not report)
+    found = [p for p in managed.iterdir() if p.is_dir() and re.match(r"cpython-\d+\.\d+\.\d+", p.name)]
     if len(found) != 1:
         sys.exit(f"expected one interpreter in {managed}, found {[p.name for p in found]}")
     shutil.rmtree(into, ignore_errors=True)
