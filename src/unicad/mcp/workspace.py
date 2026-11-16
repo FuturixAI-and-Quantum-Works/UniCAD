@@ -2,9 +2,10 @@ import threading
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import Any
 
-from unicad.catalog.store import Catalog, load_catalog
+from unicad.catalog.store import DEFAULT_PATH, KIND_FILES, Catalog, load_catalog
 from unicad.domain.network import Edge, Group, Node
 from unicad.domain.project import Project
 from unicad.mcp.config import Config
@@ -31,6 +32,7 @@ class Workspace:
     def __init__(self, config: Config) -> None:
         self.base_config = config
         self._catalog: Catalog | None = None
+        self._catalog_stamp: tuple[tuple[str, int, int], ...] | None = None
         self._stores: dict[str | None, ProjectStore] = {}
         self._locks: dict[str | None, threading.RLock] = {}
         self._guard = threading.Lock()
@@ -54,10 +56,25 @@ class Workspace:
         with self._guard:
             return self._locks.setdefault(tenant, threading.RLock())
 
+    def _catalog_files_stamp(self) -> tuple[tuple[str, int, int], ...]:
+        root = Path(self.config.catalog) if self.config.catalog is not None else DEFAULT_PATH
+        stamp = []
+        for name in KIND_FILES.values():
+            try:
+                st = (root / name).stat()
+            except OSError:
+                continue
+            stamp.append((name, st.st_mtime_ns, st.st_size))
+        return tuple(stamp)
+
     @property
     def catalog(self) -> Catalog:
-        if self._catalog is None:
+        # Loaded again when a catalog file changes: a long-lived server (OpenCAD, Claude Desktop) sees entries an agent
+        # adds to the project catalog while it runs. A file that no longer loads raises, so the agent sees what is wrong.
+        stamp = self._catalog_files_stamp()
+        if self._catalog is None or stamp != self._catalog_stamp:
             self._catalog = load_catalog(self.config.catalog)
+            self._catalog_stamp = stamp
         return self._catalog
 
     def resolve(self, project_id: str, ref: int | str | None) -> int:

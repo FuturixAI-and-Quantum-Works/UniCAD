@@ -9,7 +9,7 @@ OpenCAD installs UniCAD for you: it asks once, the first time a feature needs it
 By hand, with [uv](https://docs.astral.sh/uv/) (it fetches Python itself):
 
 ```sh
-uv tool install --python 3.13 https://github.com/FuturixAI-and-Quantum-Works/UniCAD/releases/download/v0.1.0/unicad-0.1.0-py3-none-any.whl
+uv tool install --python 3.13 https://github.com/FuturixAI-and-Quantum-Works/UniCAD/releases/download/v0.1.1/unicad-0.1.1-py3-none-any.whl
 unicad-mcp --help
 ```
 
