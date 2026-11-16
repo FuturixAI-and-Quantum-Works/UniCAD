@@ -32,3 +32,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/*.whl opencad-mcp.json --title "UniCAD $GITHUB_REF_NAME" --generate-notes
+
+  # The self-contained runtime OpenCAD ships (tools/build_runtime.py): CPython + UniCAD + dependencies, one per
+  # platform, attached to the same release. OpenCAD's packaging puts it in the app; users need no Python or uv.
+  runtime:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14, macos-13, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Build the runtime
+        shell: bash
+        run: uv run --no-project python tools/build_runtime.py --archive
+      - name: Attach it to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" build/unicad-runtime-* --clobber  # the .tar.gz, or the .zip on Windows
