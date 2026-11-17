@@ -58,6 +58,10 @@ ADAPTER = TypeAdapter(EquipmentSpec)
 
 DC_TEMP_COEFF_CU = 0.00393
 IS1180_PDF = "raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf"
+IS1180_6KV = (
+    "; 6.6 kV HV: IS 1180 (Part 1):2014 covers distribution transformers up to 2500 kVA, 33 kV, and 6.6 kV is a standard Indian distribution voltage; "
+    "the Amd 4 table gives one rating, %Z and loss ladder for the three-phase class, applied here unchanged to a 6.6 kV HV winding as the 11 kV entries apply it to 11 kV"
+)
 
 
 @dataclass(frozen=True)
@@ -378,15 +382,16 @@ def import_transformers(b: Build) -> None:
             b.skip("transformer", f"transformer_is1180_ratings_losses.csv row {line}", "single-phase rating: TransformerSpec is three-phase")
             continue
         kva = float(r["kva"])
-        for hv in (11, 33):
+        for hv in (6.6, 11, 33):
             if hv == 33 and kva < ratings_33kv_min:
                 continue
             b.add(
                 "transformer", f"transformer_is1180_ratings_losses.csv row {line}", TransformerSpec,
-                id=slug("is1180", f"{hv}kv", f"{kva:g}kva", "dyn11"), manufacturer="Generic (IS 1180)",
-                model=f"{kva:g} kVA {hv}/0.433 kV",
+                id=slug("is1180", f"{hv:g}kv", f"{kva:g}kva", "dyn11"), manufacturer="Generic (IS 1180)",
+                model=f"{kva:g} kVA {hv:g}/0.433 kV",
                 source=source("standard", IS1180_PDF, "transformer_is1180_ratings_losses.csv", line, r["pdf_page"],
-                              "Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class ratings from 16 kVA per IS 1180-1 Amd 4 Table 1 (raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.1)"),
+                              "Dyn11 per IS 1180-1:2014 cl. 6.6 (Amd 4 allows Dyn1); 33 kV class ratings from 16 kVA per IS 1180-1 Amd 4 Table 1 (raw/standards/IS1180-1_2014_Amendment4_2021_via_MJP.pdf p.1)"
+                              + (IS1180_6KV if hv == 6.6 else "")),
                 rated_kva=kva, hv_kv=hv, lv_kv=(0.433,), vector_group="Dyn11", impedance_pct=float(r["impedance_pct"]),
                 cooling="ONAN", standard="IS 1180 (Part 1):2014",
             )

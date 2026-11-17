@@ -4,7 +4,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import get_args
 
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 
 from unicad.domain.catalog import EquipmentSpec, InverterSpec, ModuleSpec, PCSSpec, TransformerSpec
 
@@ -20,6 +20,7 @@ KIND_FILES = {
     "logger": "loggers.json",
 }
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "catalog"
+ADDITIONS_FILE = "catalog-additions.json"
 _ADAPTER: TypeAdapter[EquipmentSpec] = TypeAdapter(EquipmentSpec)
 
 Spec = get_args(EquipmentSpec)[0]
@@ -41,6 +42,10 @@ def power(spec: Spec) -> float | None:
 @dataclass(frozen=True)
 class Catalog:
     entries: tuple[Spec, ...]
+    added: frozenset[str] = frozenset()
+    """Ids that came from a project's additions file (catalog_add), not from the catalog files."""
+    shadowed: tuple[str, ...] = ()
+    """Additions skipped because the catalog files now hold the same id (the catalog entry is used)."""
 
     def __post_init__(self) -> None:
         if len(self._index) != len(self.entries):
@@ -94,7 +99,46 @@ class Catalog:
         return sorted(hits, key=lambda e: e.id)[:limit]
 
 
-def load_catalog(path: Path | str | None = None) -> Catalog:
+def validate_entry(raw: object) -> Spec:
+    """One catalog entry of any kind, checked as the catalog files are. A ValueError names each failing field."""
+    if not isinstance(raw, dict):
+        raise ValueError(f"a catalog entry is a JSON object, got {type(raw).__name__}")  # noqa: TRY004 - a ValueError reaches the agent as its message
+    if raw.get("kind") not in KIND_FILES:
+        raise ValueError(f"kind: must be one of {', '.join(KIND_FILES)} (got {raw.get('kind')!r})")
+    try:
+        return _ADAPTER.validate_python(raw)
+    except ValidationError as exc:
+        parts = []
+        for err in exc.errors():
+            loc = [str(p) for p in err["loc"]]
+            if loc and loc[0] == raw["kind"]:
+                loc = loc[1:]
+            text = err["msg"].removeprefix("Value error, ")
+            got = "" if err["type"] in ("missing", "value_error") else f" (got {err['input']!r})"
+            parts.append(f"{'.'.join(loc) or 'entry'}: {text}{got}")
+        raise ValueError(f"not a valid {raw['kind']} entry: " + "; ".join(parts)) from None
+
+
+def read_additions(path: Path) -> list[Spec]:
+    """Entries of an additions file (a JSON list of catalog entries); an absent file has none."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return []
+    items = json.loads(text)
+    if not isinstance(items, list):
+        raise ValueError(f"{path}: expected a JSON list of catalog entries")  # noqa: TRY004
+    out = []
+    for i, raw in enumerate(items):
+        try:
+            out.append(validate_entry(raw))
+        except ValueError as exc:
+            raise ValueError(f"{path} entry {i}: {exc}") from None
+    return out
+
+
+def load_catalog(path: Path | str | None = None, additions: Path | None = None) -> Catalog:
+    """The catalog files under `path` (default the shipped catalog), plus the entries of the `additions` file when given."""
     root = Path(path) if path is not None else DEFAULT_PATH
     entries = []
     for kind, name in KIND_FILES.items():
@@ -103,4 +147,10 @@ def load_catalog(path: Path | str | None = None) -> Catalog:
             if spec.kind != kind:
                 raise ValueError(f"{name}: entry {spec.id!r} has kind {spec.kind!r}, expected {kind!r}")
             entries.append(spec)
-    return Catalog(tuple(entries))
+    if additions is None:
+        return Catalog(tuple(entries))
+    base = {e.id for e in entries}
+    extra = read_additions(additions)
+    shadowed = tuple(e.id for e in extra if e.id in base)
+    kept = [e for e in extra if e.id not in base]
+    return Catalog(tuple(entries + kept), added=frozenset(e.id for e in kept), shadowed=shadowed)

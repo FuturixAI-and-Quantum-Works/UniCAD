@@ -179,6 +179,28 @@ def test_ht_rooftop_steps_up_through_a_catalog_transformer_and_rmu(built):
     assert net.node("net_meter").spec == "generic-meter-net-ct_pt-0.5s"
 
 
+def test_a_6_6kv_export_builds_on_catalog_6_6kv_transformers_without_changing_the_grid_voltage():
+    """A 6.6 kV contract is built at 6.6 kV: IS 1180 6.6 kV auxiliary transformers, a 6.6 kV IDT, 6.35/11 kV cables, no blocker."""
+    r = autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_central", "ac_kw": 10000, "module": UTIL_MOD, "inverter": CENTRAL, "grid_voltage_v": 6600})
+    assert_clean(r)
+    assert r.blockers == ()
+    net = r.project.network
+    assert r.project.design_basis.grid.voltage_v == 6600 and net.node("poi").voltage_v == 6600
+    assert (net.node("aux_tr").spec, net.node("blk_aux").spec) == ("is1180-6.6kv-100kva-dyn11", "is1180-6.6kv-63kva-dyn11")
+    assert net.node("idt").spec.hv_kv == 6.6
+    mv = {CATALOG.get(e.cable).voltage_grade for e in net.edges if e.cable and CATALOG.get(e.cable).service == "mv_ac"}
+    assert mv == {"6.35/11 kV"}
+    ht = autobuild(blank("rooftop_500kwp"), CATALOG, {"template": "ci_rooftop", "ac_kw": 2000, "grid_voltage_v": 6600, "module": ROOF_MOD, "inverter": ROOF_INV})
+    assert ht.errors == () and ht.project.network.node("tr").spec == "is1180-6.6kv-2500kva-dyn11"
+
+
+def test_is1180_6_6kv_series_matches_the_11kv_ladder():
+    def ladder(kv):
+        return {(s.rated_kva, s.impedance_pct, s.vector_group) for s in CATALOG.filter("transformer") if s.hv_kv == kv and s.manufacturer == "Generic (IS 1180)"}
+
+    assert ladder(6.6) == ladder(11) and {63, 100, 2500} <= {kva for kva, _, _ in ladder(6.6)}
+
+
 def test_800v_string_inverters_build_with_a_project_idt_and_1150v_breakers():
     r = autobuild(blank("utility_50mwac"), CATALOG, {"template": "utility_string", "ac_kw": 20000, "module": UTIL_MOD, "inverter": "sungrow-sg350hx"})
     assert r.errors == ()

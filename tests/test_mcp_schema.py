@@ -67,7 +67,7 @@ ENUMS: dict[tuple[str, str], set[str]] = {
 NETWORK_UPDATE_FIELDS = {"kind": NODE_KINDS, "service": SERVICES, "laying": LAYINGS}
 
 FREE_TEXT = {
-    "bom.out_dir", "cable_schedule.out_dir", "catalog_get.id", "catalog_search.manufacturer", "catalog_search.text", "company_assign.profile_id", "company_get.profile_id",
+    "bom.out_dir", "cable_schedule.out_dir", "catalog_get.id", "catalog_remove_addition.id", "catalog_search.manufacturer", "catalog_search.text", "company_assign.profile_id", "company_get.profile_id",
     "company_onboard.answers", "company_onboard.dxf_path", "company_preview_sheet.profile_id", "company_update.profile_id", "design_strings.inverter", "design_strings.module",
     "drawings_preview.sheet", "explain_finding.subject", "layout_blocks.block", "layout_place.module", "network_add_group.id", "network_add_group.tag",
     "network_add_group.title", "network_add_group.within", "network_add_node.group", "network_add_node.id", "network_add_node.ports", "network_add_node.spec",

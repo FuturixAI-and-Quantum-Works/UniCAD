@@ -445,9 +445,9 @@ def block_feeder(c: Ctx, group: str, sfx: str, tr_id: str, kv: float, switch: st
 
 def _kv(c: Ctx) -> float:
     kv = c.grid_v / 1000
-    if kv not in (11.0, 22.0, 33.0):
+    if kv not in (6.6, 11.0, 22.0, 33.0):
         hint = "; an LT plant exporting at 415 V into a client's LT panel is template utility_lt" if c.grid_v <= 1000 else "; higher voltages need a pooling transformer the catalog does not hold"
-        raise DesignError(f"grid voltage {c.grid_v:g} V: MV templates export at 11, 22 or 33 kV{hint}")
+        raise DesignError(f"grid voltage {c.grid_v:g} V: MV templates export at 6.6, 11, 22 or 33 kV{hint}")
     return kv
 
 

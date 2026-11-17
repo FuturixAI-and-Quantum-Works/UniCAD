@@ -1,6 +1,6 @@
 [project]
 name = "unicad"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server for solar EPC drawing sets (SLDs, layouts, schedules) rendered through LibreCAD"
 requires-python = ">=3.12"
 dependencies = [

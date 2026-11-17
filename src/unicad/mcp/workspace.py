@@ -5,7 +5,13 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-from unicad.catalog.store import DEFAULT_PATH, KIND_FILES, Catalog, load_catalog
+from unicad.catalog.store import (
+    ADDITIONS_FILE,
+    DEFAULT_PATH,
+    KIND_FILES,
+    Catalog,
+    load_catalog,
+)
 from unicad.domain.network import Edge, Group, Node
 from unicad.domain.project import Project
 from unicad.mcp.config import Config
@@ -31,8 +37,7 @@ class Workspace:
 
     def __init__(self, config: Config) -> None:
         self.base_config = config
-        self._catalog: Catalog | None = None
-        self._catalog_stamp: tuple[tuple[str, int, int], ...] | None = None
+        self._catalogs: dict[Path, tuple[tuple[tuple[str, int, int], ...], Catalog]] = {}
         self._stores: dict[str | None, ProjectStore] = {}
         self._locks: dict[str | None, threading.RLock] = {}
         self._guard = threading.Lock()
@@ -56,26 +61,36 @@ class Workspace:
         with self._guard:
             return self._locks.setdefault(tenant, threading.RLock())
 
+    @property
+    def additions_path(self) -> Path:
+        """Equipment added with catalog_add: a file in the workspace, so the shipped catalog (read-only inside an installed wheel) is never rewritten."""
+        return self.config.workspace / ADDITIONS_FILE
+
     def _catalog_files_stamp(self) -> tuple[tuple[str, int, int], ...]:
         root = Path(self.config.catalog) if self.config.catalog is not None else DEFAULT_PATH
         stamp = []
-        for name in KIND_FILES.values():
+        for path in [*(root / name for name in KIND_FILES.values()), self.additions_path]:
             try:
-                st = (root / name).stat()
+                st = path.stat()
             except OSError:
                 continue
-            stamp.append((name, st.st_mtime_ns, st.st_size))
+            stamp.append((str(path), st.st_mtime_ns, st.st_size))
         return tuple(stamp)
 
     @property
     def catalog(self) -> Catalog:
-        # Loaded again when a catalog file changes: a long-lived server (OpenCAD, Claude Desktop) sees entries an agent
-        # adds to the project catalog while it runs. A file that no longer loads raises, so the agent sees what is wrong.
+        # Loaded again when a catalog file or the workspace's additions file changes: a long-lived server (OpenCAD, Claude Desktop)
+        # sees entries added while it runs. A file that no longer loads raises, so the agent sees what is wrong.
+        additions = self.additions_path
         stamp = self._catalog_files_stamp()
-        if self._catalog is None or stamp != self._catalog_stamp:
-            self._catalog = load_catalog(self.config.catalog)
-            self._catalog_stamp = stamp
-        return self._catalog
+        with self._guard:
+            cached = self._catalogs.get(additions)
+        if cached is not None and cached[0] == stamp:
+            return cached[1]
+        catalog = load_catalog(self.config.catalog, additions)
+        with self._guard:
+            self._catalogs[additions] = (stamp, catalog)
+        return catalog
 
     def resolve(self, project_id: str, ref: int | str | None) -> int:
         """Revision number for a number, a numeric string, a snapshot label, or None for the head."""

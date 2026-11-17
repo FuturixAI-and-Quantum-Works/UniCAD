@@ -200,6 +200,32 @@ Read-only.
 | --- | --- | --- | --- |
 | `id` | string | yes | Catalog id from catalog_search |
 
+### `catalog_add`
+
+Add one piece of equipment the catalog lacks (a module, inverter, transformer, cable, ...). This is the only way to add equipment: never write or edit catalog JSON files.
+
+The entry is checked exactly as catalog files are (an error names each failing field), must have an id not already in the catalog, and is
+appended to the workspace's catalog-additions.json; the shipped catalog files are never rewritten. Copy a similar entry from catalog_get, change id, model, ratings
+and source (cite the datasheet: source.kind 'datasheet', source.ref its file or URL and page).
+
+Example: catalog_add(entry={"id": "acme-tx-1100kva-6.6-0.66", "kind": "transformer", "manufacturer": "Acme", "model": "1100 kVA 6.6/0.66 kV IDT",
+"source": {"kind": "datasheet", "ref": "Acme IDT datasheet rev 2, p.1"}, "rated_kva": 1100, "hv_kv": 6.6, "lv_kv": [0.66], "vector_group": "Dyn11", "impedance_pct": 6.25}).
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `entry` | object | yes | One catalog entry as a JSON object, with the same fields catalog_get returns for that kind: id (lowercase, a-z 0-9 . _ -), kind, manufacturer, model, source {kind, ref} and the kind's ratings |
+| `replace` | boolean | no | Overwrite an entry this workspace added earlier with catalog_add (never a shipped catalog entry) Default: `False`. |
+
+### `catalog_remove_addition`
+
+Remove an entry this workspace added with catalog_add. Shipped catalog entries cannot be removed, and an entry a project still uses is refused.
+
+Example: catalog_remove_addition(id="acme-tx-1100kva-6.6-0.66").
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | string | yes | Id of an entry added with catalog_add |
+
 ## Site tools
 
 ### `site_import`
