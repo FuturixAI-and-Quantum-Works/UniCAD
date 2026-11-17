@@ -36,6 +36,9 @@ def parse_project(text: str, catalog: "Catalog | None" = None) -> Project:
 
 
 def _fsync_dir(path: Path) -> None:
+    if os.name == "nt":
+        # Windows cannot open a directory as a file (PermissionError); NTFS makes the rename durable on its own
+        return
     fd = os.open(path, os.O_RDONLY)
     try:
         os.fsync(fd)
