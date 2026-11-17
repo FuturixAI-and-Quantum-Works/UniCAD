@@ -7,10 +7,14 @@ user's computer: no Python, no uv, no network. ``runtime.json`` in the folder sa
 Usage (from the repository, with uv on PATH):
 
     uv run --no-project python tools/build_runtime.py [--wheel dist/unicad-X.whl] [--out build/unicad-runtime]
-                                                      [--python 3.13] [--archive]
+                                                      [--python 3.13] [--archive] [--with ../UniPlan]
 
 Without ``--wheel`` the wheel is built first (``uv build --wheel``). ``--archive`` also writes
 ``unicad-runtime-<version>-<os>-<arch>.tar.gz`` (``.zip`` on Windows) next to the folder.
+
+``--with`` installs more packages into the same interpreter (a wheel, a source folder or a pip requirement), e.g.
+UniPlan, the planner OpenCAD's super mode runs as ``<python> -m uniplan``; ``runtime.json`` then names its version
+under "uniplan", which is how OpenCAD knows to offer it.
 """
 from __future__ import annotations
 
@@ -94,6 +98,8 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=ROOT / "build" / "unicad-runtime", help="the runtime folder to write")
     ap.add_argument("--python", default="3.13", help="CPython version (default 3.13)")
     ap.add_argument("--archive", action="store_true", help="also write a .tar.gz (.zip on Windows) of the folder")
+    ap.add_argument("--with", dest="extra", action="append", default=[], metavar="PACKAGE",
+                    help="also install this wheel, source folder or requirement (repeatable), e.g. UniPlan")
     args = ap.parse_args()
 
     wheel = (args.wheel or build_wheel()).resolve()
@@ -104,6 +110,9 @@ def main() -> None:
     python = install_python(args.python, out / "python")
     # into the interpreter's own site-packages: no venv, whose paths would not survive the move
     run("uv", "pip", "install", "--python", python, "--break-system-packages", "--no-cache", wheel)
+    for extra in args.extra:
+        path = Path(extra)
+        run("uv", "pip", "install", "--python", python, "--break-system-packages", "--no-cache", path.resolve() if path.exists() else extra)
     trim(out / "python")
     run(python, "-m", "compileall", "-q", "-j", "0", out / "python")  # first start without compiling
 
@@ -122,6 +131,11 @@ def main() -> None:
         "module": "unicad",
         "catalog": catalog.relative_to(out).as_posix(),
     }
+    uniplan = subprocess.run([str(python), "-c", "from importlib.metadata import version; print(version('uniplan'))"],
+                             capture_output=True, text=True)
+    if uniplan.returncode == 0:
+        run(python, "-m", "uniplan", "--help", stdout=subprocess.DEVNULL)  # it starts too
+        manifest["uniplan"] = uniplan.stdout.strip()
     (out / "runtime.json").write_text(json.dumps(manifest, indent=2) + "\n")
     size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file() and not f.is_symlink())
     print(f"runtime: {out} ({size / 1048576:.0f} MB)")
