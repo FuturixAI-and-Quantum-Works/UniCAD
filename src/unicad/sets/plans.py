@@ -31,24 +31,25 @@ ROAD_GAP = 1.25
 ROADS_NOT_STORED = "INTERNAL ROADS PLANNED WITH THE ARRAY ARE NOT STORED IN THE PROJECT AND ARE NOT DRAWN; ROADS IMPORTED WITH THE SITE ARE."
 
 
-_last: list[tuple[Project, EarthingDesign]] = []
+_last: list[tuple[Project, Catalog | None, EarthingDesign]] = []
 
 
-def earthing_of(project: Project) -> EarthingDesign:
-    """The project's earthing design, kept for the next call (the earthing, layout and LPS sheets of one set share it)."""
-    if _last and _last[0][0] is project:
-        return _last[0][1]
-    d = design_earthing(project)
-    _last[:] = [(project, d)]
+def earthing_of(project: Project, catalog: Catalog | None = None) -> EarthingDesign:
+    """The project's earthing design, kept for the next call (the earthing, layout and LPS sheets of one set share it). `catalog` is the
+    one the set is rendered with (the workspace's, with catalog_add entries); None is the shipped catalog."""
+    if _last and _last[0][0] is project and _last[0][1] is catalog:
+        return _last[0][2]
+    d = design_earthing(project, catalog=catalog)
+    _last[:] = [(project, catalog, d)]
     return d
 
 
-def plant_areas(project: Project) -> tuple[EquipmentArea, ...]:
+def plant_areas(project: Project, catalog: Catalog | None = None) -> tuple[EquipmentArea, ...]:
     """The MV switchyard where the earthing design placed its mat, for the layout and LPS sheets to show at the same place."""
     if _no_earthing(project):
         return ()
     try:
-        sy = earthing_of(project).layout.switchyard
+        sy = earthing_of(project, catalog).layout.switchyard
     except EarthingError:
         return ()
     if sy is None:
@@ -196,7 +197,7 @@ class LayoutBuilder:
         view = "roofs" if project.segment in (Segment.CI_ROOFTOP, Segment.RESIDENTIAL) and FeatureKind.ROOF in feats else "site"
         for i, s in enumerate(sheets, start=1):
             drawing = LayoutDrawing(project.site.geometry, drawn_layout(project), _module(project, catalog), max(t.cols for t in layout.table_by_id.values()), pitch,
-                                    notes=layout_notes(project, pitch), areas=plant_areas(project), routes=panel_routes(project, catalog))  # fmt: skip
+                                    notes=layout_notes(project, pitch), areas=plant_areas(project, catalog), routes=panel_routes(project, catalog))  # fmt: skip
             doc = ezdxf.new("R2018", setup=True)
             res = render_layout_sheet(doc, drawing, sheet_spec(project, s, i, len(sheets), drawn_on=drawn_on, kind="layout"), profile, view=view)  # type: ignore[arg-type]
             out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(res.warnings), {"view": view}))
@@ -229,7 +230,7 @@ class EarthingBuilder:
               catalog: Catalog | None, *, drawn_on: date | None = None) -> list[BuiltSheet]:  # fmt: skip
         if not sheets:
             return []
-        d = earthing_of(project)
+        d = earthing_of(project, catalog)
         out = []
         for i, s in enumerate(sheets, start=1):
             doc = ezdxf.new("R2018", setup=True)
@@ -258,7 +259,7 @@ class LpsBuilder:
         for i, s in enumerate(sheets, start=1):
             doc = ezdxf.new("R2018", setup=True)
             res = render_lps_sheet(doc, project, catalog, d, sheet_spec(project, s, i, len(sheets), notes=lps_notes(d), drawn_on=drawn_on, kind="lps"), profile,
-                                   areas=plant_areas(project))  # fmt: skip
+                                   areas=plant_areas(project, catalog))  # fmt: skip
             meta = {"terminals": len(d.terminals), "radius_m": d.radius_m, "uncovered": len(d.uncovered)}
             out.append(BuiltSheet(s.model_copy(update={"scale": f"1:{res.scale}"}), doc, None, tuple(res.warnings), meta))
         return out

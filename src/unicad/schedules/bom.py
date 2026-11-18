@@ -288,7 +288,7 @@ def build_bom(project: Project, catalog: Catalog, schedule: Schedule, wastage_pc
     if wastage_pct < 0:
         raise ValueError("wastage_pct cannot be negative")
     warnings: list[str] = []
-    earth_lines, earth_assumptions, earth_warnings = earthing_lines(project)
+    earth_lines, earth_assumptions, earth_warnings = earthing_lines(project, catalog)
     lines = _node_lines(project, catalog, warnings, frozenset({NodeKind.EARTH_ELECTRODE}) if earth_lines else frozenset())
     lines += earth_lines
     cable_lines, cable_warnings = _cable_lines(schedule, project, catalog, wastage_pct)

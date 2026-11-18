@@ -20,8 +20,9 @@ from unicad.render import Sheet as RenderSheet
 from unicad.sets.numbering import Numberer
 from unicad.sets.registry import BuiltSheet, builder
 from unicad.tenants.store import drawing_profile
+from unicad.data import data_dir
 
-PROFILES = Path(__file__).resolve().parents[3] / "profiles"
+PROFILES = data_dir("profiles")
 Format = Literal["dxf", "pdf", "dwg"]
 INDEX = "index.json"
 IST = timezone(timedelta(hours=5, minutes=30), "IST")

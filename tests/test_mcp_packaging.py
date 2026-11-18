@@ -40,6 +40,36 @@ def test_wheel_ships_catalog_and_profiles(tmp_path):
     assert "unicad-mcp = unicad.mcp.cli:main" in zipfile.ZipFile(wheel).read(entry).decode()
 
 
+INSTALLED_CHECK = """
+import sys
+sys.path.insert(0, sys.argv[1])
+import unicad
+from unicad.catalog.store import DEFAULT_PATH, load_catalog
+from unicad.earthing.design import _default_catalog
+from unicad.schedules.dxf import PROFILE_DIR
+from unicad.sets.render import PROFILES, load_profile
+from unicad.tenants.store import BUNDLED_PROFILES
+assert unicad.__file__.startswith(sys.argv[1]), unicad.__file__
+for p in (DEFAULT_PATH, PROFILE_DIR, PROFILES, BUNDLED_PROFILES):
+    assert p.is_dir() and str(p).startswith(sys.argv[1]), p
+assert len(load_catalog()) == len(_default_catalog()) > 0
+load_profile("default")
+print("ok")
+"""
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv not installed")
+def test_an_installed_wheel_finds_its_own_catalog_and_profiles(tmp_path):
+    # OpenCAD's bundled runtime installs the wheel: paths taken from the source layout (<repo>/catalog) point outside it there
+    # and only fail once installed (bom and drawings_render: python/Lib/catalog/modules.json not found)
+    subprocess.run(["uv", "build", "--wheel", "-o", str(tmp_path), str(ROOT)], check=True, capture_output=True, timeout=300)
+    (wheel,) = tmp_path.glob("unicad-*.whl")
+    site = tmp_path / "site"
+    zipfile.ZipFile(wheel).extractall(site)
+    out = subprocess.run([sys.executable, "-I", "-c", INSTALLED_CHECK, str(site)], capture_output=True, text=True, cwd=tmp_path, timeout=120)
+    assert out.returncode == 0 and out.stdout.strip() == "ok", out.stderr
+
+
 def test_help_runs_without_a_workspace(tmp_path):
     out = subprocess.run([sys.executable, "-m", "unicad", "--help"], capture_output=True, text=True, cwd=tmp_path, timeout=60)
     assert out.returncode == 0 and "--http" in out.stdout and not list(tmp_path.iterdir())

@@ -13,8 +13,9 @@ from unicad.drafting.tables import Column, TableRender, TableSection, TableSpec,
 from unicad.schedules.bom import CATEGORY_ORDER, Bom
 from unicad.schedules.ids import indices
 from unicad.schedules.model import CableRow, Schedule, Section
+from unicad.data import data_dir
 
-PROFILE_DIR = Path(__file__).resolve().parents[3] / "profiles"
+PROFILE_DIR = data_dir("profiles")
 DETAIL_ROW_LIMIT = 150
 REMARK_CHARS = 40
 NOTE_VALUES = "VALUES ARE INDICATIVE; CABLE LENGTHS SHALL BE CONFIRMED BY MEASUREMENT AT SITE BEFORE LAYING."

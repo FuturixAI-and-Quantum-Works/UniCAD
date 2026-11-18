@@ -9,8 +9,9 @@ from typing import Literal
 
 from unicad.drafting.sheets.model import PROFILE_VERSION, CompanyProfile
 from unicad.rules.thresholds import Setting
+from unicad.data import data_dir
 
-BUNDLED_PROFILES = Path(__file__).resolve().parents[3] / "profiles"
+BUNDLED_PROFILES = data_dir("profiles")
 PROFILE_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 DEMO_PROFILE = "default"
 

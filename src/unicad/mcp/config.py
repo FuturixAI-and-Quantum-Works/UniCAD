@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_WORKSPACE = "./unicad-workspace"
-BUNDLED_DATA = Path(__file__).resolve().parents[1] / "_data"
+BUNDLED_DATA = Path(__file__).resolve().parents[1] / "_data"  # the wheel's copies; unicad.data.data_dir finds a checkout's too
 
 
 @dataclass(frozen=True)

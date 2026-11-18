@@ -6,6 +6,7 @@ from typing import get_args
 
 from pydantic import TypeAdapter, ValidationError
 
+from unicad.data import data_dir
 from unicad.domain.catalog import EquipmentSpec, InverterSpec, ModuleSpec, PCSSpec, TransformerSpec
 
 KIND_FILES = {
@@ -19,7 +20,7 @@ KIND_FILES = {
     "meter": "meters.json",
     "logger": "loggers.json",
 }
-DEFAULT_PATH = Path(__file__).resolve().parents[3] / "catalog"
+DEFAULT_PATH = data_dir("catalog")
 ADDITIONS_FILE = "catalog-additions.json"
 _ADAPTER: TypeAdapter[EquipmentSpec] = TypeAdapter(EquipmentSpec)
 
